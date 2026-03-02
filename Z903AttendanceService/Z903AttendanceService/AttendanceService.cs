@@ -80,7 +80,7 @@ namespace Z903AttendanceService
                 // Start named pipe server for internal IPC (UI/backend -> this service)
                 try
                 {
-                    _pipeServer = new NamedPipeServer(PipeConstants.PipeName, LogMessage);
+                    _pipeServer = new NamedPipeServer(PipeConstants.PipeName, LogMessage, _databaseService);
                     _pipeServer.Start();
                     LogMessage("Named pipe server active.");
                 }

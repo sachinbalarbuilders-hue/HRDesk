@@ -25,18 +25,98 @@ namespace Z903AttendanceService
     {
         private readonly string _pipeName;
         private readonly Action<string> _logger;
+        private readonly DatabaseService _databaseService;
         private Thread _listenerThread;
         private volatile bool _running;
 
-        public NamedPipeServer(string pipeName = PipeConstants.PipeName, Action<string> logger = null)
+        public NamedPipeServer(string pipeName = PipeConstants.PipeName, Action<string> logger = null, DatabaseService databaseService = null)
         {
             _pipeName = pipeName;
             _logger = logger;
+            _databaseService = databaseService;
         }
 
         private void Log(string message)
         {
             try { _logger?.Invoke($"[NamedPipeServer] {message}"); } catch { }
+        }
+
+        /// <summary>
+        /// Gets all device configurations from the database.
+        /// Returns a list with a single default entry if DB is unavailable.
+        /// </summary>
+        private System.Collections.Generic.List<DeviceConfigDto> GetAllDevices()
+        {
+            if (_databaseService != null)
+            {
+                try
+                {
+                    var configs = _databaseService.GetDeviceConfigurations();
+                    if (configs != null && configs.Count > 0)
+                        return configs;
+                }
+                catch (Exception ex)
+                {
+                    Log($"WARNING: Failed to get device configurations: {ex.Message}");
+                }
+            }
+
+            // Fallback: return a single default device from static config
+            return new System.Collections.Generic.List<DeviceConfigDto>
+            {
+                new DeviceConfigDto
+                {
+                    Id = 0,
+                    IpAddress = BiometricDeviceService.DeviceConfig.IpAddress,
+                    Port = BiometricDeviceService.DeviceConfig.Port,
+                    MachineNumber = BiometricDeviceService.DeviceConfig.MachineNumber,
+                    CommKey = BiometricDeviceService.DeviceConfig.CommKey
+                }
+            };
+        }
+
+        /// <summary>
+        /// Executes a device operation on ALL configured devices and returns a combined response.
+        /// </summary>
+        private PipeResponse ExecuteOnAllDevices(string operationName, Action<BiometricDeviceService, DeviceConfigDto> operation)
+        {
+            var devices = GetAllDevices();
+            Log($"[MULTI-DEVICE] Executing '{operationName}' on {devices.Count} device(s)...");
+
+            int successCount = 0;
+            int failCount = 0;
+            var errors = new System.Collections.Generic.List<string>();
+
+            foreach (var device in devices)
+            {
+                try
+                {
+                    var deviceService = new BiometricDeviceService(Log);
+                    operation(deviceService, device);
+                    successCount++;
+                    Log($"[MULTI-DEVICE] '{operationName}' succeeded on device {device.IpAddress} (ID={device.Id})");
+                }
+                catch (Exception ex)
+                {
+                    failCount++;
+                    string errMsg = $"Device {device.IpAddress} (ID={device.Id}): {ex.Message}";
+                    errors.Add(errMsg);
+                    Log($"[MULTI-DEVICE] '{operationName}' FAILED on device {device.IpAddress} (ID={device.Id}): {ex.Message}");
+                }
+            }
+
+            if (failCount == 0)
+            {
+                return new PipeResponse { Success = true, Message = $"{operationName} succeeded on all {successCount} device(s)." };
+            }
+            else if (successCount > 0)
+            {
+                return new PipeResponse { Success = true, Message = $"{operationName}: {successCount} succeeded, {failCount} failed. Errors: {string.Join("; ", errors)}" };
+            }
+            else
+            {
+                return new PipeResponse { Success = false, Message = $"{operationName} failed on all {failCount} device(s). Errors: {string.Join("; ", errors)}" };
+            }
         }
 
         public void Start()
@@ -132,23 +212,21 @@ namespace Z903AttendanceService
                             string employeeName = nameMatch.Success ? nameMatch.Groups[1].Value : string.Empty;
                             bool enabled = enabledMatch.Success ? enabledMatch.Groups[1].Value.ToLower() == "true" : true;
 
-                            var deviceService = new BiometricDeviceService(Log);
-                            
                             switch (action.ToLower())
                             {
                                 case "setname":
-                                    deviceService.SetUserInMachine(employeeId, employeeName);
-                                    resp = new PipeResponse { Success = true, Message = "OK" };
+                                    resp = ExecuteOnAllDevices("SetUser", (svc, dev) =>
+                                        svc.SetUserInMachine(employeeId, employeeName, dev.IpAddress, dev.Port, dev.MachineNumber, dev.CommKey));
                                     break;
                                     
                                 case "enableuser":
-                                    deviceService.SetUserEnabled(employeeId, enabled);
-                                    resp = new PipeResponse { Success = true, Message = enabled ? "User enabled" : "User disabled" };
+                                    resp = ExecuteOnAllDevices(enabled ? "EnableUser" : "DisableUser", (svc, dev) =>
+                                        svc.SetUserEnabled(employeeId, enabled, dev.IpAddress, dev.Port, dev.MachineNumber, dev.CommKey));
                                     break;
                                     
                                 case "deleteuser":
-                                    deviceService.DeleteUser(employeeId);
-                                    resp = new PipeResponse { Success = true, Message = "User deleted from device" };
+                                    resp = ExecuteOnAllDevices("DeleteUser", (svc, dev) =>
+                                        svc.DeleteUser(employeeId, dev.IpAddress, dev.Port, dev.MachineNumber, dev.CommKey));
                                     break;
 
                                  case "updateconfig":
@@ -174,6 +252,7 @@ namespace Z903AttendanceService
                                     Log($"Device configuration context updated: IP={ip}, Port={port}, Machine={machineNum}");
 
                                     // Verify connection immediately using provided params
+                                    var deviceService = new BiometricDeviceService(Log);
                                     string connErr;
                                     bool connOk = deviceService.TestConnection(out connErr, ip, port, machineNum, commKey);
                                     if (connOk)
