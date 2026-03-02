@@ -5,7 +5,9 @@
     <Platform Name="x64" />
   </Configurations>
   <Project Path="Z903AttendanceService/Z903AttendanceService.csproj" Id="1493334f-51fd-4a77-8723-961478d76f2b">
+    <BuildType Solution="Debug|Any CPU" Project="Release" />
     <Platform Solution="*|ARM64" Project="ARM64" />
     <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="Debug|Any CPU" Project="x64" />
   </Project>
 </Solution>
