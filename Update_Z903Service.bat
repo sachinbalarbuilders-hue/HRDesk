@@ -27,7 +27,7 @@ if '%errorlevel%' NEQ '0' (
     :: ---- Configuration ----
     set "PROJECT_DIR=%~dp0Z903AttendanceService\Z903AttendanceService"
     set "BUILD_OUTPUT=%PROJECT_DIR%\bin\x64\Release"
-    set "SERVICE_DIR=C:\Services\Z903AttendanceService"
+    set "SERVICE_DIR=C:\HRServices\Z903AttendanceService"
     set "SERVICE_NAME=Z903AttendanceService"
     set "MSBUILD=C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe"
 
