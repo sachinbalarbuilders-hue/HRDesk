@@ -165,10 +165,43 @@ public class CompOffService
         request.Status = "Approved";
         request.ApprovedBy = approvedBy;
         request.ApprovedDate = DateTime.Now;
-        request.ExpiryDate = null; // Removed 90 days validity
+        // 90 days validity from worked date
+        request.ExpiryDate = request.WorkedDate.AddDays(90); 
         request.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Create and approve a manual comp off credit (no punches required)
+    /// </summary>
+    public async Task CreateManualCreditAsync(int employeeId, DateOnly workedDate, decimal days, string approvedBy, string remarks)
+    {
+        // 1. Check if request already exists for this date
+        var existing = await _db.CompOffRequests
+            .FirstOrDefaultAsync(r => r.EmployeeId == employeeId && r.WorkedDate == workedDate);
+
+        if (existing != null)
+            throw new InvalidOperationException($"A Comp-Off request already exists for this employee on {workedDate}");
+
+        // 2. Create the request directly as Pending
+        var request = new CompOffRequest
+        {
+            EmployeeId = employeeId,
+            WorkedDate = workedDate,
+            CompOffDays = days,
+            Status = "Pending",
+            RejectionReason = remarks, // Use as remarks for manual adjustment
+            RequestDate = DateTime.Now,
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+        };
+
+        _db.CompOffRequests.Add(request);
+        await _db.SaveChangesAsync();
+
+        // 3. Approve it using the existing logic (handles balance update and expiry)
+        await ApproveRequestAsync(request.Id, approvedBy);
     }
 
     /// <summary>

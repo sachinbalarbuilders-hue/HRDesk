@@ -24,6 +24,7 @@ namespace AttendanceUI.Pages.CompOff.Requests
         public IList<CompOffRequest> DraftRequests { get; set; } = default!;
         public IList<CompOffRequest> PendingRequests { get; set; } = default!;
         public IList<CompOffRequest> ProcessedRequests { get; set; } = default!;
+        public IList<Employee> Employees { get; set; } = default!;
 
         public string? Message { get; set; }
 
@@ -74,6 +75,23 @@ namespace AttendanceUI.Pages.CompOff.Requests
             return Page();
         }
 
+        public async Task<IActionResult> OnPostManualCreditAsync(int employeeId, System.DateTime workedDate, decimal days, string remarks)
+        {
+            try
+            {
+                var date = System.DateOnly.FromDateTime(workedDate);
+                await _compOffService.CreateManualCreditAsync(employeeId, date, days, "Admin", remarks ?? "Manual Adjustment");
+                Message = "Manual Comp-Off credit added successfully";
+            }
+            catch (System.Exception ex)
+            {
+                Message = $"Error: {ex.Message}";
+            }
+
+            await LoadRequestsAsync();
+            return Page();
+        }
+
         private async Task LoadRequestsAsync()
         {
             var allRequests = await _context.CompOffRequests
@@ -85,6 +103,11 @@ namespace AttendanceUI.Pages.CompOff.Requests
             DraftRequests = allRequests.Where(r => r.Status == "Draft").ToList();
             PendingRequests = allRequests.Where(r => r.Status == "Pending").ToList();
             ProcessedRequests = allRequests.Where(r => r.Status == "Approved" || r.Status == "Rejected").ToList();
+
+            Employees = await _context.Employees
+                .Where(e => e.Status == "Active")
+                .OrderBy(e => e.EmployeeName)
+                .ToListAsync();
         }
     }
 }

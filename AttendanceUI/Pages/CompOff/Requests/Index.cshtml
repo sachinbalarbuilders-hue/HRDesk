@@ -12,6 +12,9 @@
             <h4 class="mb-1 fw-bold">Comp Off Requests</h4>
             <p class="text-muted mb-0 small">Manage compensatory off requests from employees</p>
         </div>
+        <button type="button" class="btn btn-primary drop-shadow-sm" onclick="showManualModal()">
+            <i class="bi bi-plus-circle me-1"></i> Manual Adjustment
+        </button>
     </div>
 
     @if (!string.IsNullOrEmpty(Model.Message))
@@ -246,6 +249,57 @@
     </div>
 </div>
 
+<!-- Manual Adjustment Modal -->
+<div class="modal fade" id="manualModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="ManualCredit">
+                <div class="modal-header">
+                    <h5 class="modal-title">Manual Comp Off Credit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Use this to credit Comp-Off for work done before software implementation (e.g., Dec/Jan).</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Employee</label>
+                        <select name="employeeId" class="form-select" required>
+                            <option value="">-- Select Employee --</option>
+                            @foreach (var emp in Model.Employees)
+                            {
+                                <option value="@emp.EmployeeId">@emp.EmployeeCode - @emp.EmployeeName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Worked Date</label>
+                        <input type="date" name="workedDate" class="form-control" required />
+                        <small class="text-muted">The date on which the employee worked on their week-off.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Comp Off Days</label>
+                        <select name="days" class="form-select" required>
+                            <option value="1.0">1.0 Day (Full)</option>
+                            <option value="0.5">0.5 Day (Half)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Remarks / Reason</label>
+                        <textarea class="form-control" name="remarks" rows="2" placeholder="e.g. Work done in Dec before software implementation" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Credit Balance</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Reject Modal -->
 <div class="modal fade" id="rejectModal" tabindex="-1">
     <div class="modal-dialog">
@@ -335,6 +389,11 @@
             document.getElementById('rejectId').value = id;
             document.getElementById('employeeName').textContent = employeeName;
             var modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+            modal.show();
+        }
+
+        function showManualModal() {
+            var modal = new bootstrap.Modal(document.getElementById('manualModal'));
             modal.show();
         }
 
