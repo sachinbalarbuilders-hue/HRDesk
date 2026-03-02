@@ -165,7 +165,7 @@ public class CompOffService
         request.Status = "Approved";
         request.ApprovedBy = approvedBy;
         request.ApprovedDate = DateTime.Now;
-        request.ExpiryDate = request.WorkedDate.AddDays(90); // 90 days validity
+        request.ExpiryDate = null; // Removed 90 days validity
         request.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
@@ -176,11 +176,6 @@ public class CompOffService
     /// </summary>
     public async Task<decimal> GetValidBalanceAsync(int employeeId, DateOnly onDate)
     {
-        // Legacy Data Fix: If some approved requests have NULL ExpiryDate, fix them now
-        try {
-            await _db.Database.ExecuteSqlRawAsync("UPDATE comp_off_requests SET expiry_date = DATE_ADD(worked_date, INTERVAL 90 DAY) WHERE status = 'Approved' AND expiry_date IS NULL;");
-        } catch { }
-
         // 1. Get total used comp off days (from allocations across ALL years)
         var totalUsed = await _db.LeaveAllocations
             .Include(a => a.LeaveType)
@@ -198,8 +193,6 @@ public class CompOffService
         
         foreach (var req in allApproved)
         {
-            // Use ExpiryDate if exists, otherwise fallback to WorkedDate + 90
-            var expiry = req.ExpiryDate ?? req.WorkedDate.AddDays(90);
             decimal days = req.CompOffDays ?? 0;
             
             if (remainingUsed >= days)
@@ -212,11 +205,8 @@ public class CompOffService
                 decimal unusedInThisReq = days - remainingUsed;
                 remainingUsed = 0;
                 
-                // Only count as available if it hasn't expired yet
-                if (expiry >= onDate)
-                {
-                    availableUnexpired += unusedInThisReq;
-                }
+                // Expiry ignored as per request
+                availableUnexpired += unusedInThisReq;
             }
         }
 

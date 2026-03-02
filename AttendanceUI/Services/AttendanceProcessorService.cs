@@ -29,6 +29,16 @@ public class AttendanceProcessorService
         {
             query = query.Where(e => e.EmployeeId == employeeId.Value);
         }
+        else
+        {
+            // Only process employees who have already joined by this date
+            // AND are active OR those who have actual biometric logs for this day
+            query = query.Where(e => (e.JoiningDate == null || e.JoiningDate <= date) &&
+                                     ((e.Status != null && e.Status.ToLower() == "active") || 
+                                      _db.AttendanceLogs.Any(l => l.EmployeeId == e.EmployeeId && 
+                                                                  l.PunchTime >= date.ToDateTime(TimeOnly.MinValue) && 
+                                                                  l.PunchTime < date.AddDays(1).ToDateTime(TimeOnly.MinValue))));
+        }
 
         var employees = await query.ToListAsync();
         
@@ -88,6 +98,27 @@ public class AttendanceProcessorService
             await ProcessEmployeeDayAsync(emp, date, allLogs.Where(l => l.EmployeeId == emp.EmployeeId).ToList());
         }
 
+        // CLEANUP: If batch processing (no specific employeeId), handle inactive employees
+        // If an employee became inactive, they might have existing "Absent" or "W/O" records 
+        // from a previous run. We should remove them if they have no logs for this day.
+        if (!employeeId.HasValue)
+        {
+            var inactiveToCleanup = await _db.DailyAttendance
+                .Where(d => d.RecordDate == date)
+                .Where(d => _db.Employees.Any(e => e.EmployeeId == d.EmployeeId && (e.Status == null || e.Status.ToLower() != "active")))
+                .Where(d => !_db.AttendanceLogs.Any(l => l.EmployeeId == d.EmployeeId && 
+                                                         l.PunchTime >= date.ToDateTime(TimeOnly.MinValue) && 
+                                                         l.PunchTime < date.AddDays(1).ToDateTime(TimeOnly.MinValue)))
+                // Don't delete if they have approved leave/regularization (processed in DailyAttendance)
+                .Where(d => d.ApplicationNumber == null) 
+                .ToListAsync();
+
+            if (inactiveToCleanup.Any())
+            {
+                _db.DailyAttendance.RemoveRange(inactiveToCleanup);
+            }
+        }
+
         await _db.SaveChangesAsync();
         _logger.LogInformation("Attendance processing completed for {Date}", date);
     }
@@ -112,6 +143,33 @@ public class AttendanceProcessorService
         // If manually overridden, we DO NOT reset Status/Remarks/Penalties.
         // We ONLY update the time-based fields (In/Out/WorkDuration) based on logs.
 
+
+        // IDEMPOTENCY: Reverse previous cross-application sandwich deduction before reset
+        // Within-range sandwiches ("within application") don't modify UsedCount, so skip them
+        if (!string.IsNullOrEmpty(existingRecord.Status) && 
+            !string.IsNullOrEmpty(existingRecord.ApplicationNumber) &&
+            existingRecord.Remarks != null && 
+            existingRecord.Remarks.Contains("Sandwich Leave (covered by"))
+        {
+            _logger.LogInformation("IDEMPOTENCY: Found cross-app sandwich for {EmpId} on {Date}. Application: {AppNum}", emp.EmployeeId, date, existingRecord.ApplicationNumber);
+            var prevYear = GetLeaveYear(date);
+            var refApp = await _db.LeaveApplications
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(la => la.ApplicationNumber == existingRecord.ApplicationNumber);
+            
+            if (refApp != null)
+            {
+                var allocation = await _db.LeaveAllocations
+                    .FirstOrDefaultAsync(a => a.EmployeeId == emp.EmployeeId && 
+                                             a.LeaveTypeId == refApp.LeaveTypeId && 
+                                             a.Year == prevYear);
+                if (allocation != null)
+                {
+                    _logger.LogInformation("IDEMPOTENCY: Reversing -1 from {LeaveType} balance. Current: {UsedCount}", refApp.LeaveType?.Code ?? refApp.LeaveTypeId.ToString(), allocation.UsedCount);
+                    allocation.UsedCount -= 1;
+                }
+            }
+        }
 
         // Reset calculated fields
         existingRecord.ShiftId = emp.ShiftId;
@@ -189,28 +247,44 @@ public class AttendanceProcessorService
                     existingRecord.BreakMinutes = 0;
                     existingRecord.IsActualBreak = false;
 
-                    // Check if the leave type has available balance to cover this sandwich day
-                    int leaveYear = GetLeaveYear(date);
-                    var allocation = await _db.LeaveAllocations
-                        .FirstOrDefaultAsync(a => a.EmployeeId == emp.EmployeeId
-                                               && a.LeaveTypeId == sandwichingLeave.LeaveTypeId
-                                               && a.Year == leaveYear);
+                    // Check if this weekoff is WITHIN the sandwiching leave's date range
+                    // If so, it's already counted in the application's TotalDays — don't deduct again
+                    bool alreadyInTotalDays = date >= sandwichingLeave.StartDate && date <= sandwichingLeave.EndDate;
 
-                    if (allocation != null && allocation.RemainingCount >= 1)
+                    if (alreadyInTotalDays)
                     {
-                        // Cover the sandwich weekoff from paid leave balance
-                        allocation.UsedCount += 1;
-                        allocation.UpdatedAt = DateTime.Now;
+                        // Already counted in TotalDays — just mark the status, no balance change
+                        _logger.LogInformation("SANDWICH (within-range): Marking {Date} for {EmpId} — no deduction (already in TotalDays)", date, emp.EmployeeId);
                         existingRecord.Status = sandwichingLeave.LeaveType?.Code ?? "Leave";
                         existingRecord.ApplicationNumber = sandwichingLeave.ApplicationNumber;
                         existingRecord.Remarks = AppendRemark(existingRecord.Remarks,
-                            $"Sandwich Leave (covered by {sandwichingLeave.LeaveType?.Name ?? sandwichingLeave.ApplicationNumber})");
+                            $"Sandwich Leave (within application {sandwichingLeave.ApplicationNumber})");
                     }
                     else
                     {
-                        // No balance available — fall back to LWP
-                        existingRecord.Status = "LWP";
-                        existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Sandwich Leave (LWP - No Balance)");
+                        // Cross-application sandwich — needs balance deduction
+                        int leaveYear = GetLeaveYear(date);
+                        var allocation = await _db.LeaveAllocations
+                            .FirstOrDefaultAsync(a => a.EmployeeId == emp.EmployeeId
+                                                   && a.LeaveTypeId == sandwichingLeave.LeaveTypeId
+                                                   && a.Year == leaveYear);
+
+                        if (allocation != null && allocation.RemainingCount >= 1)
+                        {
+                            _logger.LogInformation("SANDWICH (cross-app): Deducting +1 from {LeaveType} for {EmpId} on {Date}. Previous Used: {UsedCount}", sandwichingLeave.LeaveType?.Code ?? sandwichingLeave.LeaveTypeId.ToString(), emp.EmployeeId, date, allocation.UsedCount);
+                            allocation.UsedCount += 1;
+                            allocation.UpdatedAt = DateTime.Now;
+                            existingRecord.Status = sandwichingLeave.LeaveType?.Code ?? "Leave";
+                            existingRecord.ApplicationNumber = sandwichingLeave.ApplicationNumber;
+                            existingRecord.Remarks = AppendRemark(existingRecord.Remarks,
+                                $"Sandwich Leave (covered by {sandwichingLeave.LeaveType?.Name ?? sandwichingLeave.ApplicationNumber})");
+                        }
+                        else
+                        {
+                            // No balance available — fall back to LWP
+                            existingRecord.Status = "LWP";
+                            existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Sandwich Leave (LWP - No Balance)");
+                        }
                     }
                     return;
                 }

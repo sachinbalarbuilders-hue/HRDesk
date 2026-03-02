@@ -34,6 +34,11 @@ public sealed class IndexModel : PageModel
 
     public async Task OnGetAsync(int pageNum = 1)
     {
+        if (string.IsNullOrEmpty(StatusFilter))
+        {
+            StatusFilter = "active";
+        }
+        
         CurrentPage = pageNum < 1 ? 1 : pageNum;
         
         var query = _db.Employees

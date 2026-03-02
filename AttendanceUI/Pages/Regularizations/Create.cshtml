@@ -57,7 +57,7 @@
                             </div>
 
                             <!-- Waive Penalty -->
-                            <div class="col-12">
+                            <div class="col-12" id="waivePenaltyGroup">
                                 <div class="px-3 py-2 bg-light rounded-3 border">
                                     <div class="form-check form-switch d-flex justify-content-between align-items-center p-0">
                                         <label class="form-check-label fw-medium" for="waivePenalty">
@@ -229,6 +229,8 @@
                 var target = $("input[name='punchTarget']:checked").val();
                 
                 if (type === "Missed Punch") {
+                    $("#waivePenaltyGroup").hide();
+                    $("#waivePenalty").prop("checked", true); // Default to waived for missed punch as it's not a penalty type
                     $("#punchStatusGroup, #punchLocationGroup").fadeIn(200);
                     
                     if (target === "in") {
@@ -242,6 +244,7 @@
                     }
                     autoFillTimes();
                 } else {
+                    $("#waivePenaltyGroup").show();
                     $("#punchStatusGroup, #punchLocationGroup, #punchInTimeGroup, #punchOutTimeGroup").fadeOut(200);
                 }
             }

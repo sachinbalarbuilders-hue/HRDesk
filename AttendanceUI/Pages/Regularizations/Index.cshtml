@@ -93,11 +93,20 @@
                             </td>
                             <td>
                                 <span class="badge text-bg-secondary mb-1">@(count > 1 ? $"{count} Logs" : first.RequestType)</span><br/>
-                                @if (first.RequestType != "Missed Punch" && !first.WaivePenalty)
+                                @if (first.RequestType != "Missed Punch")
                                 {
-                                    <span class="badge bg-soft-warning text-dark border border-warning mb-1" style="font-size: 0.7rem;">
-                                        <i class="bi bi-exclamation-triangle-fill me-1 text-warning"></i>Penalty Applied
-                                    </span><br/>
+                                    if (first.WaivePenalty)
+                                    {
+                                        <span class="badge bg-soft-success text-success border border-success mb-1" style="font-size: 0.7rem;">
+                                            <i class="bi bi-shield-check me-1"></i>Penalty Waived
+                                        </span><br/>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-soft-info text-info border border-info mb-1" style="font-size: 0.7rem;">
+                                            <i class="bi bi-info-circle me-1"></i>Tracking Only
+                                        </span><br/>
+                                    }
                                 }
                                 <small class="text-muted">
                                     @if (minDate == maxDate) { @minDate.ToString("dd MMM yyyy") }

@@ -127,9 +127,8 @@ public sealed class CreateModel : PageModel
         [Display(Name = "Shift")]
         public int? ShiftId { get; set; }
 
-        [Required]
         [Display(Name = "Weekoff")]
-        public string Weekoff { get; set; } = "";
+        public string? Weekoff { get; set; }
 
         [Required]
         [Display(Name = "Joining Date")]

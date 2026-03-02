@@ -28,10 +28,33 @@
 
         <form method="post" class="row g-3 align-items-end">
             <div class="col-md-3">
+                <label class="form-label">Employee</label>
+                <div class="dropdown" id="empDropdown">
+                    <button class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" id="empDropdownBtn">
+                        <span id="empDropdownLabel">All Employees</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu w-100 p-2" style="max-height: 280px; overflow-y: auto;">
+                        <input type="text" class="form-control form-control-sm mb-2" id="empSearch" placeholder="Search employee..." />
+                        <div class="form-check mb-1 border-bottom pb-1">
+                            <input class="form-check-input" type="checkbox" id="selectAllEmps" />
+                            <label class="form-check-label fw-bold" for="selectAllEmps">Select All</label>
+                        </div>
+                        @foreach (var emp in Model.Employees)
+                        {
+                            <div class="form-check mb-1 emp-item">
+                                <input class="form-check-input emp-check" type="checkbox" name="EmployeeIds" value="@emp.EmployeeId" id="emp_@emp.EmployeeId" />
+                                <label class="form-check-label" for="emp_@emp.EmployeeId">@emp.EmployeeName <small class="text-muted">(ID: @emp.EmployeeId)</small></label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
                 <label asp-for="FromDate" class="form-label">From Date</label>
                 <input asp-for="FromDate" class="form-control" type="date" />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label asp-for="ToDate" class="form-label">To Date</label>
                 <input asp-for="ToDate" class="form-control" type="date" />
             </div>
@@ -50,5 +73,44 @@
                 </button>
             </div>
         </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const checks = document.querySelectorAll('.emp-check');
+    const selectAll = document.getElementById('selectAllEmps');
+    const label = document.getElementById('empDropdownLabel');
+    const search = document.getElementById('empSearch');
+
+    function updateLabel() {
+        const selected = document.querySelectorAll('.emp-check:checked');
+        if (selected.length === 0) {
+            label.textContent = 'All Employees';
+        } else if (selected.length === 1) {
+            label.textContent = selected[0].parentElement.querySelector('label').textContent.trim();
+        } else {
+            label.textContent = selected.length + ' employees selected';
+        }
+    }
+
+    checks.forEach(c => c.addEventListener('change', function () {
+        selectAll.checked = document.querySelectorAll('.emp-check:checked').length === checks.length;
+        updateLabel();
+    }));
+
+    selectAll.addEventListener('change', function () {
+        const visible = document.querySelectorAll('.emp-item:not([style*="display: none"]) .emp-check');
+        visible.forEach(c => c.checked = selectAll.checked);
+        updateLabel();
+    });
+
+    search.addEventListener('input', function () {
+        const q = search.value.toLowerCase();
+        document.querySelectorAll('.emp-item').forEach(item => {
+            const text = item.querySelector('label').textContent.toLowerCase();
+            item.style.display = text.includes(q) ? '' : 'none';
+        });
+    });
+});
+</script>
     </div>
 </div>

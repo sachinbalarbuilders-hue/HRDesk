@@ -36,8 +36,10 @@ public class MonthlyAttendanceSheetModel : PageModel
         var employees = await _db.Employees
             .Include(e => e.Department)
             .Include(e => e.Shift)
-            .Where(e => e.Status == "active" || 
-                        _db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate >= startDate && a.RecordDate < endDate))
+            .Where(e => (e.Status != null && e.Status.ToLower() == "active") || 
+                        _db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && 
+                                                     a.RecordDate >= startDate && a.RecordDate < endDate && 
+                                                     a.Status != "Absent" && a.Status != "W/O" && a.Status != "Holiday"))
             .OrderBy(e => e.EmployeeName)
             .ToListAsync();
 

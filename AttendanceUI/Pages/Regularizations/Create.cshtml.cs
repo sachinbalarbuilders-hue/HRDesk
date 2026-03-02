@@ -25,7 +25,7 @@ namespace AttendanceUI.Pages.Regularizations
 
         public async Task<IActionResult> OnGetAsync()
         {
-            ViewData["EmployeeId"] = new SelectList(_context.Employees, "EmployeeId", "EmployeeName");
+            ViewData["EmployeeId"] = new SelectList(_context.Employees.Where(e => e.Status == "active"), "EmployeeId", "EmployeeName");
             ViewData["NextAppNo"] = await _sequenceService.PeekNextApplicationNumberAsync(DateOnly.FromDateTime(DateTime.Today));
             return Page();
         }

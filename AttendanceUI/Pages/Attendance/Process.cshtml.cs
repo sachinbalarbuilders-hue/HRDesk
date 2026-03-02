@@ -1,4 +1,5 @@
 using AttendanceUI.Data;
+using AttendanceUI.Models;
 using AttendanceUI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -28,15 +29,30 @@ public class ProcessModel : PageModel
     [BindProperty]
     public bool ClearFutureData { get; set; } = false;
 
+    [BindProperty]
+    public List<int> EmployeeIds { get; set; } = new();
+
+    public List<Employee> Employees { get; set; } = new();
+
     [TempData]
     public string Message { get; set; } = "";
 
-    public void OnGet()
+    public async Task OnGetAsync()
     {
+        Employees = await _db.Employees
+            .Where(e => e.Status == "active")
+            .OrderBy(e => e.EmployeeName)
+            .ToListAsync();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
+        // Reload employees for the dropdown if we return Page()
+        Employees = await _db.Employees
+            .Where(e => e.Status == "active")
+            .OrderBy(e => e.EmployeeName)
+            .ToListAsync();
+
         if (FromDate > ToDate)
         {
             Message = "Error: From Date cannot be later than To Date.";
@@ -60,13 +76,41 @@ public class ProcessModel : PageModel
                 }
             }
 
-            for (var d = FromDate; d <= ToDate; d = d.AddDays(1))
+            if (EmployeeIds.Any())
             {
-                await _processor.ProcessDailyAttendanceAsync(d);
+                // Process only selected employees
+                foreach (var empId in EmployeeIds)
+                {
+                    for (var d = FromDate; d <= ToDate; d = d.AddDays(1))
+                    {
+                        await _processor.ProcessDailyAttendanceAsync(d, empId);
+                    }
+                }
+            }
+            else
+            {
+                // Process all employees
+                for (var d = FromDate; d <= ToDate; d = d.AddDays(1))
+                {
+                    await _processor.ProcessDailyAttendanceAsync(d);
+                }
             }
             
+            string empName;
+            if (EmployeeIds.Any())
+            {
+                var names = await _db.Employees
+                    .Where(e => EmployeeIds.Contains(e.EmployeeId))
+                    .Select(e => e.EmployeeName)
+                    .ToListAsync();
+                empName = string.Join(", ", names);
+            }
+            else
+            {
+                empName = "All Employees";
+            }
             var clearMsg = ClearFutureData ? " (Future data cleared)" : "";
-            Message = $"Success: Attendance processed from {FromDate} to {ToDate}.{clearMsg}";
+            Message = $"Success: Attendance processed for {empName} from {FromDate} to {ToDate}.{clearMsg}";
         }
         catch (Exception ex)
         {

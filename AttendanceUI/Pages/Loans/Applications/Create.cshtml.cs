@@ -26,7 +26,7 @@ namespace AttendanceUI.Pages.Loans.Applications
 
         public async Task<IActionResult> OnGetAsync()
         {
-            ViewData["EmployeeId"] = new SelectList(await _context.Employees.ToListAsync(), "EmployeeId", "EmployeeName");
+            ViewData["EmployeeId"] = new SelectList(await _context.Employees.Where(e => e.Status == "active").ToListAsync(), "EmployeeId", "EmployeeName");
             ViewData["LoanTypeId"] = new SelectList(await _context.LoanTypes.Where(lt => lt.IsActive).ToListAsync(), "Id", "TypeName");
             return Page();
         }
@@ -35,7 +35,7 @@ namespace AttendanceUI.Pages.Loans.Applications
         {
             if (!ModelState.IsValid)
             {
-                ViewData["EmployeeId"] = new SelectList(await _context.Employees.ToListAsync(), "EmployeeId", "EmployeeName");
+                ViewData["EmployeeId"] = new SelectList(await _context.Employees.Where(e => e.Status == "active").ToListAsync(), "EmployeeId", "EmployeeName");
                 ViewData["LoanTypeId"] = new SelectList(await _context.LoanTypes.Where(lt => lt.IsActive).ToListAsync(), "Id", "TypeName");
                 return Page();
             }
@@ -48,7 +48,7 @@ namespace AttendanceUI.Pages.Loans.Applications
             if (LoanApplication.Installments == 0)
             {
                 ModelState.AddModelError("LoanApplication.InstallmentAmount", "EMI must be greater than zero.");
-                ViewData["EmployeeId"] = new SelectList(await _context.Employees.ToListAsync(), "EmployeeId", "EmployeeName");
+                ViewData["EmployeeId"] = new SelectList(await _context.Employees.Where(e => e.Status == "active").ToListAsync(), "EmployeeId", "EmployeeName");
                 ViewData["LoanTypeId"] = new SelectList(await _context.LoanTypes.Where(lt => lt.IsActive).ToListAsync(), "Id", "TypeName");
                 return Page();
             }
@@ -56,7 +56,7 @@ namespace AttendanceUI.Pages.Loans.Applications
             if (LoanApplication.StartingPaidInstallments > LoanApplication.Installments)
             {
                 ModelState.AddModelError("LoanApplication.StartingPaidInstallments", $"Already paid installments cannot exceed total installments ({LoanApplication.Installments}).");
-                ViewData["EmployeeId"] = new SelectList(await _context.Employees.ToListAsync(), "EmployeeId", "EmployeeName");
+                ViewData["EmployeeId"] = new SelectList(await _context.Employees.Where(e => e.Status == "active").ToListAsync(), "EmployeeId", "EmployeeName");
                 ViewData["LoanTypeId"] = new SelectList(await _context.LoanTypes.Where(lt => lt.IsActive).ToListAsync(), "Id", "TypeName");
                 return Page();
             }

@@ -28,7 +28,7 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
-        Employees = await _db.Employees.OrderBy(e => e.EmployeeName).ToListAsync();
+        Employees = await _db.Employees.Where(e => e.Status == "active").OrderBy(e => e.EmployeeName).ToListAsync();
         LeaveTypes = await _db.LeaveTypes.Where(lt => lt.Status == "Active").ToListAsync();
 
         // Default to today to avoid 0001-01-01 error
@@ -241,22 +241,41 @@ public class IndexModel : PageModel
             return Page();
         }
 
-        // 3. Calculate Total Days (Skipping Holidays and Weekoffs)
+        // 3. Calculate Total Days (Skipping Holidays and Weekoffs, but including sandwiched weekoffs)
         decimal workDaysCount = 0;
         string weekoffDay = emp.Weekoff?.Trim() ?? "";
+        decimal dayMultiplier = (NewApplication.DayType == "First Half" || NewApplication.DayType == "Second Half") ? 0.5m : 1.0m;
         
         var holidaysList = await _db.Holidays
             .Where(h => h.IsGlobal || _db.HolidayEmployees.Any(he => he.HolidayId == h.Id && he.EmployeeId == NewApplication.EmployeeId))
             .ToListAsync();
 
+        // Build a list of day classifications within the range
+        var dayInfos = new List<(DateOnly Date, bool IsWorkDay, bool IsWeekoff, bool IsHoliday)>();
         for (var d = NewApplication.StartDate; d <= NewApplication.EndDate; d = d.AddDays(1))
         {
             bool isHoliday = holidaysList.Any(h => d >= h.StartDate && d <= h.EndDate);
             bool isWeekoff = !string.IsNullOrEmpty(weekoffDay) && d.DayOfWeek.ToString().Equals(weekoffDay, StringComparison.OrdinalIgnoreCase);
+            bool isWorkDay = !isHoliday && !isWeekoff;
+            dayInfos.Add((d, isWorkDay, isWeekoff, isHoliday));
 
-            if (!isHoliday && !isWeekoff)
+            if (isWorkDay)
             {
-                workDaysCount += (NewApplication.DayType == "First Half" || NewApplication.DayType == "Second Half") ? 0.5m : 1.0m;
+                workDaysCount += dayMultiplier;
+            }
+        }
+
+        // Include sandwiched weekoffs: a weekoff within the range that has working days on both sides
+        if (!NewApplication.IgnoreSandwichRule)
+        {
+            foreach (var di in dayInfos.Where(x => x.IsWeekoff))
+            {
+                bool hasWorkDayBefore = dayInfos.Any(x => x.Date < di.Date && x.IsWorkDay);
+                bool hasWorkDayAfter = dayInfos.Any(x => x.Date > di.Date && x.IsWorkDay);
+                if (hasWorkDayBefore && hasWorkDayAfter)
+                {
+                    workDaysCount += dayMultiplier;
+                }
             }
         }
 
@@ -312,8 +331,8 @@ public class IndexModel : PageModel
         _db.LeaveApplications.Add(NewApplication);
         await _db.SaveChangesAsync();
 
-        // 5. Trigger attendance re-processing for the FULL original range
-        for (var date = NewApplication.StartDate; date <= NewApplication.EndDate; date = date.AddDays(1))
+        // 5. Trigger attendance re-processing for the FULL range (including adjacent days for sandwiches)
+        for (var date = NewApplication.StartDate.AddDays(-1); date <= NewApplication.EndDate.AddDays(1); date = date.AddDays(1))
         {
             await _processor.ProcessDailyAttendanceAsync(date, NewApplication.EmployeeId);
         }
@@ -344,6 +363,17 @@ public class IndexModel : PageModel
         if (oldAllocation != null)
         {
             oldAllocation.UsedCount -= oldTotalDays;
+
+            // Also reverse any cross-application sandwich deductions linked to this application
+            var oldSandwichCount = await _db.DailyAttendance
+                .Where(d => d.EmployeeId == application.EmployeeId &&
+                            d.ApplicationNumber == application.ApplicationNumber &&
+                            d.Remarks != null && d.Remarks.Contains("Sandwich Leave (covered by"))
+                .CountAsync();
+            if (oldSandwichCount > 0)
+            {
+                oldAllocation.UsedCount -= oldSandwichCount;
+            }
         }
 
         // Store old range for re-processing
@@ -365,23 +395,41 @@ public class IndexModel : PageModel
             return Page();
         }
 
-        // 4. Calculate Total Days (Skipping Holidays and Weekoffs)
+        // 4. Calculate Total Days (Skipping Holidays and Weekoffs, but including sandwiched weekoffs)
         var emp = await _db.Employees.FindAsync(application.EmployeeId);
         decimal workDaysCount = 0;
         string weekoffDay = emp?.Weekoff?.Trim() ?? "";
+        decimal dayMultiplier = (EditApplication.DayType == "First Half" || EditApplication.DayType == "Second Half") ? 0.5m : 1.0m;
         
         var holidaysList = await _db.Holidays
             .Where(h => h.IsGlobal || _db.HolidayEmployees.Any(he => he.HolidayId == h.Id && he.EmployeeId == application.EmployeeId))
             .ToListAsync();
 
+        var dayInfos = new List<(DateOnly Date, bool IsWorkDay, bool IsWeekoff, bool IsHoliday)>();
         for (var d = EditApplication.StartDate; d <= EditApplication.EndDate; d = d.AddDays(1))
         {
             bool isHoliday = holidaysList.Any(h => d >= h.StartDate && d <= h.EndDate);
             bool isWeekoff = !string.IsNullOrEmpty(weekoffDay) && d.DayOfWeek.ToString().Equals(weekoffDay, StringComparison.OrdinalIgnoreCase);
+            bool isWorkDay = !isHoliday && !isWeekoff;
+            dayInfos.Add((d, isWorkDay, isWeekoff, isHoliday));
 
-            if (!isHoliday && !isWeekoff)
+            if (isWorkDay)
             {
-                workDaysCount += (EditApplication.DayType == "First Half" || EditApplication.DayType == "Second Half") ? 0.5m : 1.0m;
+                workDaysCount += dayMultiplier;
+            }
+        }
+
+        // Include sandwiched weekoffs
+        if (!EditApplication.IgnoreSandwichRule)
+        {
+            foreach (var di in dayInfos.Where(x => x.IsWeekoff))
+            {
+                bool hasWorkDayBefore = dayInfos.Any(x => x.Date < di.Date && x.IsWorkDay);
+                bool hasWorkDayAfter = dayInfos.Any(x => x.Date > di.Date && x.IsWorkDay);
+                if (hasWorkDayBefore && hasWorkDayAfter)
+                {
+                    workDaysCount += dayMultiplier;
+                }
             }
         }
 
@@ -440,9 +488,9 @@ public class IndexModel : PageModel
 
         await _db.SaveChangesAsync();
 
-        // Re-process both old and new ranges
-        var combinedStart = oldStart < application.StartDate ? oldStart : application.StartDate;
-        var combinedEnd = oldEnd > application.EndDate ? oldEnd : application.EndDate;
+        // Re-process both old and new ranges (including adjacent days for sandwiches)
+        var combinedStart = (oldStart < application.StartDate ? oldStart : application.StartDate).AddDays(-1);
+        var combinedEnd = (oldEnd > application.EndDate ? oldEnd : application.EndDate).AddDays(1);
 
         for (var d = combinedStart; d <= combinedEnd; d = d.AddDays(1))
         {
@@ -466,6 +514,18 @@ public class IndexModel : PageModel
             if (allocation != null)
             {
                 allocation.UsedCount -= application.TotalDays;
+
+                // Also reverse any cross-application sandwich deductions linked to this application
+                // (Within-range sandwiches are already included in TotalDays above)
+                var sandwichCount = await _db.DailyAttendance
+                    .Where(d => d.EmployeeId == application.EmployeeId &&
+                                d.ApplicationNumber == application.ApplicationNumber &&
+                                d.Remarks != null && d.Remarks.Contains("Sandwich Leave (covered by"))
+                    .CountAsync();
+                if (sandwichCount > 0)
+                {
+                    allocation.UsedCount -= sandwichCount;
+                }
             }
 
             _db.LeaveApplications.Remove(application);
@@ -474,8 +534,8 @@ public class IndexModel : PageModel
             // Auto-resync sequence to close gaps if it was the latest
             await _sequenceService.ResyncSequenceAsync(application.StartDate.Year, application.StartDate.Month);
 
-            // Re-process attendance for the deleted leave range
-            for (var d = application.StartDate; d <= application.EndDate; d = d.AddDays(1))
+            // Re-process attendance for the deleted leave range (including adjacent days for sandwiches)
+            for (var d = application.StartDate.AddDays(-1); d <= application.EndDate.AddDays(1); d = d.AddDays(1))
             {
                 await _processor.ProcessDailyAttendanceAsync(d, application.EmployeeId);
             }

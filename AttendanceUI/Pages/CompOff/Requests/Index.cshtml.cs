@@ -29,15 +29,6 @@ namespace AttendanceUI.Pages.CompOff.Requests
 
         public async Task OnGetAsync()
         {
-            // Execute manual SQL to ensure the column exists and legacy data is fixed
-            try {
-                // 1. Ensure column exists
-                await _context.Database.ExecuteSqlRawAsync("ALTER TABLE comp_off_requests ADD COLUMN IF NOT EXISTS expiry_date DATE NULL;");
-                
-                // 2. Fix legacy data: Set ExpiryDate to WorkedDate + 90 days for existing approved requests
-                await _context.Database.ExecuteSqlRawAsync("UPDATE comp_off_requests SET expiry_date = DATE_ADD(worked_date, INTERVAL 90 DAY) WHERE status = 'Approved' AND expiry_date IS NULL;");
-            } catch { /* Ignore if it fails */ }
-
             await LoadRequestsAsync();
         }
 

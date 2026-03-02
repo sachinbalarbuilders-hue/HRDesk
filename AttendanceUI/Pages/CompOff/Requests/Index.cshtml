@@ -193,7 +193,6 @@
                                         <th>Hours Worked</th>
                                         <th>Comp Off</th>
                                         <th>Status</th>
-                                        <th>Expires On</th>
                                         <th>Processed By</th>
                                         <th>Date</th>
                                     </tr>
@@ -225,22 +224,6 @@
                                                     {
                                                         <br /><small class="text-muted">@item.RejectionReason</small>
                                                     }
-                                                }
-                                            </td>
-                                            <td>
-                                                @if (item.Status == "Approved" && item.ExpiryDate.HasValue)
-                                                {
-                                                    <span class="@(item.ExpiryDate < DateOnly.FromDateTime(DateTime.Today) ? "text-danger fw-bold" : "text-muted")">
-                                                        @item.ExpiryDate.Value.ToString("dd-MMM-yyyy")
-                                                        @if (item.ExpiryDate < DateOnly.FromDateTime(DateTime.Today))
-                                                        {
-                                                            <br /><small>(Expired)</small>
-                                                        }
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <span>-</span>
                                                 }
                                             </td>
                                             <td>@item.ApprovedBy</td>
