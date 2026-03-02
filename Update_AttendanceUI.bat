@@ -22,8 +22,8 @@ if '%errorlevel%' NEQ '0' (
     echo =====================================================
     echo.
     echo Step 1: Publishing application (Release)...
-    cd /d "c:\Users\Admin\AttendanceUI\AttendanceUI"
-    dotnet publish -c Release -o "c:\Users\Admin\AttendanceUI\AttendanceUI\publish" --nologo
+    cd /d "%~dp0AttendanceUI"
+    dotnet publish -c Release -o "%~dp0AttendanceUI\publish" --nologo
     if %errorlevel% neq 0 (
         echo.
         echo ERROR: Publish failed! Update aborted.
@@ -45,7 +45,7 @@ if '%errorlevel%' NEQ '0' (
     :: /MIR = Mirror directory (copies all, deletes extras)
     :: /Z = Restartable mode
     :: /XD = Exclude logs folder if exists
-    robocopy "c:\Users\Admin\AttendanceUI\AttendanceUI\publish" "C:\inetpub\AttendanceUI" /MIR /Z /XD "logs" "UserUploads"
+    robocopy "%~dp0AttendanceUI\publish" "C:\inetpub\AttendanceUI" /MIR /Z /XD "logs" "UserUploads"
     
     echo.
     echo Step 4: Restarting IIS services...
