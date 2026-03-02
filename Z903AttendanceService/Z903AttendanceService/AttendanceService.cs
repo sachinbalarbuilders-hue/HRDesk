@@ -11,7 +11,7 @@ namespace Z903AttendanceService
 {
     public partial class AttendanceService : ServiceBase
     {
-        private const string LogDirectory = @"C:\BiometricService\Logs";
+        private const string LogDirectory = @"C:\Services\Z903AttendanceService\Logs";
         private const string LogFileName = "service.log";
         private const int DefaultMachineNumber = 1;
         private static readonly TimeSpan SyncInterval = TimeSpan.FromMinutes(5);
