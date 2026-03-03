@@ -84,10 +84,12 @@ public class MonthlyAttendanceSheetModel : PageModel
                     dto.InTime = log.InTime;
                     dto.OutTime = log.OutTime;
                     
+                    // Find matching leave application for this date
+                    var app = leaveApps.FirstOrDefault(la => la.EmployeeId == emp.EmployeeId && date >= la.StartDate && date <= la.EndDate);
+
                     // Specific Leave Logic
                     if (log.Status == "Leave" || log.Status == "Present (Leave)")
                     {
-                        var app = leaveApps.FirstOrDefault(la => la.EmployeeId == emp.EmployeeId && date >= la.StartDate && date <= la.EndDate);
                         if (app?.LeaveType != null)
                         {
                             dto.Status = app.LeaveType.Code + (log.Status == "Present (Leave)" ? "P" : "");
@@ -101,6 +103,16 @@ public class MonthlyAttendanceSheetModel : PageModel
                     {
                         dto.Status = GetStatusChar(log);
                     }
+
+                    // Build tooltip: Application No + Reason/Remarks
+                    var tooltipParts = new List<string>();
+                    if (!string.IsNullOrEmpty(log.ApplicationNumber))
+                        tooltipParts.Add($"App#: {log.ApplicationNumber}");
+                    if (app != null && !string.IsNullOrEmpty(app.Reason))
+                        tooltipParts.Add($"Reason: {app.Reason}");
+                    if (!string.IsNullOrEmpty(log.Remarks))
+                        tooltipParts.Add(log.Remarks);
+                    dto.Tooltip = string.Join(" | ", tooltipParts);
                     dto.IsEarly = log.IsEarly;
                     dto.ShiftStartTime = emp.Shift?.StartTime;
                     
@@ -194,6 +206,7 @@ public class MonthlyAttendanceSheetModel : PageModel
         public TimeSpan? BreakDuration { get; set; }
         public bool IsActualBreak { get; set; }
         public string Status { get; set; } = "-";
+        public string Tooltip { get; set; } = "";
         public bool IsEarly { get; set; }
         public TimeOnly? ShiftStartTime { get; set; }
     }

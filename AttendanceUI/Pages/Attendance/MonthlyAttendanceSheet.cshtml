@@ -155,7 +155,7 @@
                     @for (int i = 1; i <= Model.DaysInMonth; i++)
                     {
                         var rec = summary.DailyRecords[i];
-                        <td class="status-@rec.Status">
+                        <td class="status-@rec.Status" title="@rec.Tooltip" style="@(!string.IsNullOrEmpty(rec.Tooltip) ? "cursor:help;" : "")">
                             @rec.Status
                         </td>
                     }
