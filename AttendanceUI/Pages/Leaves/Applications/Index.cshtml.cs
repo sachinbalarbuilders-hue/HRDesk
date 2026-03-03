@@ -51,7 +51,7 @@ public class IndexModel : PageModel
 
         if (type != null && type.Code == "CO")
         {
-            // For Comp-Off, use the custom expiry-aware calculation
+            // For Comp-Off, use the custom balance calculation
             remaining = await _compOffService.GetValidBalanceAsync(employeeId, date);
         }
         else

@@ -32,9 +32,6 @@ public class CompOffRequest
     [Column("comp_off_days")]
     public decimal? CompOffDays { get; set; }
 
-    [Column("expiry_date")]
-    public DateOnly? ExpiryDate { get; set; }
-
     [Column("request_date")]
     public DateTime RequestDate { get; set; } = DateTime.Now;
 

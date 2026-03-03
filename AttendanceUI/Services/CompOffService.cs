@@ -165,8 +165,6 @@ public class CompOffService
         request.Status = "Approved";
         request.ApprovedBy = approvedBy;
         request.ApprovedDate = DateTime.Now;
-        // 90 days validity from worked date
-        request.ExpiryDate = request.WorkedDate.AddDays(90); 
         request.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
@@ -200,7 +198,7 @@ public class CompOffService
         _db.CompOffRequests.Add(request);
         await _db.SaveChangesAsync();
 
-        // 3. Approve it using the existing logic (handles balance update and expiry)
+        // 3. Approve it using the existing logic (handles balance update)
         await ApproveRequestAsync(request.Id, approvedBy);
     }
 
@@ -214,36 +212,28 @@ public class CompOffService
             .Include(a => a.LeaveType)
             .Where(a => a.EmployeeId == employeeId && a.LeaveType.Code == "CO")
             .SumAsync(a => (decimal?)a.UsedCount) ?? 0;
+
+        // 2. Get opening balance (manually added credits not from CompOffRequests)
+        var openingBalance = await _db.LeaveAllocations
+            .Include(a => a.LeaveType)
+            .Where(a => a.EmployeeId == employeeId && a.LeaveType.Code == "CO")
+            .SumAsync(a => (decimal?)a.OpeningBalance) ?? 0;
             
-        // 2. Get all approved comp offs to calculate balance using FIFO
+        // 3. Get all approved comp offs to calculate balance using FIFO
         var allApproved = await _db.CompOffRequests
             .Where(r => r.EmployeeId == employeeId && r.Status == "Approved")
             .OrderBy(r => r.WorkedDate)
             .ToListAsync();
-            
-        decimal remainingUsed = totalUsed;
-        decimal availableUnexpired = 0;
-        
+
+        // Total credits = sum of approved comp-off days + opening balance
+        decimal totalCredits = openingBalance;
         foreach (var req in allApproved)
         {
-            decimal days = req.CompOffDays ?? 0;
-            
-            if (remainingUsed >= days)
-            {
-                remainingUsed -= days;
-            }
-            else
-            {
-                // This credit is partially or fully unused
-                decimal unusedInThisReq = days - remainingUsed;
-                remainingUsed = 0;
-                
-                // Expiry ignored as per request
-                availableUnexpired += unusedInThisReq;
-            }
+            totalCredits += req.CompOffDays ?? 0;
         }
 
-        return availableUnexpired;
+        // Available = total credits - total used
+        return Math.Max(0, totalCredits - totalUsed);
     }
 
     /// <summary>
