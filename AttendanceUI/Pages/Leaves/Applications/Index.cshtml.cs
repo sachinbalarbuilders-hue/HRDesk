@@ -268,7 +268,7 @@ public class IndexModel : PageModel
         // Include sandwiched weekoffs: a weekoff within the range that has working days on both sides
         if (!NewApplication.IgnoreSandwichRule)
         {
-            foreach (var di in dayInfos.Where(x => x.IsWeekoff))
+            foreach (var di in dayInfos.Where(x => x.IsWeekoff && !x.IsHoliday))
             {
                 bool hasWorkDayBefore = dayInfos.Any(x => x.Date < di.Date && x.IsWorkDay);
                 bool hasWorkDayAfter = dayInfos.Any(x => x.Date > di.Date && x.IsWorkDay);
@@ -294,6 +294,7 @@ public class IndexModel : PageModel
         NewApplication.CreatedAt = now;
 
         decimal totalDaysRequested = NewApplication.TotalDays;
+        DateOnly endDateOriginal = NewApplication.EndDate; // Save before auto-split may modify it
 
         // 5. Update Allocation & Check Balance
         var leaveYear = AttendanceProcessorService.GetLeaveYear(NewApplication.StartDate);
@@ -302,7 +303,7 @@ public class IndexModel : PageModel
                                        la.LeaveTypeId == NewApplication.LeaveTypeId && 
                                        la.Year == leaveYear);
         
-        // BALANCE VALIDATION
+        // BALANCE VALIDATION & AUTO-SPLIT
         if (type.IsPaid)
         {
             if (allocation == null)
@@ -313,15 +314,102 @@ public class IndexModel : PageModel
             }
 
             decimal remaining = allocation.TotalAllocated + allocation.OpeningBalance - allocation.UsedCount;
-            if (totalDaysRequested > remaining)
+            
+            if (totalDaysRequested > remaining && remaining > 0)
             {
-                ModelState.AddModelError("", $"Insufficient balance. Available: {remaining} days, Requested: {totalDaysRequested} days.");
+                // AUTO-SPLIT: Create paid leave for available balance, LWP for the rest
+                var lwpType = await _db.LeaveTypes.FirstOrDefaultAsync(lt => lt.Code == "LWP");
+                if (lwpType == null)
+                {
+                    ModelState.AddModelError("", "LWP leave type not configured. Cannot auto-split insufficient balance.");
+                    await OnGetAsync();
+                    return Page();
+                }
+
+                // Build ordered list of deductible dates
+                var deductibleDates = new List<DateOnly>();
+                foreach (var di in dayInfos.Where(x => x.IsWorkDay))
+                {
+                    deductibleDates.Add(di.Date);
+                }
+                if (!NewApplication.IgnoreSandwichRule)
+                {
+                    foreach (var di in dayInfos.Where(x => x.IsWeekoff && !x.IsHoliday))
+                    {
+                        bool hasWorkBefore = dayInfos.Any(x => x.Date < di.Date && x.IsWorkDay);
+                        bool hasWorkAfter = dayInfos.Any(x => x.Date > di.Date && x.IsWorkDay);
+                        if (hasWorkBefore && hasWorkAfter)
+                            deductibleDates.Add(di.Date);
+                    }
+                }
+                deductibleDates.Sort();
+
+                // Find split point: walk through dates until PL balance is exhausted
+                decimal accumulated = 0;
+                DateOnly plEndDate = NewApplication.StartDate;
+                foreach (var d in deductibleDates)
+                {
+                    accumulated += dayMultiplier;
+                    plEndDate = d;
+                    if (accumulated >= remaining) break;
+                }
+
+                decimal plDays = remaining;
+                decimal lwpDays = totalDaysRequested - remaining;
+                DateOnly lwpStartDate = plEndDate.AddDays(1);
+
+                // Generate application numbers
+                string plAppNo = baseAppNo;
+                string lwpAppNo = await _sequenceService.GenerateApplicationNumberAsync(lwpStartDate);
+
+                // 1. Create PL application (start → split date)
+                NewApplication.EndDate = plEndDate;
+                NewApplication.TotalDays = plDays;
+                NewApplication.ApplicationNumber = plAppNo;
+                NewApplication.Status = "Approved";
+                NewApplication.CreatedAt = now;
+
+                // 2. Create LWP application (split date + 1 → original end)
+                var lwpApp = new LeaveApplication
+                {
+                    EmployeeId = NewApplication.EmployeeId,
+                    LeaveTypeId = lwpType.Id,
+                    StartDate = lwpStartDate,
+                    EndDate = endDateOriginal,
+                    TotalDays = lwpDays,
+                    DayType = NewApplication.DayType,
+                    Reason = $"{NewApplication.Reason ?? ""} (Auto-split: {type.Code} balance exhausted)".Trim(),
+                    IgnoreSandwichRule = NewApplication.IgnoreSandwichRule,
+                    ApplicationNumber = lwpAppNo,
+                    Status = "Approved",
+                    CreatedAt = now
+                };
+
+                // Deduct PL balance
+                allocation.UsedCount += plDays;
+                allocation.UpdatedAt = DateTime.Now;
+
+                _db.LeaveApplications.Add(NewApplication);
+                _db.LeaveApplications.Add(lwpApp);
+                await _db.SaveChangesAsync();
+
+                // Re-process attendance for full range
+                for (var date = NewApplication.StartDate.AddDays(-1); date <= lwpApp.EndDate.AddDays(1); date = date.AddDays(1))
+                {
+                    await _processor.ProcessDailyAttendanceAsync(date, NewApplication.EmployeeId);
+                }
+
+                return RedirectToPage();
+            }
+            else if (remaining <= 0)
+            {
+                ModelState.AddModelError("", $"No {type.Code} balance available. Available: {remaining} days. Apply as LWP instead.");
                 await OnGetAsync();
                 return Page();
             }
         }
 
-        // 4. Save Changes
+        // NORMAL FLOW: Sufficient balance or unpaid leave
         if (allocation != null)
         {
             allocation.UsedCount += totalDaysRequested;
@@ -331,7 +419,7 @@ public class IndexModel : PageModel
         _db.LeaveApplications.Add(NewApplication);
         await _db.SaveChangesAsync();
 
-        // 5. Trigger attendance re-processing for the FULL range (including adjacent days for sandwiches)
+        // Trigger attendance re-processing for the FULL range (including adjacent days for sandwiches)
         for (var date = NewApplication.StartDate.AddDays(-1); date <= NewApplication.EndDate.AddDays(1); date = date.AddDays(1))
         {
             await _processor.ProcessDailyAttendanceAsync(date, NewApplication.EmployeeId);
@@ -422,7 +510,7 @@ public class IndexModel : PageModel
         // Include sandwiched weekoffs
         if (!EditApplication.IgnoreSandwichRule)
         {
-            foreach (var di in dayInfos.Where(x => x.IsWeekoff))
+            foreach (var di in dayInfos.Where(x => x.IsWeekoff && !x.IsHoliday))
             {
                 bool hasWorkDayBefore = dayInfos.Any(x => x.Date < di.Date && x.IsWorkDay);
                 bool hasWorkDayAfter = dayInfos.Any(x => x.Date > di.Date && x.IsWorkDay);
