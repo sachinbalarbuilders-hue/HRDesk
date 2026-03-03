@@ -189,20 +189,27 @@ public class AttendanceProcessorService
             (h.IsGlobal || _db.HolidayEmployees.Any(he => he.HolidayId == h.Id && he.EmployeeId == emp.EmployeeId)));
         if (isHoliday) { existingRecord.Status = "Holiday"; return; }
 
-        // 3. Check for Approved Regularization (Late/Early)
-        var approvedRegularization = await _db.AttendanceRegularizations
-            .FirstOrDefaultAsync(r => r.EmployeeId == emp.EmployeeId && 
+        // 3. Check for Approved Regularizations (Late/Early) — fetch ALL for this date
+        var approvedRegularizations = await _db.AttendanceRegularizations
+            .Where(r => r.EmployeeId == emp.EmployeeId && 
                                       r.RequestDate == date && 
-                                      r.Status == "Approved");
+                                      r.Status == "Approved")
+            .ToListAsync();
 
-        bool waiveLate = approvedRegularization != null && approvedRegularization.RequestType == "Late Coming" && approvedRegularization.WaivePenalty;
-        bool waiveEarly = approvedRegularization != null && approvedRegularization.RequestType == "Early Go" && approvedRegularization.WaivePenalty;
+        var lateRegularization = approvedRegularizations.FirstOrDefault(r => r.RequestType == "Late Coming");
+        var earlyRegularization = approvedRegularizations.FirstOrDefault(r => r.RequestType == "Early Go");
+        var missedPunchRegularization = approvedRegularizations.FirstOrDefault(r => r.RequestType == "Missed Punch");
+
+        bool waiveLate = lateRegularization != null && lateRegularization.WaivePenalty;
+        bool waiveEarly = earlyRegularization != null && earlyRegularization.WaivePenalty;
         
         // If regularized, we might want to note it
-        if (approvedRegularization != null)
+        if (approvedRegularizations.Any())
         {
-             existingRecord.ApplicationNumber = approvedRegularization.ApplicationNumber;
-             existingRecord.Remarks = $"{approvedRegularization.RequestType} Regularized ({approvedRegularization.ApplicationNumber})";
+            var firstReg = approvedRegularizations.First();
+             existingRecord.ApplicationNumber = firstReg.ApplicationNumber;
+             existingRecord.Remarks = string.Join(", ", approvedRegularizations
+                 .Select(r => $"{r.RequestType} Regularized ({r.ApplicationNumber})"));
         }
 
         // 4. Check Weekoff & Sandwich Logic
