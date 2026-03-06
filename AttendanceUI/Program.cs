@@ -71,6 +71,7 @@ builder.Services.AddScoped<AttendanceUI.Services.ISequenceService, AttendanceUI.
 builder.Services.AddScoped<AttendanceUI.Services.LoanService>();
 builder.Services.AddScoped<AttendanceUI.Services.PayrollService>();
 builder.Services.AddScoped<AttendanceUI.Services.CompOffService>();
+builder.Services.AddScoped<AttendanceUI.Services.LeaveAdjustmentService>();
 
 var app = builder.Build();
 

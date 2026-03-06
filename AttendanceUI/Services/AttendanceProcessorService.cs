@@ -32,12 +32,15 @@ public class AttendanceProcessorService
         else
         {
             // Only process employees who have already joined by this date
-            // AND are active OR those who have actual biometric logs for this day
+            // AND are active OR those who have actual biometric logs for this month
+            var startOfMonth = new DateTime(date.Year, date.Month, 1);
+            var endOfMonth = startOfMonth.AddMonths(1);
+            
             query = query.Where(e => (e.JoiningDate == null || e.JoiningDate <= date) &&
                                      ((e.Status != null && e.Status.ToLower() == "active") || 
                                       _db.AttendanceLogs.Any(l => l.EmployeeId == e.EmployeeId && 
-                                                                  l.PunchTime >= date.ToDateTime(TimeOnly.MinValue) && 
-                                                                  l.PunchTime < date.AddDays(1).ToDateTime(TimeOnly.MinValue))));
+                                                                  l.PunchTime >= startOfMonth && 
+                                                                  l.PunchTime < endOfMonth)));
         }
 
         var employees = await query.ToListAsync();
@@ -95,6 +98,25 @@ public class AttendanceProcessorService
 
         foreach (var emp in employees)
         {
+            // If the employee is inactive, treat their last punch as their last working day.
+            // Do not process attendance for them on dates after their last punch.
+            if (emp.Status != null && emp.Status.ToLower() != "active")
+            {
+                var latestPunch = await _db.AttendanceLogs
+                    .Where(l => l.EmployeeId == emp.EmployeeId)
+                    .OrderByDescending(l => l.PunchTime)
+                    .FirstOrDefaultAsync();
+
+                if (latestPunch != null)
+                {
+                    var lastWorkingDay = DateOnly.FromDateTime(latestPunch.PunchTime);
+                    if (date > lastWorkingDay)
+                    {
+                        continue; // Skip processing: no weekoffs/absents after last working day
+                    }
+                }
+            }
+
             await ProcessEmployeeDayAsync(emp, date, allLogs.Where(l => l.EmployeeId == emp.EmployeeId).ToList());
         }
 
@@ -207,9 +229,13 @@ public class AttendanceProcessorService
         if (approvedRegularizations.Any())
         {
             var firstReg = approvedRegularizations.First();
-             existingRecord.ApplicationNumber = firstReg.ApplicationNumber;
-             existingRecord.Remarks = string.Join(", ", approvedRegularizations
-                 .Select(r => $"{r.RequestType} Regularized ({r.ApplicationNumber})"));
+            existingRecord.ApplicationNumber = firstReg.ApplicationNumber;
+            
+            foreach (var reg in approvedRegularizations)
+            {
+                var appNumText = !string.IsNullOrWhiteSpace(reg.ApplicationNumber) ? $" ({reg.ApplicationNumber})" : "";
+                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{reg.RequestType} Regularized{appNumText}");
+            }
         }
 
         // 4. Check Weekoff & Sandwich Logic
@@ -310,6 +336,21 @@ public class AttendanceProcessorService
                                        la.Status == "Approved" && 
                                        date >= la.StartDate && 
                                        date <= la.EndDate);
+
+        // Capture adjusted leaves for historical context in tooltips
+        var adjustedLeaves = await _db.LeaveApplications
+            .Include(la => la.LeaveType)
+            .Where(la => la.EmployeeId == emp.EmployeeId && 
+                         la.Status == "Adjusted" && 
+                         date >= la.StartDate && 
+                         date <= la.EndDate)
+            .ToListAsync();
+
+        if (adjustedLeaves.Any())
+        {
+            var adjText = string.Join(", ", adjustedLeaves.Select(al => $"{al.LeaveType?.Code ?? "Leave"} ({al.ApplicationNumber})"));
+            existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"Adjusted: {adjText}");
+        }
         
         if (approvedLeave != null)
         {
@@ -415,8 +456,7 @@ public class AttendanceProcessorService
                 }
                 
                 existingRecord.Status = $"{firstLetter}HF"; // PL→PHF, SL→SHF
-                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, 
-                    $"{leaveCode} Half ({approvedLeave.DayType})");
+                // Skip adding remark here as it's already added at line ~359 (Half Day Leave: PL (Second Half))
             }
         }
 
@@ -524,10 +564,18 @@ public class AttendanceProcessorService
 
         // 6. Timing Rules (Dynamic based on Shift)
 
-        // Late Coming Check
-        if (inTime > currentShift.StartTime)
+        // Adjust expected start time if the employee is on a First Half leave
+        TimeOnly expectedStartTime = currentShift.StartTime;
+        if (approvedLeave != null && approvedLeave.DayType == "First Half")
         {
-            int lateMins = (int)(inTime - currentShift.StartTime).TotalMinutes;
+            // If they are on First Half leave, they are expected to arrive at HalfTime
+            expectedStartTime = currentShift.HalfTime ?? currentShift.StartTime;
+        }
+
+        // Late Coming Check
+        if (inTime > expectedStartTime)
+        {
+            int lateMins = (int)(inTime - expectedStartTime).TotalMinutes;
             
             if (waiveLate)
             {
@@ -539,9 +587,9 @@ public class AttendanceProcessorService
             {
                 existingRecord.LateMinutes = lateMins; // Always store for reports
                 
-                // MAJOR LATE: arriving after HalfTime boundary
+                // MAJOR LATE: arriving after HalfTime boundary (only applies if expected start wasn't already HalfTime)
                 var isProbation = emp.ProbationEnd.HasValue && existingRecord.RecordDate < emp.ProbationEnd.Value;
-                if (currentShift.HalfTime.HasValue && inTime > currentShift.HalfTime.Value)
+                if (currentShift.HalfTime.HasValue && expectedStartTime != currentShift.HalfTime.Value && inTime > currentShift.HalfTime.Value)
                 {
                     if (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF"))
                     {
@@ -586,7 +634,26 @@ public class AttendanceProcessorService
             // Early Exit Zone Separation
             var isProbation = emp.ProbationEnd.HasValue && existingRecord.RecordDate < emp.ProbationEnd.Value;
             
-            if (currentShift.EarlyGoAllowedTime.HasValue && outTime < currentShift.EarlyGoAllowedTime.Value)
+            // SPECIAL CASE: Second Half Leave but left before HalfTime boundary
+            if (approvedLeave != null && approvedLeave.DayType == "Second Half" && currentShift.HalfTime.HasValue && outTime < currentShift.HalfTime.Value)
+            {
+                if (waiveEarly)
+                {
+                    // Remarks already handled by the regularization block at line ~229
+                    // No penalty to WorkMinutes!
+                }
+                else
+                {
+                    // Not regularized -> First half is absent
+                    existingRecord.WorkMinutes = 0;
+                    existingRecord.BreakMinutes = 0;
+                    existingRecord.IsActualBreak = false;
+                    existingRecord.IsHalfDay = true;
+                    existingRecord.Remarks = AppendRemark(existingRecord.Remarks, 
+                        $"First Half Absent: Left at {outTime:HH\\:mm} before half-time ({currentShift.HalfTime.Value:HH\\:mm}).");
+                }
+            }
+            else if (currentShift.EarlyGoAllowedTime.HasValue && outTime < currentShift.EarlyGoAllowedTime.Value)
             {
                 // MAJOR EARLY EXIT: Before the allowed time (e.g., leaving at 14:32 when allowed time is 17:00)
                 if (waiveEarly)
@@ -748,7 +815,16 @@ public class AttendanceProcessorService
 
     private string AppendRemark(string? existing, string newRemark)
     {
+        if (string.IsNullOrWhiteSpace(newRemark)) return existing ?? "";
         if (string.IsNullOrEmpty(existing)) return newRemark;
+
+        // Split existing remarks and check if newRemark is already present (case-insensitive)
+        var parts = existing.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Any(p => p.Trim().Equals(newRemark.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            return existing;
+        }
+
         return $"{existing}, {newRemark}";
     }
 

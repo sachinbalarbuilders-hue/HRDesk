@@ -42,11 +42,18 @@ public class PayrollService
         decimal weekoffs = 0;
         decimal holidays = 0;
         var leaveCounts = new System.Collections.Generic.Dictionary<string, decimal>();
+        var lopBreakdown = new System.Collections.Generic.Dictionary<DateOnly, decimal>();
 
         void AddLeaveCount(string code, decimal amount)
         {
             if (!leaveCounts.ContainsKey(code)) leaveCounts[code] = 0;
             leaveCounts[code] += amount;
+        }
+
+        void AddLop(DateOnly date, decimal amount)
+        {
+            if (!lopBreakdown.ContainsKey(date)) lopBreakdown[date] = 0;
+            lopBreakdown[date] += amount;
         }
 
         foreach (var record in attendanceRecords)
@@ -60,17 +67,32 @@ public class PayrollService
             else if (status == "A" || status == "ABSENT")
             {
                 absentDays += 1.0m;
+                AddLop(record.RecordDate, 1.0m);
             }
             else if (status == "HF" || status == "HALF DAY")
             {
                 halfDays += 1.0m;
                 presentDays += 0.5m;
                 absentDays += 0.5m;
+                AddLop(record.RecordDate, 0.5m);
             }
             else if (status.EndsWith("HF") && status.Length > 2)
             {
-                // PHF, SHF, COHF etc.
-                bool isWorkDone = record.WorkMinutes > 0 || record.InTime.HasValue;
+                // WHF, PHF, SHF, COHF etc.
+                
+                // Specific handle for WHF (Worked Half on Weekoff)
+                if (status == "WHF")
+                {
+                    presentDays += 0.5m; // Worked half
+                    weekoffs += 0.5m;    // Weekoff half
+                    halfDays += 1.0m;    // Record that a half-day occurred
+                    continue;            // Skip the rest of the generic HF logic
+                }
+                
+                // For half-day leave records, rely solely on WorkMinutes to determine if work was done.
+                // InTime may still be present for audit purposes (e.g. early-exit penalty cases)
+                // but should not override a WorkMinutes=0 signal.
+                bool isWorkDone = record.WorkMinutes > 0;
                 
                 if (isWorkDone)
                 {
@@ -78,7 +100,7 @@ public class PayrollService
                 }
                 
                 // Categorize the leave half
-                if (status.StartsWith("CO"))
+                if (status.StartsWith("CO") || status == "CHF")
                 {
                     weekoffs += 0.5m; // Comp-Off is a weekoff adjustment
                 }
@@ -101,13 +123,16 @@ public class PayrollService
                     else
                     {
                         unpaidLeaves += 0.5m;
-                        if (!isWorkDone) absentDays += 0.5m;
+                        absentDays += 0.5m; // Always show unpaid halves as absentee time in reports
+                        AddLop(record.RecordDate, 0.5m);
                     }
                 }
 
                 if (!isWorkDone)
                 {
                     halfDays += 1.0m; // Partial pay day
+                    absentDays += 0.5m; // The non-worked half is an absence
+                    AddLop(record.RecordDate, 0.5m);
                 }
             }
             else if (status == "WO" || status == "W/O" || status == "WEEKOFF" || status == "WEEK OFF")
@@ -152,6 +177,7 @@ public class PayrollService
                         {
                             unpaidLeaves += 1.0m;
                             absentDays += 1.0m;
+                            AddLop(record.RecordDate, 1.0m);
                         }
                     }
                 }
@@ -172,7 +198,11 @@ public class PayrollService
             HalfDays = halfDays,
             Weekoffs = weekoffs,
             Holidays = holidays,
-            LeaveTypeCounts = leaveCounts
+            LeaveTypeCounts = leaveCounts,
+            LopDetails = lopBreakdown
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => $"{kvp.Key:dd-MMM}{(kvp.Value == 0.5m ? " (0.5)" : "")}")
+                .ToList()
         };
     }
 
@@ -270,12 +300,19 @@ public class PayrollService
         {
             var lopAmount = (grossSalary / attendance.TotalDays) * lopDays;
             totalDeductions += lopAmount;
+            
+            var lopRemark = $"Absent/LWP: {lopDays:0.0} days";
+            if (attendance.LopDetails.Any())
+            {
+                lopRemark += $" ({string.Join(", ", attendance.LopDetails)})";
+            }
+
             deductionDetails.Add(new PayrollDetail
             {
                 ComponentType = "Deduction",
                 ComponentName = "Loss of Pay",
                 Amount = lopAmount,
-                Remarks = $"Absent/LWP: {lopDays:0.0} days"
+                Remarks = lopRemark
             });
         }
 
@@ -445,4 +482,5 @@ public class AttendanceSummary
     public decimal Weekoffs { get; set; }
     public decimal Holidays { get; set; }
     public System.Collections.Generic.Dictionary<string, decimal> LeaveTypeCounts { get; set; } = new();
+    public System.Collections.Generic.List<string> LopDetails { get; set; } = new();
 }

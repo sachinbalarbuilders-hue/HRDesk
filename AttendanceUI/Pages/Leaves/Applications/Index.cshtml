@@ -50,13 +50,18 @@
                     }
                     @foreach (var app in Model.LeaveApplications)
                     {
-                        <tr>
+                        var isAdjusted = app.Status == "Adjusted";
+                        <tr class="@(isAdjusted ? "opacity-50 grayscale" : "")">
                             <td class="ps-4">
-                                <code class="text-primary">@app.ApplicationNumber</code>
+                                <code class="text-primary @(isAdjusted ? "text-decoration-line-through text-muted" : "")">@app.ApplicationNumber</code>
+                                @if (isAdjusted)
+                                {
+                                    <div class="badge bg-secondary-subtle text-secondary border x-small py-0 px-1 mt-1" style="font-size:0.65rem;">Adjusted</div>
+                                }
                             </td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <div class="avatar-circle" style="width:32px;height:32px;font-size:0.8rem;">
+                                    <div class="avatar-circle" style="width:32px;height:32px;font-size:0.8rem; @(isAdjusted ? "filter: grayscale(1);" : "")">
                                         @(app.Employee?.EmployeeName?.Substring(0, 1).ToUpper() ?? "?")
                                     </div>
                                     <div>
@@ -65,7 +70,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td><span class="badge text-bg-secondary">@app.LeaveType?.Code</span></td>
+                            <td><span class="badge @(isAdjusted ? "bg-secondary-subtle text-secondary" : "text-bg-secondary")">@app.LeaveType?.Code</span></td>
                             <td class="small">
                                 <div>@app.StartDate.ToString("dd MMM yyyy")</div>
                                 @if (app.StartDate != app.EndDate)
@@ -84,19 +89,29 @@
                                     <span class="badge text-bg-secondary">Full Day</span>
                                 }
                             </td>
-                            <td class="small text-muted" style="max-width:150px;">@app.Reason</td>
+                            <td class="small text-muted @(isAdjusted ? "fst-italic" : "")" style="max-width:150px;">
+                                @if (isAdjusted) { <i class="bi bi-info-circle me-1"></i> }
+                                @app.Reason
+                            </td>
                             <td class="text-end pe-4">
-                                <div class="d-flex gap-1 justify-content-end">
-                                    <button type="button" class="btn btn-sm btn-outline-primary"
-                                        onclick="editLeave(@app.Id, @app.LeaveTypeId, '@app.StartDate.ToString("yyyy-MM-dd")', '@app.EndDate.ToString("yyyy-MM-dd")', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(app.Reason ?? ""))', '@app.Employee?.EmployeeName', '@app.DayType', @app.EmployeeId, @app.IgnoreSandwichRule.ToString().ToLower())">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <form method="post" asp-page-handler="Delete" asp-route-id="@app.Id"
-                                          onsubmit="return confirm('Delete this leave entry? This will reverse the used count in allocations.')" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                                    </form>
-                                </div>
+                                @if (!isAdjusted)
+                                {
+                                    <div class="d-flex gap-1 justify-content-end">
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                            onclick="editLeave(@app.Id, @app.LeaveTypeId, '@app.StartDate.ToString("yyyy-MM-dd")', '@app.EndDate.ToString("yyyy-MM-dd")', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(app.Reason ?? ""))', '@app.Employee?.EmployeeName', '@app.DayType', @app.EmployeeId, @app.IgnoreSandwichRule.ToString().ToLower())">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@app.Id"
+                                              onsubmit="return confirm('Delete this leave entry? This will reverse the used count in allocations.')" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">N/A</span>
+                                }
                             </td>
                         </tr>
                     }
@@ -117,6 +132,21 @@
                 </div>
                 <div class="modal-body pt-3">
                     <div asp-validation-summary="All" class="alert alert-danger small mb-3"></div>
+                    
+                    @if (ViewData["OverlappingAppId"] != null)
+                    {
+                        <div class="alert alert-warning small mb-3 border-warning shadow-sm">
+                            <h6 class="fw-bold mb-1 text-warning-emphasis"><i class="bi bi-exclamation-triangle-fill me-2"></i>History Adjustment</h6>
+                            <p class="mb-2 small">An approved leave <strong>(@ViewData["OverlappingAppDetails"])</strong> already exists. Adjusting will mark the old one as inactive for history and apply this new one.</p>
+                            <div class="d-flex gap-2">
+                                <button type="submit" asp-page-handler="ConfirmAdjustment" asp-route-oldAppId="@ViewData["OverlappingAppId"]" class="btn btn-sm btn-warning fw-semibold">
+                                    <i class="bi bi-arrow-left-right me-1"></i>Confirm Adjustment
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="$('#addLeaveModal').modal('hide')">Cancel</button>
+                            </div>
+                        </div>
+                    }
+
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Employee</label>
                         <select asp-for="NewApplication.EmployeeId" class="form-select" required>

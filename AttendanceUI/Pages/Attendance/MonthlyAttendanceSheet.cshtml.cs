@@ -48,10 +48,10 @@ public class MonthlyAttendanceSheetModel : PageModel
             .Where(a => a.RecordDate >= startDate && a.RecordDate < endDate)
             .ToListAsync();
 
-        // 2b. Fetch all leave applications for the month
+        // 2b. Fetch all leave applications for the month (both Approved and Adjusted for tooltip context)
         var leaveApps = await _db.LeaveApplications
             .Include(la => la.LeaveType)
-            .Where(la => la.Status == "Approved" && 
+            .Where(la => (la.Status == "Approved" || la.Status == "Adjusted") && 
                          la.StartDate < endDate && 
                          la.EndDate >= startDate)
             .ToListAsync();
@@ -84,15 +84,16 @@ public class MonthlyAttendanceSheetModel : PageModel
                     dto.InTime = log.InTime;
                     dto.OutTime = log.OutTime;
                     
-                    // Find matching leave application for this date
-                    var app = leaveApps.FirstOrDefault(la => la.EmployeeId == emp.EmployeeId && date >= la.StartDate && date <= la.EndDate);
+                    // Find matching leave applications for this date
+                    var dayApps = leaveApps.Where(la => la.EmployeeId == emp.EmployeeId && date >= la.StartDate && date <= la.EndDate).ToList();
+                    var activeApp = dayApps.FirstOrDefault(la => la.Status == "Approved");
 
                     // Specific Leave Logic
                     if (log.Status == "Leave" || log.Status == "Present (Leave)")
                     {
-                        if (app?.LeaveType != null)
+                        if (activeApp?.LeaveType != null)
                         {
-                            dto.Status = app.LeaveType.Code + (log.Status == "Present (Leave)" ? "P" : "");
+                            dto.Status = activeApp.LeaveType.Code + (log.Status == "Present (Leave)" ? "P" : "");
                         }
                         else
                         {
@@ -106,12 +107,30 @@ public class MonthlyAttendanceSheetModel : PageModel
 
                     // Build tooltip: Application No + Reason/Remarks
                     var tooltipParts = new List<string>();
-                    if (!string.IsNullOrEmpty(log.ApplicationNumber))
+                    
+                    if (activeApp != null)
+                    {
+                        tooltipParts.Add($"App#: {activeApp.ApplicationNumber}");
+                        if (!string.IsNullOrEmpty(activeApp.Reason))
+                            tooltipParts.Add($"Reason: {activeApp.Reason}");
+                    }
+                    else if (!string.IsNullOrEmpty(log.ApplicationNumber))
+                    {
                         tooltipParts.Add($"App#: {log.ApplicationNumber}");
-                    if (app != null && !string.IsNullOrEmpty(app.Reason))
-                        tooltipParts.Add($"Reason: {app.Reason}");
+                    }
+                    
+                    // Add Adjusted leaves info
+                    var adjustedApps = dayApps.Where(la => la.Status == "Adjusted").ToList();
+                    foreach (var adj in adjustedApps)
+                    {
+                        tooltipParts.Add($"Adjusted: {adj.LeaveType?.Code ?? "Leave"} ({adj.ApplicationNumber})");
+                        if (!string.IsNullOrEmpty(adj.Reason))
+                            tooltipParts.Add($"Orig Reason: {adj.Reason}");
+                    }
+
                     if (!string.IsNullOrEmpty(log.Remarks))
                         tooltipParts.Add(log.Remarks);
+                    
                     dto.Tooltip = string.Join(" | ", tooltipParts);
                     dto.IsEarly = log.IsEarly;
                     dto.ShiftStartTime = emp.Shift?.StartTime;

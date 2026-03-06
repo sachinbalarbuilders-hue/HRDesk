@@ -234,21 +234,23 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Yearly Quota</label>
-                            <input asp-for="EditAllocation.TotalAllocated" id="edit-quota" class="form-control" type="number" step="any" />
+                            <input asp-for="EditAllocation.TotalAllocated" id="edit-quota" class="form-control" type="number" step="any" oninput="validateEditUsed()" />
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Opening Bal.</label>
-                            <input asp-for="EditAllocation.OpeningBalance" id="edit-opening" class="form-control" type="number" step="any" />
+                            <input asp-for="EditAllocation.OpeningBalance" id="edit-opening" class="form-control" type="number" step="any" oninput="validateEditUsed()" />
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Used Count</label>
-                            <input asp-for="EditAllocation.UsedCount" id="edit-used" class="form-control" type="number" step="any" />
+                            <input asp-for="EditAllocation.UsedCount" id="edit-used" class="form-control" type="number" step="any" oninput="validateEditUsed()" />
+                            <div id="edit-used-error" class="text-danger small mt-1" style="display:none;"></div>
                         </div>
                     </div>
+                    <div id="edit-avail-hint" class="text-muted small"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Update Allocation</button>
+                    <button type="submit" id="edit-save-btn" class="btn btn-primary">Update Allocation</button>
                 </div>
             </form>
         </div>
@@ -266,8 +268,32 @@
             document.getElementById('edit-emp-name').value = empName;
             document.getElementById('edit-type-name').value = typeName;
             
+            validateEditUsed(); // Update hint on open
             var modal = new bootstrap.Modal(document.getElementById('editAllocationModal'));
             modal.show();
+        }
+
+        function validateEditUsed() {
+            const quota   = parseFloat(document.getElementById('edit-quota').value) || 0;
+            const opening = parseFloat(document.getElementById('edit-opening').value) || 0;
+            const used    = parseFloat(document.getElementById('edit-used').value) || 0;
+            const total   = quota + opening;
+            const errorDiv = document.getElementById('edit-used-error');
+            const hintDiv  = document.getElementById('edit-avail-hint');
+            const saveBtn  = document.getElementById('edit-save-btn');
+
+            hintDiv.textContent = `Total Available: ${quota} (quota) + ${opening} (opening) = ${total}`;
+
+            if (used > total) {
+                errorDiv.textContent = `Used (${used}) exceeds total available (${total}).`;
+                errorDiv.style.display = 'block';
+                document.getElementById('edit-used').classList.add('is-invalid');
+                saveBtn.disabled = true;
+            } else {
+                errorDiv.style.display = 'none';
+                document.getElementById('edit-used').classList.remove('is-invalid');
+                saveBtn.disabled = false;
+            }
         }
 
         function toggleBulkEdit() {

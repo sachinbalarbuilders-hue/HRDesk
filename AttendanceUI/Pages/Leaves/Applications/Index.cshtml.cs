@@ -9,17 +9,24 @@ namespace AttendanceUI.Pages.Leaves.Applications;
 
 public class IndexModel : PageModel
 {
+    private readonly LeaveAdjustmentService _adjustmentService;
     private readonly CompOffService _compOffService;
     private readonly BiometricAttendanceDbContext _db;
     private readonly ISequenceService _sequenceService;
     private readonly AttendanceProcessorService _processor;
 
-    public IndexModel(BiometricAttendanceDbContext db, ISequenceService sequenceService, AttendanceProcessorService processor, CompOffService compOffService)
+    public IndexModel(
+        BiometricAttendanceDbContext db, 
+        ISequenceService sequenceService, 
+        AttendanceProcessorService processor, 
+        CompOffService compOffService,
+        LeaveAdjustmentService adjustmentService)
     {
         _db = db;
         _sequenceService = sequenceService;
         _processor = processor;
         _compOffService = compOffService;
+        _adjustmentService = adjustmentService;
     }
 
     public List<LeaveApplication> LeaveApplications { get; set; } = new();
@@ -228,55 +235,42 @@ public class IndexModel : PageModel
         DateTime now = DateTime.Now;
 
         // 2. Overlap Check
-        var overlapping = await _db.LeaveApplications
-            .AnyAsync(la => la.EmployeeId == NewApplication.EmployeeId &&
+        var overlappingApp = await _db.LeaveApplications
+            .FirstOrDefaultAsync(la => la.EmployeeId == NewApplication.EmployeeId &&
                            la.Status == "Approved" &&
                            NewApplication.StartDate <= la.EndDate &&
                            NewApplication.EndDate >= la.StartDate);
 
-        if (overlapping)
+        if (overlappingApp != null)
         {
-            ModelState.AddModelError("", "This employee already has an approved leave application overlapping with the selected dates.");
+            ViewData["OverlappingAppId"] = overlappingApp.Id;
+            ViewData["OverlappingAppDetails"] = $"{overlappingApp.LeaveType?.Code} ({overlappingApp.StartDate:dd MMM} - {overlappingApp.EndDate:dd MMM})";
+            ModelState.AddModelError("", $"An approved leave ({ViewData["OverlappingAppDetails"]}) already exists. Would you like to adjust/replace it?");
             await OnGetAsync();
             return Page();
         }
 
-        // 3. Calculate Total Days (Skipping Holidays and Weekoffs, but including sandwiched weekoffs)
-        decimal workDaysCount = 0;
-        string weekoffDay = emp.Weekoff?.Trim() ?? "";
-        decimal dayMultiplier = (NewApplication.DayType == "First Half" || NewApplication.DayType == "Second Half") ? 0.5m : 1.0m;
-        
+        // 3. Calculate Total Days using service
+        decimal workDaysCount = await _adjustmentService.CalculateLeaveDaysAsync(
+            NewApplication.EmployeeId, 
+            NewApplication.StartDate, 
+            NewApplication.EndDate, 
+            NewApplication.DayType, 
+            NewApplication.IgnoreSandwichRule);
+
+        // Required because dayInfos is used later in auto-split logic (we need to rebuild it or refactor auto-split)
+        // For now, I'll keep the minimal list needed for auto-split
         var holidaysList = await _db.Holidays
             .Where(h => h.IsGlobal || _db.HolidayEmployees.Any(he => he.HolidayId == h.Id && he.EmployeeId == NewApplication.EmployeeId))
             .ToListAsync();
-
-        // Build a list of day classifications within the range
+        string weekoffDay = emp.Weekoff?.Trim() ?? "";
+        decimal dayMultiplier = (NewApplication.DayType == "First Half" || NewApplication.DayType == "Second Half") ? 0.5m : 1.0m;
         var dayInfos = new List<(DateOnly Date, bool IsWorkDay, bool IsWeekoff, bool IsHoliday)>();
         for (var d = NewApplication.StartDate; d <= NewApplication.EndDate; d = d.AddDays(1))
         {
             bool isHoliday = holidaysList.Any(h => d >= h.StartDate && d <= h.EndDate);
             bool isWeekoff = !string.IsNullOrEmpty(weekoffDay) && d.DayOfWeek.ToString().Equals(weekoffDay, StringComparison.OrdinalIgnoreCase);
-            bool isWorkDay = !isHoliday && !isWeekoff;
-            dayInfos.Add((d, isWorkDay, isWeekoff, isHoliday));
-
-            if (isWorkDay)
-            {
-                workDaysCount += dayMultiplier;
-            }
-        }
-
-        // Include sandwiched weekoffs: a weekoff within the range that has working days on both sides
-        if (!NewApplication.IgnoreSandwichRule)
-        {
-            foreach (var di in dayInfos.Where(x => x.IsWeekoff && !x.IsHoliday))
-            {
-                bool hasWorkDayBefore = dayInfos.Any(x => x.Date < di.Date && x.IsWorkDay);
-                bool hasWorkDayAfter = dayInfos.Any(x => x.Date > di.Date && x.IsWorkDay);
-                if (hasWorkDayBefore && hasWorkDayAfter)
-                {
-                    workDaysCount += dayMultiplier;
-                }
-            }
+            dayInfos.Add((d, !isHoliday && !isWeekoff, isWeekoff, isHoliday));
         }
 
         if (workDaysCount <= 0)
@@ -483,43 +477,13 @@ public class IndexModel : PageModel
             return Page();
         }
 
-        // 4. Calculate Total Days (Skipping Holidays and Weekoffs, but including sandwiched weekoffs)
-        var emp = await _db.Employees.FindAsync(application.EmployeeId);
-        decimal workDaysCount = 0;
-        string weekoffDay = emp?.Weekoff?.Trim() ?? "";
-        decimal dayMultiplier = (EditApplication.DayType == "First Half" || EditApplication.DayType == "Second Half") ? 0.5m : 1.0m;
-        
-        var holidaysList = await _db.Holidays
-            .Where(h => h.IsGlobal || _db.HolidayEmployees.Any(he => he.HolidayId == h.Id && he.EmployeeId == application.EmployeeId))
-            .ToListAsync();
-
-        var dayInfos = new List<(DateOnly Date, bool IsWorkDay, bool IsWeekoff, bool IsHoliday)>();
-        for (var d = EditApplication.StartDate; d <= EditApplication.EndDate; d = d.AddDays(1))
-        {
-            bool isHoliday = holidaysList.Any(h => d >= h.StartDate && d <= h.EndDate);
-            bool isWeekoff = !string.IsNullOrEmpty(weekoffDay) && d.DayOfWeek.ToString().Equals(weekoffDay, StringComparison.OrdinalIgnoreCase);
-            bool isWorkDay = !isHoliday && !isWeekoff;
-            dayInfos.Add((d, isWorkDay, isWeekoff, isHoliday));
-
-            if (isWorkDay)
-            {
-                workDaysCount += dayMultiplier;
-            }
-        }
-
-        // Include sandwiched weekoffs
-        if (!EditApplication.IgnoreSandwichRule)
-        {
-            foreach (var di in dayInfos.Where(x => x.IsWeekoff && !x.IsHoliday))
-            {
-                bool hasWorkDayBefore = dayInfos.Any(x => x.Date < di.Date && x.IsWorkDay);
-                bool hasWorkDayAfter = dayInfos.Any(x => x.Date > di.Date && x.IsWorkDay);
-                if (hasWorkDayBefore && hasWorkDayAfter)
-                {
-                    workDaysCount += dayMultiplier;
-                }
-            }
-        }
+        // 4. Calculate Total Days using service
+        decimal workDaysCount = await _adjustmentService.CalculateLeaveDaysAsync(
+            application.EmployeeId, 
+            EditApplication.StartDate, 
+            EditApplication.EndDate, 
+            EditApplication.DayType, 
+            EditApplication.IgnoreSandwichRule);
 
         if (workDaysCount <= 0)
         {
@@ -615,9 +579,16 @@ public class IndexModel : PageModel
                     allocation.UsedCount -= sandwichCount;
                 }
             }
+            
+            var empId = application.EmployeeId;
+            var start = application.StartDate;
+            var end = application.EndDate;
 
             _db.LeaveApplications.Remove(application);
             await _db.SaveChangesAsync();
+
+            // Auto-restore any previously 'Adjusted' leave that this one was replacing
+            await _adjustmentService.RestoreAdjustedLeaveAsync(empId, start, end);
 
             // Auto-resync sequence to close gaps if it was the latest
             await _sequenceService.ResyncSequenceAsync(application.StartDate.Year, application.StartDate.Month);
@@ -629,6 +600,27 @@ public class IndexModel : PageModel
             }
 
         }
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostConfirmAdjustmentAsync(int oldAppId)
+    {
+        // 1. Validate permissions/basic info (Simplification: using current user as approver)
+        var approvedBy = User.Identity?.Name ?? "Admin";
+
+        try
+        {
+            // 2. Execute Adjustment
+            await _adjustmentService.ProcessRetroactiveAdjustmentAsync(oldAppId, NewApplication, approvedBy);
+            TempData["SuccessMessage"] = "Leave has been adjusted successfully and payroll re-calculated.";
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError("", $"Adjustment failed: {ex.Message}");
+            await OnGetAsync();
+            return Page();
+        }
+
         return RedirectToPage();
     }
 }

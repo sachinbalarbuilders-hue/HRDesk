@@ -160,6 +160,13 @@ public class IndexModel : PageModel
         var allocation = await _db.LeaveAllocations.FindAsync(EditAllocation.Id);
         if (allocation == null) return NotFound();
 
+        var totalAvailable = EditAllocation.TotalAllocated + EditAllocation.OpeningBalance;
+        if (EditAllocation.UsedCount > totalAvailable)
+        {
+            TempData["ErrorMessage"] = $"Used Count ({EditAllocation.UsedCount}) cannot exceed Total Available ({totalAvailable} = Quota {EditAllocation.TotalAllocated} + Opening {EditAllocation.OpeningBalance}).";
+            return RedirectToPage(new { Year });
+        }
+
         allocation.TotalAllocated = EditAllocation.TotalAllocated;
         allocation.OpeningBalance = EditAllocation.OpeningBalance;
         allocation.UsedCount = EditAllocation.UsedCount;
@@ -229,11 +236,21 @@ public class IndexModel : PageModel
     {
         if (BulkAllocations != null)
         {
+            var errors = new System.Collections.Generic.List<string>();
             foreach (var item in BulkAllocations)
             {
-                var allocation = await _db.LeaveAllocations.FindAsync(item.Id);
+                var allocation = await _db.LeaveAllocations
+                    .Include(a => a.Employee)
+                    .Include(a => a.LeaveType)
+                    .FirstOrDefaultAsync(a => a.Id == item.Id);
                 if (allocation != null)
                 {
+                    var totalAvailable = item.TotalAllocated + item.OpeningBalance;
+                    if (item.UsedCount > totalAvailable)
+                    {
+                        errors.Add($"{allocation.Employee?.EmployeeName} / {allocation.LeaveType?.Code}: Used ({item.UsedCount}) > Available ({totalAvailable})");
+                        continue; // Skip this row
+                    }
                     allocation.TotalAllocated = item.TotalAllocated;
                     allocation.OpeningBalance = item.OpeningBalance;
                     allocation.UsedCount = item.UsedCount;
@@ -241,7 +258,14 @@ public class IndexModel : PageModel
                 }
             }
             await _db.SaveChangesAsync();
-            TempData["Message"] = "Successfully updated all allocations.";
+            if (errors.Any())
+            {
+                TempData["ErrorMessage"] = "Some rows were skipped: " + string.Join("; ", errors);
+            }
+            else
+            {
+                TempData["Message"] = "Successfully updated all allocations.";
+            }
         }
         return RedirectToPage(new { Year });
     }
