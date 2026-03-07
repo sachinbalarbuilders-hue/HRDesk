@@ -42,7 +42,7 @@ public class IndexModel : PageModel
         NewApplication.StartDate = DateOnly.FromDateTime(DateTime.Today);
         NewApplication.EndDate = DateOnly.FromDateTime(DateTime.Today);
         
-        ViewData["NextAppNo"] = await _sequenceService.PeekNextApplicationNumberAsync(NewApplication.StartDate);
+        NewApplication.ApplicationNumber = await _sequenceService.PeekNextApplicationNumberAsync(NewApplication.StartDate);
 
         LeaveApplications = await _db.LeaveApplications
             .Include(la => la.Employee)

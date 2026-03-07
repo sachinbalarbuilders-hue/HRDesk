@@ -83,12 +83,14 @@ public class SequenceService : ISequenceService
             .Select(d => d.ApplicationNumber)
             .ToListAsync();
 
+        string monthPrefix = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month).ToUpper();
+
         int maxVal = 0;
         foreach (var appNo in regAppNos.Concat(leaveAppNos).Concat(attendanceAppNos))
         {
             if (string.IsNullOrWhiteSpace(appNo)) continue;
             var parts = appNo.Split(' ');
-            if (parts.Length == 2 && int.TryParse(parts[1], out int val) && val > maxVal)
+            if (parts.Length == 2 && parts[0] == monthPrefix && int.TryParse(parts[1], out int val) && val > maxVal)
                 maxVal = val;
         }
         return maxVal;
@@ -114,6 +116,8 @@ public class SequenceService : ISequenceService
 
         var allAppNos = regAppNos.Concat(leaveAppNos).Concat(attendanceAppNos).Distinct().ToList();
 
+        string monthPrefix = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month).ToUpper();
+
         // 2. Parse out the numbers
         int maxVal = 0;
         foreach (var appNo in allAppNos)
@@ -122,7 +126,7 @@ public class SequenceService : ISequenceService
             
             // Format is "MMM N", e.g. "FEB 50"
             var parts = appNo.Split(' ');
-            if (parts.Length == 2 && int.TryParse(parts[1], out int val))
+            if (parts.Length == 2 && parts[0] == monthPrefix && int.TryParse(parts[1], out int val))
             {
                 if (val > maxVal) maxVal = val;
             }

@@ -4,16 +4,19 @@ using AttendanceUI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using AttendanceUI.Services;
 
 namespace AttendanceUI.Pages.Holidays;
 
 public sealed class CreateModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly LeaveAdjustmentService _adjustmentService;
 
-    public CreateModel(BiometricAttendanceDbContext db)
+    public CreateModel(BiometricAttendanceDbContext db, LeaveAdjustmentService adjustmentService)
     {
         _db = db;
+        _adjustmentService = adjustmentService;
     }
 
     [BindProperty]
@@ -61,6 +64,10 @@ public sealed class CreateModel : PageModel
         }
 
         await _db.SaveChangesAsync();
+
+        // RECONCILE: Adjust leave balances for applications overlapping with this new holiday
+        await _adjustmentService.ReconcileLeavesForHolidayAsync(startDate, endDate, !Input.IsGlobal ? Input.EmployeeIds : null);
+
         return RedirectToPage("./Index");
     }
 

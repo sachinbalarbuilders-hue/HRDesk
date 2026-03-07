@@ -4,16 +4,19 @@ using AttendanceUI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using AttendanceUI.Services;
 
 namespace AttendanceUI.Pages.Holidays;
 
 public sealed class EditModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly LeaveAdjustmentService _adjustmentService;
 
-    public EditModel(BiometricAttendanceDbContext db)
+    public EditModel(BiometricAttendanceDbContext db, LeaveAdjustmentService adjustmentService)
     {
         _db = db;
+        _adjustmentService = adjustmentService;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -66,6 +69,12 @@ public sealed class EditModel : PageModel
             return NotFound();
         }
 
+        // Store old range and old eligibility for reconciliation
+        var oldStart = holiday.StartDate;
+        var oldEnd = holiday.EndDate;
+        var oldEmployeeIds = holiday.EligibleEmployees?.Select(e => e.EmployeeId).ToList();
+        var wasGlobal = holiday.IsGlobal;
+
         holiday.HolidayName = Input.HolidayName.Trim();
         holiday.StartDate = Input.StartDate!.Value;
         holiday.EndDate = Input.EndDate ?? holiday.StartDate;
@@ -91,6 +100,23 @@ public sealed class EditModel : PageModel
         }
 
         await _db.SaveChangesAsync();
+
+        // RECONCILE: Adjust leave balances for applications overlapping with either the old or new range
+        var combinedStart = oldStart < holiday.StartDate ? oldStart : holiday.StartDate;
+        var combinedEnd = oldEnd > holiday.EndDate ? oldEnd : holiday.EndDate;
+        
+        // For reconciliation, we use null (for global) or the combined list of affected employees
+        List<int>? affectedEmployees = null;
+        if (!wasGlobal || !Input.IsGlobal)
+        {
+            affectedEmployees = (oldEmployeeIds ?? new List<int>())
+                .Union(Input.EmployeeIds ?? new List<int>())
+                .Distinct()
+                .ToList();
+        }
+
+        await _adjustmentService.ReconcileLeavesForHolidayAsync(combinedStart, combinedEnd, affectedEmployees);
+
         return RedirectToPage("./Index");
     }
 

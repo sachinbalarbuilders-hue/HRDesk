@@ -27,5 +27,9 @@
   <ItemGroup>
     <Compile Remove="dbcheck\**\*.cs" />
     <None Remove="dbcheck\**\*" />
+    <!-- Exclude publish folder to prevent recursive build issues -->
+    <Compile Remove="publish\**\*" />
+    <Content Remove="publish\**\*" />
+    <None Remove="publish\**\*" />
   </ItemGroup>
 </Project>

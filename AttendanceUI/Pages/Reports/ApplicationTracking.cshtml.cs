@@ -44,10 +44,13 @@ namespace AttendanceUI.Pages.Reports
 
         public async Task OnGetAsync()
         {
-            // 1. Get Regularizations
+            var monthStart = new DateOnly(Year, Month, 1);
+            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+            // 1. Get Regularizations overlapping this month
             var regularizations = await _db.AttendanceRegularizations
                 .Include(r => r.Employee)
-                .Where(r => r.RequestDate.Year == Year && r.RequestDate.Month == Month)
+                .Where(r => r.RequestDate <= monthEnd && r.RequestDate >= monthStart)
                 .Select(r => new ApplicationTrackItem
                 {
                     Id = r.Id,
@@ -61,11 +64,11 @@ namespace AttendanceUI.Pages.Reports
                 })
                 .ToListAsync();
 
-            // 2. Get Leaves
+            // 2. Get Leaves overlapping this month
             var leaves = await _db.LeaveApplications
                 .Include(l => l.Employee)
                 .Include(l => l.LeaveType)
-                .Where(l => l.StartDate.Year == Year && l.StartDate.Month == Month)
+                .Where(l => l.StartDate <= monthEnd && l.EndDate >= monthStart)
                 .Select(l => new ApplicationTrackItem
                 {
                     Id = l.Id,
@@ -81,7 +84,6 @@ namespace AttendanceUI.Pages.Reports
                 .ToListAsync();
 
             // 3. Get Manual Overrides from DailyAttendance (only those NOT linked to above records)
-            // We use the application number as the key for distinctness in this simplified view
             var linkedAppNos = regularizations.Select(r => r.ApplicationNumber)
                 .Concat(leaves.Select(l => l.ApplicationNumber))
                 .Where(n => !string.IsNullOrEmpty(n))
@@ -89,7 +91,7 @@ namespace AttendanceUI.Pages.Reports
 
             var manualOverrides = await _db.DailyAttendance
                 .Include(d => d.Employee)
-                .Where(d => d.RecordDate.Year == Year && d.RecordDate.Month == Month && d.ApplicationNumber != null)
+                .Where(d => d.RecordDate >= monthStart && d.RecordDate <= monthEnd && d.ApplicationNumber != null)
                 .OrderBy(d => d.RecordDate)
                 .ToListAsync();
 
@@ -107,9 +109,11 @@ namespace AttendanceUI.Pages.Reports
                 })
                 .ToList();
 
-            // 4. Combine and Sort
+            // 4. Combine and Sort (Group by Month Descending, then Numeric ID Descending)
             Applications = regularizations.Concat(leaves).Concat(attendanceItems)
-                .OrderByDescending(a => {
+                .OrderByDescending(a => a.Date.Year)
+                .ThenByDescending(a => a.Date.Month)
+                .ThenByDescending(a => {
                     if (string.IsNullOrEmpty(a.ApplicationNumber)) return -1;
                     var parts = a.ApplicationNumber.Split(' ');
                     return parts.Length > 1 && int.TryParse(parts[^1], out var num) ? num : -1;

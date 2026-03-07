@@ -249,5 +249,82 @@ namespace AttendanceUI.Services
                 }
             }
         }
+
+        /// <summary>
+        /// Recalculates and adjusts leave balances for all applications overlapping with a holiday range.
+        /// Call this when a holiday is added, modified, or removed.
+        /// </summary>
+        public async Task ReconcileLeavesForHolidayAsync(DateOnly startDate, DateOnly endDate, List<int>? employeeIds = null)
+        {
+            // 1. Find all approved applications that overlap with the holiday range
+            var query = _db.LeaveApplications
+                .Include(la => la.LeaveType)
+                .Where(la => la.Status == "Approved" && 
+                             la.StartDate <= endDate && 
+                             la.EndDate >= startDate);
+
+            if (employeeIds != null && employeeIds.Any())
+            {
+                query = query.Where(la => employeeIds.Contains(la.EmployeeId));
+            }
+
+            var overlappingApps = await query.ToListAsync();
+
+            foreach (var app in overlappingApps)
+            {
+                decimal oldTotalDays = app.TotalDays;
+                
+                // 2. Recalculate TotalDays based on CURRENT holiday status
+                decimal newTotalDays = await CalculateLeaveDaysAsync(
+                    app.EmployeeId, 
+                    app.StartDate, 
+                    app.EndDate, 
+                    app.DayType, 
+                    app.IgnoreSandwichRule);
+
+                if (newTotalDays != oldTotalDays)
+                {
+                    decimal difference = newTotalDays - oldTotalDays;
+
+                    // 3. Update Allocation if it's a paid leave
+                    if (app.LeaveType != null && app.LeaveType.IsPaid)
+                    {
+                        var year = AttendanceProcessorService.GetLeaveYear(app.StartDate);
+                        var allocation = await _db.LeaveAllocations
+                            .FirstOrDefaultAsync(la => la.EmployeeId == app.EmployeeId && 
+                                                       la.LeaveTypeId == app.LeaveTypeId && 
+                                                       la.Year == year);
+                        
+                        if (allocation != null)
+                        {
+                            allocation.UsedCount += difference;
+                            allocation.UpdatedAt = DateTime.Now;
+                        }
+                    }
+
+                    // 4. Update the application itself
+                    app.TotalDays = newTotalDays;
+                    app.Reason = AppendRemark(app.Reason, $"[Holiday Adjustment: {oldTotalDays} -> {newTotalDays}]");
+                }
+
+                // 5. Always trigger attendance re-processing for the overlap period
+                var procStart = (app.StartDate < startDate ? app.StartDate : startDate).AddDays(-1);
+                var procEnd = (app.EndDate > endDate ? app.EndDate : endDate).AddDays(1);
+
+                for (var d = procStart; d <= procEnd; d = d.AddDays(1))
+                {
+                    await _processor.ProcessDailyAttendanceAsync(d, app.EmployeeId);
+                }
+            }
+
+            await _db.SaveChangesAsync();
+        }
+
+        private string AppendRemark(string? existing, string newRemark)
+        {
+            if (string.IsNullOrWhiteSpace(existing)) return newRemark;
+            if (existing.Contains(newRemark)) return existing;
+            return $"{existing} {newRemark}";
+        }
     }
 }

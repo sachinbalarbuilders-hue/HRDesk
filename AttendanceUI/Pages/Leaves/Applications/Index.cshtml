@@ -205,7 +205,7 @@
                             </div>
                         </label>
                         <div class="input-group">
-                            <input asp-for="NewApplication.ApplicationNumber" class="form-control" readonly id="add-app-no" value="@ViewData["NextAppNo"]" />
+                            <input asp-for="NewApplication.ApplicationNumber" class="form-control" readonly id="add-app-no" />
                             <span class="input-group-text text-muted small" id="add-app-no-loading" style="display:none;">Loading...</span>
                         </div>
                         <div class="form-text">Leave blank if tracking number is not required.</div>
@@ -414,10 +414,26 @@
                 if (!$("#add-auto-app-no").is(":checked")) return;
                 var date = $("#add-start-date").val();
                 if (!date) return;
-                $("#add-app-no-loading").show(); $("#add-app-no").val('Generating...');
-                $.get("?handler=NextAppNo&date=" + date, function (data) {
-                    $("#add-app-no").val(data.nextAppNo); $("#add-app-no-loading").hide();
-                });
+                
+                var input = $("#add-app-no");
+                var loader = $("#add-app-no-loading");
+                var oldVal = input.val();
+
+                loader.show(); 
+                input.val('Generating...');
+                
+                $.get("?handler=NextAppNo&date=" + date)
+                    .done(function (data) {
+                        input.val(data.nextAppNo || "");
+                    })
+                    .fail(function() {
+                        // Restore old value or clear if it was an error
+                        if (oldVal === 'Generating...') input.val("");
+                        else input.val(oldVal);
+                    })
+                    .always(function() {
+                        loader.hide();
+                    });
             }
 
             $("#add-start-date").change(updateLeaveAppNo);
