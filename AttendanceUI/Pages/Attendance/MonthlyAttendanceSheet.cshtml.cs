@@ -168,46 +168,54 @@ public class MonthlyAttendanceSheetModel : PageModel
                     // Count logic based on status string from DB
                     if (log.Status != null && log.Status.EndsWith("HF") && log.Status.Length > 2)
                     {
-                         // Check if it's a half-day Comp Off
-                         if (activeApp?.LeaveType?.Code == "CO" || log.Status == "COHF") {
-                             summary.WeekoffCount++; 
-                         } else {
-                             summary.LeaveCount++; 
+                         summary.HalfDayCount++;
+                         
+                         // Check for specific half-day codes
+                         if (activeApp?.LeaveType?.Code == "CO" || log.Status == "COHF") 
+                         {
+                             summary.WeekoffCount += 0.5m; 
+                         } 
+                         else if (log.Status == "LWHF" || (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid))
+                         {
+                             summary.UnpaidLeaveCount += 0.5m;
+                         }
+                         else 
+                         {
+                             // PHF, SHF, CHF, PLHF, SLHF etc.
+                             summary.LeaveCount += 0.5m; 
                          }
                     }
-                    else if (log.IsHalfDay) summary.HalfDayCount++;
+                    else if (log.IsHalfDay) 
+                    {
+                        summary.HalfDayCount++;
+                        summary.PresentCount += 0.5m;
+                    }
                     else if (log.Status == "Present" || log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" || log.Status == "Present (Leave)" || log.Status == "COP") 
                     {
-                        summary.PresentCount++;
+                        summary.PresentCount += 1.0m;
                     }
-                    else if (log.Status == "Absent") summary.AbsentCount++;
+                    else if (log.Status == "Absent") summary.AbsentCount += 1.0m;
                     else if (log.Status == "Weekoff" || log.Status == "W/O" || log.Status == "WO" || log.Status == "CO") 
                     {
-                        summary.WeekoffCount++;
+                        summary.WeekoffCount += 1.0m;
                     }
-                    else if (log.Status == "Holiday") summary.HolidayCount++;
+                    else if (log.Status == "Holiday") summary.HolidayCount += 1.0m;
                     else if (log.Status == "Leave" || log.Status == "LWP" || log.Status?.Contains("Leave") == true || 
                              log.Status == "PL" || log.Status == "SL" || log.Status == "CL" || log.Status == "EL" || 
                              log.Status == "ML" || log.Status == "PTL") 
                     {
                         if (activeApp?.LeaveType?.Code == "CO")
                         {
-                            summary.WeekoffCount++;
+                            summary.WeekoffCount += 1.0m;
                         }
                         else if (log.Status == "LWP" || (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid))
                         {
-                            summary.UnpaidLeaveCount++;
+                            summary.UnpaidLeaveCount += 1.0m;
                         }
                         else
                         {
-                            summary.LeaveCount++;
+                            summary.LeaveCount += 1.0m;
                         }
-                    }
-                    else if (log.Status != null && (log.Status == "CO" || log.Status == "COP"))
-                    {
-                         // Double check for CO if not caught above
-                         summary.WeekoffCount++;
-                         if (log.Status == "COP") summary.PresentCount++;
                     }
                 }
                 else
@@ -220,7 +228,7 @@ public class MonthlyAttendanceSheetModel : PageModel
             }
 
             // Calculate total payable days
-            summary.PayableDays = summary.PresentCount + summary.WeekoffCount + summary.HolidayCount + summary.LeaveCount + (summary.HalfDayCount * 0.5m);
+            summary.PayableDays = summary.PresentCount + summary.WeekoffCount + summary.HolidayCount + summary.LeaveCount;
             
             EmployeeSummaries.Add(summary);
         }
@@ -244,13 +252,13 @@ public class MonthlyAttendanceSheetModel : PageModel
     {
         public Employee? Employee { get; set; }
         public Dictionary<int, DailyAttendanceDto> DailyRecords { get; set; } = new();
-        public int PresentCount { get; set; }
-        public int AbsentCount { get; set; }
+        public decimal PresentCount { get; set; }
+        public decimal AbsentCount { get; set; }
         public int HalfDayCount { get; set; }
-        public int WeekoffCount { get; set; }
-        public int HolidayCount { get; set; }
-        public int LeaveCount { get; set; }
-        public int UnpaidLeaveCount { get; set; }
+        public decimal WeekoffCount { get; set; }
+        public decimal HolidayCount { get; set; }
+        public decimal LeaveCount { get; set; }
+        public decimal UnpaidLeaveCount { get; set; }
         public decimal PayableDays { get; set; }
         public TimeSpan TotalWorkDuration { get; set; }
     }

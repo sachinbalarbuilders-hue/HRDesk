@@ -92,11 +92,11 @@
                                 </span>
                             </span>
                             <span class="d-flex gap-2">
-                                <span class="summary-badge badge-p">P: @summary.PresentCount</span>
-                                <span class="summary-badge badge-a">A: @summary.AbsentCount</span>
-                                <span class="summary-badge badge-wo">W/O: @summary.WeekoffCount</span>
-                                <span class="summary-badge badge-pl">PL: @summary.LeaveCount</span>
-                                <span class="summary-badge badge-ul">UL: @summary.UnpaidLeaveCount</span>
+                                <span class="summary-badge badge-p">P: @summary.PresentCount.ToString("0.#")</span>
+                                <span class="summary-badge badge-a">A: @summary.AbsentCount.ToString("0.#")</span>
+                                <span class="summary-badge badge-wo">W/O: @summary.WeekoffCount.ToString("0.#")</span>
+                                <span class="summary-badge badge-pl">PL: @summary.LeaveCount.ToString("0.#")</span>
+                                <span class="summary-badge badge-ul">UL: @summary.UnpaidLeaveCount.ToString("0.#")</span>
                                 <span class="summary-badge badge-hf">HF: @summary.HalfDayCount</span>
                                 <span class="summary-badge badge-payable">Payable: @summary.PayableDays.ToString("0.#") / @Model.DaysInMonth</span>
                             </span>
