@@ -174,24 +174,17 @@ public class MonthlyAttendanceSheetModel : PageModel
                          }
                     }
                     else if (log.IsHalfDay) summary.HalfDayCount++;
-                    else if (log.Status == "Present" || log.Status == "Present (Leave)") 
+                    else if (log.Status == "Present" || log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" || log.Status == "Present (Leave)") 
                     {
                         summary.PresentCount++;
                     }
                     else if (log.Status == "Absent") summary.AbsentCount++;
-                    else if (log.Status == "Weekoff" || log.Status == "W/O" || log.Status == "WO" || 
-                             log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" ||
-                             log.Status == "CO" || log.Status == "COP") 
+                    else if (log.Status == "Weekoff" || log.Status == "W/O" || log.Status == "WO" || log.Status == "CO") 
                     {
                         summary.WeekoffCount++;
-                        // If they worked on it, also count as present
-                        if (log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" || log.Status == "COP")
-                        {
-                            summary.PresentCount++;
-                        }
                     }
                     else if (log.Status == "Holiday") summary.HolidayCount++;
-                    else if (log.Status == "Leave" || log.Status == "LWP" || log.Status?.Contains("Leave") == true) 
+                    else if (log.Status == "Leave" || log.Status == "LWP" || log.Status == "COP" || log.Status?.Contains("Leave") == true) 
                     {
                         if (activeApp?.LeaveType?.Code == "CO") summary.WeekoffCount++;
                         else summary.LeaveCount++;
