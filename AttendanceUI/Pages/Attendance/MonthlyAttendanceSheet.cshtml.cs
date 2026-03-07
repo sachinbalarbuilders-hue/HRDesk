@@ -166,17 +166,42 @@ public class MonthlyAttendanceSheetModel : PageModel
                     // Count logic based on status string from DB
                     if (log.Status != null && log.Status.EndsWith("HF") && log.Status.Length > 2)
                     {
-                         summary.LeaveCount++; // Count specific half leaves as Leave entries (simplification)
-                         // Or separate? For now, if user sees PHF, they know it's leave. 
-                         // Check if paid?
-                         // Let's just NOT count it as generic HF.
+                         // Check if it's a half-day Comp Off
+                         if (activeApp?.LeaveType?.Code == "CO" || log.Status == "COHF") {
+                             summary.WeekoffCount++; 
+                         } else {
+                             summary.LeaveCount++; 
+                         }
                     }
                     else if (log.IsHalfDay) summary.HalfDayCount++;
-                    else if (log.Status == "Present" || log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" || log.Status == "Present (Leave)") summary.PresentCount++;
+                    else if (log.Status == "Present" || log.Status == "Present (Leave)") 
+                    {
+                        summary.PresentCount++;
+                    }
                     else if (log.Status == "Absent") summary.AbsentCount++;
-                    else if (log.Status == "Weekoff" || log.Status == "W/O" || log.Status == "WO") summary.WeekoffCount++;
+                    else if (log.Status == "Weekoff" || log.Status == "W/O" || log.Status == "WO" || 
+                             log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" ||
+                             log.Status == "CO" || log.Status == "COP") 
+                    {
+                        summary.WeekoffCount++;
+                        // If they worked on it, also count as present
+                        if (log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" || log.Status == "COP")
+                        {
+                            summary.PresentCount++;
+                        }
+                    }
                     else if (log.Status == "Holiday") summary.HolidayCount++;
-                    else if (log.Status == "Leave") summary.LeaveCount++;
+                    else if (log.Status == "Leave" || log.Status == "LWP" || log.Status?.Contains("Leave") == true) 
+                    {
+                        if (activeApp?.LeaveType?.Code == "CO") summary.WeekoffCount++;
+                        else summary.LeaveCount++;
+                    }
+                    else if (log.Status != null && (log.Status == "CO" || log.Status == "COP"))
+                    {
+                         // Double check for CO if not caught above
+                         summary.WeekoffCount++;
+                         if (log.Status == "COP") summary.PresentCount++;
+                    }
                 }
                 else
                 {
