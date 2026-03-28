@@ -18,6 +18,8 @@ public sealed class Employee
 
     public DateOnly? JoiningDate { get; set; }
 
+    public DateOnly? LastWorkingDate { get; set; }
+
     public DateOnly? ProbationStart { get; set; }
 
     public DateOnly? ProbationEnd { get; set; }

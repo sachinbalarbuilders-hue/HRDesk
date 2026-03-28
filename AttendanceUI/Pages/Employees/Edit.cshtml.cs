@@ -54,6 +54,7 @@ public sealed class EditModel : PageModel
             ShiftId = employee.ShiftId,
             Weekoff = employee.Weekoff ?? string.Empty,
             JoiningDate = employee.JoiningDate,
+            LastWorkingDate = employee.LastWorkingDate,
             DateOfBirth = employee.DateOfBirth,
             Phone = employee.Phone,
             Status = employee.Status
@@ -83,6 +84,7 @@ public sealed class EditModel : PageModel
         employee.ShiftId = Input.ShiftId;
         employee.Weekoff = Input.Weekoff;
         employee.JoiningDate = Input.JoiningDate;
+        employee.LastWorkingDate = Input.LastWorkingDate;
         employee.DateOfBirth = Input.DateOfBirth;
         employee.ProbationStart = Input.ProbationStart;
         employee.ProbationEnd = Input.ProbationEnd;
@@ -164,6 +166,9 @@ public sealed class EditModel : PageModel
         [Required]
         [Display(Name = "Joining Date")]
         public DateOnly? JoiningDate { get; set; }
+
+        [Display(Name = "Last Working Date")]
+        public DateOnly? LastWorkingDate { get; set; }
 
         // Probation is always 90 days from joining date
         public DateOnly? ProbationStart => JoiningDate;

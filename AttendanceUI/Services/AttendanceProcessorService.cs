@@ -98,22 +98,28 @@ public class AttendanceProcessorService
 
         foreach (var emp in employees)
         {
-            // If the employee is inactive, treat their last punch as their last working day.
-            // Do not process attendance for them on dates after their last punch.
+            // If the employee is inactive, treat their last working day as the cutoff.
+            // Priority: 1) Explicit LastWorkingDate on employee record, 2) Last biometric punch.
+            // Do not process attendance for them on dates after their last working day.
             if (emp.Status != null && emp.Status.ToLower() != "active")
             {
-                var latestPunch = await _db.AttendanceLogs
-                    .Where(l => l.EmployeeId == emp.EmployeeId)
-                    .OrderByDescending(l => l.PunchTime)
-                    .FirstOrDefaultAsync();
+                DateOnly? lastWorkingDay = emp.LastWorkingDate;
 
-                if (latestPunch != null)
+                if (lastWorkingDay == null)
                 {
-                    var lastWorkingDay = DateOnly.FromDateTime(latestPunch.PunchTime);
-                    if (date > lastWorkingDay)
-                    {
-                        continue; // Skip processing: no weekoffs/absents after last working day
-                    }
+                    // Fall back to last biometric punch
+                    var latestPunch = await _db.AttendanceLogs
+                        .Where(l => l.EmployeeId == emp.EmployeeId)
+                        .OrderByDescending(l => l.PunchTime)
+                        .FirstOrDefaultAsync();
+
+                    if (latestPunch != null)
+                        lastWorkingDay = DateOnly.FromDateTime(latestPunch.PunchTime);
+                }
+
+                if (lastWorkingDay.HasValue && date > lastWorkingDay.Value)
+                {
+                    continue; // Skip processing: no weekoffs/absents after last working day
                 }
             }
 
@@ -123,6 +129,8 @@ public class AttendanceProcessorService
         // CLEANUP: If batch processing (no specific employeeId), handle inactive employees
         // If an employee became inactive, they might have existing "Absent" or "W/O" records 
         // from a previous run. We should remove them if they have no logs for this day.
+        // IMPORTANT: Only clean up records for dates AFTER the employee's last working day.
+        // Weekoffs and other records BEFORE the last working day are legitimate and must be kept.
         if (!employeeId.HasValue)
         {
             var inactiveToCleanup = await _db.DailyAttendance
@@ -135,9 +143,48 @@ public class AttendanceProcessorService
                 .Where(d => d.ApplicationNumber == null) 
                 .ToListAsync();
 
-            if (inactiveToCleanup.Any())
+            // Filter out records that are ON OR BEFORE the employee's last working day.
+            // For inactive employees, weekoffs before their last working day are valid and must be preserved.
+            // Priority: 1) Employee.LastWorkingDate, 2) Last biometric punch.
+            var recordsToRemove = new List<DailyAttendance>();
+            foreach (var record in inactiveToCleanup)
             {
-                _db.DailyAttendance.RemoveRange(inactiveToCleanup);
+                var empRecord = await _db.Employees
+                    .Where(e => e.EmployeeId == record.EmployeeId)
+                    .Select(e => new { e.LastWorkingDate })
+                    .FirstOrDefaultAsync();
+
+                DateOnly? lastWorkingDay = empRecord?.LastWorkingDate;
+
+                if (lastWorkingDay == null)
+                {
+                    // Fall back to last biometric punch
+                    var lastPunch = await _db.AttendanceLogs
+                        .Where(l => l.EmployeeId == record.EmployeeId)
+                        .OrderByDescending(l => l.PunchTime)
+                        .Select(l => l.PunchTime)
+                        .FirstOrDefaultAsync();
+
+                    if (lastPunch != default)
+                        lastWorkingDay = DateOnly.FromDateTime(lastPunch);
+                }
+
+                if (lastWorkingDay == null)
+                {
+                    // No punches and no LastWorkingDate — safe to remove
+                    recordsToRemove.Add(record);
+                }
+                else if (date > lastWorkingDay.Value)
+                {
+                    // Date is after last working day — safe to remove (no weekoffs after exit)
+                    recordsToRemove.Add(record);
+                }
+                // else: date is on or before last working day — keep the record (valid weekoff/absent)
+            }
+
+            if (recordsToRemove.Any())
+            {
+                _db.DailyAttendance.RemoveRange(recordsToRemove);
             }
         }
 
