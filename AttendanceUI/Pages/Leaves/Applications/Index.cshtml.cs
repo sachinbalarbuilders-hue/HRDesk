@@ -98,7 +98,7 @@ public class IndexModel : PageModel
         return new JsonResult(new { nextAppNo });
     }
 
-    public async Task<IActionResult> OnGetGetEligibleLeaveTypesAsync(int employeeId, string date = null)
+    public async Task<IActionResult> OnGetGetEligibleLeaveTypesAsync(int employeeId, string? date = null)
     {
         // A leave type is eligible for an employee if:
         // 1. It has NO explicit assignments (General leave type)
@@ -112,6 +112,7 @@ public class IndexModel : PageModel
         }
 
         bool isOnProbation = emp?.ProbationEnd.HasValue == true && checkDate < emp.ProbationEnd.Value;
+        bool isOnNotice = emp?.ResignationDate.HasValue == true && checkDate >= emp.ResignationDate.Value;
 
         var eligibleTypes = await _db.LeaveTypes
             .Where(lt => lt.Status == "Active")
@@ -121,7 +122,8 @@ public class IndexModel : PageModel
                 lt.Id, 
                 lt.Name, 
                 lt.Code,
-                IsDisabled = isOnProbation && lt.IsPaid && lt.ApplicableAfterProbation
+                IsDisabled = (lt.Code != "CO") && ((isOnProbation && lt.IsPaid && lt.ApplicableAfterProbation) || (isOnNotice && lt.IsPaid)),
+                DisabledReason = (isOnNotice && lt.IsPaid && lt.Code != "CO") ? "Notice" : (isOnProbation && lt.IsPaid && lt.ApplicableAfterProbation && lt.Code != "CO") ? "Probation" : ""
             })
             .ToListAsync();
 
@@ -215,11 +217,21 @@ public class IndexModel : PageModel
             return Page();
         }
 
-        // Probation Logic: No paid leave if on probation
-        var isOnProbation = emp.ProbationEnd.HasValue && NewApplication.StartDate < emp.ProbationEnd.Value;
-        if (isOnProbation && type.IsPaid && type.ApplicableAfterProbation)
+        // Eligibility Checks: No paid leave if on probation OR notice period
+        var checkDate = NewApplication.StartDate;
+        var isOnProbation = emp.ProbationEnd.HasValue && checkDate < emp.ProbationEnd.Value;
+        var isOnNotice = emp.ResignationDate.HasValue && checkDate >= emp.ResignationDate.Value;
+
+        if (type.Code != "CO" && isOnProbation && type.IsPaid && type.ApplicableAfterProbation)
         {
             ModelState.AddModelError("", $"Employee is on probation until {emp.ProbationEnd:dd-MMM-yyyy}. Paid leaves like {type.Name} are not allowed yet.");
+            await OnGetAsync();
+            return Page();
+        }
+        
+        if (type.Code != "CO" && isOnNotice && type.IsPaid)
+        {
+            ModelState.AddModelError("", $"Employee is in notice period (started {emp.ResignationDate:dd-MMM-yyyy}). Paid leaves like {type.Name} are not allowed during notice.");
             await OnGetAsync();
             return Page();
         }

@@ -24,6 +24,18 @@ namespace AttendanceUI.Pages.Loans.Applications
         public EmployeeLoan LoanApplication { get; set; } = default!;
         public IList<LoanInstallment> Installments { get; set; } = default!;
 
+        [BindProperty]
+        public string? ForeclosureRemark { get; set; }
+
+        [BindProperty]
+        public bool IncludeCurrentMonth { get; set; } = true;
+
+        public bool HasCurrentMonthPending { get; set; }
+        public decimal CurrentMonthAmount { get; set; }
+        public decimal TotalPendingAmount { get; set; }
+        public int PendingInstallmentsCount { get; set; }
+        public string CurrentMonthName { get; set; } = "";
+
         public async Task<IActionResult> OnGetAsync(int? id)
         {
             if (id == null)
@@ -50,10 +62,19 @@ namespace AttendanceUI.Pages.Loans.Applications
                     .Where(i => i.LoanId == id)
                     .OrderBy(i => i.InstallmentNumber)
                     .ToListAsync();
+                
+                var currentMonthStr = System.DateTime.Now.ToString("yyyy-MM");
+                CurrentMonthName = System.DateTime.Now.ToString("MMMM yyyy");
+                var pendingInsts = Installments.Where(i => i.Status == "Pending").ToList();
+                HasCurrentMonthPending = pendingInsts.Any(i => i.DueMonth == currentMonthStr);
+                CurrentMonthAmount = pendingInsts.FirstOrDefault(i => i.DueMonth == currentMonthStr)?.Amount ?? 0;
+                TotalPendingAmount = pendingInsts.Sum(i => i.Amount);
+                PendingInstallmentsCount = pendingInsts.Count;
             }
             else
             {
                 Installments = new List<LoanInstallment>();
+                CurrentMonthName = System.DateTime.Now.ToString("MMMM yyyy");
             }
 
             return Page();
@@ -104,7 +125,8 @@ namespace AttendanceUI.Pages.Loans.Applications
         {
             try
             {
-                await _loanService.ForecloseLoanAsync(id, User.Identity?.Name ?? "Admin");
+                var remark = ForeclosureRemark ?? "No remark provided";
+                await _loanService.ForecloseLoanAsync(id, User.Identity?.Name ?? "Admin", remark, IncludeCurrentMonth);
                 return RedirectToPage(new { id });
             }
             catch (System.Exception ex)

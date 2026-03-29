@@ -17,6 +17,8 @@ public sealed class Employee
     public string? Phone { get; set; }
 
     public DateOnly? JoiningDate { get; set; }
+    
+    public DateOnly? ResignationDate { get; set; }
 
     public DateOnly? LastWorkingDate { get; set; }
 

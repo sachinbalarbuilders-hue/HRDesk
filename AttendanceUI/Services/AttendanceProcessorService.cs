@@ -448,12 +448,21 @@ public class AttendanceProcessorService
                 // Must set a valid status if it's a Half Day leave with no punches
                 // Logic mirrored from lines 288+
                 var leaveCode = approvedLeave!.LeaveType?.Code ?? "L";
-                string firstLetter = "L";
-                if (!string.IsNullOrWhiteSpace(leaveCode) && leaveCode.Length > 0)
+                bool isPaid = approvedLeave.LeaveType?.IsPaid ?? false;
+
+                if (!isPaid)
                 {
-                    firstLetter = leaveCode.Substring(0, 1).ToUpper();
+                    existingRecord.Status = "HF";
                 }
-                existingRecord.Status = $"{firstLetter}HF"; // e.g., PHF, SHF
+                else
+                {
+                    string firstLetter = "L";
+                    if (!string.IsNullOrWhiteSpace(leaveCode) && leaveCode.Length > 0)
+                    {
+                        firstLetter = leaveCode.Substring(0, 1).ToUpper();
+                    }
+                    existingRecord.Status = $"{firstLetter}HF"; // e.g., PHF, SHF
+                }
                 existingRecord.IsHalfDay = true;
             }
 
@@ -494,15 +503,23 @@ public class AttendanceProcessorService
             {
                 var leaveCode = approvedLeave.LeaveType?.Code ?? "UNKNOWN";
                 var leaveTypeName = approvedLeave.LeaveType?.Name ?? "Unknown";
+                bool isPaid = approvedLeave.LeaveType?.IsPaid ?? false;
                 
-                // Get first letter for status
-                string firstLetter = "L"; // Default
-                if (!string.IsNullOrWhiteSpace(leaveCode) && leaveCode.Length > 0)
+                if (!isPaid)
                 {
-                    firstLetter = leaveCode.Substring(0, 1).ToUpper();
+                    existingRecord.Status = "HF";
                 }
-                
-                existingRecord.Status = $"{firstLetter}HF"; // PL→PHF, SL→SHF
+                else
+                {
+                    // Get first letter for status
+                    string firstLetter = "L"; // Default
+                    if (!string.IsNullOrWhiteSpace(leaveCode) && leaveCode.Length > 0)
+                    {
+                        firstLetter = leaveCode.Substring(0, 1).ToUpper();
+                    }
+                    
+                    existingRecord.Status = $"{firstLetter}HF"; // PL→PHF, SL→SHF
+                }
                 // Skip adding remark here as it's already added at line ~359 (Half Day Leave: PL (Second Half))
             }
         }
@@ -610,6 +627,9 @@ public class AttendanceProcessorService
         var currentShift = emp.Shift; // Variable rename for consistency below
 
         // 6. Timing Rules (Dynamic based on Shift)
+        
+        bool isNoticePeriod = emp.ResignationDate.HasValue && date >= emp.ResignationDate.Value;
+        bool isProbation = emp.ProbationEnd.HasValue && date < emp.ProbationEnd.Value;
 
         // Adjust expected start time if the employee is on a First Half leave
         TimeOnly expectedStartTime = currentShift.StartTime;
@@ -623,6 +643,7 @@ public class AttendanceProcessorService
         if (inTime > expectedStartTime)
         {
             int lateMins = (int)(inTime - expectedStartTime).TotalMinutes;
+            int graceLimit = isNoticePeriod ? 0 : (currentShift.LateComingGraceMinutes ?? 30);
             
             if (waiveLate)
             {
@@ -635,7 +656,6 @@ public class AttendanceProcessorService
                 existingRecord.LateMinutes = lateMins; // Always store for reports
                 
                 // MAJOR LATE: arriving after HalfTime boundary (only applies if expected start wasn't already HalfTime)
-                var isProbation = emp.ProbationEnd.HasValue && existingRecord.RecordDate < emp.ProbationEnd.Value;
                 if (currentShift.HalfTime.HasValue && expectedStartTime != currentShift.HalfTime.Value && inTime > currentShift.HalfTime.Value)
                 {
                     if (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF"))
@@ -645,17 +665,18 @@ public class AttendanceProcessorService
                         existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Major Late (> Half Time)");
                     }
                 }
-                else if (isProbation && lateMins > 0)
+                else if ((isProbation || isNoticePeriod) && lateMins > 0)
                 {
-                    // Probation employees: immediate Half Day for any lateness
+                    // Probation or Notice Period employees: immediate Half Day for any lateness
                     if (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF"))
                     {
                         existingRecord.Status = "Half Day";
                         existingRecord.IsHalfDay = true;
-                        existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Probation Late (No Grace)");
+                        var ruleName = isNoticePeriod ? "Notice Period" : "Probation";
+                        existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{ruleName} Late (No Grace)");
                     }
                 }
-                else if (lateMins > (currentShift.LateComingGraceMinutes ?? 30))
+                else if (lateMins > graceLimit)
                 {
                     // Regular employees: immediate Half Day if beyond grace period
                     if (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF"))
@@ -679,8 +700,6 @@ public class AttendanceProcessorService
             int earlyMins = (int)(currentShift.EndTime - outTime).TotalMinutes;
             
             // Early Exit Zone Separation
-            var isProbation = emp.ProbationEnd.HasValue && existingRecord.RecordDate < emp.ProbationEnd.Value;
-            
             // SPECIAL CASE: Second Half Leave but left before HalfTime boundary
             if (approvedLeave != null && approvedLeave.DayType == "Second Half" && currentShift.HalfTime.HasValue && outTime < currentShift.HalfTime.Value)
             {
@@ -729,12 +748,24 @@ public class AttendanceProcessorService
                 else
                 {
                     existingRecord.EarlyMinutes = earlyMins;
-                    int graceMinutes = currentShift.EarlyLeaveGraceMinutes ?? 0;
+                    int graceMinutes = (isNoticePeriod || isProbation) ? 0 : (currentShift.EarlyLeaveGraceMinutes ?? 0);
                     
-                    if (earlyMins > graceMinutes || isProbation)
+                    if (earlyMins > graceMinutes || isProbation || isNoticePeriod)
                     {
                         // Mark as Early so Monthly Frequency penalty can apply in ApplyMonthlyPenaltiesAsync
                         existingRecord.IsEarly = true;
+                        
+                        if (isNoticePeriod || isProbation)
+                        {
+                            // Stricter rule for Notice/Probation: any early exit is a Half Day if beyond grace (which is 0)
+                            if (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF"))
+                            {
+                                existingRecord.Status = "Half Day";
+                                existingRecord.IsHalfDay = true;
+                                var ruleName = isNoticePeriod ? "Notice Period" : "Probation";
+                                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{ruleName} Early Exit (No Grace)");
+                            }
+                        }
                     }
                 }
             }

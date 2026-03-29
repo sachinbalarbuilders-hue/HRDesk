@@ -166,29 +166,32 @@ public class MonthlyAttendanceSheetModel : PageModel
                     }
 
                     // Count logic based on status string from DB
-                    if (log.Status != null && log.Status.EndsWith("HF") && log.Status.Length > 2)
+                    if (log.IsHalfDay || (log.Status != null && log.Status.EndsWith("HF") && log.Status.Length > 2))
                     {
                          summary.HalfDayCount++;
-                         
-                         // Check for specific half-day codes
+                         summary.PresentCount += 0.5m; // employee worked the other half
+
+                         // Check for specific half-day codes or linked application
                          if (activeApp?.LeaveType?.Code == "CO" || log.Status == "COHF") 
                          {
                              summary.WeekoffCount += 0.5m; 
                          } 
-                         else if (log.Status == "LWHF" || (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid))
+                         else if (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid)
                          {
                              summary.UnpaidLeaveCount += 0.5m;
                          }
-                         else 
+                         else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
                          {
-                             // PHF, SHF, CHF, PLHF, SLHF etc.
-                             summary.LeaveCount += 0.5m; 
+                             summary.LeaveCount += 0.5m;
                          }
-                    }
-                    else if (log.IsHalfDay) 
-                    {
-                        summary.HalfDayCount++;
-                        summary.PresentCount += 0.5m;
+                         else
+                         {
+                             // No linked application — fall back to status string
+                             if (log.Status == "LWHF" || log.Status == "HF") // HF without app is usually treated as unpaid if it's a half-day absence
+                                 summary.UnpaidLeaveCount += 0.5m;
+                             else
+                                 summary.LeaveCount += 0.5m;
+                         }
                     }
                     else if (log.Status == "Present" || log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" || log.Status == "Present (Leave)" || log.Status == "COP") 
                     {
@@ -200,21 +203,28 @@ public class MonthlyAttendanceSheetModel : PageModel
                         summary.WeekoffCount += 1.0m;
                     }
                     else if (log.Status == "Holiday") summary.HolidayCount += 1.0m;
-                    else if (log.Status == "Leave" || log.Status == "LWP" || log.Status?.Contains("Leave") == true || 
-                             log.Status == "PL" || log.Status == "SL" || log.Status == "CL" || log.Status == "EL" || 
-                             log.Status == "ML" || log.Status == "PTL") 
+                    else if (activeApp != null || log.Status == "Leave" || log.Status == "LWP" || log.Status?.Contains("Leave") == true)
                     {
+                        // Prioritise the linked leave application's type for classification
                         if (activeApp?.LeaveType?.Code == "CO")
                         {
                             summary.WeekoffCount += 1.0m;
                         }
-                        else if (log.Status == "LWP" || (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid))
+                        else if (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid)
                         {
                             summary.UnpaidLeaveCount += 1.0m;
                         }
-                        else
+                        else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
                         {
                             summary.LeaveCount += 1.0m;
+                        }
+                        else
+                        {
+                            // No linked application — fall back to status string
+                            if (log.Status == "LWP")
+                                summary.UnpaidLeaveCount += 1.0m;
+                            else
+                                summary.LeaveCount += 1.0m;
                         }
                     }
                 }

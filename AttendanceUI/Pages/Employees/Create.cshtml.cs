@@ -61,6 +61,7 @@ public sealed class CreateModel : PageModel
             ShiftId = Input.ShiftId,
             Weekoff = Input.Weekoff,
             JoiningDate = Input.JoiningDate,
+            ResignationDate = Input.ResignationDate,
             DateOfBirth = Input.DateOfBirth,
             ProbationStart = Input.ProbationStart,
             ProbationEnd = Input.ProbationEnd,
@@ -137,6 +138,9 @@ public sealed class CreateModel : PageModel
         // Probation is always 90 days from joining date
         public DateOnly? ProbationStart => JoiningDate;
         public DateOnly? ProbationEnd => JoiningDate.HasValue ? JoiningDate.Value.AddDays(90) : null;
+
+        [Display(Name = "Resignation Date")]
+        public DateOnly? ResignationDate { get; set; }
 
         [Display(Name = "Date of Birth")]
         public DateOnly? DateOfBirth { get; set; }

@@ -496,7 +496,7 @@
                     dropdown.empty().append('<option value="">— Select Type —</option>');
                     data.forEach(function (type) {
                         var disabledAttr = type.isDisabled ? 'disabled="disabled"' : '';
-                        var disabledText = type.isDisabled ? ' [Not Eligible - Probation]' : '';
+                        var disabledText = type.isDisabled ? ' [Not Eligible - ' + (type.disabledReason || 'Probation') + ']' : '';
                         dropdown.append(`<option value="${type.id}" ${selectedTypeId == type.id ? 'selected' : ''} ${disabledAttr}>${type.name} (${type.code})${disabledText}</option>`);
                     });
                     if (selectedTypeId) checkBalanceLocal(dropdownId.startsWith('add') ? 'add' : 'edit', employeeId);

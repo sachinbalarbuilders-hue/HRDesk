@@ -81,6 +81,12 @@
                     <span asp-validation-for="Input.JoiningDate" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
+                    <label asp-for="Input.ResignationDate" class="form-label fw-semibold"></label>
+                    <input asp-for="Input.ResignationDate" class="form-control" type="date" />
+                    <div class="form-text text-muted">Benefits like grace period & paid leave restricted from this date.</div>
+                    <span asp-validation-for="Input.ResignationDate" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
                     <label asp-for="Input.LastWorkingDate" class="form-label fw-semibold"></label>
                     <input asp-for="Input.LastWorkingDate" class="form-control" type="date" />
                     <div class="form-text text-muted">Leave blank if still active. Weekoffs/absents won't be generated after this date.</div>

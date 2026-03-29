@@ -73,6 +73,12 @@
                     <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
                     <span asp-validation-for="Input.DateOfBirth" class="text-danger small"></span>
                 </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.ResignationDate" class="form-label fw-semibold"></label>
+                    <input asp-for="Input.ResignationDate" class="form-control" type="date" />
+                    <div class="form-text text-muted">Benefits like grace period & paid leave restricted from this date.</div>
+                    <span asp-validation-for="Input.ResignationDate" class="text-danger small"></span>
+                </div>
 
                 <div class="col-md-4">
                     <label asp-for="Input.Phone" class="form-label fw-semibold"></label>

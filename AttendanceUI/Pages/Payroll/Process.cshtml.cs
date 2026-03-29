@@ -31,6 +31,9 @@ namespace AttendanceUI.Pages.Payroll
         [BindProperty]
         public Dictionary<int, string> AdjustmentData { get; set; } = new();
 
+        [BindProperty]
+        public bool IncludeLoans { get; set; } = true;
+
         public class EmployeeListItem
         {
             public int EmployeeId { get; set; }
@@ -78,7 +81,7 @@ namespace AttendanceUI.Pages.Payroll
                             adjustments = System.Text.Json.JsonSerializer.Deserialize<List<ManualAdjustment>>(AdjustmentData[employeeId]) ?? new();
                         }
 
-                        await _payrollService.ProcessEmployeePayrollAsync(employeeId, TargetProcessMonth, adjustments);
+                        await _payrollService.ProcessEmployeePayrollAsync(employeeId, TargetProcessMonth, adjustments, !IncludeLoans);
                         successCount++;
                     }
                     catch (Exception)

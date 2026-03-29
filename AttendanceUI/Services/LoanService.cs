@@ -133,7 +133,8 @@ public class LoanService
             .Include(i => i.EmployeeLoan)
             .Where(i => i.EmployeeLoan!.EmployeeId == employeeId &&
                        (i.EmployeeLoan.Status == "Active" || i.EmployeeLoan.Status == "Completed") &&
-                       i.DueMonth == month)
+                       i.DueMonth == month &&
+                       i.Status == "Pending") // Only include pending installments
             .ToListAsync();
 
         // Return amount if it was either Pending OR already Paid for this specific month
@@ -223,7 +224,7 @@ public class LoanService
     /// <summary>
     /// Foreclose an active loan by paying off all remaining installments
     /// </summary>
-    public async Task ForecloseLoanAsync(int loanId, string foreclosedBy)
+    public async Task ForecloseLoanAsync(int loanId, string foreclosedBy, string remark, bool includeCurrentMonth = true)
     {
         var loan = await _db.EmployeeLoans
             .Include(l => l.LoanInstallments)
@@ -235,11 +236,20 @@ public class LoanService
         if (loan.Status != "Active")
             throw new InvalidOperationException("Only active loans can be foreclosed.");
 
-        // Mark all pending installments as Paid
-        var pendingInstallments = loan.LoanInstallments.Where(i => i.Status == "Pending");
+        var currentMonth = DateTime.Now.ToString("yyyy-MM");
+
+        // Mark pending installments as Paid
+        var pendingInstallments = loan.LoanInstallments
+            .Where(i => i.Status == "Pending");
+
+        if (!includeCurrentMonth)
+        {
+            pendingInstallments = pendingInstallments.Where(i => i.DueMonth != currentMonth);
+        }
+
         foreach (var inst in pendingInstallments)
         {
-            inst.Status = "Paid";
+            inst.Status = "Settled";
             inst.PaidAmount = inst.Amount;
             inst.PaidDate = DateOnly.FromDateTime(DateTime.Now);
             inst.Remarks = "Settle via Foreclosure";
@@ -249,7 +259,8 @@ public class LoanService
         loan.RemainingAmount = 0;
         loan.RemainingInstallments = 0;
         loan.Status = "Completed";
-        loan.Reason += $" (Foreclosed by {foreclosedBy} on {DateTime.Now:dd MMM yyyy})";
+        
+        loan.ForeclosureRemark = $"{remark.Trim()} (By {foreclosedBy} on {DateTime.Now:dd MMM yyyy})";
 
         await _db.SaveChangesAsync();
     }

@@ -267,6 +267,8 @@ public sealed class BiometricAttendanceDbContext : DbContext
             entity.Property(e => e.ShiftId).HasColumnName("shift_id");
             entity.Property(e => e.Phone).HasColumnName("phone");
             entity.Property(e => e.JoiningDate).HasColumnName("joining_date");
+            entity.Property(e => e.ResignationDate).HasColumnName("resignation_date");
+            entity.Property(e => e.LastWorkingDate).HasColumnName("LastWorkingDate");
             entity.Property(e => e.ProbationStart).HasColumnName("probation_start");
             entity.Property(e => e.ProbationEnd).HasColumnName("probation_end");
             entity.Property(e => e.DateOfBirth).HasColumnName("date_of_birth");

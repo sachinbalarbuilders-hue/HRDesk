@@ -225,14 +225,39 @@ public class PayrollService
     /// Process payroll for a single employee for a specific month
     /// </summary>
     public async Task<PayrollMaster> ProcessEmployeePayrollAsync(int employeeId, string month, 
-        System.Collections.Generic.List<ManualAdjustment>? manualAdjustments = null)
+        System.Collections.Generic.List<ManualAdjustment>? manualAdjustments = null, bool skipLoans = false)
     {
         // Check if payroll already exists
         var existing = await _db.PayrollMasters
             .FirstOrDefaultAsync(p => p.EmployeeId == employeeId && p.Month == month);
 
+        if (existing != null)
+        {
+            // 1. Remove existing payroll details
+            var existingDetails = await _db.PayrollDetails
+                .Where(d => d.PayrollId == existing.Id)
+                .ToListAsync();
+            _db.PayrollDetails.RemoveRange(existingDetails);
+
+            // 2. REVERT any loan installments linked to this payroll
+            // We do this BEFORE the calculation below so that GetPendingInstallmentForMonthAsync sees them as Pending
+            var linkedInstallments = await _db.LoanInstallments
+                .Where(i => i.PayrollId == existing.Id)
+                .ToListAsync();
+            foreach (var inst in linkedInstallments)
+            {
+                inst.Status = "Pending";
+                inst.PaidAmount = 0;
+                inst.PaidDate = null;
+                inst.PayrollId = null;
+                inst.Remarks = "Reverted for re-processing";
+            }
+            await _db.SaveChangesAsync();
+        }
+
         var attendance = await GetAttendanceSummaryAsync(employeeId, month);
         var grossSalary = await GetGrossSalaryAsync(employeeId, month);
+        decimal loanDeduction = 0;
 
         // Skip if no salary structure
         if (grossSalary == 0)
@@ -334,18 +359,23 @@ public class PayrollService
             });
         }
 
+        await _db.SaveChangesAsync();
+
         // 3. Loan installment deduction
-        var loanDeduction = await _loanService.GetPendingInstallmentForMonthAsync(employeeId, month);
-        if (loanDeduction > 0)
+        if (!skipLoans)
         {
-            totalDeductions += loanDeduction;
-            deductionDetails.Add(new PayrollDetail
+            loanDeduction = await _loanService.GetPendingInstallmentForMonthAsync(employeeId, month);
+            if (loanDeduction > 0)
             {
-                ComponentType = "Deduction",
-                ComponentName = "Loan Installment",
-                Amount = loanDeduction,
-                Remarks = "Monthly loan installment"
-            });
+                totalDeductions += loanDeduction;
+                deductionDetails.Add(new PayrollDetail
+                {
+                    ComponentType = "Deduction",
+                    ComponentName = "Loan Installment",
+                    Amount = loanDeduction,
+                    Remarks = "Monthly loan installment"
+                });
+            }
         }
 
         // 4. Ad-hoc deductions (Manual adjustments)
@@ -407,15 +437,6 @@ public class PayrollService
 
         await _db.SaveChangesAsync();
 
-        // Clear existing details if updating
-        if (existing != null)
-        {
-            var existingDetails = await _db.PayrollDetails
-                .Where(d => d.PayrollId == payroll.Id)
-                .ToListAsync();
-            _db.PayrollDetails.RemoveRange(existingDetails);
-        }
-
         // Add payroll details
         foreach (var detail in earningDetails.Concat(deductionDetails))
         {
@@ -445,7 +466,7 @@ public class PayrollService
     /// <summary>
     /// Process payroll for all employees for a specific month
     /// </summary>
-    public async Task<int> ProcessMonthlyPayrollAsync(string month)
+    public async Task<int> ProcessMonthlyPayrollAsync(string month, bool includeLoans = true)
     {
         var employees = await _db.Employees
             .Where(e => e.Status == "Active")
@@ -457,7 +478,7 @@ public class PayrollService
         {
             try
             {
-                await ProcessEmployeePayrollAsync(employee.EmployeeId, month);
+                await ProcessEmployeePayrollAsync(employee.EmployeeId, month, null, !includeLoans);
                 processedCount++;
             }
             catch (Exception)

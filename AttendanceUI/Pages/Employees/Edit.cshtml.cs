@@ -54,6 +54,7 @@ public sealed class EditModel : PageModel
             ShiftId = employee.ShiftId,
             Weekoff = employee.Weekoff ?? string.Empty,
             JoiningDate = employee.JoiningDate,
+            ResignationDate = employee.ResignationDate,
             LastWorkingDate = employee.LastWorkingDate,
             DateOfBirth = employee.DateOfBirth,
             Phone = employee.Phone,
@@ -84,6 +85,7 @@ public sealed class EditModel : PageModel
         employee.ShiftId = Input.ShiftId;
         employee.Weekoff = Input.Weekoff;
         employee.JoiningDate = Input.JoiningDate;
+        employee.ResignationDate = Input.ResignationDate;
         employee.LastWorkingDate = Input.LastWorkingDate;
         employee.DateOfBirth = Input.DateOfBirth;
         employee.ProbationStart = Input.ProbationStart;
@@ -166,6 +168,9 @@ public sealed class EditModel : PageModel
         [Required]
         [Display(Name = "Joining Date")]
         public DateOnly? JoiningDate { get; set; }
+
+        [Display(Name = "Resignation Date")]
+        public DateOnly? ResignationDate { get; set; }
 
         [Display(Name = "Last Working Date")]
         public DateOnly? LastWorkingDate { get; set; }

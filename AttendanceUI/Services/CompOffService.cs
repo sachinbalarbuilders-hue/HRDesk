@@ -210,13 +210,13 @@ public class CompOffService
         // 1. Get total used comp off days (from allocations across ALL years)
         var totalUsed = await _db.LeaveAllocations
             .Include(a => a.LeaveType)
-            .Where(a => a.EmployeeId == employeeId && a.LeaveType.Code == "CO")
+            .Where(a => a.EmployeeId == employeeId && a.LeaveType!.Code == "CO")
             .SumAsync(a => (decimal?)a.UsedCount) ?? 0;
 
         // 2. Get opening balance (manually added credits not from CompOffRequests)
         var openingBalance = await _db.LeaveAllocations
             .Include(a => a.LeaveType)
-            .Where(a => a.EmployeeId == employeeId && a.LeaveType.Code == "CO")
+            .Where(a => a.EmployeeId == employeeId && a.LeaveType!.Code == "CO")
             .SumAsync(a => (decimal?)a.OpeningBalance) ?? 0;
             
         // 3. Get all approved comp offs to calculate balance using FIFO

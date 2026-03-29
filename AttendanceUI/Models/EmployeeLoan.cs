@@ -61,6 +61,10 @@ public class EmployeeLoan
     [Column("approved_date")]
     public DateTime? ApprovedDate { get; set; }
 
+    [Column("foreclosure_remark")]
+    [StringLength(500)]
+    public string? ForeclosureRemark { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
