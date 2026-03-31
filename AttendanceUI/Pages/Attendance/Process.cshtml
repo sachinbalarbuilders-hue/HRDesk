@@ -26,7 +26,7 @@
             <strong>Note:</strong> Manual overrides will effectively lock a record from being re-processed.
         </p>
 
-        <form method="post" class="row g-3 align-items-end">
+        <form method="post" class="row g-3 align-items-end" onsubmit="showLoading('Processing Attendance...')">
             <div class="col-md-3">
                 <label class="form-label">Employee</label>
                 <div class="dropdown" id="empDropdown">
@@ -97,19 +97,23 @@ document.addEventListener('DOMContentLoaded', function () {
         updateLabel();
     }));
 
-    selectAll.addEventListener('change', function () {
-        const visible = document.querySelectorAll('.emp-item:not([style*="display: none"]) .emp-check');
-        visible.forEach(c => c.checked = selectAll.checked);
-        updateLabel();
-    });
-
-    search.addEventListener('input', function () {
-        const q = search.value.toLowerCase();
-        document.querySelectorAll('.emp-item').forEach(item => {
-            const text = item.querySelector('label').textContent.toLowerCase();
-            item.style.display = text.includes(q) ? '' : 'none';
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            const visible = document.querySelectorAll('.emp-item:not([style*="display: none"]) .emp-check');
+            visible.forEach(c => c.checked = selectAll.checked);
+            updateLabel();
         });
-    });
+    }
+
+    if (search) {
+        search.addEventListener('input', function () {
+            const q = search.value.toLowerCase();
+            document.querySelectorAll('.emp-item').forEach(item => {
+                const text = item.querySelector('label').textContent.toLowerCase();
+                item.style.display = text.includes(q) ? '' : 'none';
+            });
+        });
+    }
 });
 </script>
     </div>

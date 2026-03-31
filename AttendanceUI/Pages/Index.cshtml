@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model IndexModel
 @{
     ViewData["Title"] = "Dashboard";
@@ -70,6 +70,70 @@
     </div>
 </div>
 
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0 d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark"><i class="bi bi-broadcast me-2 text-primary"></i>Machine Connectivity Status</h5>
+                    <p class="text-muted small mb-0">Monitor real-time health and last synchronization of biometric devices</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge rounded-pill bg-light text-muted border py-2 px-3">
+                        <i class="bi bi-clock-history me-1"></i> Auto-updates every sync
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                    @foreach (var machine in Model.MachineStatuses)
+                    {
+                        <div class="col">
+                            <div class="p-3 border rounded-3 device-card bg-light bg-opacity-10">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <span class="status-indicator @machine.StatusClass" id="indicator-@machine.Id"></span>
+                                        <span class="fw-bold text-dark">@machine.Name</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-link text-primary p-0 text-decoration-none" 
+                                            onclick="checkMachineStatus(@machine.Id, this)" title="Verify Connection">
+                                        <i class="bi bi-arrow-clockwise"></i> Verify
+                                    </button>
+                                </div>
+                                <div class="small text-muted mb-1">
+                                    <i class="bi bi-pc-display me-1"></i> IP: @machine.IpAddress
+                                </div>
+                                <div class="sync-time-text @(machine.LastSync.HasValue ? "" : "text-danger")" id="sync-@machine.Id">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span><i class="bi bi-cloud-check me-1"></i> 
+                                        @if (machine.LastSync.HasValue)
+                                        {
+                                            var diff = DateTime.Now - machine.LastSync.Value;
+                                            if (diff.TotalMinutes < 1) { <span>Just now</span> }
+                                            else if (diff.TotalMinutes < 60) { <span>@( (int)diff.TotalMinutes) min ago</span> }
+                                            else if (diff.TotalHours < 24) { <span>@( (int)diff.TotalHours) hours ago</span> }
+                                            else { <span>@machine.LastSync.Value.ToString("dd MMM, hh:mm tt")</span> }
+                                        }
+                                        else
+                                        {
+                                            <span>Never synchronized</span>
+                                        }
+                                        </span>
+                                        @if (machine.RecordsSynced > 0)
+                                        {
+                                            <span class="badge bg-soft-info text-info small">@machine.RecordsSynced records</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-12">
         <div class="card">
@@ -92,3 +156,53 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        async function checkMachineStatus(id, btn, silent = false) {
+            const icon = btn.querySelector('i');
+            const indicator = document.getElementById(`indicator-${id}`);
+            
+            if (icon) icon.classList.add('bi-spin');
+            if (btn) btn.disabled = true;
+
+            try {
+                const response = await fetch(`?handler=CheckConnection&id=${id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    indicator.className = 'status-indicator status-online status-pulse';
+                    if (!silent) alert(`Success: ${result.message}`);
+                } else {
+                    indicator.className = 'status-indicator status-offline';
+                    if (!silent) alert(`Failed: ${result.message}`);
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+                if (!silent) alert('An error occurred while checking connection.');
+            } finally {
+                if (icon) icon.classList.remove('bi-spin');
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        // Auto-check on load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('[onclick^="checkMachineStatus"]').forEach(btn => {
+                const onclick = btn.getAttribute('onclick');
+                const id = onclick.match(/\d+/)[0];
+                checkMachineStatus(id, btn, true);
+            });
+        });
+    </script>
+    <style>
+        @@keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .bi-spin {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+    </style>
+}

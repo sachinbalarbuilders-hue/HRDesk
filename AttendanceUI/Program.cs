@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -22,6 +22,7 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/Regularizations");
     options.Conventions.AuthorizeFolder("/Reports");
     options.Conventions.AuthorizeFolder("/Shifts");
+    options.Conventions.AuthorizeFolder("/ServiceLogs");
 }).AddRazorRuntimeCompilation();
 builder.Services.AddControllers();
 

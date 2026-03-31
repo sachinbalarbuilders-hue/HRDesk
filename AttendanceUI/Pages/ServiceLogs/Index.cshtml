@@ -1,0 +1,495 @@
+@page
+@model AttendanceUI.Pages.ServiceLogs.IndexModel
+@{
+    ViewData["Title"] = "Service Logs";
+}
+
+@section Styles {
+<style>
+    /* ── Terminal Page Layout ──────────────────────────────── */
+    .logs-page-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 130px);
+        min-height: 500px;
+        gap: 0;
+    }
+
+    /* ── Top Info Bar ──────────────────────────────────────── */
+    .logs-info-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        background: #0f1117;
+        border: 1px solid #2a2d38;
+        border-bottom: none;
+        border-radius: 12px 12px 0 0;
+        padding: 12px 18px;
+    }
+
+    .logs-info-bar .info-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .logs-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.5px;
+    }
+
+    .logs-title span {
+        color: #64d9a8;
+    }
+
+    /* Live indicator */
+    .live-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .live-badge.is-live {
+        background: rgba(100, 217, 168, 0.15);
+        color: #64d9a8;
+        border: 1px solid rgba(100, 217, 168, 0.3);
+    }
+
+    .live-badge.is-paused {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .live-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #64d9a8;
+        animation: pulse-dot 1.4s ease-in-out infinite;
+    }
+
+    .is-paused .live-dot {
+        background: #fbbf24;
+        animation: none;
+    }
+
+    @@keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* File meta */
+    .file-meta {
+        font-size: 0.73rem;
+        color: #64748b;
+        font-family: 'Courier New', monospace;
+    }
+
+    .file-meta .meta-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #1e2130;
+        padding: 2px 8px;
+        border-radius: 4px;
+        border: 1px solid #2a2d38;
+        color: #94a3b8;
+    }
+
+    /* Control buttons */
+    .logs-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ctrl-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        padding: 5px 12px;
+        border-radius: 6px;
+        border: 1px solid #2a2d38;
+        background: #1a1d29;
+        color: #94a3b8;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        font-family: 'Courier New', monospace;
+    }
+
+    .ctrl-btn:hover {
+        background: #222636;
+        border-color: #3d4156;
+        color: #e2e8f0;
+    }
+
+    .ctrl-btn.btn-pause { color: #fbbf24; border-color: rgba(251,191,36,0.3); }
+    .ctrl-btn.btn-pause:hover { background: rgba(251,191,36,0.1); }
+
+    .ctrl-btn.btn-clear { color: #f87171; border-color: rgba(248,113,113,0.3); }
+    .ctrl-btn.btn-clear:hover { background: rgba(248,113,113,0.1); }
+
+    .ctrl-btn.btn-download { color: #60a5fa; border-color: rgba(96,165,250,0.3); }
+    .ctrl-btn.btn-download:hover { background: rgba(96,165,250,0.1); }
+
+    /* ── Terminal Container ────────────────────────────────── */
+    .terminal-shell {
+        flex: 1;
+        background: #0a0c12;
+        border: 1px solid #2a2d38;
+        border-top: none;
+        border-radius: 0 0 12px 12px;
+        overflow: hidden;
+        position: relative;
+        min-height: 0;
+    }
+
+    #terminal-container {
+        width: 100%;
+        height: 100%;
+        padding: 8px 4px 4px 4px;
+        box-sizing: border-box;
+    }
+
+    /* xterm.js overrides */
+    .xterm .xterm-viewport {
+        background-color: #0a0c12 !important;
+        scrollbar-width: thin;
+        scrollbar-color: #2a2d38 #0a0c12;
+    }
+
+    .xterm-viewport::-webkit-scrollbar { width: 6px; }
+    .xterm-viewport::-webkit-scrollbar-track { background: #0a0c12; }
+    .xterm-viewport::-webkit-scrollbar-thumb { background: #2a2d38; border-radius: 3px; }
+
+    /* ── Status Bar ────────────────────────────────────────── */
+    .status-bar {
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.71rem;
+        color: #475569;
+        font-family: 'Courier New', monospace;
+        padding: 0 2px;
+    }
+
+    .status-bar .status-right {
+        display: flex;
+        gap: 14px;
+    }
+
+    /* ── No File Warning ───────────────────────────────────── */
+    .no-file-alert {
+        background: rgba(248, 113, 113, 0.08);
+        border: 1px solid rgba(248, 113, 113, 0.25);
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.83rem;
+        color: #fca5a5;
+    }
+
+    .no-file-alert i { font-size: 1.1rem; color: #f87171; }
+    .no-file-alert code {
+        background: rgba(248, 113, 113, 0.15);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+</style>
+}
+
+<div class="logs-page-wrapper">
+
+    @if (!Model.LogFileExists)
+    {
+        <div class="no-file-alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>
+                Log file not found at <code>C:\HRServices\Z903AttendanceService\Logs\service.log</code>.
+                Make sure the Windows Service is installed and has run at least once.
+            </span>
+        </div>
+    }
+
+    <!-- Info / Control Bar -->
+    <div class="logs-info-bar">
+        <div class="info-left">
+            <div class="logs-title">
+                <i class="bi bi-terminal-fill" style="color:#64d9a8; margin-right:6px;"></i>
+                <span>Z903</span> Attendance Service · Console
+            </div>
+
+            <div id="liveBadge" class="live-badge is-live">
+                <span class="live-dot"></span> LIVE
+            </div>
+
+            <div class="file-meta">
+                <span class="meta-badge">
+                    <i class="bi bi-hdd"></i>
+                    @Model.LogFileSizeDisplay
+                </span>
+                &nbsp;
+                <span class="meta-badge">
+                    <i class="bi bi-clock"></i>
+                    @Model.LastModifiedDisplay
+                </span>
+            </div>
+        </div>
+
+        <div class="logs-controls">
+            <button id="btnPause" class="ctrl-btn btn-pause" title="Pause / Resume live polling">
+                <i class="bi bi-pause-fill"></i> Pause
+            </button>
+            <button id="btnClear" class="ctrl-btn btn-clear" title="Clear terminal screen">
+                <i class="bi bi-trash3"></i> Clear
+            </button>
+            <a href="/api/servicelogs/download" class="ctrl-btn btn-download" title="Download full log file" download>
+                <i class="bi bi-download"></i> Download
+            </a>
+        </div>
+    </div>
+
+    <!-- Terminal Window -->
+    <div class="terminal-shell">
+        <div id="terminal-container"></div>
+    </div>
+
+    <!-- Status Footer -->
+    <div class="status-bar">
+        <span id="statusText">Connecting…</span>
+        <span class="status-right">
+            <span>Lines: <strong id="lineCount">0</strong></span>
+            <span>Refresh: <strong>2s</strong></span>
+            <span>Path: <code style="color:#475569;">C:\HRServices\...\service.log</code></span>
+        </span>
+    </div>
+
+</div>
+
+@section Scripts {
+<!-- xterm.js — full terminal emulator -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@@5.3.0/css/xterm.css" />
+<script src="https://cdn.jsdelivr.net/npm/xterm@@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@@0.8.0/lib/xterm-addon-fit.js"></script>
+
+<script>
+(function () {
+    'use strict';
+
+    // ── Terminal Init ─────────────────────────────────────────────
+    const term = new Terminal({
+        theme: {
+            background:   '#0a0c12',
+            foreground:   '#cbd5e1',
+            cursor:       '#64d9a8',
+            cursorAccent: '#0a0c12',
+            black:        '#1e2130',
+            brightBlack:  '#475569',
+            red:          '#f87171',
+            brightRed:    '#fca5a5',
+            green:        '#4ade80',
+            brightGreen:  '#86efac',
+            yellow:       '#fbbf24',
+            brightYellow: '#fde68a',
+            blue:         '#60a5fa',
+            brightBlue:   '#93c5fd',
+            cyan:         '#22d3ee',
+            brightCyan:   '#67e8f9',
+            white:        '#e2e8f0',
+            brightWhite:  '#f8fafc',
+        },
+        fontFamily: '"Cascadia Code", "Fira Code", "Consolas", monospace',
+        fontSize: 13,
+        lineHeight: 1.45,
+        cursorBlink: true,
+        convertEol: true,
+        scrollback: 5000,
+        allowTransparency: true,
+    });
+
+    const fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(document.getElementById('terminal-container'));
+    fitAddon.fit();
+
+    // Refit on window resize
+    window.addEventListener('resize', () => fitAddon.fit());
+
+    // ── State ─────────────────────────────────────────────────────
+    let fileOffset    = 0;
+    let isPaused      = false;
+    let pollTimer     = null;
+    let totalLines    = 0;
+    const POLL_MS     = 2000;
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function classifyLine(line) {
+        const u = line.toUpperCase();
+        if (u.includes('[SYNC]'))                                 return 'cyan';
+        if (u.includes('[DEVICE]'))                               return 'blue';
+        if (u.includes('[STATS]'))                                return 'brightBlue';
+        if (u.includes('ERROR') || u.includes('FAILED') ||
+            u.includes('EXCEPTION'))                              return 'red';
+        if (u.includes('WARNING') || u.includes('WARN'))          return 'yellow';
+        if (u.includes('[OK]') || u.includes('SUCCESS') ||
+            u.includes('CONNECTED') || u.includes('STARTED'))     return 'green';
+        if (u.includes('[CONFIG]'))                               return 'brightBlack';
+        return null; // default — terminal foreground
+    }
+
+    function colorEscape(color) {
+        const map = {
+            red:         '\x1b[91m',  brightRed:     '\x1b[91m',
+            green:       '\x1b[92m',  brightGreen:   '\x1b[92m',
+            yellow:      '\x1b[93m',  brightYellow:  '\x1b[93m',
+            blue:        '\x1b[94m',  brightBlue:    '\x1b[94m',
+            cyan:        '\x1b[96m',  brightCyan:    '\x1b[96m',
+            brightBlack: '\x1b[90m',
+        };
+        return map[color] || '';
+    }
+
+    function writeLine(line) {
+        const color = classifyLine(line);
+        if (color) {
+            term.writeln(colorEscape(color) + line + '\x1b[0m');
+        } else {
+            term.writeln(line);
+        }
+        totalLines++;
+        document.getElementById('lineCount').textContent = totalLines;
+    }
+
+    function writeLines(lines) {
+        for (const line of lines) writeLine(line);
+    }
+
+    function writeInfo(msg) {
+        term.writeln('\x1b[90m' + msg + '\x1b[0m');
+    }
+
+    function setStatus(msg) {
+        document.getElementById('statusText').textContent = msg;
+    }
+
+    function setBadge(paused) {
+        const badge = document.getElementById('liveBadge');
+        const btn   = document.getElementById('btnPause');
+        if (paused) {
+            badge.className = 'live-badge is-paused';
+            badge.innerHTML = '<span class="live-dot"></span> PAUSED';
+            btn.innerHTML   = '<i class="bi bi-play-fill"></i> Resume';
+        } else {
+            badge.className = 'live-badge is-live';
+            badge.innerHTML = '<span class="live-dot"></span> LIVE';
+            btn.innerHTML   = '<i class="bi bi-pause-fill"></i> Pause';
+        }
+    }
+
+    // ── Initial Load ──────────────────────────────────────────────
+    async function initialLoad() {
+        writeInfo('┌─────────────────────────────────────────────────────────┐');
+        writeInfo('│  Z903 Attendance Service  ·  Live Log Stream            │');
+        writeInfo('│  Path: C:\\HRServices\\Z903AttendanceService\\Logs\\service.log │');
+        writeInfo('└─────────────────────────────────────────────────────────┘');
+        writeInfo('');
+        setStatus('Loading last 200 lines…');
+
+        try {
+            const res  = await fetch('/api/servicelogs/tail?lines=200');
+            const data = await res.json();
+            fileOffset = data.fileOffset;
+            writeLines(data.lines);
+            writeInfo('');
+            writeInfo('──────────────── Live tail started ────────────────');
+            writeInfo('');
+            setStatus(`Loaded ${data.lines.length} lines · Polling every ${POLL_MS / 1000}s…`);
+        } catch (e) {
+            writeInfo('[ERROR] Failed to fetch initial logs: ' + e.message);
+            setStatus('Error loading logs');
+        }
+
+        startPolling();
+    }
+
+    // ── Polling ───────────────────────────────────────────────────
+    function startPolling() {
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(poll, POLL_MS);
+    }
+
+    async function poll() {
+        if (isPaused) return;
+
+        try {
+            const res  = await fetch(`/api/servicelogs/since?offset=${fileOffset}`);
+            const data = await res.json();
+
+            if (!data.fileExists) {
+                setStatus('Log file not found · Waiting…');
+                return;
+            }
+
+            if (data.wasReset) {
+                writeInfo('');
+                writeInfo('── Log file rotated / reset – reloading tail ──');
+                writeInfo('');
+            }
+
+            if (data.lines && data.lines.length > 0) {
+                writeLines(data.lines);
+                setStatus(`Last update: ${new Date().toLocaleTimeString()} · ${data.lines.length} new line(s)`);
+            }
+
+            fileOffset = data.fileOffset;
+        } catch (e) {
+            setStatus('Poll error: ' + e.message);
+        }
+    }
+
+    // ── Controls ──────────────────────────────────────────────────
+    document.getElementById('btnPause').addEventListener('click', () => {
+        isPaused = !isPaused;
+        setBadge(isPaused);
+        if (isPaused) {
+            setStatus('Paused · Click Resume to continue live updates');
+        } else {
+            setStatus('Resumed · Polling every ' + (POLL_MS / 1000) + 's…');
+            poll(); // fetch immediately on resume
+        }
+    });
+
+    document.getElementById('btnClear').addEventListener('click', () => {
+        term.clear();
+        totalLines = 0;
+        document.getElementById('lineCount').textContent = '0';
+        writeInfo('─── Terminal cleared ───');
+    });
+
+    // ── Boot ──────────────────────────────────────────────────────
+    initialLoad();
+
+})();
+</script>
+}

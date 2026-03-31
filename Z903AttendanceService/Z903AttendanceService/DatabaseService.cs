@@ -483,5 +483,29 @@ namespace Z903AttendanceService
             }
             return list;
         }
+        public int GetSyncIntervalMinutes()
+        {
+            try
+            {
+                const string sql = "SELECT setting_value FROM system_settings WHERE setting_key = 'SyncIntervalMinutes'";
+                using (MySqlConnection connection = new MySqlConnection(_connectionString))
+                {
+                    connection.Open();
+                    using (MySqlCommand command = CreateCommand(connection, sql))
+                    {
+                        var result = command.ExecuteScalar();
+                        if (result != null && result != DBNull.Value && int.TryParse(result.ToString(), out int minutes))
+                        {
+                            return minutes;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"WARNING: Failed to read SyncIntervalMinutes from system_settings: {ex.Message}");
+            }
+            return 5; // Default fallback
+        }
     }
 }

@@ -27,7 +27,7 @@ public class AttendanceProcessorService
 
         if (employeeId.HasValue)
         {
-            query = query.Where(e => e.EmployeeId == employeeId.Value);
+            query = query.Where(e => e.EmployeeId == employeeId.Value && (e.JoiningDate == null || e.JoiningDate <= date));
         }
         else
         {

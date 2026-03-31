@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using AttendanceUI.Data;
 using AttendanceUI.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -95,7 +96,11 @@ public sealed class CreateModel : PageModel
 
         DepartmentOptions = new SelectList(departments, nameof(Department.Id), nameof(Department.DepartmentName));
         DesignationOptions = new SelectList(designations, nameof(Designation.Id), nameof(Designation.DesignationName));
-        ShiftOptions = new SelectList(shifts, nameof(Shift.Id), nameof(Shift.ShiftName));
+        ShiftOptions = new SelectList(shifts.Select(s => new
+        {
+            s.Id,
+            DisplayName = $"{s.ShiftName} ({s.StartTime:hh:mm tt} - {s.EndTime:hh:mm tt})"
+        }), "Id", "DisplayName");
 
         var weekoffDays = new[]
         {
@@ -145,8 +150,8 @@ public sealed class CreateModel : PageModel
         [Display(Name = "Date of Birth")]
         public DateOnly? DateOfBirth { get; set; }
 
-        [Phone]
-        [StringLength(50)]
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits.")]
+        [StringLength(10)]
         public string? Phone { get; set; }
 
         [Display(Name = "Status")]

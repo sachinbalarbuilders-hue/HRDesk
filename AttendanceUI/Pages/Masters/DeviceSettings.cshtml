@@ -118,11 +118,48 @@
         </div>
     </div>
 
-    <div class="alert alert-info mt-4 border-0 shadow-sm bg-soft-info text-info d-flex align-items-center">
-        <i class="bi bi-info-circle-fill me-3 fs-4"></i>
-        <div>
-            <strong>Information:</strong> The Windows Service periodically syncs attendance from all devices configured here. 
-            Use the "Test" button to manually verify connectivity and push configuration to the service.
+    </div>
+ 
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+                    <h5 class="fw-bold text-dark"><i class="bi bi-gear-fill me-2 text-primary"></i>Global Service Settings</h5>
+                    <p class="text-muted small">Configure global parameters for the attendance windows service</p>
+                </div>
+                <div class="card-body px-4 pb-4 pt-2">
+                    <form method="post" asp-page-handler="UpdateSyncInterval">
+                        <div class="mb-3">
+                            <label asp-for="SyncIntervalMinutes" class="form-label small text-muted text-uppercase fw-bold">Sync Interval (Minutes)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-stopwatch"></i></span>
+                                <input asp-for="SyncIntervalMinutes" type="number" class="form-control border-start-0" min="1" max="1440" required />
+                                <button type="submit" class="btn btn-primary px-4">
+                                    <i class="bi bi-save me-1"></i> Update Frequency
+                                </button>
+                            </div>
+                            <div class="form-text mt-2 small">
+                                <i class="bi bi-info-circle me-1"></i> 
+                                Recommended: 5-10 minutes. Changes take effect immediately in the background service.
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="alert alert-info border-0 shadow-sm bg-soft-info h-100 mb-0 d-flex align-items-center">
+                <i class="bi bi-info-circle-fill me-4 fs-1 text-info opacity-50"></i>
+                <div class="text-info">
+                    <h6 class="fw-bold mb-1">How Sync Works:</h6>
+                    <p class="small mb-0 mt-2">
+                        The Windows Service periodically connects to all devices configured above. 
+                        A shorter interval (e.g., 2 mins) means faster updates, while a longer interval (e.g., 15 mins) reduces network traffic.
+                        <br/><br/>
+                        <strong>Note:</strong> Ensure the <code>Z903AttendanceService</code> is running on the server for automated syncing.
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 </div>

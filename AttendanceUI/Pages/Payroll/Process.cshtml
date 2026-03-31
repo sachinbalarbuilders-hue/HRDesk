@@ -95,7 +95,7 @@
                     <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-check me-2 text-primary"></i>Selection</h5>
                 </div>
                 <div class="card-body p-4">
-                    <form method="post" asp-page-handler="ProcessSelected" id="payrollForm">
+                    <form method="post" asp-page-handler="ProcessSelected" id="payrollForm" onsubmit="showLoading('Generating Payroll...')">
                         <input type="hidden" asp-for="TargetProcessMonth" />
                         <div class="mb-4">
                             <label class="form-label fw-semibold small text-uppercase text-muted">Select Month</label>

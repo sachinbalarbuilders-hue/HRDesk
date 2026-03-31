@@ -428,3 +428,84 @@ a:hover {
     display: block;
   }
 }
+
+/* =========================================
+   7. LOADING OVERLAY
+   ========================================= */
+.loading-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner-container {
+  text-align: center;
+}
+
+.loading-text {
+  margin-top: 1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+/* =========================================
+   8. MACHINE STATUS INDICATORS
+   ========================================= */
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  position: relative;
+}
+
+.status-online { background-color: var(--success-color); }
+.status-warning { background-color: var(--warning-color); }
+.status-offline { background-color: var(--danger-color); }
+.status-unknown { background-color: var(--secondary-color); }
+
+.status-pulse {
+  position: relative;
+}
+
+.status-pulse::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: inherit;
+  opacity: 0.6;
+  animation: pulse-animation 2s infinite;
+}
+
+@keyframes pulse-animation {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.device-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.device-card:hover {
+  background-color: #f8fafc;
+}
+
+.sync-time-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+}

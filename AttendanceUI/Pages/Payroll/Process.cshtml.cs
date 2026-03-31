@@ -148,12 +148,12 @@ namespace AttendanceUI.Pages.Payroll
             // Load available employees: Active staff OR anyone who has records (Attendance or Payroll) for this month
             int targetYear = int.Parse(TargetProcessMonth.Substring(0, 4));
             int targetMonth = int.Parse(TargetProcessMonth.Substring(5, 2));
+            var lastDayOfMonth = new DateOnly(targetYear, targetMonth, DateTime.DaysInMonth(targetYear, targetMonth));
 
             var employees = await _context.Employees
                 .Include(e => e.Department)
-                .Where(e => e.Status == "active" || e.Status == "Active" ||
-                            _context.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate.Year == targetYear && a.RecordDate.Month == targetMonth) ||
-                            _context.PayrollMasters.Any(p => p.EmployeeId == e.EmployeeId && p.Month == TargetProcessMonth))
+                .Where(e => ((e.Status == "Active" || e.Status == "active") && (e.JoiningDate == null || e.JoiningDate <= lastDayOfMonth)) || 
+                            (_context.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate.Year == targetYear && a.RecordDate.Month == targetMonth && a.Status != "Absent") && (e.LastWorkingDate != null && e.LastWorkingDate >= new DateOnly(targetYear, targetMonth, 1))))
                 .ToListAsync();
 
             AvailableEmployees = new List<EmployeeListItem>();

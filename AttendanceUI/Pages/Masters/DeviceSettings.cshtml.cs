@@ -23,6 +23,9 @@ public class DeviceSettingsModel : PageModel
 
     public string? Message { get; set; }
     public bool IsError { get; set; }
+ 
+    [BindProperty]
+    public int SyncIntervalMinutes { get; set; }
 
     public async Task OnGetAsync()
     {
@@ -41,6 +44,18 @@ public class DeviceSettingsModel : PageModel
             _db.DeviceConfigurations.Add(config);
             await _db.SaveChangesAsync();
             Devices.Add(config);
+        }
+ 
+        var intervalSetting = await _db.SystemSettings
+            .FirstOrDefaultAsync(s => s.SettingKey == "SyncIntervalMinutes");
+        
+        if (intervalSetting != null && int.TryParse(intervalSetting.SettingValue, out int mins))
+        {
+            SyncIntervalMinutes = mins;
+        }
+        else
+        {
+            SyncIntervalMinutes = 5; // Default if missing
         }
     }
 
@@ -115,5 +130,41 @@ public class DeviceSettingsModel : PageModel
 
         await OnGetAsync();
         return Page();
+    }
+ 
+    public async Task<IActionResult> OnPostUpdateSyncIntervalAsync()
+    {
+        var setting = await _db.SystemSettings
+            .FirstOrDefaultAsync(s => s.SettingKey == "SyncIntervalMinutes");
+        
+        if (setting == null)
+        {
+            setting = new SystemSetting
+            {
+                SettingKey = "SyncIntervalMinutes",
+                Description = "Frequency of attendance sync in minutes"
+            };
+            _db.SystemSettings.Add(setting);
+        }
+ 
+        setting.SettingValue = SyncIntervalMinutes.ToString();
+        setting.UpdatedAt = DateTime.Now;
+        await _db.SaveChangesAsync();
+ 
+        // Notify Service
+        var (success, response) = await Services.WindowsServiceClient.UpdateSyncIntervalAsync(SyncIntervalMinutes);
+        
+        if (success)
+        {
+            Message = "Sync interval updated successfully.";
+            IsError = false;
+        }
+        else
+        {
+            Message = $"Interval saved in DB, but Service notification failed: {response}";
+            IsError = true;
+        }
+ 
+        return RedirectToPage();
     }
 }

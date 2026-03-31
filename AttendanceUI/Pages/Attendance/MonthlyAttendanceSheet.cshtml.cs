@@ -32,14 +32,15 @@ public class MonthlyAttendanceSheetModel : PageModel
         DaysInMonth = DateTime.DaysInMonth(Year, Month);
         var endDate = startDate.AddMonths(1);
 
-        // 1. Fetch employees: Active OR those who have records for this month
+        // 1. Fetch employees: Active OR those who were working during this month
         var employees = await _db.Employees
             .Include(e => e.Department)
             .Include(e => e.Shift)
-            .Where(e => (e.Status != null && e.Status.ToLower() == "active") || 
-                        _db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && 
+            .Where(e => ((e.Status != null && e.Status.ToLower() == "active") && (e.JoiningDate == null || e.JoiningDate < endDate)) || 
+                        (_db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && 
                                                      a.RecordDate >= startDate && a.RecordDate < endDate && 
-                                                     a.Status != "Absent" && a.Status != "W/O" && a.Status != "Holiday"))
+                                                     a.Status != "Absent" && a.Status != "W/O" && a.Status != "Holiday") && 
+                         (e.LastWorkingDate != null && e.LastWorkingDate >= startDate)))
             .OrderBy(e => e.EmployeeName)
             .ToListAsync();
 

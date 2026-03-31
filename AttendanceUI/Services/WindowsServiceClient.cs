@@ -360,4 +360,48 @@ public static class WindowsServiceClient
             return (false, ex.Message);
         }
     }
+    /// <summary>
+    /// Update the attendance sync interval in the Windows Service.
+    /// </summary>
+    public static async Task<(bool Success, string? ErrorMessage)> UpdateSyncIntervalAsync(int minutes)
+    {
+        const string pipeName = PipeConstants.PipeName;
+        try
+        {
+            using var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            var connectTask = client.ConnectAsync(10000);
+            await connectTask;
+
+            if (!client.IsConnected) return (false, "Failed to connect to device service");
+
+            var request = new { Action = "UpdateSyncInterval", EmployeeId = 0, IntervalMinutes = minutes };
+            var reqJson = JsonSerializer.Serialize(request);
+
+            using var writer = new StreamWriter(client, Encoding.UTF8, bufferSize: 1024, leaveOpen: true) { AutoFlush = true };
+            using var reader = new StreamReader(client, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+
+            await writer.WriteLineAsync(reqJson);
+            await writer.FlushAsync();
+
+            const int readTimeoutMs = 10000;
+            var readTask = reader.ReadLineAsync();
+            var completed = await Task.WhenAny(readTask, Task.Delay(readTimeoutMs));
+            
+            if (completed != readTask) return (false, "Timed out waiting for device service response");
+
+            var responseLine = await readTask;
+            if (string.IsNullOrWhiteSpace(responseLine)) return (false, "Empty response from device service");
+
+            using var doc = JsonDocument.Parse(responseLine);
+            var root = doc.RootElement;
+            bool success = root.TryGetProperty("Success", out var succProp) && succProp.GetBoolean();
+            string? message = root.TryGetProperty("Message", out var msgProp) ? msgProp.GetString() : responseLine;
+
+            return (success, message);
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
 }

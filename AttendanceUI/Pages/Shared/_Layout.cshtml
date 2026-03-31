@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -86,6 +86,12 @@
                     <i class="bi bi-calculator"></i> Process Payroll
                 </a>
 
+                <!-- System Section -->
+                <div class="nav-section-title mt-3">System</div>
+                <a asp-page="/ServiceLogs/Index" class="nav-link">
+                    <i class="bi bi-terminal"></i> Service Logs
+                </a>
+
                 <!-- Reports Section -->
                 <div class="nav-section-title mt-3">Reports</div>
                 <a asp-page="/Reports/LateIn" class="nav-link">
@@ -151,6 +157,17 @@
         </div>
     </div>
 
+    <!-- Global Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner-container">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div id="loadingText" class="loading-text">Processing... Please wait</div>
+            <div class="text-muted small mt-2">This may take a few seconds.</div>
+        </div>
+    </div>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
@@ -165,6 +182,15 @@
                 link.classList.add('active');
             }
         });
+
+        // Global loading function
+        function showLoading(text) {
+            if (text) {
+                document.getElementById('loadingText').innerText = text;
+            }
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            return true;
+        }
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

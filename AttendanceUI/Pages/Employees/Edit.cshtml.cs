@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using AttendanceUI.Data;
 using AttendanceUI.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -68,6 +69,11 @@ public sealed class EditModel : PageModel
     {
         await LoadOptionsAsync();
 
+        if (string.Equals(Input.Status, "inactive", StringComparison.OrdinalIgnoreCase) && Input.LastWorkingDate == null)
+        {
+            ModelState.AddModelError("Input.LastWorkingDate", "Last Working Date is required when status is set to Inactive.");
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -105,10 +111,15 @@ public sealed class EditModel : PageModel
             return NotFound();
         }
 
-        employee.Status = string.Equals(employee.Status, "active", StringComparison.OrdinalIgnoreCase)
-            ? "inactive"
-            : "active";
+        bool isCurrentlyActive = string.Equals(employee.Status, "active", StringComparison.OrdinalIgnoreCase);
 
+        if (isCurrentlyActive && employee.LastWorkingDate == null)
+        {
+            TempData["ErrorMessage"] = "Cannot deactivate employee without a Last Working Date. Please set it in the form below.";
+            return RedirectToPage(new { id = Id });
+        }
+
+        employee.Status = isCurrentlyActive ? "inactive" : "active";
         await _db.SaveChangesAsync();
         return RedirectToPage(new { id = Id });
     }
@@ -133,7 +144,11 @@ public sealed class EditModel : PageModel
 
         DepartmentOptions = new SelectList(departments, nameof(Department.Id), nameof(Department.DepartmentName));
         DesignationOptions = new SelectList(designations, nameof(Designation.Id), nameof(Designation.DesignationName));
-        ShiftOptions = new SelectList(shifts, nameof(Shift.Id), nameof(Shift.ShiftName));
+        ShiftOptions = new SelectList(shifts.Select(s => new
+        {
+            s.Id,
+            DisplayName = $"{s.ShiftName} ({s.StartTime:hh:mm tt} - {s.EndTime:hh:mm tt})"
+        }), "Id", "DisplayName");
 
         var weekoffDays = new[]
         {
@@ -182,8 +197,8 @@ public sealed class EditModel : PageModel
         [Display(Name = "Date of Birth")]
         public DateOnly? DateOfBirth { get; set; }
 
-        [Phone]
-        [StringLength(50)]
+        [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits.")]
+        [StringLength(10)]
         public string? Phone { get; set; }
 
         [Display(Name = "Status")]

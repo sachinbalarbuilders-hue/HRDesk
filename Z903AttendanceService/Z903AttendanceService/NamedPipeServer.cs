@@ -26,14 +26,16 @@ namespace Z903AttendanceService
         private readonly string _pipeName;
         private readonly Action<string> _logger;
         private readonly DatabaseService _databaseService;
+        private readonly AttendanceService _service;
         private Thread _listenerThread;
         private volatile bool _running;
 
-        public NamedPipeServer(string pipeName = PipeConstants.PipeName, Action<string> logger = null, DatabaseService databaseService = null)
+        public NamedPipeServer(string pipeName = PipeConstants.PipeName, Action<string> logger = null, DatabaseService databaseService = null, AttendanceService service = null)
         {
             _pipeName = pipeName;
             _logger = logger;
             _databaseService = databaseService;
+            _service = service;
         }
 
         private void Log(string message)
@@ -262,6 +264,20 @@ namespace Z903AttendanceService
                                     else
                                     {
                                         resp = new PipeResponse { Success = true, Message = $"Configuration saved, BUT connection failed: {connErr}" };
+                                    }
+                                    break;
+                                    
+                                 case "updatesyncinterval":
+                                    var intervalMatch = Regex.Match(requestJson, "\"IntervalMinutes\"\\s*:\\s*(\\d+)");
+                                    if (intervalMatch.Success)
+                                    {
+                                        int mins = int.Parse(intervalMatch.Groups[1].Value);
+                                        _service?.UpdateInterval(mins);
+                                        resp = new PipeResponse { Success = true, Message = $"Sync interval updated to {mins} minutes." };
+                                    }
+                                    else
+                                    {
+                                        resp = new PipeResponse { Success = false, Message = "Missing IntervalMinutes parameter." };
                                     }
                                     break;
                                     

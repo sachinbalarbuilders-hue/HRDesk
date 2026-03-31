@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,7 +14,7 @@ namespace Z903AttendanceService
         private const string LogDirectory = @"C:\HRServices\Z903AttendanceService\Logs";
         private const string LogFileName = "service.log";
         private const int DefaultMachineNumber = 1;
-        private static readonly TimeSpan SyncInterval = TimeSpan.FromMinutes(5);
+        private TimeSpan _syncInterval = TimeSpan.FromMinutes(5);
         private readonly object _logLock = new object();
         private System.Timers.Timer _syncTimer;
         private NamedPipeServer _pipeServer;
@@ -69,7 +69,10 @@ namespace Z903AttendanceService
                     LogMessage("WARNING: Service will continue without database functionality.");
                 }
 
-                _syncTimer = new System.Timers.Timer(SyncInterval.TotalMilliseconds)
+                _syncInterval = TimeSpan.FromMinutes(_databaseService.GetSyncIntervalMinutes());
+                LogMessage($"Sync interval set to {_syncInterval.TotalMinutes} minutes.");
+
+                _syncTimer = new System.Timers.Timer(_syncInterval.TotalMilliseconds)
                 {
                     AutoReset = false,
                     Enabled = false
@@ -80,7 +83,7 @@ namespace Z903AttendanceService
                 // Start named pipe server for internal IPC (UI/backend -> this service)
                 try
                 {
-                    _pipeServer = new NamedPipeServer(PipeConstants.PipeName, LogMessage, _databaseService);
+                    _pipeServer = new NamedPipeServer(PipeConstants.PipeName, LogMessage, _databaseService, this);
                     _pipeServer.Start();
                     LogMessage("Named pipe server active.");
                 }
@@ -503,6 +506,16 @@ namespace Z903AttendanceService
             catch (Exception ex)
             {
                 LogMessage($"Failed to load device configuration: {ex.Message}");
+            }
+        }
+        public void UpdateInterval(int minutes)
+        {
+            if (minutes < 1) minutes = 1;
+            _syncInterval = TimeSpan.FromMinutes(minutes);
+            if (_syncTimer != null)
+            {
+                _syncTimer.Interval = _syncInterval.TotalMilliseconds;
+                LogMessage($"[CONFIG] Sync interval updated to {minutes} minutes.");
             }
         }
     }

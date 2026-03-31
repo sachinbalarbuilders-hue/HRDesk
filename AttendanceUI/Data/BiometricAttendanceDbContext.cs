@@ -50,12 +50,16 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     public DbSet<PayrollDetail> PayrollDetails => Set<PayrollDetail>();
 
+    public DbSet<CompOffCredit> CompOffCredits { get; set; }
+    public DbSet<SystemSetting> SystemSettings { get; set; }
+
     public DbSet<CompOffRequest> CompOffRequests => Set<CompOffRequest>();
 
     public DbSet<DeviceConfiguration> DeviceConfigurations => Set<DeviceConfiguration>();
 
     public DbSet<User> Users => Set<User>();
 
+    public DbSet<DeviceSyncState> DeviceSyncStates => Set<DeviceSyncState>();
     public DbSet<LeaveTypeEligibility> LeaveTypeEligibilities => Set<LeaveTypeEligibility>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

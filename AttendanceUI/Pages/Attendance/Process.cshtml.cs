@@ -40,7 +40,7 @@ public class ProcessModel : PageModel
     public async Task OnGetAsync()
     {
         Employees = await _db.Employees
-            .Where(e => e.Status == "active")
+            .Where(e => e.Status == "active" || e.Status == "Active")
             .OrderBy(e => e.EmployeeName)
             .ToListAsync();
     }
@@ -49,7 +49,7 @@ public class ProcessModel : PageModel
     {
         // Reload employees for the dropdown if we return Page()
         Employees = await _db.Employees
-            .Where(e => e.Status == "active")
+            .Where(e => e.Status == "active" || e.Status == "Active")
             .OrderBy(e => e.EmployeeName)
             .ToListAsync();
 
@@ -90,9 +90,19 @@ public class ProcessModel : PageModel
             else
             {
                 // Process all employees
+                var activeAll = await _db.Employees
+                    .Where(e => (e.Status == "active" || e.Status == "Active") && (e.JoiningDate == null || e.JoiningDate <= ToDate))
+                    .ToListAsync();
+
                 for (var d = FromDate; d <= ToDate; d = d.AddDays(1))
                 {
-                    await _processor.ProcessDailyAttendanceAsync(d);
+                    foreach (var emp in activeAll)
+                    {
+                        if (emp.JoiningDate == null || emp.JoiningDate <= d)
+                        {
+                            await _processor.ProcessDailyAttendanceAsync(d, emp.EmployeeId);
+                        }
+                    }
                 }
             }
             
