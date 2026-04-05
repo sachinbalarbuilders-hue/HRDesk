@@ -38,5 +38,11 @@ public class LeaveType
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+    [Column("text_color")]
+    public string TextColor { get; set; } = "#212529";
+
+    [Column("background_color")]
+    public string BackgroundColor { get; set; } = "transparent";
+
     public ICollection<LeaveTypeEligibility> EligibleEmployees { get; set; } = new List<LeaveTypeEligibility>();
 }

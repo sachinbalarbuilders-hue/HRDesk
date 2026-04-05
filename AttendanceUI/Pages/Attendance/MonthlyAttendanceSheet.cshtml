@@ -11,15 +11,20 @@
         text-align: center;
         vertical-align: middle;
     }
-    .status-P { color: green; font-weight: bold; }
-    .status-A { color: red; font-weight: bold; }
-    .status-W\/O { color: blue; }
-    .status-W\/OP { color: #0056b3; font-weight: bold; } /* Darker blue for worked weekoff */
-    .status-HF { color: orange; font-weight: bold; }
-    .status-H { color: purple; }
-    .status-L { color: #9c27b0; font-weight: bold; } /* Purple for Leave */
-    .status-CO { color: blue; font-weight: bold; }
-    .status-COP { color: #0056b3; font-weight: bold; }
+    .status-P { font-weight: bold; }
+    .status-A { font-weight: bold; }
+    .status-W\/O, .status-WO { font-weight: bold; }
+    .status-W\/OP { font-weight: bold; }
+    .status-HF { font-weight: bold; }
+    .status-H { font-weight: bold; }
+    
+    /* Dynamic Leave Type Highlights (Managed by DB) */
+    .status-PL, .status-PHF { font-weight: bold; border-radius: 2px; }
+    .status-SL, .status-SHF { font-weight: bold; border-radius: 2px; }
+    .status-LWP, .status-LWHF { font-weight: bold; border-radius: 2px; }
+    .status-CO, .status-COHF, .status-COP { font-weight: bold; border-radius: 2px; }
+    
+    .status-L { font-weight: bold; } 
     
     .row-header { font-weight: bold; text-align: right; background-color: #f8f9fa; width: 50px; }
     .emp-header { background-color: #e9ecef; text-align: left !important; font-weight: bold; }
@@ -170,7 +175,9 @@
                     @for (int i = 1; i <= Model.DaysInMonth; i++)
                     {
                         var rec = summary.DailyRecords[i];
-                        <td class="status-@rec.Status" title="@rec.Tooltip" style="@(!string.IsNullOrEmpty(rec.Tooltip) ? "cursor:help;" : "")">
+                        <td class="status-@rec.Status" 
+                            title="@rec.Tooltip" 
+                            style="color: @rec.TextColor; background-color: @rec.BackgroundColor; @(!string.IsNullOrEmpty(rec.Tooltip) ? "cursor:help;" : "")">
                             @rec.Status
                         </td>
                     }

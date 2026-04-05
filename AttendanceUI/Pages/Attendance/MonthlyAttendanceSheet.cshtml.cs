@@ -92,20 +92,39 @@ public class MonthlyAttendanceSheetModel : PageModel
                     var activeApp = dayApps.FirstOrDefault(la => la.Status == "Approved");
 
                     // Specific Leave Logic
-                    if (log.Status == "Leave" || log.Status == "Present (Leave)")
+                    if (activeApp?.LeaveType != null)
                     {
-                        if (activeApp?.LeaveType != null)
+                        dto.TextColor = activeApp.LeaveType.TextColor;
+                        dto.BackgroundColor = activeApp.LeaveType.BackgroundColor;
+
+                        if (log.IsHalfDay || activeApp.TotalDays == 0.5m)
                         {
-                            dto.Status = activeApp.LeaveType.Code + (log.Status == "Present (Leave)" ? "P" : "");
+                            var cleanCode = activeApp.LeaveType.Code.Replace(".", "").Trim().ToUpper();
+                            if (cleanCode.StartsWith("PL")) dto.Status = "PHF";
+                            else if (cleanCode.StartsWith("SL")) dto.Status = "SHF";
+                            else if (cleanCode.StartsWith("LWP")) dto.Status = "LWHF";
+                            else if (cleanCode.StartsWith("CO")) dto.Status = "COHF";
+                            else dto.Status = activeApp.LeaveType.Code + "HF";
                         }
                         else
                         {
-                            dto.Status = GetStatusChar(log);
+                            dto.Status = activeApp.LeaveType.Code.Replace(".", "").Trim().ToUpper();
                         }
                     }
                     else
                     {
                         dto.Status = GetStatusChar(log);
+                        
+                        // Default colors for fixed statuses
+                        if (dto.Status == "P") dto.TextColor = "#2e7d32";
+                        else if (dto.Status == "A") dto.TextColor = "#d32f2f";
+                        else if (dto.Status == "W/O" || dto.Status == "WO") 
+                        {
+                            dto.TextColor = "#1976d2";
+                            dto.BackgroundColor = "#e3f2fd";
+                        }
+                        else if (dto.Status == "H") dto.TextColor = "#7b1fa2";
+                        else if (dto.Status == "HF") dto.TextColor = "#ef6c00";
                     }
 
                     // Build tooltip: Application No + Reason/Remarks
@@ -169,8 +188,18 @@ public class MonthlyAttendanceSheetModel : PageModel
                     // Count logic based on status string from DB
                     if (log.IsHalfDay || (log.Status != null && log.Status.EndsWith("HF") && log.Status.Length > 2))
                     {
-                         summary.HalfDayCount++;
-                         summary.PresentCount += 0.5m; // employee worked the other half
+                         if (activeApp == null)
+                         {
+                             summary.HalfDayCount++;
+                         }
+                         if (log.InTime != null)
+                         {
+                             summary.PresentCount += 0.5m; // employee worked the other half
+                         }
+                         else
+                         {
+                             summary.UnpaidLeaveCount += 0.5m; // Missing other half (Absent)
+                         }
 
                          // Check for specific half-day codes or linked application
                          if (activeApp?.LeaveType?.Code == "CO" || log.Status == "COHF") 
@@ -188,10 +217,10 @@ public class MonthlyAttendanceSheetModel : PageModel
                          else
                          {
                              // No linked application — fall back to status string
-                             if (log.Status == "LWHF" || log.Status == "HF") // HF without app is usually treated as unpaid if it's a half-day absence
-                                 summary.UnpaidLeaveCount += 0.5m;
+                             if (log.Status?.StartsWith("SL") == true || log.Status?.StartsWith("PL") == true || log.Status?.Contains("Leave") == true)
+                                 summary.LeaveCount += 0.5m; // Explicit leave status
                              else
-                                 summary.LeaveCount += 0.5m;
+                                 summary.UnpaidLeaveCount += 0.5m; // Unauthorized short shifts default to unpaid
                          }
                     }
                     else if (log.Status == "Present" || log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" || log.Status == "Present (Leave)" || log.Status == "COP") 
@@ -285,5 +314,7 @@ public class MonthlyAttendanceSheetModel : PageModel
         public string Tooltip { get; set; } = "";
         public bool IsEarly { get; set; }
         public TimeOnly? ShiftStartTime { get; set; }
+        public string TextColor { get; set; } = "#212529"; // Default black/dark gray
+        public string BackgroundColor { get; set; } = "transparent";
     }
 }
