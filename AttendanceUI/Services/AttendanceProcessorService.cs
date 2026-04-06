@@ -799,24 +799,25 @@ public class AttendanceProcessorService
         var startOfMonth = new DateOnly(currentRecord.RecordDate.Year, currentRecord.RecordDate.Month, 1);
         
         // Late Coming Policy
-        // Late Coming Policy: Count ALL late arrivals (even within grace) for reporting purposes
-        if (currentRecord.LateMinutes > 0 && currentRecord.Status != "Half Day")
+        // Late Coming Policy: Count ALL minor late arrivals (even within grace) for frequency penalties
+        if (currentRecord.IsLate)
         {
-            // Count all previous instances where employee was late (LateMinutes > 0) regardless of grace
+            // Count all previous instances where employee had a minor late (IsLate == true)
+            // Note: We don't count LateMinutes > 0 because major lates (already penalised with Half Day) shouldn't drain the allowed minor lates pool.
             // FIX: We must also check _db.DailyAttendance.Local because during bulk-processing (Process.cshtml.cs),
             // previous days might not be saved to the database yet.
             var dbLatesCount = await _db.DailyAttendance
                 .Where(d => d.EmployeeId == emp.EmployeeId && 
                             d.RecordDate >= startOfMonth && 
                             d.RecordDate < currentRecord.RecordDate && 
-                            d.LateMinutes > 0)
+                            d.IsLate)
                 .CountAsync();
 
             var localLatesCount = _db.DailyAttendance.Local
                 .Where(d => d.EmployeeId == emp.EmployeeId && 
                             d.RecordDate >= startOfMonth && 
                             d.RecordDate < currentRecord.RecordDate && 
-                            d.LateMinutes > 0)
+                            d.IsLate)
                 .Count();
 
             // The local set contains newly added/modified records not yet in the DB.
@@ -842,7 +843,7 @@ public class AttendanceProcessorService
                 .Select(g => g.First()) // Prefer local if duplicate
                 .ToList();
 
-            int previousLatesCount = allRecords.Count(d => d.LateMinutes > 0);
+            int previousLatesCount = allRecords.Count(d => d.IsLate);
 
             int currentLateCount = previousLatesCount + 1;
             

@@ -56,11 +56,15 @@ namespace AttendanceUI.Services
             // Include sandwiched weekoffs
             if (!ignoreSandwich)
             {
+                int totalDaysInSpan = endDate.DayNumber - startDate.DayNumber + 1;
+                
                 foreach (var di in dayInfos.Where(x => x.IsWeekoff && !x.IsHoliday))
                 {
                     bool hasWorkDayBefore = dayInfos.Any(x => x.Date < di.Date && x.IsWorkDay);
                     bool hasWorkDayAfter = dayInfos.Any(x => x.Date > di.Date && x.IsWorkDay);
-                    if (hasWorkDayBefore && hasWorkDayAfter)
+                    
+                    // If the total leave block is 3+ days, OR it structurally sandwiches the weekoff (Leave, Weekoff, Leave)
+                    if (totalDaysInSpan >= 3 || (hasWorkDayBefore && hasWorkDayAfter))
                     {
                         workDaysCount += dayMultiplier;
                     }

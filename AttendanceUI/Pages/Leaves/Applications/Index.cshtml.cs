@@ -171,6 +171,18 @@ public class IndexModel : PageModel
 
                 if (b2 || a2 || (b1 && a1))
                 {
+                    // If the weekoff is ALREADY officially part of an existing leave application's span,
+                    // we don't need to warn the user because no new deduction will occur.
+                    bool alreadyCovered = await _db.LeaveApplications.AnyAsync(la => 
+                        la.EmployeeId == employeeId && 
+                        la.Status == "Approved" && 
+                        date >= la.StartDate && date <= la.EndDate);
+
+                    if (alreadyCovered)
+                    {
+                        continue;
+                    }
+
                     // Check if they actually worked on this weekoff date
                     var workedOnWeekoff = await _db.AttendanceLogs.AnyAsync(l => 
                         l.EmployeeId == employeeId && 
@@ -323,6 +335,13 @@ public class IndexModel : PageModel
             
             if (totalDaysRequested > remaining && remaining > 0)
             {
+                if (remaining % dayMultiplier != 0)
+                {
+                    ModelState.AddModelError("", $"Your balance is {remaining} days. The system cannot auto-split a {NewApplication.DayType} request with a fractional mismatch. Please manually apply for Full Days and Half Days separately.");
+                    await OnGetAsync();
+                    return Page();
+                }
+
                 // AUTO-SPLIT: Create paid leave for available balance, LWP for the rest
                 var lwpType = await _db.LeaveTypes.FirstOrDefaultAsync(lt => lt.Code == "LWP");
                 if (lwpType == null)
