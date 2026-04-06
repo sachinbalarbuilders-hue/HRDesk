@@ -70,6 +70,7 @@ builder.Services.AddDbContext<AttendanceUI.Data.BiometricAttendanceDbContext>(op
 builder.Services.AddScoped<AttendanceUI.Services.AttendanceProcessorService>();
 builder.Services.AddScoped<AttendanceUI.Services.ISequenceService, AttendanceUI.Services.SequenceService>();
 builder.Services.AddScoped<AttendanceUI.Services.LoanService>();
+builder.Services.AddScoped<AttendanceUI.Services.AttendanceSummaryService>(); // Shared counting logic
 builder.Services.AddScoped<AttendanceUI.Services.PayrollService>();
 builder.Services.AddScoped<AttendanceUI.Services.CompOffService>();
 builder.Services.AddScoped<AttendanceUI.Services.LeaveAdjustmentService>();

@@ -11,195 +11,39 @@ public class PayrollService
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly LoanService _loanService;
+    private readonly AttendanceSummaryService _attendanceSummaryService;
 
-    public PayrollService(BiometricAttendanceDbContext db, LoanService loanService)
+    public PayrollService(BiometricAttendanceDbContext db, LoanService loanService, AttendanceSummaryService attendanceSummaryService)
     {
         _db = db;
         _loanService = loanService;
+        _attendanceSummaryService = attendanceSummaryService;
     }
 
     /// <summary>
-    /// Get attendance summary for an employee for a specific month
+    /// Get attendance summary for an employee for a specific month.
+    /// Delegates to AttendanceSummaryService — the single source of truth shared with MonthlyAttendanceSheet.
     /// </summary>
     public async Task<AttendanceSummary> GetAttendanceSummaryAsync(int employeeId, string month)
     {
         var year = int.Parse(month.Substring(0, 4));
         var monthNum = int.Parse(month.Substring(5, 2));
-        
-        var totalDays = DateTime.DaysInMonth(year, monthNum);
-        
-        var attendanceRecords = await _db.DailyAttendance
-            .Where(a => a.EmployeeId == employeeId &&
-                       a.RecordDate.Year == year &&
-                       a.RecordDate.Month == monthNum)
-            .ToListAsync();
 
-        decimal presentDays = 0;
-        decimal absentDays = 0;
-        decimal paidLeaves = 0;
-        decimal unpaidLeaves = 0;
-        decimal halfDays = 0;
-        decimal weekoffs = 0;
-        decimal holidays = 0;
-        var leaveCounts = new System.Collections.Generic.Dictionary<string, decimal>();
-        var lopBreakdown = new System.Collections.Generic.Dictionary<DateOnly, decimal>();
-
-        void AddLeaveCount(string code, decimal amount)
-        {
-            if (!leaveCounts.ContainsKey(code)) leaveCounts[code] = 0;
-            leaveCounts[code] += amount;
-        }
-
-        void AddLop(DateOnly date, decimal amount)
-        {
-            if (!lopBreakdown.ContainsKey(date)) lopBreakdown[date] = 0;
-            lopBreakdown[date] += amount;
-        }
-
-        foreach (var record in attendanceRecords)
-        {
-            var status = record.Status?.ToUpper().Trim() ?? "";
-            
-            if (status == "P" || status == "PRESENT" || status == "W/OP")
-            {
-                presentDays += 1.0m;
-            }
-            else if (status == "A" || status == "ABSENT")
-            {
-                absentDays += 1.0m;
-                AddLop(record.RecordDate, 1.0m);
-            }
-            else if (status == "HF" || status == "HALF DAY")
-            {
-                halfDays += 1.0m;
-                presentDays += 0.5m;
-                absentDays += 0.5m;
-                AddLop(record.RecordDate, 0.5m);
-            }
-            else if (status.EndsWith("HF") && status.Length > 2)
-            {
-                // WHF, PHF, SHF, COHF etc.
-                
-                // Specific handle for WHF (Worked Half on Weekoff)
-                if (status == "WHF")
-                {
-                    presentDays += 0.5m; // Worked half
-                    weekoffs += 0.5m;    // Weekoff half
-                    halfDays += 1.0m;    // Record that a half-day occurred
-                    continue;            // Skip the rest of the generic HF logic
-                }
-                
-                // For half-day leave records, rely solely on WorkMinutes to determine if work was done.
-                // InTime may still be present for audit purposes (e.g. early-exit penalty cases)
-                // but should not override a WorkMinutes=0 signal.
-                bool isWorkDone = record.WorkMinutes > 0;
-                
-                if (isWorkDone)
-                {
-                    presentDays += 0.5m; // Worked half
-                }
-                
-                // Categorize the leave half
-                if (status.StartsWith("CO") || status == "CHF")
-                {
-                    weekoffs += 0.5m; // Comp-Off is a weekoff adjustment
-                }
-                else
-                {
-                    // Check if it's a paid leave type
-                    var leaveTypes = await _db.LeaveTypes.ToListAsync();
-                    var matchingType = leaveTypes.FirstOrDefault(lt => status.Contains(lt.Code.ToUpper()));
-                    
-                    if (matchingType != null && matchingType.IsPaid)
-                    {
-                        paidLeaves += 0.5m; // Unworked leave portion
-                        AddLeaveCount(matchingType.Code, 0.5m);
-                    }
-                    else if (status.StartsWith("PL") || status.StartsWith("SL") || status == "PHF")
-                    {
-                        paidLeaves += 0.5m; // Default common codes to paid
-                        AddLeaveCount("PHF", 0.5m); // Force PHF code for consistency
-                    }
-                    else
-                    {
-                        unpaidLeaves += 0.5m;
-                        absentDays += 0.5m; // Always show unpaid halves as absentee time in reports
-                        AddLop(record.RecordDate, 0.5m);
-                    }
-                }
-
-                if (!isWorkDone)
-                {
-                    halfDays += 1.0m; // Partial pay day
-                    absentDays += 0.5m; // The non-worked half is an absence
-                    AddLop(record.RecordDate, 0.5m);
-                }
-            }
-            else if (status == "WO" || status == "W/O" || status == "WEEKOFF" || status == "WEEK OFF")
-            {
-                weekoffs += 1.0m;
-            }
-            else if (status == "H" || status == "HOLIDAY")
-            {
-                holidays += 1.0m;
-            }
-            else if (status.Contains("LEAVE") || status.Length >= 2)
-            {
-                // Full Day Leave or special status
-                bool isWorkDone = status.Contains("PRESENT") || record.WorkMinutes > 0;
-                
-                if (isWorkDone)
-                {
-                    presentDays += 1.0m;
-                }
-                else
-                {
-                    if (status.StartsWith("CO"))
-                    {
-                        weekoffs += 1.0m; // CO is a weekoff adjustment
-                    }
-                    else
-                    {
-                        var leaveTypes = await _db.LeaveTypes.ToListAsync(); 
-                        var matchingType = leaveTypes.FirstOrDefault(lt => status.Contains(lt.Code.ToUpper()));
-                        
-                        if (matchingType != null && matchingType.IsPaid)
-                        {
-                            paidLeaves += 1.0m;
-                            AddLeaveCount(matchingType.Code, 1.0m);
-                        }
-                        else if (status == "LEAVE" || status.StartsWith("PL") || status.StartsWith("SL"))
-                        {
-                             paidLeaves += 1.0m;
-                             AddLeaveCount(status.Split(' ')[0], 1.0m);
-                        }
-                        else
-                        {
-                            unpaidLeaves += 1.0m;
-                            absentDays += 1.0m;
-                            AddLop(record.RecordDate, 1.0m);
-                        }
-                    }
-                }
-            }
-            else if (!string.IsNullOrEmpty(status))
-            {
-                presentDays += 1.0m;
-            }
-        }
+        // Use the shared service — guaranteed to match MonthlyAttendanceSheet calculations
+        var counts = await _attendanceSummaryService.GetSummaryAsync(employeeId, year, monthNum);
 
         return new AttendanceSummary
         {
-            TotalDays = totalDays,
-            PresentDays = presentDays,
-            AbsentDays = absentDays,
-            PaidLeaves = paidLeaves, 
-            UnpaidLeaves = unpaidLeaves,
-            HalfDays = halfDays,
-            Weekoffs = weekoffs,
-            Holidays = holidays,
-            LeaveTypeCounts = leaveCounts,
-            LopDetails = lopBreakdown
+            TotalDays      = counts.TotalDays,
+            PresentDays    = counts.PresentCount,
+            AbsentDays     = counts.AbsentCount,
+            PaidLeaves     = counts.LeaveCount,
+            UnpaidLeaves   = counts.UnpaidLeaveCount,
+            HalfDays       = counts.HalfDayCount,
+            Weekoffs       = counts.WeekoffCount,
+            Holidays       = counts.HolidayCount,
+            LeaveTypeCounts = new System.Collections.Generic.Dictionary<string, decimal>(),
+            LopDetails     = counts.LopBreakdown
                 .OrderBy(kvp => kvp.Key)
                 .Select(kvp => $"{kvp.Key:dd-MMM}{(kvp.Value == 0.5m ? " (0.5)" : "")}")
                 .ToList()
@@ -319,14 +163,14 @@ public class PayrollService
         decimal totalDeductions = 0;
         var deductionDetails = new System.Collections.Generic.List<PayrollDetail>();
 
-        // 1. Loss of Pay (LOP) Deduction
+        // 1. Loss Without Pay (LWP) Deduction
         var lopDays = (decimal)attendance.TotalDays - payableDays;
         if (lopDays > 0)
         {
             var lopAmount = (grossSalary / attendance.TotalDays) * lopDays;
             totalDeductions += lopAmount;
             
-            var lopRemark = $"Absent/LWP: {lopDays:0.0} days";
+            var lopRemark = $"Loss Without Pay: {lopDays:0.0} days";
             if (attendance.LopDetails.Any())
             {
                 lopRemark += $" ({string.Join(", ", attendance.LopDetails)})";
@@ -335,7 +179,7 @@ public class PayrollService
             deductionDetails.Add(new PayrollDetail
             {
                 ComponentType = "Deduction",
-                ComponentName = "Loss of Pay",
+                ComponentName = "Loss Without Pay",
                 Amount = lopAmount,
                 Remarks = lopRemark
             });

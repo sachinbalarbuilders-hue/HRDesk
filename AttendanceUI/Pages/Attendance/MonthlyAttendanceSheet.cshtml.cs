@@ -10,10 +10,12 @@ namespace AttendanceUI.Pages.Attendance;
 public class MonthlyAttendanceSheetModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly AttendanceSummaryService _attendanceSummaryService;
 
-    public MonthlyAttendanceSheetModel(BiometricAttendanceDbContext db)
+    public MonthlyAttendanceSheetModel(BiometricAttendanceDbContext db, AttendanceSummaryService attendanceSummaryService)
     {
         _db = db;
+        _attendanceSummaryService = attendanceSummaryService;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -185,78 +187,8 @@ public class MonthlyAttendanceSheetModel : PageModel
                         dto.IsActualBreak = log.IsActualBreak;
                     }
 
-                    // Count logic based on status string from DB
-                    if (log.IsHalfDay || (log.Status != null && log.Status.EndsWith("HF") && log.Status.Length > 2))
-                    {
-                         if (activeApp == null)
-                         {
-                             summary.HalfDayCount++;
-                         }
-                         if (log.InTime != null)
-                         {
-                             summary.PresentCount += 0.5m; // employee worked the other half
-                         }
-                         else
-                         {
-                             summary.UnpaidLeaveCount += 0.5m; // Missing other half (Absent)
-                         }
-
-                         // Check for specific half-day codes or linked application
-                         if (activeApp?.LeaveType?.Code == "CO" || log.Status == "COHF") 
-                         {
-                             summary.WeekoffCount += 0.5m; 
-                         } 
-                         else if (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid)
-                         {
-                             summary.UnpaidLeaveCount += 0.5m;
-                         }
-                         else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
-                         {
-                             summary.LeaveCount += 0.5m;
-                         }
-                         else
-                         {
-                             // No linked application — fall back to status string
-                             if (log.Status?.StartsWith("SL") == true || log.Status?.StartsWith("PL") == true || log.Status?.Contains("Leave") == true)
-                                 summary.LeaveCount += 0.5m; // Explicit leave status
-                             else
-                                 summary.UnpaidLeaveCount += 0.5m; // Unauthorized short shifts default to unpaid
-                         }
-                    }
-                    else if (log.Status == "Present" || log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" || log.Status == "Present (Leave)" || log.Status == "COP") 
-                    {
-                        summary.PresentCount += 1.0m;
-                    }
-                    else if (log.Status == "Absent") summary.AbsentCount += 1.0m;
-                    else if (log.Status == "Weekoff" || log.Status == "W/O" || log.Status == "WO" || log.Status == "CO") 
-                    {
-                        summary.WeekoffCount += 1.0m;
-                    }
-                    else if (log.Status == "Holiday") summary.HolidayCount += 1.0m;
-                    else if (activeApp != null || log.Status == "Leave" || log.Status == "LWP" || log.Status?.Contains("Leave") == true)
-                    {
-                        // Prioritise the linked leave application's type for classification
-                        if (activeApp?.LeaveType?.Code == "CO")
-                        {
-                            summary.WeekoffCount += 1.0m;
-                        }
-                        else if (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid)
-                        {
-                            summary.UnpaidLeaveCount += 1.0m;
-                        }
-                        else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
-                        {
-                            summary.LeaveCount += 1.0m;
-                        }
-                        else
-                        {
-                            // No linked application — fall back to status string
-                            if (log.Status == "LWP")
-                                summary.UnpaidLeaveCount += 1.0m;
-                            else
-                                summary.LeaveCount += 1.0m;
-                        }
-                    }
+                    // Count logic — delegated to shared AttendanceSummaryService
+                    // (pre-loaded logs and leaveApps are passed in to avoid extra DB queries)
                 }
                 else
                 {
@@ -267,9 +199,18 @@ public class MonthlyAttendanceSheetModel : PageModel
                 summary.DailyRecords[day] = dto;
             }
 
-            // Calculate total payable days
-            summary.PayableDays = summary.PresentCount + summary.WeekoffCount + summary.HolidayCount + summary.LeaveCount;
-            
+            // Apply counts from the shared AttendanceSummaryService (no extra DB queries —
+            // pre-loaded logs and leaveApps are passed in)
+            var counts = _attendanceSummaryService.ComputeSummary(emp.EmployeeId, Year, Month, logs, leaveApps);
+            summary.PresentCount     = counts.PresentCount;
+            summary.AbsentCount      = counts.AbsentCount;
+            summary.HalfDayCount     = counts.HalfDayCount;
+            summary.WeekoffCount     = counts.WeekoffCount;
+            summary.HolidayCount     = counts.HolidayCount;
+            summary.LeaveCount       = counts.LeaveCount;
+            summary.UnpaidLeaveCount = counts.UnpaidLeaveCount;
+            summary.PayableDays      = counts.PayableDays;
+
             EmployeeSummaries.Add(summary);
         }
     }

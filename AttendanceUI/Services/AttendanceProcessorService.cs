@@ -511,23 +511,40 @@ public class AttendanceProcessorService
                 }
                 else
                 {
-                    // Get first letter for status
-                    string firstLetter = "L"; // Default
-                    if (!string.IsNullOrWhiteSpace(leaveCode) && leaveCode.Length > 0)
+                    if (leaveCode.ToUpper().StartsWith("CO") || leaveCode.ToUpper() == "COMP OFF")
                     {
-                        firstLetter = leaveCode.Substring(0, 1).ToUpper();
+                        existingRecord.Status = "COHF";
                     }
-                    
-                    existingRecord.Status = $"{firstLetter}HF"; // PL→PHF, SL→SHF
+                    else
+                    {
+                        // Get first letter for status
+                        string firstLetter = "L"; // Default
+                        if (!string.IsNullOrWhiteSpace(leaveCode) && leaveCode.Length > 0)
+                        {
+                            firstLetter = leaveCode.Substring(0, 1).ToUpper();
+                        }
+                        existingRecord.Status = $"{firstLetter}HF"; // PL→PHF, SL→SHF
+                    }
                 }
                 // Skip adding remark here as it's already added at line ~359 (Half Day Leave: PL (Second Half))
             }
         }
 
         // PRE-CALCULATION: Calculate Late Minutes even for Single Punch scenarios so it shows in reports
-        if (emp.Shift != null && inTime > emp.Shift.StartTime)
+        // IMPORTANT: If the employee is on a First Half leave, they are expected to arrive at HalfTime,
+        // NOT at ShiftStart. Use HalfTime as the baseline so single-punch early-returns (line ~591)
+        // don't incorrectly stamp a Late count against a legitimately absent first half.
+        if (emp.Shift != null)
         {
-            existingRecord.LateMinutes = (int)(inTime - emp.Shift.StartTime).TotalMinutes;
+            TimeOnly preCalcBase = (approvedLeave != null &&
+                                    approvedLeave.DayType == "First Half" &&
+                                    emp.Shift.HalfTime.HasValue)
+                                    ? emp.Shift.HalfTime.Value
+                                    : emp.Shift.StartTime;
+
+            existingRecord.LateMinutes = inTime > preCalcBase
+                ? (int)(inTime - preCalcBase).TotalMinutes
+                : 0;
         }
 
         // 5. Smart Break Detection & Duration Calculation
