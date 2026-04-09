@@ -89,20 +89,11 @@ public class ProcessModel : PageModel
             }
             else
             {
-                // Process all employees
-                var activeAll = await _db.Employees
-                    .Where(e => (e.Status == "active" || e.Status == "Active") && (e.JoiningDate == null || e.JoiningDate <= ToDate))
-                    .ToListAsync();
-
+                // Process all employees using the processor's native batch mode
+                // This ensures Inactive employees with valid LastWorkingDates are also processed
                 for (var d = FromDate; d <= ToDate; d = d.AddDays(1))
                 {
-                    foreach (var emp in activeAll)
-                    {
-                        if (emp.JoiningDate == null || emp.JoiningDate <= d)
-                        {
-                            await _processor.ProcessDailyAttendanceAsync(d, emp.EmployeeId);
-                        }
-                    }
+                    await _processor.ProcessDailyAttendanceAsync(d, null);
                 }
             }
             

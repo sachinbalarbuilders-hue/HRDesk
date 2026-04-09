@@ -38,11 +38,17 @@ public class MonthlyAttendanceSheetModel : PageModel
         var employees = await _db.Employees
             .Include(e => e.Department)
             .Include(e => e.Shift)
-            .Where(e => ((e.Status != null && e.Status.ToLower() == "active") && (e.JoiningDate == null || e.JoiningDate < endDate)) || 
-                        (_db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && 
-                                                     a.RecordDate >= startDate && a.RecordDate < endDate && 
-                                                     a.Status != "Absent" && a.Status != "W/O" && a.Status != "Holiday") && 
-                         (e.LastWorkingDate != null && e.LastWorkingDate >= startDate)))
+            .Where(e => 
+                (e.JoiningDate == null || e.JoiningDate < endDate) 
+                && 
+                (
+                    (e.Status != null && e.Status.ToLower() == "active") 
+                    || 
+                    (e.LastWorkingDate != null && e.LastWorkingDate >= startDate)
+                    ||
+                    (_db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate >= startDate && a.RecordDate < endDate && a.InTime != null))
+                )
+            )
             .OrderBy(e => e.EmployeeName)
             .ToListAsync();
 
@@ -57,6 +63,11 @@ public class MonthlyAttendanceSheetModel : PageModel
             .Where(la => (la.Status == "Approved" || la.Status == "Adjusted") && 
                          la.StartDate < endDate && 
                          la.EndDate >= startDate)
+            .ToListAsync();
+
+        // 2c. Fetch all holidays that overlap this month (for tooltip display)
+        var holidays = await _db.Holidays
+            .Where(h => h.StartDate < endDate && h.EndDate >= startDate)
             .ToListAsync();
 
         // 3. Transform data
@@ -93,8 +104,24 @@ public class MonthlyAttendanceSheetModel : PageModel
                     var dayApps = leaveApps.Where(la => la.EmployeeId == emp.EmployeeId && date >= la.StartDate && date <= la.EndDate).ToList();
                     var activeApp = dayApps.FirstOrDefault(la => la.Status == "Approved");
 
-                    // Specific Leave Logic
-                    if (activeApp?.LeaveType != null)
+                    // ── Holiday takes absolute priority ──────────────────────────────────
+                    // If the DB record is a Holiday, always show "H" regardless of any
+                    // leave application that may exist on the same date.
+                    if (log.Status == "Holiday")
+                    {
+                        dto.Status = "H";
+                        dto.TextColor = "#7b1fa2";
+                        // Show holiday name (and optional description) in tooltip
+                        var holiday = holidays.FirstOrDefault(h => date >= h.StartDate && date <= h.EndDate);
+                        if (holiday != null)
+                        {
+                            dto.Tooltip = string.IsNullOrEmpty(holiday.Description)
+                                ? holiday.HolidayName
+                                : $"{holiday.HolidayName} — {holiday.Description}";
+                        }
+                    }
+                    // ── Leave application display logic ───────────────────────────────────
+                    else if (activeApp?.LeaveType != null)
                     {
                         dto.TextColor = activeApp.LeaveType.TextColor;
                         dto.BackgroundColor = activeApp.LeaveType.BackgroundColor;
@@ -130,32 +157,36 @@ public class MonthlyAttendanceSheetModel : PageModel
                     }
 
                     // Build tooltip: Application No + Reason/Remarks
-                    var tooltipParts = new List<string>();
-                    
-                    if (activeApp != null)
+                    // (Skipped for holidays — tooltip already set to holiday name above)
+                    if (log.Status != "Holiday")
                     {
-                        tooltipParts.Add($"App#: {activeApp.ApplicationNumber}");
-                        if (!string.IsNullOrEmpty(activeApp.Reason))
-                            tooltipParts.Add($"Reason: {activeApp.Reason}");
-                    }
-                    else if (!string.IsNullOrEmpty(log.ApplicationNumber))
-                    {
-                        tooltipParts.Add($"App#: {log.ApplicationNumber}");
-                    }
-                    
-                    // Add Adjusted leaves info
-                    var adjustedApps = dayApps.Where(la => la.Status == "Adjusted").ToList();
-                    foreach (var adj in adjustedApps)
-                    {
-                        tooltipParts.Add($"Adjusted: {adj.LeaveType?.Code ?? "Leave"} ({adj.ApplicationNumber})");
-                        if (!string.IsNullOrEmpty(adj.Reason))
-                            tooltipParts.Add($"Orig Reason: {adj.Reason}");
-                    }
+                        var tooltipParts = new List<string>();
+                        
+                        if (activeApp != null)
+                        {
+                            tooltipParts.Add($"App#: {activeApp.ApplicationNumber}");
+                            if (!string.IsNullOrEmpty(activeApp.Reason))
+                                tooltipParts.Add($"Reason: {activeApp.Reason}");
+                        }
+                        else if (!string.IsNullOrEmpty(log.ApplicationNumber))
+                        {
+                            tooltipParts.Add($"App#: {log.ApplicationNumber}");
+                        }
+                        
+                        // Add Adjusted leaves info
+                        var adjustedApps = dayApps.Where(la => la.Status == "Adjusted").ToList();
+                        foreach (var adj in adjustedApps)
+                        {
+                            tooltipParts.Add($"Adjusted: {adj.LeaveType?.Code ?? "Leave"} ({adj.ApplicationNumber})");
+                            if (!string.IsNullOrEmpty(adj.Reason))
+                                tooltipParts.Add($"Orig Reason: {adj.Reason}");
+                        }
 
-                    if (!string.IsNullOrEmpty(log.Remarks))
-                        tooltipParts.Add(log.Remarks);
-                    
-                    dto.Tooltip = string.Join(" | ", tooltipParts);
+                        if (!string.IsNullOrEmpty(log.Remarks))
+                            tooltipParts.Add(log.Remarks);
+                        
+                        dto.Tooltip = string.Join(" | ", tooltipParts);
+                    }
                     dto.IsEarly = log.IsEarly;
                     dto.ShiftStartTime = emp.Shift?.StartTime;
                     

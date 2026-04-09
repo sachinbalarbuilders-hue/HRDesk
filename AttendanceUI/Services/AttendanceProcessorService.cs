@@ -35,9 +35,11 @@ public class AttendanceProcessorService
             // AND are active OR those who have actual biometric logs for this month
             var startOfMonth = new DateTime(date.Year, date.Month, 1);
             var endOfMonth = startOfMonth.AddMonths(1);
+            var startOfMonthDateOnly = new DateOnly(date.Year, date.Month, 1);
             
             query = query.Where(e => (e.JoiningDate == null || e.JoiningDate <= date) &&
                                      ((e.Status != null && e.Status.ToLower() == "active") || 
+                                      (e.LastWorkingDate != null && e.LastWorkingDate >= startOfMonthDateOnly) ||
                                       _db.AttendanceLogs.Any(l => l.EmployeeId == e.EmployeeId && 
                                                                   l.PunchTime >= startOfMonth && 
                                                                   l.PunchTime < endOfMonth)));
@@ -281,7 +283,15 @@ public class AttendanceProcessorService
             foreach (var reg in approvedRegularizations)
             {
                 var appNumText = !string.IsNullOrWhiteSpace(reg.ApplicationNumber) ? $" ({reg.ApplicationNumber})" : "";
-                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{reg.RequestType} Regularized{appNumText}");
+                
+                string regText = "Regularized";
+                if (reg.RequestType != "Missed Punch" && !reg.WaivePenalty)
+                {
+                    regText = "Logged (Tracking Only)";
+                }
+
+                var reasonText = !string.IsNullOrWhiteSpace(reg.Reason) ? $" - Reason: {reg.Reason}" : "";
+                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{reg.RequestType} {regText}{appNumText}{reasonText}");
             }
         }
 
@@ -527,6 +537,7 @@ public class AttendanceProcessorService
                     }
                 }
                 // Skip adding remark here as it's already added at line ~359 (Half Day Leave: PL (Second Half))
+                existingRecord.IsHalfDay = true; // Always mark half-day flag for all HF variants (HF, PHF, SHF, COHF)
             }
         }
 
@@ -562,12 +573,15 @@ public class AttendanceProcessorService
                              dailyLogs[0].VerifyType.EndsWith("-Out");
 
             // Single Punch Rule
-            // BUT: Don't overwrite half-day leave status (PHF, SHF, etc)
-            if (!existingRecord.Status.EndsWith("HF"))
+            // BUT: Don't penalize approved full day leaves or overwrite half-day leave status
+            if (existingRecord.Status != "Present (Leave)")
             {
-                existingRecord.Status = "Half Day";
+                if (existingRecord.Status != null && !existingRecord.Status.EndsWith("HF"))
+                {
+                    existingRecord.Status = "Half Day";
+                }
+                existingRecord.IsHalfDay = true;
             }
-            existingRecord.IsHalfDay = true;
             
             string baseRemark = "Single Punch (In/Out Missing)";
 
@@ -599,6 +613,12 @@ public class AttendanceProcessorService
             existingRecord.Remarks = baseRemark;
             existingRecord.WorkMinutes = 0;
             existingRecord.BreakMinutes = 0;
+
+            // Weekoff + single punch (half day worked) → W/OHF
+            // Unworked half stays as W/O credit — employee must never get LESS payable for showing up on weekoff
+            if (isWeekoff && existingRecord.Status == "Half Day")
+                existingRecord.Status = "W/OHF";
+
             return;
         }
 
@@ -656,10 +676,13 @@ public class AttendanceProcessorService
             expectedStartTime = currentShift.HalfTime ?? currentShift.StartTime;
         }
 
-        // Late Coming Check
-        if (inTime > expectedStartTime)
+        // Late Coming Check (Ignore seconds)
+        var inTimeMinute = new TimeOnly(inTime.Hour, inTime.Minute);
+        var expectedMinute = new TimeOnly(expectedStartTime.Hour, expectedStartTime.Minute);
+
+        if (inTimeMinute > expectedMinute)
         {
-            int lateMins = (int)(inTime - expectedStartTime).TotalMinutes;
+            int lateMins = (int)(inTimeMinute - expectedMinute).TotalMinutes;
             int graceLimit = isNoticePeriod ? 0 : (currentShift.LateComingGraceMinutes ?? 30);
             
             if (waiveLate)
@@ -675,7 +698,7 @@ public class AttendanceProcessorService
                 // MAJOR LATE: arriving after HalfTime boundary (only applies if expected start wasn't already HalfTime)
                 if (currentShift.HalfTime.HasValue && expectedStartTime != currentShift.HalfTime.Value && inTime > currentShift.HalfTime.Value)
                 {
-                    if (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF"))
+                    if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
                     {
                         existingRecord.Status = "Half Day"; 
                         existingRecord.IsHalfDay = true;
@@ -685,7 +708,7 @@ public class AttendanceProcessorService
                 else if ((isProbation || isNoticePeriod) && lateMins > 0)
                 {
                     // Probation or Notice Period employees: immediate Half Day for any lateness
-                    if (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF"))
+                    if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
                     {
                         existingRecord.Status = "Half Day";
                         existingRecord.IsHalfDay = true;
@@ -696,7 +719,7 @@ public class AttendanceProcessorService
                 else if (lateMins > graceLimit)
                 {
                     // Regular employees: immediate Half Day if beyond grace period
-                    if (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF"))
+                    if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
                     {
                         existingRecord.Status = "Half Day";
                         existingRecord.IsHalfDay = true;
@@ -711,10 +734,13 @@ public class AttendanceProcessorService
             }
         }
 
-        // Early Exit Check
-        if (outTime < currentShift.EndTime)
+        // Early Exit Check (Ignore seconds)
+        var outTimeMinute = new TimeOnly(outTime.Hour, outTime.Minute);
+        var expectedEndMinute = new TimeOnly(currentShift.EndTime.Hour, currentShift.EndTime.Minute);
+
+        if (outTimeMinute < expectedEndMinute)
         {
-            int earlyMins = (int)(currentShift.EndTime - outTime).TotalMinutes;
+            int earlyMins = (int)(expectedEndMinute - outTimeMinute).TotalMinutes;
             
             // Early Exit Zone Separation
             // SPECIAL CASE: Second Half Leave but left before HalfTime boundary
@@ -745,7 +771,7 @@ public class AttendanceProcessorService
                 }
                 else 
                 {
-                    if (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF"))
+                    if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
                     {
                         existingRecord.Status = "Half Day";
                         existingRecord.IsHalfDay = true;
@@ -775,7 +801,7 @@ public class AttendanceProcessorService
                         if (isNoticePeriod || isProbation)
                         {
                             // Stricter rule for Notice/Probation: any early exit is a Half Day if beyond grace (which is 0)
-                            if (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF"))
+                            if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
                             {
                                 existingRecord.Status = "Half Day";
                                 existingRecord.IsHalfDay = true;
@@ -788,7 +814,10 @@ public class AttendanceProcessorService
             }
         }
 
-
+        // Weekoff + early exit / major late (half day) → W/OHF
+        // Unworked half stays as W/O credit — employee must never get LESS payable for showing up on weekoff
+        if (isWeekoff && existingRecord.IsHalfDay && existingRecord.Status == "Half Day")
+            existingRecord.Status = "W/OHF";
 
         // 7. Monthly Penalties (Dynamic based on Shift limits)
         await ApplyMonthlyPenaltiesAsync(emp, existingRecord, currentShift);
