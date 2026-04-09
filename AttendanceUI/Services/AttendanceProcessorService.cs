@@ -573,14 +573,30 @@ public class AttendanceProcessorService
                              dailyLogs[0].VerifyType.EndsWith("-Out");
 
             // Single Punch Rule
+
+            bool isCurrentDay = date == DateOnly.FromDateTime(DateTime.Now);
+
             // BUT: Don't penalize approved full day leaves or overwrite half-day leave status
             if (existingRecord.Status != "Present (Leave)")
             {
-                if (existingRecord.Status != null && !existingRecord.Status.EndsWith("HF"))
+                if (isCurrentDay && !isOutOnly)
                 {
-                    existingRecord.Status = "Half Day";
+                    // Employee recently punched IN and is at work today. Do not penalize yet!
+                    if (existingRecord.Status == null || existingRecord.Status == "Absent")
+                    {
+                        existingRecord.Status = "Present";
+                    }
+                    existingRecord.IsHalfDay = false;
                 }
-                existingRecord.IsHalfDay = true;
+                else
+                {
+                    // Past day or explicitly missed the IN punch today
+                    if (existingRecord.Status != null && !existingRecord.Status.EndsWith("HF"))
+                    {
+                        existingRecord.Status = "Half Day";
+                    }
+                    existingRecord.IsHalfDay = true;
+                }
             }
             
             string baseRemark = "Single Punch (In/Out Missing)";
