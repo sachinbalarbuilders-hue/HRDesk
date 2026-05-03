@@ -154,6 +154,23 @@ public class MonthlyAttendanceSheetModel : PageModel
                         }
                         else if (dto.Status == "H") dto.TextColor = "#7b1fa2";
                         else if (dto.Status == "HF") dto.TextColor = "#ef6c00";
+                        else
+                        {
+                            // Sandwich days (e.g. PL on a weekoff) have a leave-type status
+                            // but NO leave application covering that exact date. Look up the
+                            // LeaveType by code so the cell gets the correct brand colors.
+                            var rawCode = log.Status?.Replace("HF", "").Trim();
+                            if (!string.IsNullOrEmpty(rawCode))
+                            {
+                                var matchedLeaveType = await _db.LeaveTypes
+                                    .FirstOrDefaultAsync(lt => lt.Code == rawCode);
+                                if (matchedLeaveType != null)
+                                {
+                                    dto.TextColor = matchedLeaveType.TextColor;
+                                    dto.BackgroundColor = matchedLeaveType.BackgroundColor;
+                                }
+                            }
+                        }
                     }
 
                     // Build tooltip: Application No + Reason/Remarks

@@ -77,8 +77,18 @@ public class AttendanceSummaryService
                 la.StartDate <= date && la.EndDate >= date &&
                 la.Status == "Approved");
 
+            // ── Holiday takes absolute priority ──────────────────────────────────
+            // If the DB record is a Holiday, always count it as HolidayCount
+            // regardless of any leave application that may exist on the same date.
+            // (Holiday is already paid — leave balance was never deducted for it.)
+            if (log.Status == "Holiday")
+            {
+                result.HolidayCount += 1.0m;
+                continue;
+            }
+
             // ── Half-Day records (COHF, PHF, SHF, HF etc.) ──────────────────────
-            if (log.IsHalfDay || (log.Status != null && log.Status.EndsWith("HF") && log.Status.Length > 2))
+            if (log.IsHalfDay || (log.Status != null && log.Status.EndsWith("HF")))
             {
                 if (activeApp == null) result.HalfDayCount++;
 
@@ -112,7 +122,11 @@ public class AttendanceSummaryService
                 else
                 {
                     // No leave app — fall back to status string
-                    if (log.Status?.StartsWith("SL") == true ||
+                    if (log.Status == "W/OHF")
+                    {
+                        result.WeekoffCount += 0.5m; // Unworked half of weekoff = W/O credit (no LOP)
+                    }
+                    else if (log.Status?.StartsWith("SL") == true ||
                         log.Status?.StartsWith("PL") == true ||
                         log.Status?.Contains("Leave") == true)
                         result.LeaveCount += 0.5m;
@@ -150,7 +164,11 @@ public class AttendanceSummaryService
             // ── Leave (full day) ─────────────────────────────────────────────────
             else if (activeApp != null ||
                      log.Status == "Leave" || log.Status == "LWP" ||
-                     log.Status?.Contains("Leave") == true)
+                     log.Status?.Contains("Leave") == true ||
+                     log.Status?.StartsWith("PL") == true ||
+                     log.Status?.StartsWith("SL") == true ||
+                     log.Status?.StartsWith("CL") == true ||
+                     log.Status?.StartsWith("ML") == true)
             {
                 if (activeApp?.LeaveType?.Code == "CO")
                 {

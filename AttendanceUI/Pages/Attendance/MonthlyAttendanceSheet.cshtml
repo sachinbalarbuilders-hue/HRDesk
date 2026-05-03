@@ -15,6 +15,7 @@
     .status-A { font-weight: bold; }
     .status-W\/O, .status-WO { font-weight: bold; }
     .status-W\/OP { font-weight: bold; }
+    .status-W\/OHF { font-weight: bold; color: #795548; }
     .status-HF { font-weight: bold; }
     .status-H { font-weight: bold; }
     
@@ -52,6 +53,7 @@
     .badge-hf { background-color: #fff3e0; color: #e65100; border-color: #ffe0b2; }
     .badge-payable { background-color: #311b92; color: #ffffff; border-color: #4527a0; padding: 0.3rem 0.8rem; }
     .badge-work { background-color: #f5f5f5; color: #424242; border-color: #e0e0e0; }
+    .badge-h { background-color: #fff8e1; color: #e65100; border-color: #ffcc80; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
@@ -100,6 +102,7 @@
                                 <span class="summary-badge badge-p">P: @summary.PresentCount.ToString("0.#")</span>
                                 <span class="summary-badge badge-a">A: @summary.AbsentCount.ToString("0.#")</span>
                                 <span class="summary-badge badge-wo">W/O: @summary.WeekoffCount.ToString("0.#")</span>
+                                <span class="summary-badge badge-h">H: @summary.HolidayCount.ToString("0.#")</span>
                                 <span class="summary-badge badge-pl">PL: @summary.LeaveCount.ToString("0.#")</span>
                                 <span class="summary-badge badge-ul">UL: @summary.UnpaidLeaveCount.ToString("0.#")</span>
                                 <span class="summary-badge badge-hf">HF: @summary.HalfDayCount</span>
