@@ -33,11 +33,19 @@
                     <span asp-validation-for="Input.ShiftCode" class="text-danger small"></span>
                 </div>
                 <div class="col-md-3">
-                    <label asp-for="Input.Status" class="form-label fw-semibold"></label>
-                    <select asp-for="Input.Status" class="form-select">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
+                    <div class="form-group">
+                        <label asp-for="Input.Status" class="form-label fw-semibold"></label>
+                        <select asp-for="Input.Status" class="form-select">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label asp-for="Input.ColorCode" class="form-label fw-semibold"></label>
+                        <input asp-for="Input.ColorCode" type="color" class="form-control form-control-color w-100" title="Choose shift color" />
+                    </div>
                 </div>
 
                 <div class="col-md-3">

@@ -33,21 +33,37 @@ public class IndexModel : PageModel
     public List<Employee> Employees { get; set; } = new();
     public List<LeaveType> LeaveTypes { get; set; } = new();
 
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
+
+    [BindProperty(SupportsGet = true)]
+    public int PageSize { get; set; } = 50;
+
+    public int TotalCount { get; set; }
+    public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
+
     public async Task OnGetAsync()
     {
         Employees = await _db.Employees.Where(e => e.Status == "active").OrderBy(e => e.EmployeeName).ToListAsync();
         LeaveTypes = await _db.LeaveTypes.Where(lt => lt.Status == "Active").ToListAsync();
-
+ 
         // Default to today to avoid 0001-01-01 error
         NewApplication.StartDate = DateOnly.FromDateTime(DateTime.Today);
         NewApplication.EndDate = DateOnly.FromDateTime(DateTime.Today);
         
         NewApplication.ApplicationNumber = await _sequenceService.PeekNextApplicationNumberAsync(NewApplication.StartDate);
+ 
+        // Pagination logic
+        TotalCount = await _db.LeaveApplications.CountAsync();
+        
+        if (PageNumber < 1) PageNumber = 1;
 
         LeaveApplications = await _db.LeaveApplications
             .Include(la => la.Employee)
             .Include(la => la.LeaveType)
-            .OrderByDescending(la => la.CreatedAt) // Changed to CreatedAt for better tracking of recent entries
+            .OrderByDescending(la => la.CreatedAt)
+            .Skip((PageNumber - 1) * PageSize)
+            .Take(PageSize)
             .ToListAsync();
     }
 

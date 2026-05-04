@@ -113,6 +113,30 @@
 
             $("#emiInput, #LoanApplication_LoanAmount").on('input', updateMonths);
 
+            // Robust selectors for ASP.NET generated IDs
+            var $loanType = $("select[name*='LoanTypeId']");
+            var $amount = $("input[name*='LoanAmount']");
+            var $emi = $("#emiInput");
+
+            function syncAdvance() {
+                var selectedText = $loanType.find("option:selected").text().toLowerCase();
+                if (selectedText.includes("advance")) {
+                    var val = $amount.val();
+                    if (val) {
+                        $emi.val(val);
+                        $emi.attr("readonly", true);
+                    } else {
+                        $emi.val("");
+                    }
+                    updateMonths();
+                } else {
+                    $emi.removeAttr("readonly");
+                }
+            }
+
+            $loanType.on('change', syncAdvance);
+            $amount.on('input', syncAdvance);
+
             $("#isOngoing").change(function() {
                 if($(this).is(":checked")) {
                     $("#migrationField").slideDown(200);
@@ -121,8 +145,9 @@
                     $("#LoanApplication_StartingPaidInstallments").val(0);
                 }
             });
-            
-            updateMonths(); // Initial call
+
+            syncAdvance(); // Run on load
+            updateMonths();
         });
     </script>
 }

@@ -242,16 +242,40 @@ public class AttendanceProcessorService
             }
         }
 
+        // 1. Resolve Shift from Daily Roster (Sole Source of Truth - No Fallback)
+        var roster = await _db.ShiftRosters
+            .FirstOrDefaultAsync(r => r.EmployeeId == emp.EmployeeId && r.RosterDate == date);
+
+        if (roster == null)
+        {
+            existingRecord.Status = "Roster Missing";
+            existingRecord.Remarks = "No shift assigned in daily roster.";
+            existingRecord.ShiftId = null;
+            return;
+        }
+
+        // If it's a Weekoff in the Roster
+        if (roster.IsWeekOff)
+        {
+            existingRecord.Status = "Weekoff";
+            existingRecord.ShiftId = roster.ShiftId; // Optional: keep for reference
+            return;
+        }
+
+        // Use the shift from the Roster
+        int? effectiveShiftId = roster.ShiftId;
+        bool isWeekoff = roster.IsWeekOff;
+
         // Reset calculated fields
-        existingRecord.ShiftId = emp.ShiftId;
-        existingRecord.Status = null; // Fix: Reset status so re-processing can change it
-        existingRecord.ApplicationNumber = null; // Fix: Reset application number so deleted leaves don't leave phantom records
+        existingRecord.ShiftId = effectiveShiftId;
+        existingRecord.Status = null; 
+        existingRecord.ApplicationNumber = null; 
         existingRecord.IsLate = false;
         existingRecord.LateMinutes = 0;
         existingRecord.IsEarly = false;
         existingRecord.EarlyMinutes = 0;
         existingRecord.IsHalfDay = false;
-        existingRecord.Remarks = null;
+        existingRecord.Remarks = roster.Remarks; // Carry over roster remarks if any
         existingRecord.UpdatedAt = DateTime.Now;
 
         // 2. Check Holiday (Always respected above all, never sandwiched)
@@ -296,11 +320,7 @@ public class AttendanceProcessorService
         }
 
         // 4. Check Weekoff & Sandwich Logic
-        // Very basic string check - ideal would be DayOfWeek enum matching
-        bool isWeekoff = !string.IsNullOrWhiteSpace(emp.Weekoff) && 
-            emp.Weekoff.Trim().Equals(date.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase);
-        
-        if (isWeekoff && existingRecord.Status == null)
+        if (existingRecord.Status == "Weekoff")
         {
             // If they punched on the weekoff, they actually worked. 
             // This immediately breaks any sandwich rule and converts the day to a "worked weekoff"
@@ -1011,22 +1031,25 @@ public class AttendanceProcessorService
 
     private async Task<LeaveApplication?> GetSandwichingLeaveAsync(int employeeId, DateOnly weekoffDate)
     {
-        async Task<LeaveApplication?> FindLeaveAsync(DateOnly d)
-        {
-            return await _db.LeaveApplications
-                .Include(la => la.LeaveType)
-                .FirstOrDefaultAsync(la => la.EmployeeId == employeeId
-                                        && la.Status == "Approved"
-                                        && !la.IgnoreSandwichRule
-                                        && d >= la.StartDate && d <= la.EndDate
-                                        && la.DayType == "Full Day");
-        }
+        // Optimization: Fetch all potentially relevant leaves in the ±2 day range in ONE query
+        var fromDate = weekoffDate.AddDays(-2);
+        var toDate = weekoffDate.AddDays(2);
 
-        var prevDay1 = await FindLeaveAsync(weekoffDate.AddDays(-1));
-        var prevDay2 = prevDay1 != null ? await FindLeaveAsync(weekoffDate.AddDays(-2)) : null;
+        var nearbyLeaves = await _db.LeaveApplications
+            .Include(la => la.LeaveType)
+            .Where(la => la.EmployeeId == employeeId
+                         && la.Status == "Approved"
+                         && !la.IgnoreSandwichRule
+                         && la.DayType == "Full Day"
+                         && la.StartDate <= toDate 
+                         && la.EndDate >= fromDate)
+            .ToListAsync();
 
-        var nextDay1 = await FindLeaveAsync(weekoffDate.AddDays(1));
-        var nextDay2 = nextDay1 != null ? await FindLeaveAsync(weekoffDate.AddDays(2)) : null;
+        var prevDay1 = nearbyLeaves.FirstOrDefault(la => weekoffDate.AddDays(-1) >= la.StartDate && weekoffDate.AddDays(-1) <= la.EndDate);
+        var prevDay2 = prevDay1 != null ? nearbyLeaves.FirstOrDefault(la => weekoffDate.AddDays(-2) >= la.StartDate && weekoffDate.AddDays(-2) <= la.EndDate) : null;
+
+        var nextDay1 = nearbyLeaves.FirstOrDefault(la => weekoffDate.AddDays(1) >= la.StartDate && weekoffDate.AddDays(1) <= la.EndDate);
+        var nextDay2 = nextDay1 != null ? nearbyLeaves.FirstOrDefault(la => weekoffDate.AddDays(2) >= la.StartDate && weekoffDate.AddDays(2) <= la.EndDate) : null;
 
         // A sandwich occurs if >= 2 consecutive leave days touch either side, or leave is on both sides.
         bool isSandwich = prevDay2 != null || nextDay2 != null || (prevDay1 != null && nextDay1 != null);

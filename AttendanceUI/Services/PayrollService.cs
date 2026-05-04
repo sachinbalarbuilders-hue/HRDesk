@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AttendanceUI.Data;
 using AttendanceUI.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace AttendanceUI.Services;
 
@@ -12,42 +13,34 @@ public class PayrollService
     private readonly BiometricAttendanceDbContext _db;
     private readonly LoanService _loanService;
     private readonly AttendanceSummaryService _attendanceSummaryService;
+    private readonly ILogger<PayrollService> _logger;
 
-    public PayrollService(BiometricAttendanceDbContext db, LoanService loanService, AttendanceSummaryService attendanceSummaryService)
+    public PayrollService(
+        BiometricAttendanceDbContext db, 
+        LoanService loanService, 
+        AttendanceSummaryService attendanceSummaryService,
+        ILogger<PayrollService> logger)
     {
         _db = db;
         _loanService = loanService;
         _attendanceSummaryService = attendanceSummaryService;
+        _logger = logger;
     }
 
     /// <summary>
     /// Get attendance summary for an employee for a specific month.
     /// Delegates to AttendanceSummaryService — the single source of truth shared with MonthlyAttendanceSheet.
     /// </summary>
-    public async Task<AttendanceSummary> GetAttendanceSummaryAsync(int employeeId, string month)
+    public async Task<AttendanceSummaryResult> GetAttendanceSummaryAsync(int employeeId, string month)
     {
-        var year = int.Parse(month.Substring(0, 4));
-        var monthNum = int.Parse(month.Substring(5, 2));
+        // Safe parsing: Expected "yyyy-MM" (e.g., "2026-04")
+        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", out var parsedDate))
+        {
+            throw new ArgumentException($"Invalid month format: '{month}'. Expected 'yyyy-MM'.");
+        }
 
         // Use the shared service — guaranteed to match MonthlyAttendanceSheet calculations
-        var counts = await _attendanceSummaryService.GetSummaryAsync(employeeId, year, monthNum);
-
-        return new AttendanceSummary
-        {
-            TotalDays      = counts.TotalDays,
-            PresentDays    = counts.PresentCount,
-            AbsentDays     = counts.AbsentCount,
-            PaidLeaves     = counts.LeaveCount,
-            UnpaidLeaves   = counts.UnpaidLeaveCount,
-            HalfDays       = counts.HalfDayCount,
-            Weekoffs       = counts.WeekoffCount,
-            Holidays       = counts.HolidayCount,
-            LeaveTypeCounts = new System.Collections.Generic.Dictionary<string, decimal>(),
-            LopDetails     = counts.LopBreakdown
-                .OrderBy(kvp => kvp.Key)
-                .Select(kvp => $"{kvp.Key:dd-MMM}{(kvp.Value == 0.5m ? " (0.5)" : "")}")
-                .ToList()
-        };
+        return await _attendanceSummaryService.GetSummaryAsync(employeeId, parsedDate.Year, parsedDate.Month);
     }
 
     /// <summary>
@@ -125,7 +118,7 @@ public class PayrollService
             .ToList();
 
         // Calculate payable days once
-        var payableDays = attendance.PresentDays + attendance.PaidLeaves + attendance.Weekoffs + attendance.Holidays;
+        var payableDays = attendance.PresentCount + attendance.LeaveCount + attendance.WeekoffCount + attendance.HolidayCount;
         payableDays = Math.Min(payableDays, attendance.TotalDays);
 
         foreach (var component in earningComponents)
@@ -171,9 +164,14 @@ public class PayrollService
             totalDeductions += lopAmount;
             
             var lopRemark = $"Loss Without Pay: {lopDays:0.0} days";
-            if (attendance.LopDetails.Any())
+            var lopList = attendance.LopBreakdown
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => $"{kvp.Key:dd-MMM}{(kvp.Value == 0.5m ? " (0.5)" : "")}")
+                .ToList();
+
+            if (lopList.Any())
             {
-                lopRemark += $" ({string.Join(", ", attendance.LopDetails)})";
+                lopRemark += $" ({string.Join(", ", lopList)})";
             }
 
             deductionDetails.Add(new PayrollDetail
@@ -205,19 +203,20 @@ public class PayrollService
 
         await _db.SaveChangesAsync();
 
-        // 3. Loan installment deduction
+        // 3. Loan/Advance installment deduction
         if (!skipLoans)
         {
-            loanDeduction = await _loanService.GetPendingInstallmentForMonthAsync(employeeId, month);
-            if (loanDeduction > 0)
+            var pendingInstallments = await _loanService.GetPendingInstallmentsWithDetailsAsync(employeeId, month);
+            foreach (var inst in pendingInstallments)
             {
-                totalDeductions += loanDeduction;
+                loanDeduction += inst.Amount;
+                totalDeductions += inst.Amount;
                 deductionDetails.Add(new PayrollDetail
                 {
                     ComponentType = "Deduction",
-                    ComponentName = "Loan Installment",
-                    Amount = loanDeduction,
-                    Remarks = "Monthly loan installment"
+                    ComponentName = inst.TypeName, // Shows "Salary Advance", "Medical Loan" etc.
+                    Amount = inst.Amount,
+                    Remarks = $"Monthly {inst.TypeName.ToLower()} installment"
                 });
             }
         }
@@ -249,13 +248,13 @@ public class PayrollService
         };
 
         payroll.TotalDays = attendance.TotalDays;
-        payroll.PresentDays = attendance.PresentDays;
-        payroll.AbsentDays = attendance.AbsentDays;
-        payroll.PaidLeaves = attendance.PaidLeaves;
-        payroll.UnpaidLeaves = attendance.UnpaidLeaves;
-        payroll.HalfDays = attendance.HalfDays;
-        payroll.Weekoffs = attendance.Weekoffs;
-        payroll.Holidays = attendance.Holidays;
+        payroll.PresentDays = attendance.PresentCount;
+        payroll.AbsentDays = attendance.AbsentCount;
+        payroll.PaidLeaves = attendance.LeaveCount;
+        payroll.UnpaidLeaves = attendance.UnpaidLeaveCount;
+        payroll.HalfDays = attendance.HalfDayCount;
+        payroll.Weekoffs = attendance.WeekoffCount;
+        payroll.Holidays = attendance.HolidayCount;
         payroll.PayableDays = payableDays;
         payroll.GrossSalary = grossSalary;
         payroll.TotalEarnings = totalEarnings;
@@ -325,9 +324,11 @@ public class PayrollService
                 await ProcessEmployeePayrollAsync(employee.EmployeeId, month, null, !includeLoans);
                 processedCount++;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Skip employees with errors and continue
+                // Point 3 Fix: Log the error so it's not swallowed silently
+                _logger.LogError(ex, "Failed to process payroll for Employee {Name} (ID: {Id}) for month {Month}", 
+                    employee.EmployeeName, employee.EmployeeId, month);
                 continue;
             }
         }
@@ -336,16 +337,4 @@ public class PayrollService
     }
 }
 
-public class AttendanceSummary
-{
-    public int TotalDays { get; set; }
-    public decimal PresentDays { get; set; }
-    public decimal AbsentDays { get; set; }
-    public decimal PaidLeaves { get; set; }
-    public decimal UnpaidLeaves { get; set; }
-    public decimal HalfDays { get; set; }
-    public decimal Weekoffs { get; set; }
-    public decimal Holidays { get; set; }
-    public System.Collections.Generic.Dictionary<string, decimal> LeaveTypeCounts { get; set; } = new();
-    public System.Collections.Generic.List<string> LopDetails { get; set; } = new();
-}
+

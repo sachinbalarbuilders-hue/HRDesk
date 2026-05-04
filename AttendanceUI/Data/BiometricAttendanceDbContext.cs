@@ -61,6 +61,8 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     public DbSet<DeviceSyncState> DeviceSyncStates => Set<DeviceSyncState>();
     public DbSet<LeaveTypeEligibility> LeaveTypeEligibilities => Set<LeaveTypeEligibility>();
+    public DbSet<EmployeeShiftAssignment> EmployeeShiftAssignments => Set<EmployeeShiftAssignment>();
+    public DbSet<ShiftRoster> ShiftRosters => Set<ShiftRoster>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

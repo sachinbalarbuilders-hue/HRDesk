@@ -65,10 +65,12 @@ public class MonthlyAttendanceSheetModel : PageModel
                          la.EndDate >= startDate)
             .ToListAsync();
 
-        // 2c. Fetch all holidays that overlap this month (for tooltip display)
         var holidays = await _db.Holidays
             .Where(h => h.StartDate < endDate && h.EndDate >= startDate)
             .ToListAsync();
+
+        // Optimization: Pre-load all leave types once to avoid DB queries inside loops
+        var allLeaveTypes = await _db.LeaveTypes.ToListAsync();
 
         // 3. Transform data
         foreach (var emp in employees)
@@ -162,8 +164,8 @@ public class MonthlyAttendanceSheetModel : PageModel
                             var rawCode = log.Status?.Replace("HF", "").Trim();
                             if (!string.IsNullOrEmpty(rawCode))
                             {
-                                var matchedLeaveType = await _db.LeaveTypes
-                                    .FirstOrDefaultAsync(lt => lt.Code == rawCode);
+                                var matchedLeaveType = allLeaveTypes
+                                    .FirstOrDefault(lt => lt.Code == rawCode);
                                 if (matchedLeaveType != null)
                                 {
                                     dto.TextColor = matchedLeaveType.TextColor;

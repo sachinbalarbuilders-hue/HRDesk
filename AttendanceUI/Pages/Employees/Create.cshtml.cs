@@ -73,6 +73,19 @@ public sealed class CreateModel : PageModel
         _db.Employees.Add(employee);
         await _db.SaveChangesAsync();
 
+        // Create initial shift assignment
+        if (employee.ShiftId.HasValue && employee.JoiningDate.HasValue)
+        {
+            _db.EmployeeShiftAssignments.Add(new EmployeeShiftAssignment
+            {
+                EmployeeId = employee.EmployeeId,
+                ShiftId = employee.ShiftId.Value,
+                FromDate = employee.JoiningDate.Value,
+                ToDate = null
+            });
+            await _db.SaveChangesAsync();
+        }
+
         return RedirectToPage("./Index");
     }
 
@@ -90,6 +103,7 @@ public sealed class CreateModel : PageModel
 
         var shifts = await _db.Shifts
             .AsNoTracking()
+            .Where(s => s.Status == "active")
             .OrderBy(s => s.ShiftName)
             .ThenBy(s => s.ShiftCode)
             .ToListAsync();

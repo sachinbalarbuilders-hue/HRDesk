@@ -92,7 +92,8 @@ CREATE TABLE `attendance_regularizations` (
   `waive_penalty` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` datetime(6) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `FK_attendance_regularizations_employees_employee_id` (`employee_id`)
+  KEY `FK_attendance_regularizations_employees_employee_id` (`employee_id`),
+  KEY `idx_reg_emp_date` (`employee_id`, `request_date`)
 ) ENGINE=MyISAM AUTO_INCREMENT=409 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -430,7 +431,8 @@ CREATE TABLE `leave_applications` (
   PRIMARY KEY (`id`),
   KEY `employee_id` (`employee_id`),
   KEY `leave_type_id` (`leave_type_id`),
-  KEY `idx_leave_dates` (`start_date`,`end_date`)
+  KEY `idx_leave_dates` (`start_date`,`end_date`),
+  KEY `idx_leave_emp_range` (`employee_id`, `start_date`, `end_date`)
 ) ENGINE=MyISAM AUTO_INCREMENT=236 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

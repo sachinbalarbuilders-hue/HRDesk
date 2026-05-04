@@ -45,6 +45,7 @@ public sealed class EditModel : PageModel
             EarlyLeaveGraceMinutes = shift.EarlyLeaveGraceMinutes ?? 0,
             EarlyGoAllowedTime = shift.EarlyGoAllowedTime,
             EarlyGoFrequencyPerMonth = shift.EarlyGoFrequencyPerMonth ?? 1,
+            ColorCode = shift.ColorCode ?? "#4e73df",
             Status = shift.Status,
         };
 
@@ -85,6 +86,7 @@ public sealed class EditModel : PageModel
         shift.EarlyLeaveGraceMinutes = Input.EarlyLeaveGraceMinutes;
         shift.EarlyGoAllowedTime = Input.EarlyGoAllowedTime!.Value;
         shift.EarlyGoFrequencyPerMonth = Input.EarlyGoFrequencyPerMonth;
+        shift.ColorCode = Input.ColorCode;
         shift.Status = Input.Status;
 
         await _db.SaveChangesAsync();
@@ -142,5 +144,8 @@ public sealed class EditModel : PageModel
 
         [Display(Name = "Status")]
         public string? Status { get; set; }
+
+        [Display(Name = "Shift Color")]
+        public string ColorCode { get; set; } = "#4e73df";
     }
 }

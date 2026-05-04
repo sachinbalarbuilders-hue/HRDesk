@@ -60,8 +60,13 @@ public class AttendanceSummaryService
 
         void AddLop(DateOnly date, decimal amount)
         {
-            if (!lopBreakdown.ContainsKey(date)) lopBreakdown[date] = 0;
-            lopBreakdown[date] += amount;
+            lopBreakdown[date] = lopBreakdown.GetValueOrDefault(date) + amount;
+        }
+
+        void AddLeave(string? code, decimal amount)
+        {
+            string key = string.IsNullOrWhiteSpace(code) ? "Leave" : code;
+            result.LeaveTypeCounts[key] = result.LeaveTypeCounts.GetValueOrDefault(key) + amount;
         }
 
         for (int day = 1; day <= daysInMonth; day++)
@@ -118,6 +123,7 @@ public class AttendanceSummaryService
                 else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
                 {
                     result.LeaveCount += 0.5m;            // Paid leave — no LOP
+                    AddLeave(activeApp.LeaveType.Code, 0.5m);
                 }
                 else
                 {
@@ -129,7 +135,12 @@ public class AttendanceSummaryService
                     else if (log.Status?.StartsWith("SL") == true ||
                         log.Status?.StartsWith("PL") == true ||
                         log.Status?.Contains("Leave") == true)
+                    {
                         result.LeaveCount += 0.5m;
+                        // Extract code from status (e.g., "PL" from "PLS")
+                        string code = log.Status?.Substring(0, 2) ?? "Leave";
+                        AddLeave(code, 0.5m);
+                    }
                     else
                     {
                         result.UnpaidLeaveCount += 0.5m;
@@ -182,6 +193,7 @@ public class AttendanceSummaryService
                 else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
                 {
                     result.LeaveCount += 1.0m;
+                    AddLeave(activeApp.LeaveType.Code, 1.0m);
                 }
                 else
                 {
@@ -191,7 +203,11 @@ public class AttendanceSummaryService
                         AddLop(date, 1.0m);
                     }
                     else
+                    {
                         result.LeaveCount += 1.0m;
+                        string code = log.Status?.Length >= 2 ? log.Status.Substring(0, 2) : "Leave";
+                        AddLeave(code, 1.0m);
+                    }
                 }
             }
         }
@@ -219,4 +235,5 @@ public class AttendanceSummaryResult
     public decimal UnpaidLeaveCount { get; set; } // Unpaid / LWP
     public decimal PayableDays { get; set; }
     public Dictionary<DateOnly, decimal> LopBreakdown { get; set; } = new();
+    public Dictionary<string, decimal> LeaveTypeCounts { get; set; } = new();
 }

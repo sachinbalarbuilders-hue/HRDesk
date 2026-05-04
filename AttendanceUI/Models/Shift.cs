@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace AttendanceUI.Models;
 
 public sealed class Shift
@@ -29,6 +31,9 @@ public sealed class Shift
     public TimeOnly? EarlyGoAllowedTime { get; set; }
 
     public int? EarlyGoFrequencyPerMonth { get; set; }
+
+    [Column("color_code")]
+    public string? ColorCode { get; set; } = "#4e73df";
 
     public int LunchBreakDuration { get; set; }
 

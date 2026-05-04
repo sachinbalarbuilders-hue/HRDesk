@@ -34,6 +34,8 @@ public sealed class EditModel : PageModel
 
     public SelectList StatusOptions { get; private set; } = default!;
 
+    public List<EmployeeShiftAssignment> ShiftHistory { get; private set; } = new();
+
     public async Task<IActionResult> OnGetAsync()
     {
         await LoadOptionsAsync();
@@ -46,6 +48,12 @@ public sealed class EditModel : PageModel
         {
             return NotFound();
         }
+
+        ShiftHistory = await _db.EmployeeShiftAssignments
+            .Include(a => a.Shift)
+            .Where(a => a.EmployeeId == Id)
+            .OrderByDescending(a => a.FromDate)
+            .ToListAsync();
 
         Input = new EmployeeForm
         {
@@ -83,6 +91,32 @@ public sealed class EditModel : PageModel
         if (employee is null)
         {
             return NotFound();
+        }
+
+        // Detect shift change for history
+        if (employee.ShiftId != Input.ShiftId && Input.ShiftId.HasValue)
+        {
+            var effectiveDate = Input.ShiftEffectiveDate;
+
+            // 1. Close current assignment (set to day before effective date)
+            var currentAssignment = await _db.EmployeeShiftAssignments
+                .Where(a => a.EmployeeId == Id && a.ToDate == null)
+                .OrderByDescending(a => a.FromDate)
+                .FirstOrDefaultAsync();
+
+            if (currentAssignment != null)
+            {
+                currentAssignment.ToDate = effectiveDate.AddDays(-1);
+            }
+
+            // 2. Open new assignment (from effective date)
+            _db.EmployeeShiftAssignments.Add(new EmployeeShiftAssignment
+            {
+                EmployeeId = Id,
+                ShiftId = Input.ShiftId.Value,
+                FromDate = effectiveDate,
+                ToDate = null
+            });
         }
 
         employee.EmployeeName = Input.EmployeeName.Trim();
@@ -138,6 +172,7 @@ public sealed class EditModel : PageModel
 
         var shifts = await _db.Shifts
             .AsNoTracking()
+            .Where(s => s.Status == "active")
             .OrderBy(s => s.ShiftName)
             .ThenBy(s => s.ShiftCode)
             .ToListAsync();
@@ -200,6 +235,9 @@ public sealed class EditModel : PageModel
         [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits.")]
         [StringLength(10)]
         public string? Phone { get; set; }
+
+        [Display(Name = "Shift Effective Date")]
+        public DateOnly ShiftEffectiveDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
 
         [Display(Name = "Status")]
         public string? Status { get; set; }

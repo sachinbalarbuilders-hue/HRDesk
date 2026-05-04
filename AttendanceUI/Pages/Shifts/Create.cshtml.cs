@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using AttendanceUI.Data;
 using AttendanceUI.Models;
@@ -31,6 +32,9 @@ public sealed class CreateModel : PageModel
         Input.EarlyLeaveGraceMinutes = 0;
         Input.EarlyGoAllowedTime = new TimeOnly(18, 30);
         Input.EarlyGoFrequencyPerMonth = 1;
+        
+        var colors = new[] { "#4e73df", "#1cc88a", "#36b9cc", "#f6c23e", "#e74a3b", "#6f42c1", "#fd7e14", "#d63384", "#20c997", "#0dcaf0" };
+        Input.ColorCode = colors[new Random().Next(colors.Length)];
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -63,6 +67,7 @@ public sealed class CreateModel : PageModel
             EarlyLeaveGraceMinutes = Input.EarlyLeaveGraceMinutes,
             EarlyGoAllowedTime = Input.EarlyGoAllowedTime!.Value,
             EarlyGoFrequencyPerMonth = Input.EarlyGoFrequencyPerMonth,
+            ColorCode = Input.ColorCode,
             Status = Input.Status
         };
 
@@ -122,5 +127,8 @@ public sealed class CreateModel : PageModel
 
         [Display(Name = "Status")]
         public string? Status { get; set; }
+
+        [Display(Name = "Shift Color")]
+        public string ColorCode { get; set; } = "#4e73df";
     }
 }

@@ -126,19 +126,18 @@ public class LoanService
     /// <summary>
     /// Get pending installment amount for employee in a specific month
     /// </summary>
-    public async Task<decimal> GetPendingInstallmentForMonthAsync(int employeeId, string month)
+    public async Task<System.Collections.Generic.List<(decimal Amount, string TypeName)>> GetPendingInstallmentsWithDetailsAsync(int employeeId, string month)
     {
-        // Must check both Active and recently Completed loans (in case of re-processing)
         var installments = await _db.LoanInstallments
             .Include(i => i.EmployeeLoan)
+            .ThenInclude(l => l!.LoanType)
             .Where(i => i.EmployeeLoan!.EmployeeId == employeeId &&
                        (i.EmployeeLoan.Status == "Active" || i.EmployeeLoan.Status == "Completed") &&
                        i.DueMonth == month &&
-                       i.Status == "Pending") // Only include pending installments
+                       i.Status == "Pending")
             .ToListAsync();
 
-        // Return amount if it was either Pending OR already Paid for this specific month
-        return installments.Sum(i => i.Amount);
+        return installments.Select(i => (i.Amount, i.EmployeeLoan!.LoanType!.TypeName)).ToList();
     }
 
     /// <summary>
