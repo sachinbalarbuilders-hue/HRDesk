@@ -22,7 +22,6 @@ public class AttendanceProcessorService
         _logger.LogInformation("Processing attendance for Date: {Date}", date);
 
         var query = _db.Employees
-            .Include(e => e.Shift)
             .AsQueryable();
 
         if (employeeId.HasValue)
@@ -244,6 +243,7 @@ public class AttendanceProcessorService
 
         // 1. Resolve Shift from Daily Roster (Sole Source of Truth - No Fallback)
         var roster = await _db.ShiftRosters
+            .Include(r => r.Shift)
             .FirstOrDefaultAsync(r => r.EmployeeId == emp.EmployeeId && r.RosterDate == date);
 
         if (roster == null)
@@ -254,17 +254,8 @@ public class AttendanceProcessorService
             return;
         }
 
-        // If it's a Weekoff in the Roster
-        if (roster.IsWeekOff)
-        {
-            existingRecord.Status = "Weekoff";
-            existingRecord.ShiftId = roster.ShiftId; // Optional: keep for reference
-            return;
-        }
-
         // Use the shift from the Roster
         int? effectiveShiftId = roster.ShiftId;
-        bool isWeekoff = roster.IsWeekOff;
 
         // Reset calculated fields
         existingRecord.ShiftId = effectiveShiftId;
@@ -277,6 +268,12 @@ public class AttendanceProcessorService
         existingRecord.IsHalfDay = false;
         existingRecord.Remarks = roster.Remarks; // Carry over roster remarks if any
         existingRecord.UpdatedAt = DateTime.Now;
+
+        // If it's a Weekoff in the Roster, set status but DO NOT return (allow punch check below)
+        if (roster.IsWeekOff)
+        {
+            existingRecord.Status = "Weekoff";
+        }
 
         // 2. Check Holiday (Always respected above all, never sandwiched)
         var isHoliday = await _db.Holidays.AnyAsync(h => 
@@ -334,7 +331,7 @@ public class AttendanceProcessorService
                 var compOffOutTime = orderedLogs.Count > 1 ? TimeOnly.FromDateTime(orderedLogs.Last().PunchTime) : (TimeOnly?)null;
                 
                 // Always create draft request first (will skip if already exists)
-                await _compOffService.CreateDraftRequestAsync(emp.EmployeeId, date, compOffInTime, emp.ShiftId);
+                await _compOffService.CreateDraftRequestAsync(emp.EmployeeId, date, compOffInTime, existingRecord.ShiftId);
                 
                 // If OUT punch exists, update with hours worked
                 if (compOffOutTime.HasValue)
@@ -565,13 +562,13 @@ public class AttendanceProcessorService
         // IMPORTANT: If the employee is on a First Half leave, they are expected to arrive at HalfTime,
         // NOT at ShiftStart. Use HalfTime as the baseline so single-punch early-returns (line ~591)
         // don't incorrectly stamp a Late count against a legitimately absent first half.
-        if (emp.Shift != null)
+        if (roster.Shift != null)
         {
             TimeOnly preCalcBase = (approvedLeave != null &&
                                     approvedLeave.DayType == "First Half" &&
-                                    emp.Shift.HalfTime.HasValue)
-                                    ? emp.Shift.HalfTime.Value
-                                    : emp.Shift.StartTime;
+                                    roster.Shift.HalfTime.HasValue)
+                                    ? roster.Shift.HalfTime.Value
+                                    : roster.Shift.StartTime;
 
             existingRecord.LateMinutes = inTime > preCalcBase
                 ? (int)(inTime - preCalcBase).TotalMinutes
@@ -652,15 +649,15 @@ public class AttendanceProcessorService
 
             // Weekoff + single punch (half day worked) → W/OHF
             // Unworked half stays as W/O credit — employee must never get LESS payable for showing up on weekoff
-            if (isWeekoff && existingRecord.Status == "Half Day")
+            if (roster.IsWeekOff && existingRecord.Status == "Half Day")
                 existingRecord.Status = "W/OHF";
 
             return;
         }
 
-        if (emp.Shift != null)
+        if (roster.Shift != null)
         {
-            var shift = emp.Shift;
+            var shift = roster.Shift;
             
             // Check for actual lunch punches (Intermediate punches)
             // Minimum 4 punches: IN, OUT (Lunch), IN (Lunch), OUT (End)
@@ -696,8 +693,8 @@ public class AttendanceProcessorService
             existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "No Shift Assigned (No Break Deducted)");
         }
 
-        if (emp.Shift == null) return; // Already handled above but for safety
-        var currentShift = emp.Shift; // Variable rename for consistency below
+        if (roster.Shift == null) return; // Already handled above but for safety
+        var currentShift = roster.Shift; // Variable rename for consistency below
 
         // 6. Timing Rules (Dynamic based on Shift)
         
@@ -852,7 +849,7 @@ public class AttendanceProcessorService
 
         // Weekoff + early exit / major late (half day) → W/OHF
         // Unworked half stays as W/O credit — employee must never get LESS payable for showing up on weekoff
-        if (isWeekoff && existingRecord.IsHalfDay && existingRecord.Status == "Half Day")
+        if (roster.IsWeekOff && existingRecord.IsHalfDay && existingRecord.Status == "Half Day")
             existingRecord.Status = "W/OHF";
 
         // 7. Monthly Penalties (Dynamic based on Shift limits)

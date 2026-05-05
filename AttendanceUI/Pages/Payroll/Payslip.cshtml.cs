@@ -34,8 +34,6 @@ namespace AttendanceUI.Pages.Payroll
                     .ThenInclude(e => e.Department!)
                 .Include(p => p.Employee!)
                     .ThenInclude(e => e.Designation!)
-                .Include(p => p.Employee!)
-                    .ThenInclude(e => e.Shift!)
                 .Include(p => p.PayrollDetails)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
@@ -71,20 +69,16 @@ namespace AttendanceUI.Pages.Payroll
                 .OrderBy(d => d.ComponentName)
                 .ToList();
 
-            // Fetch payroll IDs for history features
-            var historyBase = _context.PayrollMasters
+            // Fetch payroll IDs for history features (Top 6)
+            var allHistoryIds = await _context.PayrollMasters
                 .Where(p => p.EmployeeId == Payroll.EmployeeId)
-                .OrderByDescending(p => p.Month);
-
-            HistoryIds = string.Join(",", await historyBase
+                .OrderByDescending(p => p.Month)
                 .Take(6)
                 .Select(p => p.Id)
-                .ToListAsync());
+                .ToListAsync();
 
-            History3Ids = string.Join(",", await historyBase
-                .Take(3)
-                .Select(p => p.Id)
-                .ToListAsync());
+            HistoryIds = string.Join(",", allHistoryIds);
+            History3Ids = string.Join(",", allHistoryIds.Take(3));
 
             NetSalaryInWords = NumberToWords((int)Payroll.NetSalary);
 

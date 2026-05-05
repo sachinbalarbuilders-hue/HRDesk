@@ -37,7 +37,6 @@ public class MonthlyAttendanceSheetModel : PageModel
         // 1. Fetch employees: Active OR those who were working during this month
         var employees = await _db.Employees
             .Include(e => e.Department)
-            .Include(e => e.Shift)
             .Where(e => 
                 (e.JoiningDate == null || e.JoiningDate < endDate) 
                 && 
@@ -54,6 +53,7 @@ public class MonthlyAttendanceSheetModel : PageModel
 
         // 2. Fetch all attendance logs for the month
         var logs = await _db.DailyAttendance
+            .Include(a => a.Shift)
             .Where(a => a.RecordDate >= startDate && a.RecordDate < endDate)
             .ToListAsync();
 
@@ -207,7 +207,7 @@ public class MonthlyAttendanceSheetModel : PageModel
                         dto.Tooltip = string.Join(" | ", tooltipParts);
                     }
                     dto.IsEarly = log.IsEarly;
-                    dto.ShiftStartTime = emp.Shift?.StartTime;
+                    dto.ShiftStartTime = log.Shift?.StartTime;
                     
                     if (log.WorkMinutes > 0 || (log.BreakMinutes > 0))
                     {
@@ -222,9 +222,9 @@ public class MonthlyAttendanceSheetModel : PageModel
                         if (duration < TimeSpan.Zero) duration = duration.Add(TimeSpan.FromDays(1)); // Night shift fix
                         
                         int netMinutes = (int)duration.TotalMinutes;
-                        if (emp.Shift != null)
+                        if (log.Shift != null)
                         {
-                            netMinutes = Math.Max(0, netMinutes - emp.Shift.LunchBreakDuration);
+                            netMinutes = Math.Max(0, netMinutes - log.Shift.LunchBreakDuration);
                         }
                         
                         dto.WorkDuration = TimeSpan.FromMinutes(netMinutes);

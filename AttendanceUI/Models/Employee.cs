@@ -12,7 +12,7 @@ public sealed class Employee
 
     public int? DesignationId { get; set; }
 
-    public int? ShiftId { get; set; }
+
 
     public string? Phone { get; set; }
 
@@ -36,7 +36,7 @@ public sealed class Employee
 
     public Designation? Designation { get; set; }
 
-    public Shift? Shift { get; set; }
+
 
     [Column("device_synced")]
     public int DeviceSynced { get; set; } // 0 = not in machine, 1 = in machine

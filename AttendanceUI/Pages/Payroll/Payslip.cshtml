@@ -6,7 +6,7 @@
 
 <div class="container py-4 mb-5">
     <div class="d-print-none mb-4 d-flex justify-content-between align-items-center">
-        <a asp-page="/Payroll/Process" class="btn btn-outline-secondary">
+        <a asp-page="/Payroll/Process" asp-route-TargetProcessMonth="@Model.Payroll.Month" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-2"></i>Back to Payroll
         </a>
         <div class="d-flex gap-2">

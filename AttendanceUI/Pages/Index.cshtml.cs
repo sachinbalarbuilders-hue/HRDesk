@@ -22,8 +22,8 @@ public class IndexModel : PageModel
 
     public int TotalEmployees { get; set; }
     public int PresentToday { get; set; }
-    public int PendingLeaves { get; set; }
-    public int PendingRegularizations { get; set; }
+    public int OnLeaveToday { get; set; }
+    public int LateToday { get; set; }
 
     public List<DeviceStatusViewModel> MachineStatuses { get; set; } = new();
 
@@ -39,12 +39,15 @@ public class IndexModel : PageModel
             .Where(da => da.RecordDate == today && da.InTime != null)
             .CountAsync();
 
-        // 3. Pending Items
-        if (_context.LeaveApplications != null)
-            PendingLeaves = await _context.LeaveApplications.CountAsync(l => l.Status == "Pending");
+        // 3. On Leave Today (Approved Leaves)
+        OnLeaveToday = await _context.LeaveApplications
+            .Where(l => l.Status == "Approved" && l.StartDate <= today && l.EndDate >= today)
+            .CountAsync();
 
-        if (_context.AttendanceRegularizations != null)
-            PendingRegularizations = await _context.AttendanceRegularizations.CountAsync(r => r.Status == "Pending");
+        // 4. Late Today
+        LateToday = await _context.DailyAttendance
+            .Where(da => da.RecordDate == today && da.IsLate)
+            .CountAsync();
 
         // 4. Machine Statuses (Based on dedicated DeviceSyncStates table)
         var configs = await _context.DeviceConfigurations.AsNoTracking().ToListAsync();

@@ -45,7 +45,6 @@ public sealed class IndexModel : PageModel
             .AsNoTracking()
             .Include(e => e.Department)
             .Include(e => e.Designation)
-            .Include(e => e.Shift)
             .AsQueryable();
         
         // Apply search filter

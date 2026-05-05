@@ -46,11 +46,13 @@ namespace AttendanceUI.Pages.Regularizations
                 })
                 .FirstOrDefaultAsync();
 
-            var emp = await _context.Employees.Include(e => e.Shift).FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+            var roster = await _context.ShiftRosters
+                .Include(r => r.Shift)
+                .FirstOrDefaultAsync(r => r.EmployeeId == employeeId && r.RosterDate == date);
 
             return new JsonResult(new { 
                 punch = existing ?? new { inTime = (string?)null, outTime = (string?)null },
-                shift = emp?.Shift != null ? new { start = emp.Shift.StartTime.ToString("HH:mm"), end = emp.Shift.EndTime.ToString("HH:mm") } : null
+                shift = roster?.Shift != null ? new { start = roster.Shift.StartTime.ToString("HH:mm"), end = roster.Shift.EndTime.ToString("HH:mm") } : null
             });
         }
 

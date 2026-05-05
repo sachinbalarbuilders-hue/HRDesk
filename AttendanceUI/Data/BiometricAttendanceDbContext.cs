@@ -270,7 +270,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
             entity.Property(e => e.EmployeeName).HasColumnName("employee_name");
             entity.Property(e => e.DepartmentId).HasColumnName("department_id");
             entity.Property(e => e.DesignationId).HasColumnName("designation_id");
-            entity.Property(e => e.ShiftId).HasColumnName("shift_id");
+
             entity.Property(e => e.Phone).HasColumnName("phone");
             entity.Property(e => e.JoiningDate).HasColumnName("joining_date");
             entity.Property(e => e.ResignationDate).HasColumnName("resignation_date");
@@ -301,10 +301,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
                 .HasForeignKey(e => e.DesignationId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            entity.HasOne(e => e.Shift)
-                .WithMany()
-                .HasForeignKey(e => e.ShiftId)
-                .OnDelete(DeleteBehavior.SetNull);
+
         });
 
         modelBuilder.Entity<LoanType>(entity =>

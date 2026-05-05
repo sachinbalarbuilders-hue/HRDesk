@@ -37,34 +37,34 @@
         </div>
     </div>
 
-    <!-- Pending Leaves -->
+    <!-- On Leave Today -->
     <div class="col-12 col-sm-6 col-xl-3">
         <div class="card card-stat h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-3">
-                    <span class="text-muted fw-semibold">Pending Leaves</span>
+                    <span class="text-muted fw-semibold">On Leave Today</span>
                     <div class="stat-icon bg-soft-warning">
-                        <i class="bi bi-calendar-minus"></i>
+                        <i class="bi bi-calendar-event"></i>
                     </div>
                 </div>
-                <h2 class="mb-1 fw-bold text-dark">@Model.PendingLeaves</h2>
-                <a asp-page="/Leaves/Applications/Index" class="small text-primary text-decoration-none stretched-link">Review Requests <i class="bi bi-arrow-right"></i></a>
+                <h2 class="mb-1 fw-bold text-dark">@Model.OnLeaveToday</h2>
+                <a asp-page="/Leaves/Applications/Index" class="small text-primary text-decoration-none stretched-link">View Details <i class="bi bi-arrow-right"></i></a>
             </div>
         </div>
     </div>
 
-    <!-- Pending Regularizations -->
+    <!-- Late Arrivals -->
     <div class="col-12 col-sm-6 col-xl-3">
         <div class="card card-stat h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-3">
-                    <span class="text-muted fw-semibold">Regularizations</span>
-                    <div class="stat-icon bg-soft-secondary">
+                    <span class="text-muted fw-semibold">Late Arrivals Today</span>
+                    <div class="stat-icon bg-soft-danger text-danger">
                         <i class="bi bi-clock-history"></i>
                     </div>
                 </div>
-                <h2 class="mb-1 fw-bold text-dark">@Model.PendingRegularizations</h2>
-                <a asp-page="/Regularizations/Index" class="small text-primary text-decoration-none stretched-link">Action Needed <i class="bi bi-arrow-right"></i></a>
+                <h2 class="mb-1 fw-bold text-dark">@Model.LateToday</h2>
+                <a asp-page="/AttendanceLogs/Index" class="small text-primary text-decoration-none stretched-link">View Logs <i class="bi bi-arrow-right"></i></a>
             </div>
         </div>
     </div>

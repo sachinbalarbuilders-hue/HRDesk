@@ -9,19 +9,41 @@
         <h4 class="mb-1 fw-bold">Shift Roster</h4>
         <p class="text-muted mb-0 small">Daily shift assignments and schedule management</p>
     </div>
-    <div class="d-flex gap-2">
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#generateModal">
-            <i class="bi bi-magic me-1"></i>Bulk Generate
+    <div class="d-flex gap-2 align-items-center">
+        <form method="get" class="d-flex gap-2 align-items-center me-2">
+            <input type="hidden" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+            <div class="input-group input-group-sm shadow-sm" style="width: 250px;">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                <input type="text" name="SearchQuery" class="form-control border-start-0" placeholder="Search employee..." value="@Model.SearchQuery">
+            </div>
+            <select name="DeptId" class="form-select form-select-sm shadow-sm" style="width: 180px;" onchange="this.form.submit()">
+                <option value="">All Departments</option>
+                @foreach (var dept in Model.Departments)
+                {
+                    <option value="@dept.Id" selected="@(Model.DeptId == dept.Id)">@dept.DepartmentName</option>
+                }
+            </select>
+            @if (!string.IsNullOrEmpty(Model.SearchQuery) || Model.DeptId.HasValue)
+            {
+                <a asp-page="./Roster" asp-route-StartDate="@Model.StartDate?.ToString("yyyy-MM-dd")" class="btn btn-sm btn-outline-secondary shadow-sm" title="Clear filters">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            }
+            <button type="submit" class="btn btn-sm btn-dark shadow-sm">Filter</button>
+        </form>
+
+        <button type="button" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#generateModal">
+            <i class="bi bi-magic me-1"></i>Shift Generate
         </button>
         <div class="btn-group shadow-sm">
-            <a asp-page="./Roster" asp-route-StartDate="@Model.StartDate?.AddDays(-7).ToString("yyyy-MM-dd")" class="btn btn-light" title="Previous Week">
+            <a asp-page="./Roster" asp-route-StartDate="@Model.StartDate?.AddDays(-7).ToString("yyyy-MM-dd")" asp-route-SearchQuery="@Model.SearchQuery" asp-route-DeptId="@Model.DeptId" class="btn btn-light" title="Previous Week">
                 <i class="bi bi-chevron-left"></i>
             </a>
-            <a asp-page="./Roster" asp-route-StartDate="" class="btn btn-light" title="Current Week">
+            <a asp-page="./Roster" asp-route-StartDate="" asp-route-SearchQuery="@Model.SearchQuery" asp-route-DeptId="@Model.DeptId" class="btn btn-light" title="Current Week">
                 Today
             </a>
             <span class="btn btn-white fw-bold disabled">@Model.StartDate?.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")</span>
-            <a asp-page="./Roster" asp-route-StartDate="@Model.StartDate?.AddDays(7).ToString("yyyy-MM-dd")" class="btn btn-light" title="Next Week">
+            <a asp-page="./Roster" asp-route-StartDate="@Model.StartDate?.AddDays(7).ToString("yyyy-MM-dd")" asp-route-SearchQuery="@Model.SearchQuery" asp-route-DeptId="@Model.DeptId" class="btn btn-light" title="Next Week">
                 <i class="bi bi-chevron-right"></i>
             </a>
         </div>
@@ -63,7 +85,9 @@
                                         @emp.EmployeeName.Substring(0, Math.Min(2, emp.EmployeeName.Length)).ToUpper()
                                     </div>
                                     <div>
-                                        <div class="fw-bold mb-0">@emp.EmployeeName</div>
+                                        <div class="fw-bold mb-0">
+                                            @emp.EmployeeName
+                                        </div>
                                         <div class="text-muted small">@emp.Department?.DepartmentName</div>
                                     </div>
                                 </div>
@@ -124,6 +148,41 @@
             </table>
         </div>
     </div>
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer bg-white border-top py-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="text-muted small">
+                    Showing <span class="fw-bold">@(((Model.PageNum - 1) * Model.PageSize) + 1)</span> to <span class="fw-bold">@(Math.Min(Model.PageNum * Model.PageSize, Model.TotalCount))</span> of <span class="fw-bold">@Model.TotalCount</span> employees
+                </div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.PageNum <= 1 ? "disabled" : "")">
+                            <a class="page-link" asp-page="./Roster" asp-route-PageNum="@(Model.PageNum - 1)" asp-route-StartDate="@Model.StartDate?.ToString("yyyy-MM-dd")" asp-route-SearchQuery="@Model.SearchQuery" asp-route-DeptId="@Model.DeptId">Previous</a>
+                        </li>
+                        
+                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        {
+                            if (i == 1 || i == Model.TotalPages || (i >= Model.PageNum - 2 && i <= Model.PageNum + 2))
+                            {
+                                <li class="page-item @(i == Model.PageNum ? "active" : "")">
+                                    <a class="page-link" asp-page="./Roster" asp-route-PageNum="@i" asp-route-StartDate="@Model.StartDate?.ToString("yyyy-MM-dd")" asp-route-SearchQuery="@Model.SearchQuery" asp-route-DeptId="@Model.DeptId">@i</a>
+                                </li>
+                            }
+                            else if (i == 2 || (i == Model.TotalPages - 1 && Model.TotalPages > 5))
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+                        }
+
+                        <li class="page-item @(Model.PageNum >= Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link" asp-page="./Roster" asp-route-PageNum="@(Model.PageNum + 1)" asp-route-StartDate="@Model.StartDate?.ToString("yyyy-MM-dd")" asp-route-SearchQuery="@Model.SearchQuery" asp-route-DeptId="@Model.DeptId">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    }
 </div>
 
 <!-- Edit Modal -->
@@ -168,41 +227,88 @@
         <form method="post" asp-page-handler="Generate">
             <div class="modal-content shadow-lg border-0">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Bulk Roster Generation</h5>
+                    <h5 class="modal-title fw-bold">Shift Generate</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <p class="text-muted small">Select a date range and optionally a specific employee to automatically assign default shifts and week-offs.</p>
-                    <div class="row g-3">
-                        <div class="col-md-12 mb-2">
-                            <label class="form-label fw-bold">Select Employee (Optional)</label>
-                            <select name="employeeId" class="form-select border-primary shadow-sm">
-                                <option value="">-- All Active Employees --</option>
-                                @foreach (var emp in Model.Employees)
+                    <div class="row g-4">
+                        <!-- Row 1: Shift Type -->
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold small text-muted mb-1">Shift Type <span class="text-danger">*</span></label>
+                            <select name="newShiftId" id="generateShiftId" class="form-select shadow-sm" onchange="toggleMasterShiftOption()">
+                                <option value="">Select Shift Type...</option>
+                                @foreach (var s in Model.Shifts)
                                 {
-                                    <option value="@emp.EmployeeId">@emp.EmployeeName (@emp.EmployeeId)</option>
+                                    <option value="@s.Id">@s.ShiftName (@s.StartTime.ToString("hh:mm tt"))</option>
                                 }
                             </select>
-                            <div class="form-text small text-muted">Leave as "All Active Employees" to generate for everyone.</div>
+                            <div class="form-text small">Leave empty to use each employee's current master shift.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted mb-1">Department</label>
+                            <select id="filterDepartment" class="form-select shadow-sm" onchange="filterEmployeesByDept()">
+                                <option value="">Select Department...</option>
+                                @foreach (var dept in Model.Employees.Select(e => e.Department?.DepartmentName).Where(d => d != null).Distinct().OrderBy(d => d))
+                                {
+                                    <option value="@dept">@dept</option>
+                                }
+                            </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">From Date</label>
-                            <input type="date" name="fromDate" class="form-control" required value="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">To Date</label>
-                            <input type="date" name="toDate" class="form-control" required value="@DateTime.Now.AddMonths(1).AddDays(-DateTime.Now.Day).ToString("yyyy-MM-dd")" />
-                        </div>
-                        <div class="col-md-12">
-                            <div class="form-check p-3 border rounded bg-light mt-2">
-                                <input class="form-check-input ms-0 me-2" type="checkbox" name="overwrite" id="overwriteEntries" value="true">
-                                <label class="form-check-label fw-bold text-danger" for="overwriteEntries">
-                                    Overwrite existing entries?
-                                </label>
-                                <div class="text-muted small ms-4">If checked, this will reset all scheduled shifts to match the current employee settings.</div>
+                            <label class="form-label fw-bold small text-muted mb-1">Employee <span class="text-danger">*</span></label>
+                            <div class="dropdown w-100" id="employeeDropdown">
+                                <button class="btn btn-outline-secondary w-100 text-start dropdown-toggle shadow-sm d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span id="selectedEmployeesLabel">Select Employee</span>
+                                </button>
+                                <div class="dropdown-menu w-100 p-2 shadow-lg" style="max-height: 250px; overflow-y: auto;">
+                                    <div class="px-2 mb-2 d-flex justify-content-between border-bottom pb-2">
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" onclick="toggleAllCheckboxes(true)">Select All</button>
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-danger" onclick="toggleAllCheckboxes(false)">Clear</button>
+                                    </div>
+                                    @foreach (var emp in Model.Employees.OrderBy(e => e.EmployeeName))
+                                    {
+                                        <div class="form-check px-4 py-1 emp-item" data-dept="@(emp.Department?.DepartmentName ?? "")">
+                                            <input class="form-check-input employee-checkbox" type="checkbox" name="employeeIds" value="@emp.EmployeeId" id="emp_@emp.EmployeeId" onchange="updateSelectedLabel()">
+                                            <label class="form-check-label small w-100" for="emp_@emp.EmployeeId">
+                                                @emp.EmployeeName
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         </div>
-                    </div>
+
+                        <!-- Options: Update Master and Overwrite -->
+                        <div class="col-md-12">
+                            <div class="p-3 border rounded bg-light">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch mt-1">
+                                            <input class="form-check-input" type="checkbox" name="updateMasterShift" id="updateMasterShift" value="true">
+                                            <label class="form-check-label fw-bold small" for="updateMasterShift">Update Master Shift permanently?</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 border-start">
+                                        <div class="form-check form-switch mt-1">
+                                            <input class="form-check-input" type="checkbox" name="overwrite" id="overwriteEntries" value="true">
+                                            <label class="form-check-label fw-bold text-danger small" for="overwriteEntries">Overwrite existing entries?</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Date Range -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted mb-1">From Date</label>
+                            <input type="date" name="fromDate" class="form-control shadow-sm" required value="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-muted mb-1">To Date</label>
+                            <input type="date" name="toDate" class="form-control shadow-sm" required value="@DateTime.Now.AddMonths(1).AddDays(-DateTime.Now.Day).ToString("yyyy-MM-dd")" />
+                        </div>
                 </div>
                 <div class="modal-footer border-top-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
@@ -273,5 +379,53 @@
                 alert('Error saving roster change.');
             }
         }
+
+        function filterEmployeesByDept() {
+            const dept = document.getElementById('filterDepartment').value;
+            const items = document.querySelectorAll('.emp-item');
+            
+            items.forEach(item => {
+                if (!dept || item.dataset.dept === dept) {
+                    item.classList.remove('d-none');
+                } else {
+                    item.classList.add('d-none');
+                    // Optional: Uncheck if hidden? Better not to uncheck in case they want cross-dept
+                }
+            });
+        }
+
+        function toggleAllCheckboxes(checked) {
+            const visibleCheckboxes = document.querySelectorAll('.emp-item:not(.d-none) .employee-checkbox');
+            visibleCheckboxes.forEach(cb => cb.checked = checked);
+            updateSelectedLabel();
+        }
+
+        function updateSelectedLabel() {
+            const checkedBoxes = document.querySelectorAll('.employee-checkbox:checked');
+            const label = document.getElementById('selectedEmployeesLabel');
+            
+            if (checkedBoxes.length === 0) {
+                label.innerText = 'Select Employee';
+            } else if (checkedBoxes.length === 1) {
+                const empName = checkedBoxes[0].nextElementSibling.innerText.trim();
+                label.innerText = empName;
+            } else {
+                label.innerText = checkedBoxes.length + ' Employees Selected';
+            }
+        }
+
+        function toggleMasterShiftOption() {
+            // Logic handled by being always visible or specific checks
+        }
+
+        // Prevent dropdown from closing when clicking inside the employee selection
+        document.addEventListener('DOMContentLoaded', function () {
+            const dropdown = document.querySelector('#employeeDropdown .dropdown-menu');
+            if (dropdown) {
+                dropdown.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                });
+            }
+        });
     </script>
 }

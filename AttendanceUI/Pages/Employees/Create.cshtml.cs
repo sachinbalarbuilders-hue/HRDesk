@@ -25,7 +25,7 @@ public sealed class CreateModel : PageModel
 
     public SelectList DesignationOptions { get; private set; } = default!;
 
-    public SelectList ShiftOptions { get; private set; } = default!;
+
 
     public SelectList WeekoffOptions { get; private set; } = default!;
 
@@ -59,7 +59,6 @@ public sealed class CreateModel : PageModel
             EmployeeName = Input.EmployeeName.Trim(),
             DepartmentId = Input.DepartmentId,
             DesignationId = Input.DesignationId,
-            ShiftId = Input.ShiftId,
             Weekoff = Input.Weekoff,
             JoiningDate = Input.JoiningDate,
             ResignationDate = Input.ResignationDate,
@@ -73,18 +72,7 @@ public sealed class CreateModel : PageModel
         _db.Employees.Add(employee);
         await _db.SaveChangesAsync();
 
-        // Create initial shift assignment
-        if (employee.ShiftId.HasValue && employee.JoiningDate.HasValue)
-        {
-            _db.EmployeeShiftAssignments.Add(new EmployeeShiftAssignment
-            {
-                EmployeeId = employee.EmployeeId,
-                ShiftId = employee.ShiftId.Value,
-                FromDate = employee.JoiningDate.Value,
-                ToDate = null
-            });
-            await _db.SaveChangesAsync();
-        }
+
 
         return RedirectToPage("./Index");
     }
@@ -101,20 +89,8 @@ public sealed class CreateModel : PageModel
             .OrderBy(d => d.DesignationName)
             .ToListAsync();
 
-        var shifts = await _db.Shifts
-            .AsNoTracking()
-            .Where(s => s.Status == "active")
-            .OrderBy(s => s.ShiftName)
-            .ThenBy(s => s.ShiftCode)
-            .ToListAsync();
-
         DepartmentOptions = new SelectList(departments, nameof(Department.Id), nameof(Department.DepartmentName));
         DesignationOptions = new SelectList(designations, nameof(Designation.Id), nameof(Designation.DesignationName));
-        ShiftOptions = new SelectList(shifts.Select(s => new
-        {
-            s.Id,
-            DisplayName = $"{s.ShiftName} ({s.StartTime:hh:mm tt} - {s.EndTime:hh:mm tt})"
-        }), "Id", "DisplayName");
 
         var weekoffDays = new[]
         {
@@ -143,9 +119,7 @@ public sealed class CreateModel : PageModel
         [Display(Name = "Designation")]
         public int? DesignationId { get; set; }
 
-        [Required]
-        [Display(Name = "Shift")]
-        public int? ShiftId { get; set; }
+
 
         [Display(Name = "Weekoff")]
         public string? Weekoff { get; set; }

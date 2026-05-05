@@ -28,13 +28,9 @@ public sealed class EditModel : PageModel
 
     public SelectList DesignationOptions { get; private set; } = default!;
 
-    public SelectList ShiftOptions { get; private set; } = default!;
-
-    public SelectList WeekoffOptions { get; private set; } = default!;
-
     public SelectList StatusOptions { get; private set; } = default!;
-
-    public List<EmployeeShiftAssignment> ShiftHistory { get; private set; } = new();
+ 
+    public SelectList WeekoffOptions { get; private set; } = default!;
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -49,18 +45,13 @@ public sealed class EditModel : PageModel
             return NotFound();
         }
 
-        ShiftHistory = await _db.EmployeeShiftAssignments
-            .Include(a => a.Shift)
-            .Where(a => a.EmployeeId == Id)
-            .OrderByDescending(a => a.FromDate)
-            .ToListAsync();
+
 
         Input = new EmployeeForm
         {
             EmployeeName = employee.EmployeeName,
             DepartmentId = employee.DepartmentId,
             DesignationId = employee.DesignationId,
-            ShiftId = employee.ShiftId,
             Weekoff = employee.Weekoff ?? string.Empty,
             JoiningDate = employee.JoiningDate,
             ResignationDate = employee.ResignationDate,
@@ -93,36 +84,11 @@ public sealed class EditModel : PageModel
             return NotFound();
         }
 
-        // Detect shift change for history
-        if (employee.ShiftId != Input.ShiftId && Input.ShiftId.HasValue)
-        {
-            var effectiveDate = Input.ShiftEffectiveDate;
-
-            // 1. Close current assignment (set to day before effective date)
-            var currentAssignment = await _db.EmployeeShiftAssignments
-                .Where(a => a.EmployeeId == Id && a.ToDate == null)
-                .OrderByDescending(a => a.FromDate)
-                .FirstOrDefaultAsync();
-
-            if (currentAssignment != null)
-            {
-                currentAssignment.ToDate = effectiveDate.AddDays(-1);
-            }
-
-            // 2. Open new assignment (from effective date)
-            _db.EmployeeShiftAssignments.Add(new EmployeeShiftAssignment
-            {
-                EmployeeId = Id,
-                ShiftId = Input.ShiftId.Value,
-                FromDate = effectiveDate,
-                ToDate = null
-            });
-        }
+        // Shift change history tracking moved to Roster page
 
         employee.EmployeeName = Input.EmployeeName.Trim();
         employee.DepartmentId = Input.DepartmentId;
         employee.DesignationId = Input.DesignationId;
-        employee.ShiftId = Input.ShiftId;
         employee.Weekoff = Input.Weekoff;
         employee.JoiningDate = Input.JoiningDate;
         employee.ResignationDate = Input.ResignationDate;
@@ -170,21 +136,9 @@ public sealed class EditModel : PageModel
             .OrderBy(d => d.DesignationName)
             .ToListAsync();
 
-        var shifts = await _db.Shifts
-            .AsNoTracking()
-            .Where(s => s.Status == "active")
-            .OrderBy(s => s.ShiftName)
-            .ThenBy(s => s.ShiftCode)
-            .ToListAsync();
-
         DepartmentOptions = new SelectList(departments, nameof(Department.Id), nameof(Department.DepartmentName));
         DesignationOptions = new SelectList(designations, nameof(Designation.Id), nameof(Designation.DesignationName));
-        ShiftOptions = new SelectList(shifts.Select(s => new
-        {
-            s.Id,
-            DisplayName = $"{s.ShiftName} ({s.StartTime:hh:mm tt} - {s.EndTime:hh:mm tt})"
-        }), "Id", "DisplayName");
-
+ 
         var weekoffDays = new[]
         {
             "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
@@ -207,10 +161,6 @@ public sealed class EditModel : PageModel
 
         [Display(Name = "Designation")]
         public int? DesignationId { get; set; }
-
-        [Required]
-        [Display(Name = "Shift")]
-        public int? ShiftId { get; set; }
 
         [Display(Name = "Weekoff")]
         public string? Weekoff { get; set; }
@@ -235,9 +185,6 @@ public sealed class EditModel : PageModel
         [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits.")]
         [StringLength(10)]
         public string? Phone { get; set; }
-
-        [Display(Name = "Shift Effective Date")]
-        public DateOnly ShiftEffectiveDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
 
         [Display(Name = "Status")]
         public string? Status { get; set; }

@@ -57,12 +57,20 @@ namespace AttendanceUI.Pages.Regularizations
 
         public async Task<IActionResult> OnGetShiftTimesAsync(int employeeId)
         {
-            var emp = await _context.Employees.Include(e => e.Shift).FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
-            if (emp?.Shift != null)
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var shiftId = await _context.EmployeeShiftAssignments
+                .Where(a => a.EmployeeId == employeeId && a.FromDate <= today)
+                .OrderByDescending(a => a.FromDate)
+                .Select(a => a.ShiftId)
+                .FirstOrDefaultAsync();
+
+            var shift = await _context.Shifts.FindAsync(shiftId);
+            
+            if (shift != null)
             {
                 return new JsonResult(new { 
-                    inTime = emp.Shift.StartTime.ToString("HH:mm"), 
-                    outTime = emp.Shift.EndTime.ToString("HH:mm") 
+                    inTime = shift.StartTime.ToString("HH:mm"), 
+                    outTime = shift.EndTime.ToString("HH:mm") 
                 });
             }
             return new JsonResult(new { inTime = "09:00", outTime = "18:00" });
@@ -133,6 +141,15 @@ namespace AttendanceUI.Pages.Regularizations
                 appNo = await _sequenceService.GenerateApplicationNumberAsync(Input.StartDate);
             }
 
+            // Pre-load existing attendance for SmartFill to avoid N+1 queries
+            Dictionary<DateOnly, DailyAttendance> existingRecords = new();
+            if (Input.SmartFill)
+            {
+                existingRecords = await _context.DailyAttendance
+                    .Where(d => d.EmployeeId == Input.EmployeeId && d.RecordDate >= Input.StartDate && d.RecordDate <= Input.EndDate)
+                    .ToDictionaryAsync(d => d.RecordDate);
+            }
+
             for (var date = Input.StartDate; date <= Input.EndDate; date = date.AddDays(1))
             {
                 bool shouldCreateIn = Input.IncludeIn;
@@ -140,8 +157,7 @@ namespace AttendanceUI.Pages.Regularizations
 
                 if (Input.SmartFill)
                 {
-                    var existing = await _context.DailyAttendance
-                        .FirstOrDefaultAsync(d => d.EmployeeId == Input.EmployeeId && d.RecordDate == date);
+                    existingRecords.TryGetValue(date, out var existing);
                     
                     if (existing != null)
                     {
