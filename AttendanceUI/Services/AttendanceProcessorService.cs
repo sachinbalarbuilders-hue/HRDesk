@@ -99,29 +99,26 @@ public class AttendanceProcessorService
 
         foreach (var emp in employees)
         {
-            // If the employee is inactive, treat their last working day as the cutoff.
-            // Priority: 1) Explicit LastWorkingDate on employee record, 2) Last biometric punch.
-            // Do not process attendance for them on dates after their last working day.
-            if (emp.Status != null && emp.Status.ToLower() != "active")
+            // 1. Check Last Working Date Cutoff
+            // If the employee has a LastWorkingDate, skip processing for any date AFTER it.
+            // This prevents generating Weekoffs/Absents for employees who have left.
+            DateOnly? lastWorkingDay = emp.LastWorkingDate;
+
+            if (lastWorkingDay == null && emp.Status != null && emp.Status.ToLower() != "active")
             {
-                DateOnly? lastWorkingDay = emp.LastWorkingDate;
+                // For inactive employees without an explicit LastWorkingDate, fall back to last biometric punch
+                var latestPunch = await _db.AttendanceLogs
+                    .Where(l => l.EmployeeId == emp.EmployeeId)
+                    .OrderByDescending(l => l.PunchTime)
+                    .FirstOrDefaultAsync();
 
-                if (lastWorkingDay == null)
-                {
-                    // Fall back to last biometric punch
-                    var latestPunch = await _db.AttendanceLogs
-                        .Where(l => l.EmployeeId == emp.EmployeeId)
-                        .OrderByDescending(l => l.PunchTime)
-                        .FirstOrDefaultAsync();
+                if (latestPunch != null)
+                    lastWorkingDay = DateOnly.FromDateTime(latestPunch.PunchTime);
+            }
 
-                    if (latestPunch != null)
-                        lastWorkingDay = DateOnly.FromDateTime(latestPunch.PunchTime);
-                }
-
-                if (lastWorkingDay.HasValue && date > lastWorkingDay.Value)
-                {
-                    continue; // Skip processing: no weekoffs/absents after last working day
-                }
+            if (lastWorkingDay.HasValue && date > lastWorkingDay.Value)
+            {
+                continue; // Skip processing: no attendance records after last working day
             }
 
             await ProcessEmployeeDayAsync(emp, date, allLogs.Where(l => l.EmployeeId == emp.EmployeeId).ToList());
