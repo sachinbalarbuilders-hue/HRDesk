@@ -735,15 +735,15 @@ public class AttendanceProcessorService
                         existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Major Late (> Half Time)");
                     }
                 }
-                else if ((isProbation || isNoticePeriod) && lateMins > 0)
+                else if ((isProbation || isNoticePeriod) && lateMins > 5)
                 {
-                    // Probation or Notice Period employees: immediate Half Day for any lateness
+                    // Probation or Notice Period employees: immediate Half Day for lateness beyond 5 mins
                     if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
                     {
                         existingRecord.Status = "Half Day";
                         existingRecord.IsHalfDay = true;
                         var ruleName = isNoticePeriod ? "Notice Period" : "Probation";
-                        existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{ruleName} Late (No Grace)");
+                        existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{ruleName} Late (Grace: 5m)");
                     }
                 }
                 else if (lateMins > graceLimit)
@@ -821,22 +821,22 @@ public class AttendanceProcessorService
                 else
                 {
                     existingRecord.EarlyMinutes = earlyMins;
-                    int graceMinutes = (isNoticePeriod || isProbation) ? 0 : (currentShift.EarlyLeaveGraceMinutes ?? 0);
+                    int graceMinutes = (isNoticePeriod || isProbation) ? 5 : (currentShift.EarlyLeaveGraceMinutes ?? 0);
                     
                     if (earlyMins > graceMinutes || isProbation || isNoticePeriod)
                     {
                         // Mark as Early so Monthly Frequency penalty can apply in ApplyMonthlyPenaltiesAsync
                         existingRecord.IsEarly = true;
                         
-                        if (isNoticePeriod || isProbation)
+                        if ((isNoticePeriod || isProbation) && earlyMins > 5)
                         {
-                            // Stricter rule for Notice/Probation: any early exit is a Half Day if beyond grace (which is 0)
+                            // Stricter rule for Notice/Probation: any early exit is a Half Day if beyond 5 mins
                             if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
                             {
                                 existingRecord.Status = "Half Day";
                                 existingRecord.IsHalfDay = true;
                                 var ruleName = isNoticePeriod ? "Notice Period" : "Probation";
-                                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{ruleName} Early Exit (No Grace)");
+                                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{ruleName} Early Exit (Grace: 5m)");
                             }
                         }
                     }
