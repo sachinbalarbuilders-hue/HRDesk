@@ -263,6 +263,11 @@ public class AttendanceProcessorService
         existingRecord.IsEarly = false;
         existingRecord.EarlyMinutes = 0;
         existingRecord.IsHalfDay = false;
+        existingRecord.InTime = null;
+        existingRecord.OutTime = null;
+        existingRecord.WorkMinutes = 0;
+        existingRecord.BreakMinutes = 0;
+        existingRecord.IsActualBreak = false;
         existingRecord.Remarks = roster.Remarks; // Carry over roster remarks if any
         existingRecord.UpdatedAt = DateTime.Now;
 

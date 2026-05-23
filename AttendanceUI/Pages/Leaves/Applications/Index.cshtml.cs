@@ -402,7 +402,7 @@ public class IndexModel : PageModel
 
                 // Generate application numbers
                 string plAppNo = baseAppNo;
-                string lwpAppNo = await _sequenceService.GenerateApplicationNumberAsync(lwpStartDate);
+                string lwpAppNo = baseAppNo; // Use the same app no since it's a connected leave
 
                 // 1. Create PL application (start → split date)
                 NewApplication.EndDate = plEndDate;

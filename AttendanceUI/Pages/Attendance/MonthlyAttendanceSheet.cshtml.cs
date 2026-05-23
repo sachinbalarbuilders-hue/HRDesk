@@ -72,6 +72,11 @@ public class MonthlyAttendanceSheetModel : PageModel
         // Optimization: Pre-load all leave types once to avoid DB queries inside loops
         var allLeaveTypes = await _db.LeaveTypes.ToListAsync();
 
+        // 2c. Fetch all Missed Punch regularizations for the month
+        var regularizations = await _db.AttendanceRegularizations
+            .Where(r => r.RequestType == "Missed Punch" && r.Status == "Approved" && r.RequestDate >= startDate && r.RequestDate < endDate)
+            .ToListAsync();
+
         // 3. Transform data
         foreach (var emp in employees)
         {
@@ -102,6 +107,10 @@ public class MonthlyAttendanceSheetModel : PageModel
                     dto.InTime = log.InTime;
                     dto.OutTime = log.OutTime;
                     
+                    var dayRegs = regularizations.Where(r => r.EmployeeId == emp.EmployeeId && r.RequestDate == date).ToList();
+                    dto.IsInRegularized = dayRegs.Any(r => r.PunchTimeIn.HasValue);
+                    dto.IsOutRegularized = dayRegs.Any(r => r.PunchTimeOut.HasValue);
+                    
                     // Find matching leave applications for this date
                     var dayApps = leaveApps.Where(la => la.EmployeeId == emp.EmployeeId && date >= la.StartDate && date <= la.EndDate).ToList();
                     var activeApp = dayApps.FirstOrDefault(la => la.Status == "Approved");
@@ -120,6 +129,23 @@ public class MonthlyAttendanceSheetModel : PageModel
                             dto.Tooltip = string.IsNullOrEmpty(holiday.Description)
                                 ? holiday.HolidayName
                                 : $"{holiday.HolidayName} — {holiday.Description}";
+                        }
+                    }
+                    // ── Weekoff takes priority over overlapping leave IF it was not processed as a sandwich
+                    else if (log.Status == "W/O" || log.Status == "Weekoff")
+                    {
+                        dto.Status = "W/O";
+                        dto.TextColor = "#1976d2";
+                        dto.BackgroundColor = "#e3f2fd";
+                        
+                        // Show leave overlap info in tooltip if applicable
+                        if (activeApp != null)
+                        {
+                            dto.Tooltip = $"Weekoff (Overlaps with {activeApp.LeaveType?.Code} #{activeApp.ApplicationNumber})";
+                        }
+                        else
+                        {
+                            dto.Tooltip = "Weekoff";
                         }
                     }
                     // ── Leave application display logic ───────────────────────────────────
@@ -307,5 +333,7 @@ public class MonthlyAttendanceSheetModel : PageModel
         public TimeOnly? ShiftStartTime { get; set; }
         public string TextColor { get; set; } = "#212529"; // Default black/dark gray
         public string BackgroundColor { get; set; } = "transparent";
+        public bool IsInRegularized { get; set; }
+        public bool IsOutRegularized { get; set; }
     }
 }

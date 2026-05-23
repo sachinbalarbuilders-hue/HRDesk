@@ -159,26 +159,31 @@ namespace AttendanceUI.Pages.Regularizations
                 appNo = await _sequenceService.GenerateApplicationNumberAsync(Input.StartDate);
             }
 
-            // Pre-load existing attendance for SmartFill to avoid N+1 queries
-            Dictionary<DateOnly, DailyAttendance> existingRecords = new();
-            if (Input.SmartFill)
-            {
-                existingRecords = await _context.DailyAttendance
-                    .Where(d => d.EmployeeId == Input.EmployeeId && d.RecordDate >= Input.StartDate && d.RecordDate <= Input.EndDate)
-                    .ToDictionaryAsync(d => d.RecordDate);
-            }
+            // Pre-load existing attendance to avoid N+1 queries and check for exempt days
+            var existingRecords = await _context.DailyAttendance
+                .Where(d => d.EmployeeId == Input.EmployeeId && d.RecordDate >= Input.StartDate && d.RecordDate <= Input.EndDate)
+                .ToDictionaryAsync(d => d.RecordDate);
 
             for (var date = Input.StartDate; date <= Input.EndDate; date = date.AddDays(1))
             {
                 bool shouldCreateIn = Input.IncludeIn;
                 bool shouldCreateOut = Input.IncludeOut;
 
-                if (Input.SmartFill)
+                existingRecords.TryGetValue(date, out var existing);
+
+                if (existing != null)
                 {
-                    existingRecords.TryGetValue(date, out var existing);
-                    
-                    if (existing != null)
+                    // EXEMPT LOGIC: Skip Weekoffs, Holidays, and Approved Full-Day Leaves
+                    var s = existing.Status ?? "";
+                    if (s == "W/O" || s == "Weekoff" || s == "Holiday" || 
+                        (existing.InTime == null && existing.OutTime == null && s != "Absent" && s != "Roster Missing"))
                     {
+                        continue; // Skip this exempt day completely
+                    }
+                }
+
+                if (Input.SmartFill && existing != null)
+                {
                         // Check if day is truly complete (different IN and OUT)
                         bool isTrulyComplete = existing.InTime.HasValue && existing.OutTime.HasValue && existing.InTime != existing.OutTime;
                         bool isSinglePunch = existing.InTime.HasValue && existing.OutTime.HasValue && existing.InTime == existing.OutTime;
@@ -200,7 +205,6 @@ namespace AttendanceUI.Pages.Regularizations
                             shouldCreateIn = true;
                             shouldCreateOut = false;
                         }
-                    }
                 }
 
                 // For each date, create IN and/or OUT records

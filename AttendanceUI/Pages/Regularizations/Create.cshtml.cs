@@ -7,9 +7,18 @@ using Microsoft.EntityFrameworkCore;
 using AttendanceUI.Data;
 using AttendanceUI.Models;
 using AttendanceUI.Services;
+using System.Collections.Generic;
 
 namespace AttendanceUI.Pages.Regularizations
 {
+    public class RegularizationRequestItem
+    {
+        public DateOnly RequestDate { get; set; }
+        public string? PunchTarget { get; set; } // "in", "out", "both"
+        public DateTime? PunchTimeIn { get; set; }
+        public DateTime? PunchTimeOut { get; set; }
+    }
+
     public class CreateModel : PageModel
     {
         private readonly BiometricAttendanceDbContext _context;
@@ -63,7 +72,7 @@ namespace AttendanceUI.Pages.Regularizations
         public bool AutoGenerate { get; set; } = true;
 
         [BindProperty]
-        public DateTime? PunchTimeOut { get; set; } // For "Full Day" regularization
+        public List<RegularizationRequestItem> Requests { get; set; } = new();
 
         public async Task<IActionResult> OnPostAsync()
         {
@@ -72,55 +81,85 @@ namespace AttendanceUI.Pages.Regularizations
                 return Page();
             }
 
-            // Generate Application Number if requested (Ignore client value to force increment)
-            if (AutoGenerate)
+            if (Requests == null || !Requests.Any())
             {
-                Regularization.ApplicationNumber = await _sequenceService.GenerateApplicationNumberAsync(Regularization.RequestDate);
+                ModelState.AddModelError(string.Empty, "At least one date must be selected.");
+                return Page();
             }
-            
-            // INSTANT APPROVAL LOGIC
-            Regularization.CreatedAt = DateTime.Now;
-            Regularization.Status = "Approved";
-            Regularization.ApprovedBy = User.Identity?.Name ?? "Auto-Approved";
-            Regularization.ApproveDate = DateTime.Now;
 
-            // HANDLE SELECTIVE PUNCHES (In / Out / Both)
-            // Based on the hidden field or radio selections from the frontend
-            // If the user only wants OUT, we should clear IN (if it was accidentally set)
-            // Note: The frontend already hides/clears these, but we enforce here.
+            var requestDates = new List<DateOnly>();
 
-            if (PunchTimeOut.HasValue)
+            for (int i = 0; i < Requests.Count; i++)
             {
-                Regularization.PunchTimeOut = PunchTimeOut.Value;
-                if (!Regularization.PunchTimeIn.HasValue)
+                var reqItem = Requests[i];
+                var newReg = new AttendanceRegularization
                 {
-                    Regularization.Reason += " (Out-Time Regularization)";
+                    EmployeeId = Regularization.EmployeeId,
+                    RequestType = Regularization.RequestType,
+                    WaivePenalty = Regularization.WaivePenalty,
+                    Reason = Regularization.Reason,
+                    RequestDate = reqItem.RequestDate,
+                    CreatedAt = DateTime.Now,
+                    Status = "Approved",
+                    ApprovedBy = User.Identity?.Name ?? "Auto-Approved",
+                    ApproveDate = DateTime.Now
+                };
+
+                if (AutoGenerate)
+                {
+                    newReg.ApplicationNumber = await _sequenceService.GenerateApplicationNumberAsync(newReg.RequestDate);
                 }
                 else
                 {
-                    Regularization.Reason += " (Full Day: IN & OUT)";
+                    newReg.ApplicationNumber = Regularization.ApplicationNumber;
+                    // If multiple requests and manual app no, append suffix to avoid unique constraint if any
+                    if (Requests.Count > 1 && !string.IsNullOrWhiteSpace(newReg.ApplicationNumber))
+                    {
+                        newReg.ApplicationNumber = $"{newReg.ApplicationNumber}-{i + 1}";
+                    }
                 }
-            }
-            else if (Regularization.PunchTimeIn.HasValue)
-            {
-                Regularization.Reason += " (In-Time Regularization)";
-            }
 
-            _context.AttendanceRegularizations.Add(Regularization);
+                if (newReg.RequestType == "Missed Punch")
+                {
+                    if (reqItem.PunchTarget == "both" || reqItem.PunchTarget == "out")
+                    {
+                        newReg.PunchTimeOut = reqItem.PunchTimeOut;
+                        if (reqItem.PunchTarget == "out")
+                        {
+                            newReg.Reason += " (Out-Time Regularization)";
+                        }
+                        else
+                        {
+                            newReg.PunchTimeIn = reqItem.PunchTimeIn;
+                            newReg.Reason += " (Full Day: IN & OUT)";
+                        }
+                    }
+                    else if (reqItem.PunchTarget == "in")
+                    {
+                        newReg.PunchTimeIn = reqItem.PunchTimeIn;
+                        newReg.Reason += " (In-Time Regularization)";
+                    }
+                }
+
+                _context.AttendanceRegularizations.Add(newReg);
+                requestDates.Add(newReg.RequestDate);
+            }
+            
             await _context.SaveChangesAsync();
 
             // PROCESS IMMEDIATELY (Until end of month to update frequencies)
-            var endOfMonth = new DateOnly(Regularization.RequestDate.Year, Regularization.RequestDate.Month, DateTime.DaysInMonth(Regularization.RequestDate.Year, Regularization.RequestDate.Month));
-            for (var d = Regularization.RequestDate; d <= endOfMonth; d = d.AddDays(1))
+            foreach (var rDate in requestDates.Distinct())
             {
-                await _processor.ProcessDailyAttendanceAsync(d, Regularization.EmployeeId);
-            }
-
-            // FAILSAFE: If Application Number was manually entered (or AutoGenerate=false), 
-            // ensure the sequence table catches up to avoid future duplicates.
-            if (!AutoGenerate && !string.IsNullOrWhiteSpace(Regularization.ApplicationNumber))
-            {
-                await _sequenceService.EnsureSequenceCatchUpAsync(Regularization.RequestDate, Regularization.ApplicationNumber);
+                var endOfMonth = new DateOnly(rDate.Year, rDate.Month, DateTime.DaysInMonth(rDate.Year, rDate.Month));
+                for (var d = rDate; d <= endOfMonth; d = d.AddDays(1))
+                {
+                    await _processor.ProcessDailyAttendanceAsync(d, Regularization.EmployeeId);
+                }
+                
+                if (!AutoGenerate && !string.IsNullOrWhiteSpace(Regularization.ApplicationNumber))
+                {
+                    await _sequenceService.EnsureSequenceCatchUpAsync(rDate, Regularization.ApplicationNumber);
+                }
             }
 
             return RedirectToPage("./Index");
