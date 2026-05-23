@@ -96,11 +96,29 @@ namespace AttendanceUI.Pages.Regularizations
                     outStr = "-"; // Display as missing OUT
                 }
 
+                bool isExempt = false;
+                if (r != null)
+                {
+                    var s = r.Status ?? "";
+                    if (s == "W/O" || s == "Weekoff" || s == "Holiday")
+                    {
+                        isExempt = true;
+                    }
+                    else if (r.InTime == null && r.OutTime == null && s != "Absent" && s != "Roster Missing")
+                    {
+                        // If it has no punches and it's not Absent or Roster Missing, it's likely an approved full-day leave
+                        isExempt = true;
+                    }
+                }
+
+                bool isMissing = !isExempt && (r == null || !r.InTime.HasValue || !r.OutTime.HasValue || r.InTime == r.OutTime);
+
                 fullSummary.Add(new {
                     date = date.ToString("dd MMM (ddd)"),
                     inTime = inStr,
                     outTime = outStr,
-                    isMissing = r == null || !r.InTime.HasValue || !r.OutTime.HasValue || r.InTime == r.OutTime
+                    isMissing = isMissing,
+                    status = r?.Status ?? ""
                 });
             }
 

@@ -256,8 +256,13 @@
                             var rowClass = item.isMissing ? 'table-warning' : '';
                             if (item.isMissing) hasGaps = true;
 
+                            var statusBadge = '';
+                            if (!item.isMissing && item.status) {
+                                statusBadge = `<span class="badge bg-secondary ms-2 opacity-75">${item.status}</span>`;
+                            }
+
                             html += `<tr class="${rowClass}">
-                                        <td class="ps-3 fw-bold">${item.date}</td>
+                                        <td class="ps-3 fw-bold">${item.date} ${statusBadge}</td>
                                         <td>${item.inTime}</td>
                                         <td>${item.outTime}</td>
                                      </tr>`;

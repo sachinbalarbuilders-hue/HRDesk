@@ -375,11 +375,12 @@ public class IndexModel : PageModel
                 }
                 if (!NewApplication.IgnoreSandwichRule)
                 {
+                    int totalDaysInSpan = endDateOriginal.DayNumber - NewApplication.StartDate.DayNumber + 1;
                     foreach (var di in dayInfos.Where(x => x.IsWeekoff && !x.IsHoliday))
                     {
                         bool hasWorkBefore = dayInfos.Any(x => x.Date < di.Date && x.IsWorkDay);
                         bool hasWorkAfter = dayInfos.Any(x => x.Date > di.Date && x.IsWorkDay);
-                        if (hasWorkBefore && hasWorkAfter)
+                        if (totalDaysInSpan >= 3 || (hasWorkBefore && hasWorkAfter))
                             deductibleDates.Add(di.Date);
                     }
                 }
