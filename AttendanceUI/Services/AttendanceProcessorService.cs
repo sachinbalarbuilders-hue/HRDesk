@@ -776,10 +776,11 @@ public class AttendanceProcessorService
         if (outTimeMinute < expectedEndMinute)
         {
             int earlyMins = (int)(expectedEndMinute - outTimeMinute).TotalMinutes;
+            int graceMinutes = (isNoticePeriod || isProbation) ? 5 : (currentShift.EarlyLeaveGraceMinutes ?? 0);
             
             // Early Exit Zone Separation
             // SPECIAL CASE: Second Half Leave but left before HalfTime boundary
-            if (approvedLeave != null && approvedLeave.DayType == "Second Half" && currentShift.HalfTime.HasValue && outTime < currentShift.HalfTime.Value)
+            if (approvedLeave != null && approvedLeave.DayType == "Second Half" && currentShift.HalfTime.HasValue && outTime < currentShift.HalfTime.Value.AddMinutes(-graceMinutes))
             {
                 if (waiveEarly)
                 {
@@ -797,7 +798,7 @@ public class AttendanceProcessorService
                         $"First Half Absent: Left at {outTime:HH\\:mm} before half-time ({currentShift.HalfTime.Value:HH\\:mm}).");
                 }
             }
-            else if (currentShift.EarlyGoAllowedTime.HasValue && outTime < currentShift.EarlyGoAllowedTime.Value)
+            else if (currentShift.EarlyGoAllowedTime.HasValue && outTime < currentShift.EarlyGoAllowedTime.Value.AddMinutes(-graceMinutes))
             {
                 // MAJOR EARLY EXIT: Before the allowed time (e.g., leaving at 14:32 when allowed time is 17:00)
                 if (waiveEarly)
@@ -826,7 +827,6 @@ public class AttendanceProcessorService
                 else
                 {
                     existingRecord.EarlyMinutes = earlyMins;
-                    int graceMinutes = (isNoticePeriod || isProbation) ? 5 : (currentShift.EarlyLeaveGraceMinutes ?? 0);
                     
                     if (earlyMins > graceMinutes || isProbation || isNoticePeriod)
                     {

@@ -231,11 +231,11 @@
                     <div class="row g-3 mb-3">
                         <div class="col-6" id="add-start-container">
                             <label class="form-label fw-semibold" id="add-date-label">Date</label>
-                            <input asp-for="NewApplication.StartDate" class="form-control" type="date" required id="add-start-date" />
+                            <input asp-for="NewApplication.StartDate" asp-format="{0:yyyy-MM-dd}" class="form-control" type="date" required id="add-start-date" />
                         </div>
                         <div class="col-6" id="add-end-container" style="display:none;">
                             <label class="form-label fw-semibold">To Date</label>
-                            <input asp-for="NewApplication.EndDate" class="form-control" type="date" required id="add-end-date" />
+                            <input asp-for="NewApplication.EndDate" asp-format="{0:yyyy-MM-dd}" class="form-control" type="date" required id="add-end-date" />
                         </div>
                     </div>
                     <div id="add-sandwich-warning" class="alert alert-warning small py-2 mb-3" style="display:none;">
@@ -587,7 +587,12 @@
                 var form = $(this).find('form');
                 if (form.length > 0) {
                     form[0].reset();
-                    form.find('input:not([type=hidden]), select, textarea').val('').removeAttr('value');
+                    $('#add-leave-type').empty().append('<option value="">— Select Type —</option>');
+                    $('#add-app-no').val('');
+                    // reset() restores the server-rendered default date, but just in case:
+                    if (!$('#add-start-date').val()) {
+                        $('#add-start-date').val(new Date().toISOString().split('T')[0]);
+                    }
                 }
 
                 var summary = $(this).find('[data-valmsg-summary=true], .validation-summary-errors, .alert-danger');
