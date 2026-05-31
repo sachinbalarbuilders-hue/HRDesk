@@ -340,14 +340,35 @@ public class IndexModel : PageModel
         // BALANCE VALIDATION & AUTO-SPLIT
         if (type.IsPaid)
         {
-            if (allocation == null)
+            if (allocation == null && type.Code != "CO")
             {
                  ModelState.AddModelError("", $"No leave allocation found for {type.Name} in leave year {leaveYear}.");
                  await OnGetAsync();
                  return Page();
             }
+            else if (allocation == null && type.Code == "CO")
+            {
+                allocation = new LeaveAllocation
+                {
+                    EmployeeId = NewApplication.EmployeeId,
+                    LeaveTypeId = type.Id,
+                    Year = leaveYear,
+                    TotalAllocated = 0,
+                    OpeningBalance = 0,
+                    UsedCount = 0
+                };
+                _db.LeaveAllocations.Add(allocation);
+            }
 
-            decimal remaining = allocation.TotalAllocated + allocation.OpeningBalance - allocation.UsedCount;
+            decimal remaining = 0;
+            if (type.Code == "CO")
+            {
+                remaining = await _compOffService.GetValidBalanceAsync(NewApplication.EmployeeId, NewApplication.StartDate);
+            }
+            else
+            {
+                remaining = allocation.TotalAllocated + allocation.OpeningBalance - allocation.UsedCount;
+            }
             
             if (totalDaysRequested > remaining && remaining > 0)
             {
@@ -560,14 +581,39 @@ public class IndexModel : PageModel
         var newType = await _db.LeaveTypes.FindAsync(application.LeaveTypeId);
         if (newType != null && newType.IsPaid)
         {
-            if (newAllocation == null)
+            if (newAllocation == null && newType.Code != "CO")
             {
                  ModelState.AddModelError("", $"No leave allocation found for {newType.Name} in leave year {newLeaveYear}.");
                  await OnGetAsync();
                  return Page();
             }
+            else if (newAllocation == null && newType.Code == "CO")
+            {
+                newAllocation = new LeaveAllocation
+                {
+                    EmployeeId = application.EmployeeId,
+                    LeaveTypeId = application.LeaveTypeId,
+                    Year = newLeaveYear,
+                    TotalAllocated = 0,
+                    OpeningBalance = 0,
+                    UsedCount = 0
+                };
+                _db.LeaveAllocations.Add(newAllocation);
+            }
 
-            decimal remaining = newAllocation.TotalAllocated + newAllocation.OpeningBalance - newAllocation.UsedCount;
+            decimal remaining = 0;
+            if (newType.Code == "CO")
+            {
+                remaining = await _compOffService.GetValidBalanceAsync(application.EmployeeId, application.StartDate);
+                if (application.LeaveTypeId == newType.Id)
+                {
+                    remaining += oldTotalDays;
+                }
+            }
+            else
+            {
+                remaining = newAllocation.TotalAllocated + newAllocation.OpeningBalance - newAllocation.UsedCount;
+            }
 
             if (application.TotalDays > remaining)
             {
