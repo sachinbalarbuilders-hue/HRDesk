@@ -17,7 +17,7 @@ if '%errorlevel%' NEQ '0' (
 
 :gotAdmin
     :: Change to the script's directory (elevated cmd starts in System32)
-    cd /d "%~dp0"
+    cd /d "%~dp0.."
     
     echo =====================================================
     echo     Deploying Z903 Attendance Service Update
@@ -25,7 +25,7 @@ if '%errorlevel%' NEQ '0' (
     echo.
 
     :: ---- Configuration ----
-    set "PROJECT_DIR=%~dp0Z903AttendanceService\Z903AttendanceService"
+    set "PROJECT_DIR=%~dp0..\Z903AttendanceService\Z903AttendanceService"
     set "BUILD_OUTPUT=%PROJECT_DIR%\bin\x64\Release"
     set "SERVICE_DIR=C:\HRServices\Z903AttendanceService"
     set "SERVICE_NAME=Z903AttendanceService"
