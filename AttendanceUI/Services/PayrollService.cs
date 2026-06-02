@@ -48,10 +48,16 @@ public class PayrollService
     /// </summary>
     public async Task<decimal> GetGrossSalaryAsync(int employeeId, string month)
     {
+        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", out var monthStart))
+            return 0;
+            
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
         var salaryStructure = await _db.EmployeeSalaryStructures
             .Include(s => s.SalaryComponent)
             .Where(s => s.EmployeeId == employeeId &&
-                       s.IsActive &&
+                       s.EffectiveFrom <= monthEnd && 
+                       (s.EffectiveTo == null || s.EffectiveTo >= monthEnd) &&
                        s.SalaryComponent!.ComponentType == "Earning")
             .ToListAsync();
 
@@ -102,10 +108,17 @@ public class PayrollService
             throw new InvalidOperationException("Employee has no salary structure defined");
         }
 
-        // Get salary structure
+        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", out var monthStart))
+            throw new ArgumentException($"Invalid month format: '{month}'");
+            
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+        // Get salary structure active at the end of the processed month
         var salaryStructure = await _db.EmployeeSalaryStructures
             .Include(s => s.SalaryComponent)
-            .Where(s => s.EmployeeId == employeeId && s.IsActive)
+            .Where(s => s.EmployeeId == employeeId && 
+                       s.EffectiveFrom <= monthEnd && 
+                       (s.EffectiveTo == null || s.EffectiveTo >= monthEnd))
             .ToListAsync();
 
         // Calculate earnings

@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using AttendanceUI.Data;
 using AttendanceUI.Models;
 
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
 namespace AttendanceUI.Pages.Payroll.EmployeeSalary
 {
     public class EditModel : PageModel
@@ -35,6 +38,21 @@ namespace AttendanceUI.Pages.Payroll.EmployeeSalary
 
         [BindProperty]
         public decimal ESIC { get; set; }
+
+        [BindProperty]
+        [DataType(DataType.Date)]
+        public DateTime EffectiveDate { get; set; } = DateTime.Today;
+
+        public class SalaryHistoryItem
+        {
+            public string ComponentName { get; set; } = "";
+            public decimal Amount { get; set; }
+            public DateOnly EffectiveFrom { get; set; }
+            public DateOnly? EffectiveTo { get; set; }
+            public bool IsActive { get; set; }
+        }
+
+        public IList<SalaryHistoryItem> SalaryHistory { get; set; } = new List<SalaryHistoryItem>();
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
@@ -79,6 +97,21 @@ namespace AttendanceUI.Pages.Payroll.EmployeeSalary
                 ESIC = esic?.Amount ?? 0;
             }
 
+            SalaryHistory = await _context.EmployeeSalaryStructures
+                .Include(s => s.SalaryComponent)
+                .Where(s => s.EmployeeId == id)
+                .OrderByDescending(s => s.EffectiveFrom)
+                .ThenBy(s => s.SalaryComponent!.ComponentName)
+                .Select(s => new SalaryHistoryItem
+                {
+                    ComponentName = s.SalaryComponent!.ComponentName,
+                    Amount = s.Amount,
+                    EffectiveFrom = s.EffectiveFrom,
+                    EffectiveTo = s.EffectiveTo,
+                    IsActive = s.IsActive
+                })
+                .ToListAsync();
+
             return Page();
         }
 
@@ -91,101 +124,57 @@ namespace AttendanceUI.Pages.Payroll.EmployeeSalary
             var basicComponent = salaryComponents.FirstOrDefault(c => c.ComponentCode == "BASIC");
             var specialComponent = salaryComponents.FirstOrDefault(c => c.ComponentCode == "SPECIAL");
 
-            var effectiveDate = DateOnly.FromDateTime(DateTime.Now);
+            var effectiveDate = DateOnly.FromDateTime(EffectiveDate);
 
-            // Update or create Basic Salary
-            if (basicComponent != null)
+            async Task ProcessSalaryComponentAsync(int? componentId, decimal amount)
             {
+                if (componentId == null) return;
+                
                 var existing = await _context.EmployeeSalaryStructures
-                    .FirstOrDefaultAsync(s => s.EmployeeId == EmployeeId && s.ComponentId == basicComponent.Id && s.IsActive);
+                    .FirstOrDefaultAsync(s => s.EmployeeId == EmployeeId && s.ComponentId == componentId && s.IsActive);
 
                 if (existing != null)
                 {
-                    existing.Amount = BasicSalary;
+                    if (existing.Amount != amount)
+                    {
+                        var yesterday = effectiveDate.AddDays(-1);
+                        if (existing.EffectiveFrom > yesterday)
+                        {
+                            existing.Amount = amount;
+                        }
+                        else
+                        {
+                            existing.IsActive = false;
+                            existing.EffectiveTo = yesterday;
+
+                            _context.EmployeeSalaryStructures.Add(new EmployeeSalaryStructure
+                            {
+                                EmployeeId = EmployeeId,
+                                ComponentId = componentId.Value,
+                                Amount = amount,
+                                EffectiveFrom = effectiveDate,
+                                IsActive = true
+                            });
+                        }
+                    }
                 }
                 else
                 {
                     _context.EmployeeSalaryStructures.Add(new EmployeeSalaryStructure
                     {
                         EmployeeId = EmployeeId,
-                        ComponentId = basicComponent.Id,
-                        Amount = BasicSalary,
+                        ComponentId = componentId.Value,
+                        Amount = amount,
                         EffectiveFrom = effectiveDate,
                         IsActive = true
                     });
                 }
             }
 
-            // Update or create Special Allowance
-            if (specialComponent != null)
-            {
-                var existing = await _context.EmployeeSalaryStructures
-                    .FirstOrDefaultAsync(s => s.EmployeeId == EmployeeId && s.ComponentId == specialComponent.Id && s.IsActive);
-
-                if (existing != null)
-                {
-                    existing.Amount = SpecialAllowance;
-                }
-                else
-                {
-                    _context.EmployeeSalaryStructures.Add(new EmployeeSalaryStructure
-                    {
-                        EmployeeId = EmployeeId,
-                        ComponentId = specialComponent.Id,
-                        Amount = SpecialAllowance,
-                        EffectiveFrom = effectiveDate,
-                        IsActive = true
-                    });
-                }
-            }
-
-            // Update or create PF
-            var pfComponent = salaryComponents.FirstOrDefault(c => c.ComponentCode == "PF");
-            if (pfComponent != null)
-            {
-                var existing = await _context.EmployeeSalaryStructures
-                    .FirstOrDefaultAsync(s => s.EmployeeId == EmployeeId && s.ComponentId == pfComponent.Id && s.IsActive);
-
-                if (existing != null)
-                {
-                    existing.Amount = ProvidentFund;
-                }
-                else
-                {
-                    _context.EmployeeSalaryStructures.Add(new EmployeeSalaryStructure
-                    {
-                        EmployeeId = EmployeeId,
-                        ComponentId = pfComponent.Id,
-                        Amount = ProvidentFund,
-                        EffectiveFrom = effectiveDate,
-                        IsActive = true
-                    });
-                }
-            }
-
-            // Update or create ESIC
-            var esicComponent = salaryComponents.FirstOrDefault(c => c.ComponentCode == "ESIC");
-            if (esicComponent != null)
-            {
-                var existing = await _context.EmployeeSalaryStructures
-                    .FirstOrDefaultAsync(s => s.EmployeeId == EmployeeId && s.ComponentId == esicComponent.Id && s.IsActive);
-
-                if (existing != null)
-                {
-                    existing.Amount = ESIC;
-                }
-                else
-                {
-                    _context.EmployeeSalaryStructures.Add(new EmployeeSalaryStructure
-                    {
-                        EmployeeId = EmployeeId,
-                        ComponentId = esicComponent.Id,
-                        Amount = ESIC,
-                        EffectiveFrom = effectiveDate,
-                        IsActive = true
-                    });
-                }
-            }
+            await ProcessSalaryComponentAsync(basicComponent?.Id, BasicSalary);
+            await ProcessSalaryComponentAsync(specialComponent?.Id, SpecialAllowance);
+            await ProcessSalaryComponentAsync(salaryComponents.FirstOrDefault(c => c.ComponentCode == "PF")?.Id, ProvidentFund);
+            await ProcessSalaryComponentAsync(salaryComponents.FirstOrDefault(c => c.ComponentCode == "ESIC")?.Id, ESIC);
 
             await _context.SaveChangesAsync();
 
