@@ -26,6 +26,7 @@ public class IndexModel : PageModel
     public int LateToday { get; set; }
 
     public List<DeviceStatusViewModel> MachineStatuses { get; set; } = new();
+    public List<CelebrationViewModel> Celebrations { get; set; } = new();
 
     public async Task OnGetAsync()
     {
@@ -67,6 +68,77 @@ public class IndexModel : PageModel
                 StatusClass = DetermineStatusClass(syncState?.LastSyncedTime ?? default)
             });
         }
+
+        // 5. Team Celebrations (Birthdays & Work Anniversaries next 30 days)
+        var allActiveEmployees = await _context.Employees
+            .Where(e => e.Status == "active")
+            .ToListAsync();
+
+        var todayDt = DateTime.Today;
+        foreach (var emp in allActiveEmployees)
+        {
+            if (emp.DateOfBirth.HasValue)
+            {
+                var dob = emp.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue);
+                var nextBday = GetNextOccurrence(dob, todayDt);
+                var daysLeft = (nextBday - todayDt).Days;
+                
+                Celebrations.Add(new CelebrationViewModel
+                {
+                    EmployeeName = emp.EmployeeName,
+                    Initials = GetInitials(emp.EmployeeName),
+                    Type = "Birthday",
+                    CelebrationDate = nextBday,
+                    DaysLeft = daysLeft
+                });
+            }
+
+            if (emp.JoiningDate.HasValue)
+            {
+                var doj = emp.JoiningDate.Value.ToDateTime(TimeOnly.MinValue);
+                var nextAnniversary = GetNextOccurrence(doj, todayDt);
+                if (nextAnniversary.Year > doj.Year)
+                {
+                    var daysLeft = (nextAnniversary - todayDt).Days;
+                    
+                    Celebrations.Add(new CelebrationViewModel
+                    {
+                        EmployeeName = emp.EmployeeName,
+                        Initials = GetInitials(emp.EmployeeName),
+                        Type = "Work Anniversary",
+                        CelebrationDate = nextAnniversary,
+                        DaysLeft = daysLeft
+                    });
+                }
+            }
+        }
+        Celebrations = Celebrations.OrderBy(c => c.DaysLeft).ToList();
+    }
+
+    private DateTime GetNextOccurrence(DateTime originalDate, DateTime fromDate)
+    {
+        int year = fromDate.Year;
+        int month = originalDate.Month;
+        int day = originalDate.Day;
+        if (month == 2 && day == 29 && !DateTime.IsLeapYear(year)) day = 28;
+        
+        var nextDate = new DateTime(year, month, day);
+        if (nextDate < fromDate)
+        {
+            year++;
+            day = originalDate.Day;
+            if (month == 2 && day == 29 && !DateTime.IsLeapYear(year)) day = 28;
+            nextDate = new DateTime(year, month, day);
+        }
+        return nextDate;
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0].Substring(0, 1).ToUpper();
+        return (parts[0].Substring(0, 1) + parts[^1].Substring(0, 1)).ToUpper();
     }
 
     private string DetermineStatusClass(DateTime lastSync)
@@ -96,5 +168,14 @@ public class IndexModel : PageModel
         public DateTime? LastSync { get; set; }
         public int RecordsSynced { get; set; }
         public string StatusClass { get; set; } = "status-unknown";
+    }
+
+    public class CelebrationViewModel
+    {
+        public string EmployeeName { get; set; } = "";
+        public string Initials { get; set; } = "";
+        public string Type { get; set; } = ""; 
+        public DateTime CelebrationDate { get; set; }
+        public int DaysLeft { get; set; }
     }
 }

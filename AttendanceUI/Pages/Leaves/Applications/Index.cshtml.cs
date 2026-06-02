@@ -39,6 +39,9 @@ public class IndexModel : PageModel
     [BindProperty(SupportsGet = true)]
     public int PageSize { get; set; } = 50;
 
+    [BindProperty(SupportsGet = true)]
+    public string? SearchTerm { get; set; }
+
     public int TotalCount { get; set; }
     public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
 
@@ -53,14 +56,27 @@ public class IndexModel : PageModel
         
         NewApplication.ApplicationNumber = await _sequenceService.PeekNextApplicationNumberAsync(NewApplication.StartDate);
  
-        // Pagination logic
-        TotalCount = await _db.LeaveApplications.CountAsync();
+        // Pagination & Search logic
+        var query = _db.LeaveApplications
+            .Include(la => la.Employee)
+            .Include(la => la.LeaveType)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var searchLower = SearchTerm.ToLower();
+            query = query.Where(la => 
+                (la.Employee != null && la.Employee.EmployeeName.ToLower().Contains(searchLower)) ||
+                (la.ApplicationNumber != null && la.ApplicationNumber.ToLower().Contains(searchLower)) ||
+                (la.Reason != null && la.Reason.ToLower().Contains(searchLower))
+            );
+        }
+
+        TotalCount = await query.CountAsync();
         
         if (PageNumber < 1) PageNumber = 1;
 
-        LeaveApplications = await _db.LeaveApplications
-            .Include(la => la.Employee)
-            .Include(la => la.LeaveType)
+        LeaveApplications = await query
             .OrderByDescending(la => la.CreatedAt)
             .Skip((PageNumber - 1) * PageSize)
             .Take(PageSize)
@@ -370,11 +386,14 @@ public class IndexModel : PageModel
                 remaining = allocation.TotalAllocated + allocation.OpeningBalance - allocation.UsedCount;
             }
             
-            if (totalDaysRequested > remaining && remaining > 0)
+            int extSandwichCount = await GetExternalSandwichCountAsync(NewApplication.EmployeeId, NewApplication.StartDate, NewApplication.EndDate, NewApplication.DayType, NewApplication.IgnoreSandwichRule);
+            decimal effectiveRemaining = Math.Max(0, remaining - extSandwichCount);
+            
+            if (totalDaysRequested > effectiveRemaining && effectiveRemaining > 0)
             {
-                if (remaining % dayMultiplier != 0)
+                if (effectiveRemaining % dayMultiplier != 0)
                 {
-                    ModelState.AddModelError("", $"Your balance is {remaining} days. The system cannot auto-split a {NewApplication.DayType} request with a fractional mismatch. Please manually apply for Full Days and Half Days separately.");
+                    ModelState.AddModelError("", $"Your balance is {effectiveRemaining} days. The system cannot auto-split a {NewApplication.DayType} request with a fractional mismatch. Please manually apply for Full Days and Half Days separately.");
                     await OnGetAsync();
                     return Page();
                 }
@@ -414,11 +433,11 @@ public class IndexModel : PageModel
                 {
                     accumulated += dayMultiplier;
                     plEndDate = d;
-                    if (accumulated >= remaining) break;
+                    if (accumulated >= effectiveRemaining) break;
                 }
 
-                decimal plDays = remaining;
-                decimal lwpDays = totalDaysRequested - remaining;
+                decimal plDays = effectiveRemaining;
+                decimal lwpDays = totalDaysRequested - effectiveRemaining;
                 DateOnly lwpStartDate = plEndDate.AddDays(1);
 
                 // Generate application numbers
@@ -464,9 +483,10 @@ public class IndexModel : PageModel
 
                 return RedirectToPage();
             }
-            else if (remaining <= 0)
+            else if (effectiveRemaining <= 0)
             {
-                ModelState.AddModelError("", $"No {type.Code} balance available. Available: {remaining} days. Apply as LWP instead.");
+                string msg = extSandwichCount > 0 ? $" (after reserving {extSandwichCount} days for external sandwich weekoffs)" : "";
+                ModelState.AddModelError("", $"No {type.Code} balance available{msg}. Available: {remaining} days. Apply as LWP instead.");
                 await OnGetAsync();
                 return Page();
             }
@@ -615,12 +635,15 @@ public class IndexModel : PageModel
                 remaining = newAllocation.TotalAllocated + newAllocation.OpeningBalance - newAllocation.UsedCount;
             }
 
-            if (application.TotalDays > remaining)
+            int extSandwichCount = await GetExternalSandwichCountAsync(application.EmployeeId, EditApplication.StartDate, EditApplication.EndDate, EditApplication.DayType, EditApplication.IgnoreSandwichRule);
+            
+            if (application.TotalDays + extSandwichCount > remaining)
             {
                 // Note: We need to put back the oldUsedCount if validation fails because we subtracted it above
                 if (oldAllocation != null) oldAllocation.UsedCount += oldTotalDays;
                 
-                ModelState.AddModelError("", $"Insufficient balance for update. Available: {remaining} days, Requested: {application.TotalDays} days.");
+                string msg = extSandwichCount > 0 ? $" (+ {extSandwichCount} external sandwich days)" : "";
+                ModelState.AddModelError("", $"Insufficient balance for update. Available: {remaining} days, Requested: {application.TotalDays} days{msg}.");
                 await OnGetAsync();
                 return Page();
             }
@@ -716,5 +739,55 @@ public class IndexModel : PageModel
         }
 
         return RedirectToPage();
+    }
+
+    private async Task<int> GetExternalSandwichCountAsync(int employeeId, DateOnly startDate, DateOnly endDate, string dayType, bool ignoreSandwichRule)
+    {
+        if (ignoreSandwichRule || dayType != "Full Day") return 0;
+        
+        var emp = await _db.Employees.FindAsync(employeeId);
+        if (emp == null || string.IsNullOrWhiteSpace(emp.Weekoff)) return 0;
+        
+        string weekoffDay = emp.Weekoff.Trim();
+        int count = 0;
+        
+        var checkDates = new[] { startDate.AddDays(-1), endDate.AddDays(1) };
+        
+        foreach (var date in checkDates)
+        {
+            if (!date.DayOfWeek.ToString().Equals(weekoffDay, StringComparison.OrdinalIgnoreCase)) continue;
+            
+            var dayBefore1 = date.AddDays(-1);
+            var dayBefore2 = date.AddDays(-2);
+            var dayAfter1 = date.AddDays(1);
+            var dayAfter2 = date.AddDays(2);
+            
+            async Task<bool> IsLeaveAsync(DateOnly d) 
+            {
+                if (d >= startDate && d <= endDate) return true;
+                return await _db.LeaveApplications.AnyAsync(la => la.EmployeeId == employeeId && la.Status == "Approved" && !la.IgnoreSandwichRule && d >= la.StartDate && d <= la.EndDate && la.DayType == "Full Day");
+            }
+
+            bool b1 = await IsLeaveAsync(dayBefore1);
+            bool b2 = b1 && await IsLeaveAsync(dayBefore2);
+
+            bool a1 = await IsLeaveAsync(dayAfter1);
+            bool a2 = a1 && await IsLeaveAsync(dayAfter2);
+
+            if (b2 || a2 || (b1 && a1))
+            {
+                bool alreadyCovered = await _db.LeaveApplications.AnyAsync(la => 
+                    la.EmployeeId == employeeId && la.Status == "Approved" && date >= la.StartDate && date <= la.EndDate);
+                
+                if (alreadyCovered) continue;
+                
+                var workedOnWeekoff = await _db.AttendanceLogs.AnyAsync(l => 
+                    l.EmployeeId == employeeId && l.PunchTime >= date.ToDateTime(TimeOnly.MinValue) && l.PunchTime < date.AddDays(1).ToDateTime(TimeOnly.MinValue));
+                
+                if (!workedOnWeekoff) count++;
+            }
+        }
+        
+        return count;
     }
 }

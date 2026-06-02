@@ -1,0 +1,68 @@
+@page
+@model AttendanceUI.Pages.Reports.EmployeeLeaveReportModel
+@{
+    ViewData["Title"] = "Employee-wise Leave Report";
+}
+
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-header bg-white pt-4 pb-0 border-bottom-0">
+        <h5 class="fw-bold text-dark mb-0"><i class="bi bi-file-earmark-bar-graph text-primary me-2"></i>Employee-wise Leave Report</h5>
+        <p class="text-muted small">View total paid and unpaid leaves taken by employees within a date range.</p>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end mb-4">
+            <div class="col-md-4">
+                <label class="form-label text-muted small fw-bold">Start Date</label>
+                <input type="date" asp-for="StartDate" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small fw-bold">End Date</label>
+                <input type="date" asp-for="EndDate" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-filter me-1"></i> Filter</button>
+                <a asp-page="./EmployeeLeaveReport" class="btn btn-light ms-2">Reset</a>
+            </div>
+        </form>
+
+        @if (Model.ReportData.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle">
+                    <thead class="table-light text-muted small fw-bold uppercase">
+                        <tr>
+                            <th>Employee Name</th>
+                            <th>Department</th>
+                            <th class="text-center">Total Paid Leaves</th>
+                            <th class="text-center">Total Unpaid (LWP)</th>
+                            <th>Breakdown (Leave Types)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.ReportData)
+                        {
+                            <tr>
+                                <td class="fw-semibold">
+                                    <a asp-page="./EmployeeLeaveDetail" asp-route-id="@row.EmployeeId" asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")" asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")" class="text-decoration-none text-primary">
+                                        @row.EmployeeName <i class="bi bi-box-arrow-up-right ms-1 small"></i>
+                                    </a>
+                                </td>
+                                <td><span class="badge bg-secondary">@row.Department</span></td>
+                                <td class="text-center text-success fw-bold">@row.TotalPaidLeaves.ToString("0.##")</td>
+                                <td class="text-center text-danger fw-bold">@row.TotalUnpaidLeaves.ToString("0.##")</td>
+                                <td>@row.Breakdown</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info border-0 shadow-sm d-flex align-items-center">
+                <i class="bi bi-info-circle fs-4 me-3"></i>
+                <div>No leave data found for the selected date range.</div>
+            </div>
+        }
+    </div>
+</div>

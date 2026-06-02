@@ -849,13 +849,15 @@ public class AttendanceProcessorService
             }
         }
 
+        // 7. Monthly Penalties (Dynamic based on Shift limits)
+        await ApplyMonthlyPenaltiesAsync(emp, existingRecord, currentShift);
+
         // Weekoff + early exit / major late (half day) → W/OHF
         // Unworked half stays as W/O credit — employee must never get LESS payable for showing up on weekoff
         if (roster.IsWeekOff && existingRecord.IsHalfDay && existingRecord.Status == "Half Day")
+        {
             existingRecord.Status = "W/OHF";
-
-        // 7. Monthly Penalties (Dynamic based on Shift limits)
-        await ApplyMonthlyPenaltiesAsync(emp, existingRecord, currentShift);
+        }
     }
 
     private async Task ApplyMonthlyPenaltiesAsync(Employee emp, DailyAttendance currentRecord, Shift shift)

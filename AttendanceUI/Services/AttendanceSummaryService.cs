@@ -72,144 +72,7 @@ public class AttendanceSummaryService
         for (int day = 1; day <= daysInMonth; day++)
         {
             var date = new DateOnly(year, month, day);
-            var log = allLogs.FirstOrDefault(l => l.EmployeeId == employeeId && l.RecordDate == date);
-
-            if (log == null) continue;
-
-            // Find the active approved leave application for this day
-            var activeApp = allLeaveApps.FirstOrDefault(la =>
-                la.EmployeeId == employeeId &&
-                la.StartDate <= date && la.EndDate >= date &&
-                la.Status == "Approved");
-
-            // ── Holiday takes absolute priority ──────────────────────────────────
-            // If the DB record is a Holiday, always count it as HolidayCount
-            // regardless of any leave application that may exist on the same date.
-            // (Holiday is already paid — leave balance was never deducted for it.)
-            if (log.Status == "Holiday")
-            {
-                result.HolidayCount += 1.0m;
-                continue;
-            }
-
-            // ── Half-Day records (COHF, PHF, SHF, HF etc.) ──────────────────────
-            if (log.IsHalfDay || (log.Status != null && log.Status.EndsWith("HF")))
-            {
-                if (activeApp == null) result.HalfDayCount++;
-
-                // Did the employee work the other half?
-                if (log.InTime != null)
-                    result.PresentCount += 0.5m;
-                else
-                {
-                    result.UnpaidLeaveCount += 0.5m;
-                    AddLop(date, 0.5m);
-                }
-
-                // Classify the leave half
-                bool isCompOff = (activeApp?.LeaveType?.Code == "CO") ||
-                                 (log.Status == "COHF") ||
-                                 (activeApp?.LeaveType?.Code?.Replace(".", "").Trim().ToUpper().StartsWith("CO") == true);
-
-                if (isCompOff)
-                {
-                    result.WeekoffCount += 0.5m;          // CO credit — no LOP
-                }
-                else if (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid)
-                {
-                    result.UnpaidLeaveCount += 0.5m;
-                    AddLop(date, 0.5m);
-                }
-                else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
-                {
-                    result.LeaveCount += 0.5m;            // Paid leave — no LOP
-                    AddLeave(activeApp.LeaveType.Code, 0.5m);
-                }
-                else
-                {
-                    // No leave app — fall back to status string
-                    if (log.Status == "W/OHF")
-                    {
-                        result.WeekoffCount += 0.5m; // Unworked half of weekoff = W/O credit (no LOP)
-                    }
-                    else if (log.Status?.StartsWith("SL") == true ||
-                        log.Status?.StartsWith("PL") == true ||
-                        log.Status?.Contains("Leave") == true)
-                    {
-                        result.LeaveCount += 0.5m;
-                        // Extract code from status (e.g., "PL" from "PLS")
-                        string code = log.Status?.Substring(0, 2) ?? "Leave";
-                        AddLeave(code, 0.5m);
-                    }
-                    else
-                    {
-                        result.UnpaidLeaveCount += 0.5m;
-                        AddLop(date, 0.5m);
-                    }
-                }
-            }
-            // ── Present / worked on weekoff ───────────────────────────────────────
-            else if (log.Status == "Present" || log.Status == "W/OP" ||
-                     log.Status == "Present (W/O)" || log.Status == "Present (WO)" ||
-                     log.Status == "Present (Leave)" || log.Status == "COP")
-            {
-                result.PresentCount += 1.0m;
-            }
-            // ── Absent ───────────────────────────────────────────────────────────
-            else if (log.Status == "Absent")
-            {
-                result.AbsentCount += 1.0m;
-                AddLop(date, 1.0m);
-            }
-            // ── Week Off / Comp Off full day ──────────────────────────────────────
-            else if (log.Status == "Weekoff" || log.Status == "W/O" ||
-                     log.Status == "WO" || log.Status == "CO")
-            {
-                result.WeekoffCount += 1.0m;
-            }
-            // ── Holiday ──────────────────────────────────────────────────────────
-            else if (log.Status == "Holiday")
-            {
-                result.HolidayCount += 1.0m;
-            }
-            // ── Leave (full day) ─────────────────────────────────────────────────
-            else if (activeApp != null ||
-                     log.Status == "Leave" || log.Status == "LWP" ||
-                     log.Status?.Contains("Leave") == true ||
-                     log.Status?.StartsWith("PL") == true ||
-                     log.Status?.StartsWith("SL") == true ||
-                     log.Status?.StartsWith("CL") == true ||
-                     log.Status?.StartsWith("ML") == true)
-            {
-                if (activeApp?.LeaveType?.Code == "CO")
-                {
-                    result.WeekoffCount += 1.0m;          // CO credit — no LOP
-                }
-                else if (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid)
-                {
-                    result.UnpaidLeaveCount += 1.0m;
-                    AddLop(date, 1.0m);
-                }
-                else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
-                {
-                    result.LeaveCount += 1.0m;
-                    AddLeave(activeApp.LeaveType.Code, 1.0m);
-                }
-                else
-                {
-                    if (log.Status == "LWP")
-                    {
-                        result.UnpaidLeaveCount += 1.0m;
-                        AddLop(date, 1.0m);
-                    }
-                    else
-                    {
-                        result.LeaveCount += 1.0m;
-                        string code = log.Status?.Length >= 2 ? log.Status.Substring(0, 2) : "Leave";
-                        AddLeave(code, 1.0m);
-                    }
-                }
-            }
+            ProcessDay(date, employeeId, allLogs, allLeaveApps, result, AddLop, AddLeave);
         }
 
         result.PayableDays = result.PresentCount + result.WeekoffCount +
@@ -217,6 +80,190 @@ public class AttendanceSummaryService
         result.LopBreakdown = lopBreakdown;
 
         return result;
+    }
+
+    public AttendanceSummaryResult ComputeSummaryForRange(
+        int employeeId,
+        DateOnly startDate,
+        DateOnly endDate,
+        List<DailyAttendance> allLogs,
+        List<LeaveApplication> allLeaveApps)
+    {
+        int totalDays = endDate.DayNumber - startDate.DayNumber + 1;
+        var result = new AttendanceSummaryResult { TotalDays = totalDays };
+        var lopBreakdown = new Dictionary<DateOnly, decimal>();
+
+        void AddLop(DateOnly date, decimal amount)
+        {
+            lopBreakdown[date] = lopBreakdown.GetValueOrDefault(date) + amount;
+        }
+
+        void AddLeave(string? code, decimal amount)
+        {
+            string key = string.IsNullOrWhiteSpace(code) ? "Leave" : code;
+            result.LeaveTypeCounts[key] = result.LeaveTypeCounts.GetValueOrDefault(key) + amount;
+        }
+
+        for (int i = 0; i < totalDays; i++)
+        {
+            var date = startDate.AddDays(i);
+            ProcessDay(date, employeeId, allLogs, allLeaveApps, result, AddLop, AddLeave);
+        }
+
+        result.PayableDays = result.PresentCount + result.WeekoffCount +
+                             result.HolidayCount + result.LeaveCount;
+        result.LopBreakdown = lopBreakdown;
+
+        return result;
+    }
+
+    private void ProcessDay(
+        DateOnly date,
+        int employeeId,
+        List<DailyAttendance> allLogs,
+        List<LeaveApplication> allLeaveApps,
+        AttendanceSummaryResult result,
+        Action<DateOnly, decimal> AddLop,
+        Action<string?, decimal> AddLeave)
+    {
+        var log = allLogs.FirstOrDefault(l => l.EmployeeId == employeeId && l.RecordDate == date);
+
+        if (log == null) return;
+
+        // Find the active approved leave application for this day
+        var activeApp = allLeaveApps.FirstOrDefault(la =>
+            la.EmployeeId == employeeId &&
+            la.StartDate <= date && la.EndDate >= date &&
+            la.Status == "Approved");
+
+        // ── Holiday takes absolute priority ──────────────────────────────────
+        // If the DB record is a Holiday, always count it as HolidayCount
+        // regardless of any leave application that may exist on the same date.
+        // (Holiday is already paid — leave balance was never deducted for it.)
+        if (log.Status == "Holiday")
+        {
+            result.HolidayCount += 1.0m;
+            return;
+        }
+
+        // ── Half-Day records (COHF, PHF, SHF, HF etc.) ──────────────────────
+        if (log.IsHalfDay || (log.Status != null && log.Status.EndsWith("HF")))
+        {
+            if (activeApp == null) result.HalfDayCount++;
+
+            // Did the employee work the other half?
+            if (log.InTime != null)
+                result.PresentCount += 0.5m;
+            else
+            {
+                result.UnpaidLeaveCount += 0.5m;
+                AddLop(date, 0.5m);
+            }
+
+            // Classify the leave half
+            bool isCompOff = (activeApp?.LeaveType?.Code == "CO") ||
+                             (log.Status == "COHF") ||
+                             (activeApp?.LeaveType?.Code?.Replace(".", "").Trim().ToUpper().StartsWith("CO") == true);
+
+            if (isCompOff)
+            {
+                result.WeekoffCount += 0.5m;          // CO credit — no LOP
+            }
+            else if (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid)
+            {
+                result.UnpaidLeaveCount += 0.5m;
+                AddLop(date, 0.5m);
+            }
+            else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
+            {
+                result.LeaveCount += 0.5m;            // Paid leave — no LOP
+                AddLeave(activeApp.LeaveType.Code, 0.5m);
+            }
+            else
+            {
+                // No leave app — fall back to status string
+                if (log.Status == "W/OHF")
+                {
+                    result.WeekoffCount += 0.5m; // Unworked half of weekoff = W/O credit (no LOP)
+                }
+                else if (log.Status?.StartsWith("SL") == true ||
+                    log.Status?.StartsWith("PL") == true ||
+                    log.Status?.Contains("Leave") == true)
+                {
+                    result.LeaveCount += 0.5m;
+                    // Extract code from status (e.g., "PL" from "PLS")
+                    string code = log.Status?.Substring(0, 2) ?? "Leave";
+                    AddLeave(code, 0.5m);
+                }
+                else
+                {
+                    result.UnpaidLeaveCount += 0.5m;
+                    AddLop(date, 0.5m);
+                }
+            }
+        }
+        // ── Present / worked on weekoff ───────────────────────────────────────
+        else if (log.Status == "Present" || log.Status == "W/OP" ||
+                 log.Status == "Present (W/O)" || log.Status == "Present (WO)" ||
+                 log.Status == "Present (Leave)" || log.Status == "COP")
+        {
+            result.PresentCount += 1.0m;
+        }
+        // ── Absent ───────────────────────────────────────────────────────────
+        else if (log.Status == "Absent")
+        {
+            result.AbsentCount += 1.0m;
+            AddLop(date, 1.0m);
+        }
+        // ── Week Off / Comp Off full day ──────────────────────────────────────
+        else if (log.Status == "Weekoff" || log.Status == "W/O" ||
+                 log.Status == "WO" || log.Status == "CO")
+        {
+            result.WeekoffCount += 1.0m;
+        }
+        // ── Holiday ──────────────────────────────────────────────────────────
+        else if (log.Status == "Holiday")
+        {
+            result.HolidayCount += 1.0m;
+        }
+        // ── Leave (full day) ─────────────────────────────────────────────────
+        else if (activeApp != null ||
+                 log.Status == "Leave" || log.Status == "LWP" ||
+                 log.Status?.Contains("Leave") == true ||
+                 log.Status?.StartsWith("PL") == true ||
+                 log.Status?.StartsWith("SL") == true ||
+                 log.Status?.StartsWith("CL") == true ||
+                 log.Status?.StartsWith("ML") == true)
+        {
+            if (activeApp?.LeaveType?.Code == "CO")
+            {
+                result.WeekoffCount += 1.0m;          // CO credit — no LOP
+            }
+            else if (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid)
+            {
+                result.UnpaidLeaveCount += 1.0m;
+                AddLop(date, 1.0m);
+            }
+            else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
+            {
+                result.LeaveCount += 1.0m;
+                AddLeave(activeApp.LeaveType.Code, 1.0m);
+            }
+            else
+            {
+                if (log.Status == "LWP")
+                {
+                    result.UnpaidLeaveCount += 1.0m;
+                    AddLop(date, 1.0m);
+                }
+                else
+                {
+                    result.LeaveCount += 1.0m;
+                    string code = log.Status?.Length >= 2 ? log.Status.Substring(0, 2) : "Leave";
+                    AddLeave(code, 1.0m);
+                }
+            }
+        }
     }
 }
 

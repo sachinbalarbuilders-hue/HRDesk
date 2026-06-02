@@ -25,13 +25,44 @@ namespace AttendanceUI.Pages.Regularizations
 
         public IList<AttendanceRegularization> RegularizationRequests { get;set; } = default!;
 
+        [BindProperty(SupportsGet = true)]
+        public int PageNumber { get; set; } = 1;
+
+        [BindProperty(SupportsGet = true)]
+        public int PageSize { get; set; } = 50;
+
+        [BindProperty(SupportsGet = true)]
+        public string? SearchTerm { get; set; }
+
+        public int TotalCount { get; set; }
+        public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
+
         public async Task OnGetAsync()
         {
             if (_context.AttendanceRegularizations != null)
             {
-                RegularizationRequests = await _context.AttendanceRegularizations
+                var query = _context.AttendanceRegularizations
                     .Include(a => a.Employee)
+                    .AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(SearchTerm))
+                {
+                    var searchLower = SearchTerm.ToLower();
+                    query = query.Where(r => 
+                        (r.Employee != null && r.Employee.EmployeeName.ToLower().Contains(searchLower)) ||
+                        (r.ApplicationNumber != null && r.ApplicationNumber.ToLower().Contains(searchLower)) ||
+                        (r.Reason != null && r.Reason.ToLower().Contains(searchLower))
+                    );
+                }
+
+                TotalCount = await query.CountAsync();
+
+                if (PageNumber < 1) PageNumber = 1;
+
+                RegularizationRequests = await query
                     .OrderByDescending(r => r.CreatedAt)
+                    .Skip((PageNumber - 1) * PageSize)
+                    .Take(PageSize)
                     .ToListAsync();
             }
         }
