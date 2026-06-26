@@ -104,6 +104,10 @@
                             <tbody>
                                 @foreach (var item in bundle.Deductions)
                                 {
+                                    if ((item.ComponentName == "Provident Fund" || item.ComponentName == "ESIC") && item.Amount == 0)
+                                    {
+                                        continue;
+                                    }
                                     <tr>
                                         <td class="ps-2 py-0">@item.ComponentName</td>
                                         <td class="pe-2 py-0 text-end">@item.Amount.ToString("N2")</td>

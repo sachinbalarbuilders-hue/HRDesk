@@ -160,15 +160,7 @@ namespace AttendanceUI.Pages.Payroll
 
             foreach (var emp in employees)
             {
-                // Correct Gross Salary Logic: Only sum Earning components
-                var salaryStructure = await _context.EmployeeSalaryStructures
-                    .Include(s => s.SalaryComponent)
-                    .Where(s => s.EmployeeId == emp.EmployeeId && s.IsActive)
-                    .ToListAsync();
-
-                var grossSalary = salaryStructure
-                    .Where(s => s.SalaryComponent?.ComponentType == "Earning")
-                    .Sum(s => s.Amount);
+                var grossSalary = await _payrollService.GetGrossSalaryAsync(emp.EmployeeId, TargetProcessMonth);
 
                 var alreadyProcessed = PayrollRecords.FirstOrDefault(p => p.EmployeeId == emp.EmployeeId);
                 var adjustments = new List<ManualAdjustment>();
