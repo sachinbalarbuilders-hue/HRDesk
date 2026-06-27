@@ -54,8 +54,11 @@
                     <dt class="col-sm-5 text-muted">Per Month</dt>
                     <dd class="col-sm-7">₹@loan.InstallmentAmount.ToString("N0")</dd>
 
-                    <dt class="col-sm-5 text-muted">Start Date</dt>
-                    <dd class="col-sm-7">@loan.StartDate.ToString("dd MMM yyyy")</dd>
+                    <dt class="col-sm-5 text-muted">App Date</dt>
+                    <dd class="col-sm-7">@loan.ApplicationDate.ToString("dd MMM yyyy")</dd>
+
+                    <dt class="col-sm-5 text-muted">Start Month</dt>
+                    <dd class="col-sm-7">@loan.StartDate.ToString("MMM yyyy")</dd>
 
                     <dt class="col-sm-5 text-muted">Status</dt>
                     <dd class="col-sm-7"><span class="badge @statusClass">@loan.Status.ToUpper()</span></dd>

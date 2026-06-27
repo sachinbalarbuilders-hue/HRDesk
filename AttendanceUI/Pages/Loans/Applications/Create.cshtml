@@ -45,10 +45,15 @@
                 </div>
 
                 <div class="form-group mb-3">
-                    <label asp-for="LoanApplication.StartDate" class="control-label">Start Date</label>
-                    <input asp-for="LoanApplication.StartDate" class="form-control" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                    <span asp-validation-for="LoanApplication.StartDate" class="text-danger"></span>
-                    <small class="text-muted">For new loans: when deductions start. For ongoing: original start date.</small>
+                    <label asp-for="LoanApplication.ApplicationDate" class="control-label">Application Date</label>
+                    <input asp-for="LoanApplication.ApplicationDate" class="form-control" type="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    <span asp-validation-for="LoanApplication.ApplicationDate" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="StartMonth" class="control-label">Start Month</label>
+                    <input asp-for="StartMonth" class="form-control" type="month" />
+                    <span asp-validation-for="StartMonth" class="text-danger"></span>
                 </div>
 
                 <!-- Migration Support (NEW) -->

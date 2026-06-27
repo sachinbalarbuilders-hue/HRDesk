@@ -34,12 +34,13 @@
                 <thead>
                     <tr>
                         <th class="ps-4">App #</th>
+                        <th>App Date</th>
                         <th>Employee</th>
                         <th>Loan Type</th>
                         <th>Amount</th>
                         <th>Installments</th>
                         <th>Remaining</th>
-                        <th>Start Date</th>
+                        <th>Start Month</th>
                         <th>Status</th>
                         <th class="text-end pe-4">Actions</th>
                     </tr>
@@ -67,6 +68,7 @@
                                 }
                                 else { <span class="text-muted">—</span> }
                             </td>
+                            <td>@item.ApplicationDate.ToString("dd MMM yyyy")</td>
                             <td class="fw-semibold">@item.Employee?.EmployeeName</td>
                             <td><span class="badge text-bg-secondary">@item.LoanType?.TypeName</span></td>
                             <td class="fw-bold">₹@item.LoanAmount.ToString("N0")</td>
@@ -82,7 +84,7 @@
                                 }
                                 else { <span class="text-muted">—</span> }
                             </td>
-                            <td class="text-muted">@item.StartDate.ToString("dd MMM yyyy")</td>
+                            <td class="text-muted">@item.StartDate.ToString("MMM yyyy")</td>
                             <td><span class="badge @statusClass">@item.Status.ToUpper()</span></td>
                             <td class="text-end pe-4">
                                 <div class="d-flex gap-1 justify-content-end">

@@ -30,7 +30,7 @@ namespace AttendanceUI.Pages.Loans.Applications
             LoanApplications = await _context.EmployeeLoans
                 .Include(l => l.Employee)
                 .Include(l => l.LoanType)
-                .OrderByDescending(l => l.CreatedAt)
+                .OrderByDescending(l => l.ApplicationDate)
                 .ToListAsync();
         }
 

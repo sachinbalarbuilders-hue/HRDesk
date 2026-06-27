@@ -24,6 +24,9 @@ namespace AttendanceUI.Pages.Loans.Applications
         [BindProperty]
         public EmployeeLoan LoanApplication { get; set; } = default!;
 
+        [BindProperty]
+        public string StartMonth { get; set; } = DateTime.Today.ToString("yyyy-MM");
+
         public async Task<IActionResult> OnGetAsync()
         {
             ViewData["EmployeeId"] = new SelectList(await _context.Employees.Where(e => e.Status == "active").ToListAsync(), "EmployeeId", "EmployeeName");
@@ -33,6 +36,12 @@ namespace AttendanceUI.Pages.Loans.Applications
 
         public async Task<IActionResult> OnPostAsync()
         {
+            if (DateOnly.TryParseExact(StartMonth + "-01", "yyyy-MM-dd", out var parsedDate))
+            {
+                LoanApplication.StartDate = parsedDate;
+                ModelState.Remove("LoanApplication.StartDate");
+            }
+
             if (!ModelState.IsValid)
             {
                 ViewData["EmployeeId"] = new SelectList(await _context.Employees.Where(e => e.Status == "active").ToListAsync(), "EmployeeId", "EmployeeName");

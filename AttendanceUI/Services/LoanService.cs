@@ -101,7 +101,7 @@ public class LoanService
 
         if (loan != null)
         {
-            var paidInstallments = loan.LoanInstallments.Where(i => i.Status == "Paid").ToList();
+            var paidInstallments = loan.LoanInstallments.Where(i => i.Status == "Paid" || i.Status == "Settled").ToList();
             
             loan.RemainingAmount = loan.LoanAmount - paidInstallments.Sum(i => i.PaidAmount);
             loan.RemainingInstallments = loan.Installments - paidInstallments.Count;
@@ -205,8 +205,8 @@ public class LoanService
         if (loan == null)
             throw new ArgumentException("Loan not found");
 
-        // Safety check: Don't delete if any installment is paid or linked to payroll
-        if (loan.LoanInstallments.Any(i => i.Status == "Paid" || i.PayrollId != null))
+        // Prevent deletion if any installment has been processed or settled
+        if (loan.LoanInstallments.Any(i => i.Status == "Paid" || i.Status == "Settled" || i.PayrollId != null))
         {
             throw new InvalidOperationException("Cannot delete loan because one or more installments are already paid or processed in payroll.");
         }

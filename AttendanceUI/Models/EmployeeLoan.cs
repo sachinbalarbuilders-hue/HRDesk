@@ -65,6 +65,9 @@ public class EmployeeLoan
     [StringLength(500)]
     public string? ForeclosureRemark { get; set; }
 
+    [Column("application_date")]
+    public DateOnly ApplicationDate { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
