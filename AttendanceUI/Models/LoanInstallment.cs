@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AttendanceUI.Models;
 
-public class LoanInstallment
+public class LoanInstallment : IMustHaveTenant
 {
     [Key]
     [Column("id")]
@@ -45,4 +45,10 @@ public class LoanInstallment
 
     // Navigation property
     public EmployeeLoan? EmployeeLoan { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

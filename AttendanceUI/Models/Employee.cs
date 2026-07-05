@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AttendanceUI.Models;
 
-public sealed class Employee
+public sealed class Employee : IMustHaveTenant
 {
     public int EmployeeId { get; set; }
 
@@ -44,4 +44,10 @@ public sealed class Employee
     [Column("device_sync_error")]
     public string? DeviceSyncError { get; set; }
 
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

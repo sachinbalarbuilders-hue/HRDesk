@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AttendanceUI.Models;
 
 [Table("leave_allocations")]
-public class LeaveAllocation
+public class LeaveAllocation : IMustHaveTenant
 {
     [Key]
     [Column("id")]
@@ -39,4 +39,10 @@ public class LeaveAllocation
 
     public Employee? Employee { get; set; }
     public LeaveType? LeaveType { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

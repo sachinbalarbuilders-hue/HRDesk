@@ -71,6 +71,7 @@ public class LoginModel : PageModel
                     new Claim(ClaimTypes.Name, user.Username),
                     new Claim(ClaimTypes.GivenName, user.FullName ?? user.Username),
                     new Claim(ClaimTypes.Role, user.Role),
+                    new Claim("OrganizationId", user.OrganizationId.ToString())
                 };
 
                 var claimsIdentity = new ClaimsIdentity(

@@ -5,10 +5,17 @@ namespace AttendanceUI.Data;
 
 public sealed class BiometricAttendanceDbContext : DbContext
 {
-    public BiometricAttendanceDbContext(DbContextOptions<BiometricAttendanceDbContext> options)
+    private readonly AttendanceUI.Services.ICurrentTenantProvider _tenantProvider;
+
+    public BiometricAttendanceDbContext(
+        DbContextOptions<BiometricAttendanceDbContext> options,
+        AttendanceUI.Services.ICurrentTenantProvider tenantProvider = null)
         : base(options)
     {
+        _tenantProvider = tenantProvider;
     }
+
+    public DbSet<Organization> Organizations => Set<Organization>();
 
     public DbSet<AttendanceLog> AttendanceLogs => Set<AttendanceLog>();
 
@@ -66,6 +73,21 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        if (_tenantProvider != null)
+        {
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                if (typeof(IMustHaveTenant).IsAssignableFrom(entityType.ClrType))
+                {
+                    var method = typeof(BiometricAttendanceDbContext)
+                        .GetMethod(nameof(SetGlobalQueryFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?
+                        .MakeGenericMethod(entityType.ClrType);
+                    
+                    method?.Invoke(this, new object[] { modelBuilder });
+                }
+            }
+        }
+
         modelBuilder.Entity<ApplicationSequence>(entity =>
         {
             entity.HasKey(e => new { e.Year, e.Month });
@@ -393,5 +415,38 @@ public sealed class BiometricAttendanceDbContext : DbContext
         });
 
         base.OnModelCreating(modelBuilder);
+    }
+
+    private void SetGlobalQueryFilter<T>(ModelBuilder builder) where T : class, IMustHaveTenant
+    {
+        builder.Entity<T>().HasQueryFilter(e => e.OrganizationId == _tenantProvider.TenantId);
+    }
+
+    public override int SaveChanges()
+    {
+        ApplyTenantId();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyTenantId();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplyTenantId()
+    {
+        if (_tenantProvider == null) return;
+        
+        foreach (var entry in ChangeTracker.Entries<IMustHaveTenant>().ToList())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                case EntityState.Modified:
+                    entry.Entity.OrganizationId = _tenantProvider.TenantId;
+                    break;
+            }
+        }
     }
 }

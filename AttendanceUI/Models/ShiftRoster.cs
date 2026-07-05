@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AttendanceUI.Models;
 
 [Table("shift_roster")]
-public class ShiftRoster
+public class ShiftRoster : IMustHaveTenant
 {
     [Key]
     [Column("id")]
@@ -32,4 +32,10 @@ public class ShiftRoster
     // Navigation
     public Employee? Employee { get; set; }
     public Shift? Shift { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

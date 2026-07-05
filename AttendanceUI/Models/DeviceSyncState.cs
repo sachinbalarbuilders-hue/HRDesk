@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AttendanceUI.Models;
 
 [Table("device_sync_state")]
-public class DeviceSyncState
+public class DeviceSyncState : IMustHaveTenant
 {
     [Key]
     [Column("device_id")]
@@ -24,4 +24,10 @@ public class DeviceSyncState
 
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

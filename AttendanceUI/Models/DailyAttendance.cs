@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AttendanceUI.Models;
 
 [Table("daily_attendance")]
-public sealed class DailyAttendance
+public sealed class DailyAttendance : IMustHaveTenant
 {
     [Key]
     [Column("id")]
@@ -74,4 +74,10 @@ public sealed class DailyAttendance
 
     [ForeignKey("ShiftId")]
     public Shift? Shift { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

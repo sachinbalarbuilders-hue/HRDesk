@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AttendanceUI.Models;
 
 [Table("leave_types")]
-public class LeaveType
+public class LeaveType : IMustHaveTenant
 {
     [Key]
     [Column("id")]
@@ -45,4 +45,10 @@ public class LeaveType
     public string BackgroundColor { get; set; } = "transparent";
 
     public ICollection<LeaveTypeEligibility> EligibleEmployees { get; set; } = new List<LeaveTypeEligibility>();
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

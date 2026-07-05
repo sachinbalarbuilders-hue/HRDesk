@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AttendanceUI.Models;
 
-public class DeviceConfiguration
+public class DeviceConfiguration : IMustHaveTenant
 {
     [Key]
     public int Id { get; set; }
@@ -23,4 +23,10 @@ public class DeviceConfiguration
     public int MachineNumber { get; set; } = 1;
 
     public int? CommKey { get; set; } = 0;
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

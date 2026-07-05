@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AttendanceUI.Models;
 
-public class PayrollMaster
+public class PayrollMaster : IMustHaveTenant
 {
     [Key]
     [Column("id")]
@@ -88,4 +88,10 @@ public class PayrollMaster
     // Navigation properties
     public Employee? Employee { get; set; }
     public ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

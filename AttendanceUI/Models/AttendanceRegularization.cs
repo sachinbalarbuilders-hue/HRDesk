@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AttendanceUI.Models;
 
 [Table("attendance_regularizations")]
-public class AttendanceRegularization
+public class AttendanceRegularization : IMustHaveTenant
 {
     [Key]
     [Column("id")]
@@ -56,4 +56,10 @@ public class AttendanceRegularization
 
     [ForeignKey("EmployeeId")]
     public Employee? Employee { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

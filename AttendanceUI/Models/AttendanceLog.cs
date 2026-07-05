@@ -1,6 +1,6 @@
 namespace AttendanceUI.Models;
 
-public sealed class AttendanceLog
+public sealed class AttendanceLog : IMustHaveTenant
 {
     public long Id { get; set; }
 
@@ -19,4 +19,10 @@ public sealed class AttendanceLog
     public DateTime? CreatedAt { get; set; }
 
     public Employee? Employee { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

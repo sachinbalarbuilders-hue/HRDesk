@@ -26,6 +26,10 @@ builder.Services.AddRazorPages(options =>
 }).AddRazorRuntimeCompilation();
 builder.Services.AddControllers();
 
+// Add HttpContextAccessor and Tenant Provider
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AttendanceUI.Services.ICurrentTenantProvider, AttendanceUI.Services.CurrentTenantProvider>();
+
 // Configure Authentication: Primary is Cookies for the Web Portal
 builder.Services.AddAuthentication(options =>
 {
@@ -142,6 +146,18 @@ using (var scope = app.Services.CreateScope())
         try { db.Database.ExecuteSqlRaw("ALTER TABLE `leave_type_eligibility` ADD CONSTRAINT `fk_lte_type_rel_v1` FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types` (`id`) ON DELETE CASCADE;"); } catch { }
     } catch { }
     
+    if (!db.Organizations.Any())
+    {
+        db.Organizations.Add(new AttendanceUI.Models.Organization
+        {
+            Id = 1,
+            Name = "Default Organization",
+            IsActive = true,
+            CreatedAt = DateTime.Now
+        });
+        db.SaveChanges();
+    }
+
     if (!db.Users.Any())
     {
         db.Users.Add(new AttendanceUI.Models.User
@@ -151,7 +167,8 @@ using (var scope = app.Services.CreateScope())
             FullName = "Administrator",
             Role = "Admin",
             IsActive = true,
-            CreatedAt = DateTime.Now
+            CreatedAt = DateTime.Now,
+            OrganizationId = 1
         });
         db.SaveChanges();
     }

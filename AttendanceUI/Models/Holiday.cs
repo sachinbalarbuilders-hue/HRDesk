@@ -1,6 +1,6 @@
 namespace AttendanceUI.Models;
 
-public sealed class Holiday
+public sealed class Holiday : IMustHaveTenant
 {
     public int Id { get; set; }
 
@@ -14,4 +14,10 @@ public sealed class Holiday
     public bool IsGlobal { get; set; } = true;
 
     public ICollection<HolidayEmployee>? EligibleEmployees { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AttendanceUI.Models;
 
-public class SalaryComponent
+public class SalaryComponent : IMustHaveTenant
 {
     [Key]
     [Column("id")]
@@ -33,4 +33,10 @@ public class SalaryComponent
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

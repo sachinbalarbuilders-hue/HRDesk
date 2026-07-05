@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AttendanceUI.Models;
 
-public class User
+public class User : IMustHaveTenant
 {
     [Key]
     [Column("id")]
@@ -36,4 +36,10 @@ public class User
 
     [Column("last_login")]
     public DateTime? LastLogin { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

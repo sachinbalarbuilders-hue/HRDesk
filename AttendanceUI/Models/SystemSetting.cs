@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AttendanceUI.Models;
 
 [Table("system_settings")]
-public class SystemSetting
+public class SystemSetting : IMustHaveTenant
 {
     [Key]
     public int Id { get; set; }
@@ -24,4 +24,10 @@ public class SystemSetting
 
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AttendanceUI.Models;
 
-public sealed class Shift
+public sealed class Shift : IMustHaveTenant
 {
     public int Id { get; set; }
 
@@ -40,4 +40,10 @@ public sealed class Shift
     public decimal WorkingHours { get; set; }
 
     public string? Status { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+

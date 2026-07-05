@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace AttendanceUI.Models;
 
 [Table("comp_off_requests")]
-public class CompOffRequest
+public class CompOffRequest : IMustHaveTenant
 {
     [Key]
     [Column("id")]
@@ -62,4 +62,10 @@ public class CompOffRequest
 
     [ForeignKey("ShiftId")]
     public Shift? Shift { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    public int OrganizationId { get; set; }
+
+    public Organization? Organization { get; set; }
 }
+
