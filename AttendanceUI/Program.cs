@@ -77,6 +77,16 @@ builder.Services.AddScoped<AttendanceUI.Services.AttendanceSummaryService>(); //
 builder.Services.AddScoped<AttendanceUI.Services.PayrollService>();
 builder.Services.AddScoped<AttendanceUI.Services.CompOffService>();
 builder.Services.AddScoped<AttendanceUI.Services.LeaveAdjustmentService>();
+builder.Services.AddScoped<AttendanceUI.Services.ImageGenerationService>();
+builder.Services.AddHostedService<AttendanceUI.Services.CelebrationNotificationService>();
+
+// Register WhatsApp Services
+builder.Services.AddHttpClient<AttendanceUI.Services.Notifications.IWhatsAppProvider, AttendanceUI.Services.Notifications.NodeJsWhatsAppProvider>(client => 
+{
+    // Point this to the local Node.js microservice
+    client.BaseAddress = new Uri("http://localhost:3000");
+});
+builder.Services.AddScoped<AttendanceUI.Services.Notifications.WhatsAppNotificationService>();
 
 var app = builder.Build();
 
@@ -90,6 +100,20 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+var photoPath = builder.Configuration.GetValue<string>("EmployeePhotoPath");
+if (!string.IsNullOrWhiteSpace(photoPath))
+{
+    if (!System.IO.Directory.Exists(photoPath))
+    {
+        System.IO.Directory.CreateDirectory(photoPath);
+    }
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(photoPath),
+        RequestPath = "/EmployeePhotos"
+    });
+}
 
 app.UseRouting();
 

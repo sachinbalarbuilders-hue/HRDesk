@@ -36,7 +36,7 @@ public sealed class Employee
 
     public Designation? Designation { get; set; }
 
-
+    public string? PhotoPath { get; set; }
 
     [Column("device_synced")]
     public int DeviceSynced { get; set; } // 0 = not in machine, 1 = in machine

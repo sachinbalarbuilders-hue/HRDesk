@@ -1,0 +1,6 @@
+2026/07/05-15:10:58.910 1058 Reusing MANIFEST C:\Users\Admin\HRDesk\WhatsAppService\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
+2026/07/05-15:10:58.917 1058 Recovering log #10
+2026/07/05-15:10:58.920 1058 Reusing old log C:\Users\Admin\HRDesk\WhatsAppService\.wwebjs_auth\session\Default\Local Storage\leveldb/000010.log 
+2026/07/05-15:11:11.217 5274 Level-0 table #14: started
+2026/07/05-15:11:11.545 5274 Level-0 table #14: 11254 bytes OK
+2026/07/05-15:11:11.757 5274 Delete type=0 #10

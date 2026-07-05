@@ -518,6 +518,9 @@ namespace AttendanceUI.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("phone");
 
+                    b.Property<string>("PhotoPath")
+                        .HasColumnType("longtext");
+
                     b.Property<DateOnly?>("ProbationEnd")
                         .HasColumnType("date")
                         .HasColumnName("probation_end");

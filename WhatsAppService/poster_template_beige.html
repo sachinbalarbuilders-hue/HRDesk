@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Great+Vibes&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 1080px; height: 1080px;
+            background-color: #cec4b2; /* Beige background */
+            position: relative;
+            overflow: hidden;
+        }
+
+        #poster {
+            width: 100%; height: 100%;
+            position: relative;
+            background-color: #cec4b2;
+            box-sizing: border-box;
+        }
+
+        /* Top-Left Decor */
+        .decor-blob {
+            position: absolute;
+            top: 0px; left: 230px;
+            width: 130px; height: 150px;
+            background-color: #3b4249;
+            border-bottom-left-radius: 65px;
+            border-bottom-right-radius: 65px;
+            z-index: 2;
+        }
+        
+        .decor-triangles {
+            position: absolute;
+            top: 0px; left: 230px;
+            width: 130px; height: 180px;
+            z-index: 3;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><polygon points="10,0 20,20 0,20" fill="rgba(255,255,255,0.4)"/></svg>');
+            background-size: 20px 20px;
+        }
+
+        /* Right Photo Container */
+        .photo-container {
+            position: absolute;
+            right: 0px; 
+            top: 220px;
+            width: 440px; 
+            height: 700px;
+            background-color: white;
+            border-top-left-radius: 70px;
+            border-bottom-left-radius: 70px;
+            padding: 12px 0px 12px 12px; /* White border */
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        .photo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-top-left-radius: 58px;
+            border-bottom-left-radius: 58px;
+            display: block;
+        }
+
+        /* Left Content Area */
+        .left-content {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 640px; /* Span to the photo container */
+            height: 1080px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+
+        /* Embellishments */
+        .embellishment {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 35px 0;
+            width: 100%;
+        }
+        
+        .embellishment svg {
+            width: 350px;
+            height: 35px;
+        }
+
+        /* Typography */
+        .text-happy {
+            font-family: 'Great Vibes', cursive;
+            font-size: 110px;
+            color: #111;
+            margin: 0;
+            line-height: 1;
+            margin-bottom: -15px;
+            text-align: center;
+        }
+
+        .text-birthday {
+            font-family: 'Playfair Display', serif;
+            font-size: 100px;
+            font-weight: 900;
+            color: #000;
+            margin: 0;
+            line-height: 1.1;
+            letter-spacing: 2px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        /* Name Band Container */
+        .name-band-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 45px 0;
+        }
+
+        .white-line {
+            width: 100%;
+            height: 20px;
+            background-color: white;
+        }
+
+        .name-band {
+            background-color: #f0ebe1;
+            width: 100%;
+            padding: 30px 0;
+            text-align: center;
+        }
+
+        .text-name {
+            font-family: 'Great Vibes', cursive;
+            font-size: 100px;
+            color: #111;
+            margin: 0;
+            line-height: 1;
+        }
+
+        /* Message */
+        .text-message {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 24px;
+            font-weight: 500;
+            color: #1a1a1a;
+            text-align: center;
+            max-width: 480px;
+            line-height: 1.5;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="poster">
+        
+        <!-- Top Left Decor -->
+        <div class="decor-blob"></div>
+        <div class="decor-triangles"></div>
+
+        <!-- Left Content -->
+        <div class="left-content">
+            <!-- Top Embellishment -->
+            <div class="embellishment">
+                <svg viewBox="0 0 350 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M175 0 C175 12, 165 17.5, 155 17.5 C165 17.5, 175 23, 175 35 C175 23, 185 17.5, 195 17.5 C185 17.5, 175 12, 175 0 Z" fill="white"/>
+                    <path d="M40 7 C40 12, 35 17.5, 30 17.5 C35 17.5, 40 23, 40 28 C40 23, 45 17.5, 50 17.5 C45 17.5, 40 12, 40 7 Z" fill="white"/>
+                    <path d="M310 7 C310 12, 305 17.5, 300 17.5 C305 17.5, 310 23, 310 28 C310 23, 315 17.5, 320 17.5 C315 17.5, 310 12, 310 7 Z" fill="white"/>
+                    <line x1="50" y1="17.5" x2="155" y2="17.5" stroke="white" stroke-width="4"/>
+                    <line x1="195" y1="17.5" x2="300" y2="17.5" stroke="white" stroke-width="4"/>
+                </svg>
+            </div>
+
+            <div class="text-happy">Happy</div>
+            <div class="text-birthday">BIRTHDAY</div>
+
+            <div class="name-band-container">
+                <div class="white-line"></div>
+                <div class="name-band">
+                    <div class="text-name">{{EMPLOYEE_NAME}}</div>
+                </div>
+                <div class="white-line"></div>
+            </div>
+
+            <div class="text-message">
+                Many Many Happy returns of the day, Our entire Setu Developers family wishes you a very Happy Birthday & Wishes you best on your special day!
+            </div>
+
+            <!-- Bottom Embellishment -->
+            <div class="embellishment">
+                <svg viewBox="0 0 350 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M175 0 C175 12, 165 17.5, 155 17.5 C165 17.5, 175 23, 175 35 C175 23, 185 17.5, 195 17.5 C185 17.5, 175 12, 175 0 Z" fill="white"/>
+                    <path d="M40 7 C40 12, 35 17.5, 30 17.5 C35 17.5, 40 23, 40 28 C40 23, 45 17.5, 50 17.5 C45 17.5, 40 12, 40 7 Z" fill="white"/>
+                    <path d="M310 7 C310 12, 305 17.5, 300 17.5 C305 17.5, 310 23, 310 28 C310 23, 315 17.5, 320 17.5 C315 17.5, 310 12, 310 7 Z" fill="white"/>
+                    <line x1="50" y1="17.5" x2="155" y2="17.5" stroke="white" stroke-width="4"/>
+                    <line x1="195" y1="17.5" x2="300" y2="17.5" stroke="white" stroke-width="4"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Right Photo -->
+        <div class="photo-container">
+            <img src="{{PHOTO_BASE64}}" alt="Employee Photo">
+        </div>
+
+    </div>
+</body>
+</html>

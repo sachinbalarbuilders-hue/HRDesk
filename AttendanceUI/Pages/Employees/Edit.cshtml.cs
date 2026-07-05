@@ -6,16 +6,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Http;
 
 namespace AttendanceUI.Pages.Employees;
 
 public sealed class EditModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly IConfiguration _configuration;
 
-    public EditModel(BiometricAttendanceDbContext db)
+    public EditModel(BiometricAttendanceDbContext db, IConfiguration configuration)
     {
         _db = db;
+        _configuration = configuration;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -23,6 +27,8 @@ public sealed class EditModel : PageModel
 
     [BindProperty]
     public EmployeeForm Input { get; set; } = new();
+
+    public string? CurrentPhotoPath { get; set; }
 
     public SelectList DepartmentOptions { get; private set; } = default!;
 
@@ -45,8 +51,6 @@ public sealed class EditModel : PageModel
             return NotFound();
         }
 
-
-
         Input = new EmployeeForm
         {
             EmployeeName = employee.EmployeeName,
@@ -60,6 +64,7 @@ public sealed class EditModel : PageModel
             Phone = employee.Phone,
             Status = employee.Status
         };
+        CurrentPhotoPath = employee.PhotoPath;
 
         return Page();
     }
@@ -98,6 +103,28 @@ public sealed class EditModel : PageModel
         employee.ProbationEnd = Input.ProbationEnd;
         employee.Phone = string.IsNullOrWhiteSpace(Input.Phone) ? null : Input.Phone.Trim();
         employee.Status = Input.Status;
+
+        if (Input.PhotoUpload != null && Input.PhotoUpload.Length > 0)
+        {
+            var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
+            if (!string.IsNullOrEmpty(photoDir))
+            {
+                if (!System.IO.Directory.Exists(photoDir))
+                    System.IO.Directory.CreateDirectory(photoDir);
+                
+                var ext = System.IO.Path.GetExtension(Input.PhotoUpload.FileName);
+                var fileName = $"{employee.EmployeeId}_{Guid.NewGuid()}{ext}";
+                var filePath = System.IO.Path.Combine(photoDir, fileName);
+                
+                using (var stream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
+                {
+                    await Input.PhotoUpload.CopyToAsync(stream);
+                }
+                
+                // Note: Not deleting old photo to keep history/backups
+                employee.PhotoPath = fileName;
+            }
+        }
 
         await _db.SaveChangesAsync();
         return RedirectToPage("./Index");
@@ -181,6 +208,9 @@ public sealed class EditModel : PageModel
 
         [Display(Name = "Date of Birth")]
         public DateOnly? DateOfBirth { get; set; }
+
+        [Display(Name = "Employee Photo")]
+        public IFormFile? PhotoUpload { get; set; }
 
         [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits.")]
         [StringLength(10)]

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Pacifico&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 1080px; height: 1080px;
+            background-color: #e6ebed;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #poster {
+            width: 100%; height: 100%;
+            position: relative;
+            background-color: #e6ebed;
+            overflow: hidden;
+        }
+
+        /* Center Light Blue-Gray Rectangle */
+        .bg-rect {
+            position: absolute;
+            top: 230px; left: 220px;
+            width: 440px; height: 460px;
+            background-color: #c4d0d8;
+            z-index: 1;
+        }
+
+        /* Typography */
+        .header-text {
+            position: absolute;
+            top: 60px; left: 130px;
+            z-index: 10;
+            color: #40454d;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 125px;
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: -3px;
+        }
+
+        /* Polaroids */
+        .polaroid-back {
+            position: absolute;
+            width: 460px; height: 530px;
+            top: 350px; left: 375px;
+            transform: rotate(4deg);
+            z-index: 5;
+            background: #fbfbfb;
+            box-sizing: border-box;
+            padding: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+            border: 1px solid #e2e2e2;
+        }
+        
+        .polaroid-back .photo-area {
+            width: 100%; height: 100%;
+            background: repeating-linear-gradient(90deg, #d3dadf, #d3dadf 4px, #e2e7ea 4px, #e2e7ea 8px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Curved top for the curtain effect in back polaroid */
+        .polaroid-back .curtain-arch {
+            position: absolute;
+            top: -30px; left: 50%;
+            transform: translateX(-50%);
+            width: 85%; height: 220px;
+            background: #e6ebed;
+            border-radius: 50%;
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.05);
+        }
+
+        .polaroid-front {
+            position: absolute;
+            width: 460px; height: 560px;
+            top: 420px; left: 290px;
+            transform: rotate(0deg);
+            z-index: 20;
+            background: #fdfdfd;
+            box-sizing: border-box;
+            padding: 16px 16px 95px 16px;
+            box-shadow: -8px 20px 45px rgba(0,0,0,0.15);
+            border: 1px solid #e8e8e8;
+        }
+
+        .polaroid-front .photo-area {
+            width: 100%; height: 100%;
+            background-color: #d2d0c2;
+            overflow: hidden;
+        }
+
+        .polaroid-front .photo-area img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+
+        .polaroid-front .name-text {
+            position: absolute;
+            bottom: 22px; left: 0; width: 100%;
+            text-align: center;
+            font-family: 'Pacifico', cursive;
+            font-size: 48px;
+            color: #3b424b;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="poster">
+        <!-- SVG Definitions for Triangles -->
+        <svg width="0" height="0">
+            <defs>
+                <pattern id="triangles-light" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+                    <polygon points="11,4 20,18 2,18" fill="#cbd4d9" />
+                </pattern>
+                <pattern id="triangles-white" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+                    <polygon points="11,4 20,18 2,18" fill="#ffffff" />
+                </pattern>
+                <pattern id="triangles-dark" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+                    <polygon points="11,4 20,18 2,18" fill="#b1bcc3" />
+                </pattern>
+            </defs>
+        </svg>
+
+        <!-- Background Rectangle -->
+        <div class="bg-rect"></div>
+
+        <!-- Top Left Corner Decor -->
+        <svg style="position: absolute; top: 0; left: 130px; z-index: 2;" width="250" height="200">
+            <circle cx="60" cy="0" r="75" fill="#3e434b"/>
+            <!-- Triangle grid overlapping the circle -->
+            <rect x="55" y="10" width="88" height="88" fill="url(#triangles-light)"/>
+            <rect x="55" y="10" width="44" height="44" fill="url(#triangles-white)"/>
+        </svg>
+
+        <!-- Bottom Left Corner Decor -->
+        <svg style="position: absolute; bottom: 0; left: 0; z-index: 2;" width="300" height="300">
+            <!-- Floating dark triangles -->
+            <rect x="22" y="70" width="88" height="88" fill="url(#triangles-dark)"/>
+            <!-- Large dark circle at bottom edge -->
+            <circle cx="120" cy="300" r="105" fill="#3e434b"/>
+            <!-- White triangles overlay -->
+            <rect x="44" y="212" width="88" height="88" fill="url(#triangles-white)"/>
+        </svg>
+
+        <!-- Typography -->
+        <div class="header-text">
+            Happy<br>Birthday!
+        </div>
+
+        <!-- Polaroids -->
+        <div class="polaroid-back">
+            <div class="photo-area">
+                <div class="curtain-arch"></div>
+            </div>
+        </div>
+
+        <div class="polaroid-front">
+            <div class="photo-area">
+                <img src="{{PHOTO_BASE64}}" alt="Employee" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII='"/>
+            </div>
+            <div class="name-text">{{EMPLOYEE_NAME}}</div>
+        </div>
+    </div>
+</body>
+</html>

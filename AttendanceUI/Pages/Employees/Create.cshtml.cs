@@ -6,16 +6,20 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Http;
 
 namespace AttendanceUI.Pages.Employees;
 
 public sealed class CreateModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly IConfiguration _configuration;
 
-    public CreateModel(BiometricAttendanceDbContext db)
+    public CreateModel(BiometricAttendanceDbContext db, IConfiguration configuration)
     {
         _db = db;
+        _configuration = configuration;
     }
 
     [BindProperty]
@@ -69,10 +73,29 @@ public sealed class CreateModel : PageModel
             Status = Input.Status
         };
 
+        if (Input.PhotoUpload != null && Input.PhotoUpload.Length > 0)
+        {
+            var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
+            if (!string.IsNullOrEmpty(photoDir))
+            {
+                if (!System.IO.Directory.Exists(photoDir))
+                    System.IO.Directory.CreateDirectory(photoDir);
+                
+                var ext = System.IO.Path.GetExtension(Input.PhotoUpload.FileName);
+                var fileName = $"{employee.EmployeeId}_{Guid.NewGuid()}{ext}";
+                var filePath = System.IO.Path.Combine(photoDir, fileName);
+                
+                using (var stream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
+                {
+                    await Input.PhotoUpload.CopyToAsync(stream);
+                }
+                
+                employee.PhotoPath = fileName;
+            }
+        }
+
         _db.Employees.Add(employee);
         await _db.SaveChangesAsync();
-
-
 
         return RedirectToPage("./Index");
     }
@@ -137,6 +160,9 @@ public sealed class CreateModel : PageModel
 
         [Display(Name = "Date of Birth")]
         public DateOnly? DateOfBirth { get; set; }
+
+        [Display(Name = "Employee Photo")]
+        public IFormFile? PhotoUpload { get; set; }
 
         [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits.")]
         [StringLength(10)]
