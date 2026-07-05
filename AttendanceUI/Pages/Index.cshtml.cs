@@ -77,7 +77,7 @@ public class IndexModel : PageModel
         var todayDt = DateTime.Today;
         foreach (var emp in allActiveEmployees)
         {
-            if (emp.DateOfBirth.HasValue)
+            if (emp.DateOfBirth.HasValue && emp.DateOfBirth.Value.Year > 1900)
             {
                 var dob = emp.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue);
                 var nextBday = GetNextOccurrence(dob, todayDt);
@@ -87,25 +87,28 @@ public class IndexModel : PageModel
                 {
                     EmployeeName = emp.EmployeeName,
                     Initials = GetInitials(emp.EmployeeName),
+                    PhotoPath = emp.PhotoPath,
                     Type = "Birthday",
                     CelebrationDate = nextBday,
                     DaysLeft = daysLeft
                 });
             }
 
-            if (emp.JoiningDate.HasValue)
+            if (emp.JoiningDate.HasValue && emp.JoiningDate.Value.Year > 1900)
             {
                 var doj = emp.JoiningDate.Value.ToDateTime(TimeOnly.MinValue);
                 var nextAnniversary = GetNextOccurrence(doj, todayDt);
                 if (nextAnniversary.Year > doj.Year)
                 {
+                    int years = nextAnniversary.Year - doj.Year;
                     var daysLeft = (nextAnniversary - todayDt).Days;
                     
                     Celebrations.Add(new CelebrationViewModel
                     {
                         EmployeeName = emp.EmployeeName,
                         Initials = GetInitials(emp.EmployeeName),
-                        Type = "Work Anniversary",
+                        PhotoPath = emp.PhotoPath,
+                        Type = $"{years}{GetOrdinalSuffix(years)} Work Anniversary",
                         CelebrationDate = nextAnniversary,
                         DaysLeft = daysLeft
                     });
@@ -141,6 +144,25 @@ public class IndexModel : PageModel
         return (parts[0].Substring(0, 1) + parts[^1].Substring(0, 1)).ToUpper();
     }
 
+    private string GetOrdinalSuffix(int num)
+    {
+        if (num <= 0) return "";
+        switch (num % 100)
+        {
+            case 11:
+            case 12:
+            case 13:
+                return "th";
+        }
+        switch (num % 10)
+        {
+            case 1: return "st";
+            case 2: return "nd";
+            case 3: return "rd";
+            default: return "th";
+        }
+    }
+
     private string DetermineStatusClass(DateTime lastSync)
     {
         if (lastSync == default) return "status-unknown";
@@ -174,6 +196,7 @@ public class IndexModel : PageModel
     {
         public string EmployeeName { get; set; } = "";
         public string Initials { get; set; } = "";
+        public string? PhotoPath { get; set; }
         public string Type { get; set; } = ""; 
         public DateTime CelebrationDate { get; set; }
         public int DaysLeft { get; set; }

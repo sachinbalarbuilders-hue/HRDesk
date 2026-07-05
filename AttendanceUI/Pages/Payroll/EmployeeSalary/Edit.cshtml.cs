@@ -56,7 +56,7 @@ namespace AttendanceUI.Pages.Payroll.EmployeeSalary
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
-            var employee = await _context.Employees.FindAsync(id);
+            var employee = await _context.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id);
             if (employee == null)
                 return NotFound();
 
@@ -182,3 +182,4 @@ namespace AttendanceUI.Pages.Payroll.EmployeeSalary
         }
     }
 }
+

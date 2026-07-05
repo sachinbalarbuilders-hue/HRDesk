@@ -28,7 +28,7 @@ namespace AttendanceUI.Services
 
         public async Task<decimal> CalculateLeaveDaysAsync(int employeeId, DateOnly startDate, DateOnly endDate, string dayType, bool ignoreSandwich)
         {
-            var emp = await _db.Employees.FindAsync(employeeId);
+            var emp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
             if (emp == null) return 0;
 
             decimal workDaysCount = 0;
@@ -332,3 +332,4 @@ namespace AttendanceUI.Services
         }
     }
 }
+

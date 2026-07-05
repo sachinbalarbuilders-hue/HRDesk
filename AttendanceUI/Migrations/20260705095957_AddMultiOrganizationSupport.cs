@@ -17,203 +17,203 @@ namespace AttendanceUI.Migrations
                 table: "users",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "system_settings",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "shifts",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "shift_roster",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "salary_components",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "payroll_master",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "payroll_details",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "loan_types",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "loan_installments",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "leave_types",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "leave_type_eligibility",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "leave_applications",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "leave_allocations",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "holidays",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "holiday_employees",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "employees",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "employee_shift_assignments",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "employee_salary_structure",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "employee_loans",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "DeviceConfigurations",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "device_sync_state",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "designations",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "departments",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "daily_attendance",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "comp_off_requests",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "comp_off_credits",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "attendance_regularizations",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "attendance_logs",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.AddColumn<int>(
                 name: "organization_id",
                 table: "application_sequences",
                 type: "int",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: 1);
 
             migrationBuilder.CreateTable(
                 name: "Organizations",
@@ -232,7 +232,7 @@ namespace AttendanceUI.Migrations
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
-            migrationBuilder.Sql("INSERT INTO Organizations (id, name, is_active, created_at) VALUES (0, 'Default Organization', 1, NOW());");
+            migrationBuilder.Sql("INSERT INTO Organizations (id, name, is_active, created_at) VALUES (1, 'Default Organization', 1, NOW());");
 
             migrationBuilder.CreateIndex(
                 name: "IX_users_organization_id",

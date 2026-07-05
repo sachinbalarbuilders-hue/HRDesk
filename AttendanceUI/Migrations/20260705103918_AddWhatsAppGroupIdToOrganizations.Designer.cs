@@ -3,6 +3,7 @@ using System;
 using AttendanceUI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AttendanceUI.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260705103918_AddWhatsAppGroupIdToOrganizations")]
+    partial class AddWhatsAppGroupIdToOrganizations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -92,13 +95,13 @@ namespace AttendanceUI.Migrations
                     b.HasIndex("EmployeeId")
                         .HasDatabaseName("idx_employee_id");
 
+                    b.HasIndex("OrganizationId");
+
                     b.HasIndex("PunchTime")
                         .HasDatabaseName("idx_punch_time");
 
                     b.HasIndex("SyncedAt")
                         .HasDatabaseName("idx_synced_at");
-
-                    b.HasIndex("OrganizationId", "EmployeeId");
 
                     b.ToTable("attendance_logs", (string)null);
                 });
@@ -169,7 +172,9 @@ namespace AttendanceUI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("attendance_regularizations");
                 });
@@ -206,7 +211,9 @@ namespace AttendanceUI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("comp_off_credits");
                 });
@@ -284,9 +291,11 @@ namespace AttendanceUI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ShiftId");
+                    b.HasIndex("EmployeeId");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ShiftId");
 
                     b.ToTable("comp_off_requests");
                 });
@@ -382,6 +391,8 @@ namespace AttendanceUI.Migrations
                     b.HasIndex("EmployeeId")
                         .HasDatabaseName("idx_daily_att_employee_id");
 
+                    b.HasIndex("OrganizationId");
+
                     b.HasIndex("RecordDate")
                         .HasDatabaseName("idx_daily_att_record_date");
 
@@ -390,8 +401,6 @@ namespace AttendanceUI.Migrations
                     b.HasIndex("EmployeeId", "RecordDate")
                         .IsUnique()
                         .HasDatabaseName("idx_daily_att_emp_date");
-
-                    b.HasIndex("OrganizationId", "EmployeeId");
 
                     b.ToTable("daily_attendance", (string)null);
                 });
@@ -528,11 +537,8 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.Employee", b =>
                 {
-                    b.Property<int>("OrganizationId")
-                        .HasColumnType("int")
-                        .HasColumnName("organization_id");
-
                     b.Property<int>("EmployeeId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("employee_id");
 
@@ -571,6 +577,10 @@ namespace AttendanceUI.Migrations
                         .HasColumnType("date")
                         .HasColumnName("LastWorkingDate");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int")
+                        .HasColumnName("organization_id");
+
                     b.Property<string>("Phone")
                         .HasColumnType("longtext")
                         .HasColumnName("phone");
@@ -598,11 +608,13 @@ namespace AttendanceUI.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("weekoff");
 
-                    b.HasKey("OrganizationId", "EmployeeId");
+                    b.HasKey("EmployeeId");
 
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("DesignationId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("employees", (string)null);
                 });
@@ -693,9 +705,11 @@ namespace AttendanceUI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EmployeeId");
+
                     b.HasIndex("LoanTypeId");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("employee_loans", (string)null);
                 });
@@ -743,7 +757,9 @@ namespace AttendanceUI.Migrations
 
                     b.HasIndex("ComponentId");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("employee_salary_structure", (string)null);
                 });
@@ -781,9 +797,11 @@ namespace AttendanceUI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ShiftId");
+                    b.HasIndex("EmployeeId");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ShiftId");
 
                     b.ToTable("employee_shift_assignments");
                 });
@@ -831,10 +849,6 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.HolidayEmployee", b =>
                 {
-                    b.Property<int>("OrganizationId")
-                        .HasColumnType("int")
-                        .HasColumnName("organization_id");
-
                     b.Property<int>("HolidayId")
                         .HasColumnType("int")
                         .HasColumnName("holiday_id");
@@ -843,11 +857,15 @@ namespace AttendanceUI.Migrations
                         .HasColumnType("int")
                         .HasColumnName("employee_id");
 
-                    b.HasKey("OrganizationId", "HolidayId", "EmployeeId");
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int")
+                        .HasColumnName("organization_id");
 
-                    b.HasIndex("HolidayId");
+                    b.HasKey("HolidayId", "EmployeeId");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("holiday_employees", (string)null);
                 });
@@ -893,9 +911,11 @@ namespace AttendanceUI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EmployeeId");
+
                     b.HasIndex("LeaveTypeId");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("leave_allocations", (string)null);
                 });
@@ -964,9 +984,11 @@ namespace AttendanceUI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EmployeeId");
+
                     b.HasIndex("LeaveTypeId");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("leave_applications", (string)null);
                 });
@@ -1038,10 +1060,6 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.LeaveTypeEligibility", b =>
                 {
-                    b.Property<int>("OrganizationId")
-                        .HasColumnType("int")
-                        .HasColumnName("organization_id");
-
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int")
                         .HasColumnName("employee_id");
@@ -1050,9 +1068,15 @@ namespace AttendanceUI.Migrations
                         .HasColumnType("int")
                         .HasColumnName("leave_type_id");
 
-                    b.HasKey("OrganizationId", "EmployeeId", "LeaveTypeId");
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int")
+                        .HasColumnName("organization_id");
+
+                    b.HasKey("EmployeeId", "LeaveTypeId");
 
                     b.HasIndex("LeaveTypeId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("leave_type_eligibility", (string)null);
                 });
@@ -1348,7 +1372,9 @@ namespace AttendanceUI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("payroll_master", (string)null);
                 });
@@ -1528,9 +1554,11 @@ namespace AttendanceUI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ShiftId");
+                    b.HasIndex("EmployeeId");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ShiftId");
 
                     b.ToTable("shift_roster");
                 });
@@ -1641,15 +1669,15 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.AttendanceLog", b =>
                 {
-                    b.HasOne("AttendanceUI.Models.Organization", "Organization")
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("OrganizationId")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                    b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1660,15 +1688,15 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.AttendanceRegularization", b =>
                 {
-                    b.HasOne("AttendanceUI.Models.Organization", "Organization")
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("OrganizationId")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                    b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1679,15 +1707,15 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.CompOffCredit", b =>
                 {
-                    b.HasOne("AttendanceUI.Models.Organization", "Organization")
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("OrganizationId")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                    b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1698,6 +1726,12 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.CompOffRequest", b =>
                 {
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
@@ -1708,12 +1742,6 @@ namespace AttendanceUI.Migrations
                         .WithMany()
                         .HasForeignKey("ShiftId");
 
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Employee");
 
                     b.Navigation("Organization");
@@ -1723,6 +1751,12 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.DailyAttendance", b =>
                 {
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
@@ -1733,12 +1767,6 @@ namespace AttendanceUI.Migrations
                         .WithMany()
                         .HasForeignKey("ShiftId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("Employee");
 
@@ -1818,6 +1846,12 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.EmployeeLoan", b =>
                 {
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AttendanceUI.Models.LoanType", "LoanType")
                         .WithMany()
                         .HasForeignKey("LoanTypeId")
@@ -1827,12 +1861,6 @@ namespace AttendanceUI.Migrations
                     b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1851,15 +1879,15 @@ namespace AttendanceUI.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AttendanceUI.Models.Organization", "Organization")
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("OrganizationId")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                    b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1872,6 +1900,12 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.EmployeeShiftAssignment", b =>
                 {
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
@@ -1881,12 +1915,6 @@ namespace AttendanceUI.Migrations
                     b.HasOne("AttendanceUI.Models.Shift", "Shift")
                         .WithMany()
                         .HasForeignKey("ShiftId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1910,6 +1938,12 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.HolidayEmployee", b =>
                 {
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AttendanceUI.Models.Holiday", "Holiday")
                         .WithMany("EligibleEmployees")
                         .HasForeignKey("HolidayId")
@@ -1922,12 +1956,6 @@ namespace AttendanceUI.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Employee");
 
                     b.Navigation("Holiday");
@@ -1937,6 +1965,12 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.LeaveAllocation", b =>
                 {
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AttendanceUI.Models.LeaveType", "LeaveType")
                         .WithMany()
                         .HasForeignKey("LeaveTypeId")
@@ -1946,12 +1980,6 @@ namespace AttendanceUI.Migrations
                     b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1964,6 +1992,12 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.LeaveApplication", b =>
                 {
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AttendanceUI.Models.LeaveType", "LeaveType")
                         .WithMany()
                         .HasForeignKey("LeaveTypeId")
@@ -1973,12 +2007,6 @@ namespace AttendanceUI.Migrations
                     b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2002,6 +2030,12 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.LeaveTypeEligibility", b =>
                 {
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AttendanceUI.Models.LeaveType", "LeaveType")
                         .WithMany("EligibleEmployees")
                         .HasForeignKey("LeaveTypeId")
@@ -2011,12 +2045,6 @@ namespace AttendanceUI.Migrations
                     b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2085,15 +2113,15 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.PayrollMaster", b =>
                 {
-                    b.HasOne("AttendanceUI.Models.Organization", "Organization")
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("OrganizationId")
+                        .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                    b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2126,6 +2154,12 @@ namespace AttendanceUI.Migrations
 
             modelBuilder.Entity("AttendanceUI.Models.ShiftRoster", b =>
                 {
+                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AttendanceUI.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
@@ -2135,12 +2169,6 @@ namespace AttendanceUI.Migrations
                     b.HasOne("AttendanceUI.Models.Shift", "Shift")
                         .WithMany()
                         .HasForeignKey("ShiftId");
-
-                    b.HasOne("AttendanceUI.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("Employee");
 

@@ -136,7 +136,7 @@ public class IndexModel : PageModel
         // 1. It has NO explicit assignments (General leave type)
         // 2. OR it is explicitly assigned to this employee
         
-        var emp = await _db.Employees.FindAsync(employeeId);
+        var emp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
         DateOnly checkDate = DateOnly.FromDateTime(DateTime.Today);
         if (!string.IsNullOrEmpty(date) && DateOnly.TryParse(date, out var parsedDate))
         {
@@ -164,7 +164,7 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnGetCheckSandwichAsync(int employeeId, DateOnly startDate, DateOnly endDate, string dayType = "Full Day")
     {
-        var emp = await _db.Employees.FindAsync(employeeId);
+        var emp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
         if (emp == null || string.IsNullOrWhiteSpace(emp.Weekoff)) 
         {
             return new JsonResult(new { isSandwich = false, message = "" });
@@ -251,7 +251,7 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostAddAsync()
     {
-        var emp = await _db.Employees.FindAsync(NewApplication.EmployeeId);
+        var emp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == NewApplication.EmployeeId);
         var type = await _db.LeaveTypes.FindAsync(NewApplication.LeaveTypeId);
 
         if (emp == null || type == null)
@@ -745,7 +745,7 @@ public class IndexModel : PageModel
     {
         if (ignoreSandwichRule || dayType != "Full Day") return 0;
         
-        var emp = await _db.Employees.FindAsync(employeeId);
+        var emp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
         if (emp == null || string.IsNullOrWhiteSpace(emp.Weekoff)) return 0;
         
         string weekoffDay = emp.Weekoff.Trim();
@@ -791,3 +791,4 @@ public class IndexModel : PageModel
         return count;
     }
 }
+

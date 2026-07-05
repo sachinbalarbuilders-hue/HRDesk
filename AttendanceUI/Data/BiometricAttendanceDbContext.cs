@@ -114,7 +114,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
             entity.HasOne(e => e.Employee)
                 .WithMany()
-                .HasForeignKey(e => e.EmployeeId)
+                .HasForeignKey(e => new { e.OrganizationId, e.EmployeeId })
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -151,7 +151,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
             entity.HasOne(e => e.Employee)
                 .WithMany()
-                .HasForeignKey(e => e.EmployeeId)
+                .HasForeignKey(e => new { e.OrganizationId, e.EmployeeId })
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Shift)
@@ -216,7 +216,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
         modelBuilder.Entity<HolidayEmployee>(entity =>
         {
             entity.ToTable("holiday_employees");
-            entity.HasKey(e => new { e.HolidayId, e.EmployeeId });
+            entity.HasKey(e => new { e.OrganizationId, e.HolidayId, e.EmployeeId });
             
             entity.Property(e => e.HolidayId).HasColumnName("holiday_id");
             entity.Property(e => e.EmployeeId).HasColumnName("employee_id");
@@ -228,7 +228,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
             entity.HasOne(e => e.Employee)
                 .WithMany()
-                .HasForeignKey(e => e.EmployeeId)
+                .HasForeignKey(e => new { e.OrganizationId, e.EmployeeId })
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -258,7 +258,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
             entity.Property(e => e.UsedCount).HasColumnName("used_count");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
 
-            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => e.EmployeeId);
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
             entity.HasOne(e => e.LeaveType).WithMany().HasForeignKey(e => e.LeaveTypeId);
         });
 
@@ -279,14 +279,14 @@ public sealed class BiometricAttendanceDbContext : DbContext
             entity.Property(e => e.IgnoreSandwichRule).HasColumnName("ignore_sandwich_rule");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 
-            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => e.EmployeeId);
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
             entity.HasOne(e => e.LeaveType).WithMany().HasForeignKey(e => e.LeaveTypeId);
         });
 
         modelBuilder.Entity<Employee>(entity =>
         {
             entity.ToTable("employees");
-            entity.HasKey(e => e.EmployeeId);
+            entity.HasKey(e => new { e.OrganizationId, e.EmployeeId });
 
             entity.Property(e => e.EmployeeId).HasColumnName("employee_id");
             entity.Property(e => e.EmployeeName).HasColumnName("employee_name");
@@ -337,7 +337,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
             
             entity.HasOne(e => e.Employee)
                 .WithMany()
-                .HasForeignKey(e => e.EmployeeId)
+                .HasForeignKey(e => new { e.OrganizationId, e.EmployeeId })
                 .OnDelete(DeleteBehavior.Cascade);
             
             entity.HasOne(e => e.LoanType)
@@ -366,7 +366,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
             
             entity.HasOne(e => e.Employee)
                 .WithMany()
-                .HasForeignKey(e => e.EmployeeId)
+                .HasForeignKey(e => new { e.OrganizationId, e.EmployeeId })
                 .OnDelete(DeleteBehavior.Cascade);
             
             entity.HasOne(e => e.SalaryComponent)
@@ -380,7 +380,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
             
             entity.HasOne(p => p.Employee)
                 .WithMany()
-                .HasForeignKey(p => p.EmployeeId)
+                .HasForeignKey(p => new { p.OrganizationId, p.EmployeeId })
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -402,9 +402,9 @@ public sealed class BiometricAttendanceDbContext : DbContext
         modelBuilder.Entity<LeaveTypeEligibility>(entity =>
         {
             entity.ToTable("leave_type_eligibility");
-            entity.HasKey(e => new { e.EmployeeId, e.LeaveTypeId });
+            entity.HasKey(e => new { e.OrganizationId, e.EmployeeId, e.LeaveTypeId });
             
-            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => e.EmployeeId);
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
             entity.HasOne(e => e.LeaveType).WithMany(lt => lt.EligibleEmployees).HasForeignKey(e => e.LeaveTypeId);
         });
 
@@ -414,6 +414,34 @@ public sealed class BiometricAttendanceDbContext : DbContext
             entity.HasIndex(u => u.Username).IsUnique();
         });
 
+                modelBuilder.Entity<AttendanceRegularization>(entity =>
+        {
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
+        });
+
+        modelBuilder.Entity<CompOffRequest>(entity =>
+        {
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
+        });
+
+        modelBuilder.Entity<EmployeeShiftAssignment>(entity =>
+        {
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
+        });
+
+        modelBuilder.Entity<ShiftRoster>(entity =>
+        {
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
+        });
+                modelBuilder.Entity<CompOffCredit>(entity =>
+        {
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
+        });
+
+        modelBuilder.Entity<AttendanceLog>(entity =>
+        {
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
+        });
         base.OnModelCreating(modelBuilder);
     }
 
@@ -450,3 +478,6 @@ public sealed class BiometricAttendanceDbContext : DbContext
         }
     }
 }
+
+
+

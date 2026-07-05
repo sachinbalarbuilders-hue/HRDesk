@@ -20,4 +20,9 @@ public class Organization
 
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    [Column("whatsapp_group_id")]
+    [StringLength(100)]
+    [Display(Name = "WhatsApp Group ID")]
+    public string? WhatsAppGroupId { get; set; }
 }

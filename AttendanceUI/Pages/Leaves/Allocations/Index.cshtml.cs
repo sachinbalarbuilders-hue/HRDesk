@@ -283,7 +283,7 @@ public class IndexModel : PageModel
 
     public async Task<JsonResult> OnGetCalculateProRata(int employeeId, decimal yearlyQuota, int year)
     {
-        var emp = await _db.Employees.FindAsync(employeeId);
+        var emp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
         if (emp == null || !emp.ProbationEnd.HasValue)
         {
             return new JsonResult(new { success = false, message = "Employee not found or no probation date set." });
@@ -300,3 +300,4 @@ public class IndexModel : PageModel
         return new JsonResult(new { success = true, quota = lt.DefaultYearlyQuota });
     }
 }
+

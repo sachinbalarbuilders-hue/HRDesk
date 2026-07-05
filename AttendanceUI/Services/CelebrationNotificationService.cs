@@ -31,23 +31,14 @@ namespace AttendanceUI.Services
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Celebration Notification Service is starting.");
-            // For testing: Run immediately once on startup
-            try
-            {
-                await ProcessCelebrationsAsync(DateTime.Now.Date);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing celebrations on startup.");
-            }
 
             // Run check every minute to catch the exact time
             while (!stoppingToken.IsCancellationRequested)
             {
                 var now = DateTime.Now;
                 
-                // Trigger exactly at 10:51 AM for testing
-                if (now.Hour == 10 && now.Minute == 51)
+                // Trigger exactly at 10:30 AM every day
+                if (now.Hour == 10 && now.Minute == 30)
                 {
                     try
                     {
@@ -74,26 +65,37 @@ namespace AttendanceUI.Services
             var db = scope.ServiceProvider.GetRequiredService<BiometricAttendanceDbContext>();
             var whatsappProvider = scope.ServiceProvider.GetRequiredService<IWhatsAppProvider>();
 
-            var groupId = _configuration.GetValue<string>("CelebrationWhatsAppGroupId");
-            if (string.IsNullOrEmpty(groupId))
-            {
-                _logger.LogWarning("CelebrationWhatsAppGroupId is not configured. Skipping celebrations.");
-                return;
-            }
-
-            // Get active employees
+            // Get all active employees across all organizations, bypassing tenant filters for the background service
             var employees = await db.Employees
+                .IgnoreQueryFilters()
+                .Include(e => e.Organization)
                 .Where(e => e.Status == "active")
                 .ToListAsync();
 
             foreach (var employee in employees)
             {
+                // Fetch the Group ID from the employee's organization
+                var groupId = employee.Organization?.WhatsAppGroupId;
+                if (string.IsNullOrEmpty(groupId))
+                {
+                    // Fallback to appsettings if the organization doesn't have one configured
+                    groupId = _configuration.GetValue<string>("CelebrationWhatsAppGroupId");
+                    
+                    if (string.IsNullOrEmpty(groupId))
+                    {
+                        _logger.LogWarning("No WhatsApp Group ID configured for Organization {OrgName} or globally. Skipping celebration for {EmpName}.", 
+                            employee.Organization?.Name, employee.EmployeeName);
+                        continue;
+                    }
+                }
+
                 // Check Birthday
                 if (employee.DateOfBirth.HasValue && 
+                    employee.DateOfBirth.Value.Year > 1900 &&
                     employee.DateOfBirth.Value.Month == today.Month && 
                     employee.DateOfBirth.Value.Day == today.Day)
                 {
-                    _logger.LogInformation("Queuing Birthday HTML generation for {Name}", employee.EmployeeName);
+                    _logger.LogInformation("Queuing Birthday HTML generation for {Name} in Org {Org}", employee.EmployeeName, employee.Organization?.Name);
                     
                     var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
                     string photoBase64 = "";
@@ -108,20 +110,21 @@ namespace AttendanceUI.Services
                     }
                     var caption = $@"🎉 Happy Birthday, {employee.EmployeeName}! 🎂
 
-The entire *Setu Developers* family wishes you a day filled with joy, good health, and happiness. Thank you for your dedication and hard work. Wishing you continued success and a wonderful year ahead! 🥳";
+The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes you a day filled with joy, good health, and happiness. Thank you for your dedication and hard work. Wishing you continued success and a wonderful year ahead! 🥳";
                     // Send to Node.js microservice to generate HTML/Puppeteer poster
                     await whatsappProvider.SendCelebrationAsync(groupId, employee.EmployeeName, "Birthday", photoBase64, caption);
                 }
 
                 // Check Work Anniversary
                 if (employee.JoiningDate.HasValue && 
+                    employee.JoiningDate.Value.Year > 1900 &&
                     employee.JoiningDate.Value.Month == today.Month && 
                     employee.JoiningDate.Value.Day == today.Day &&
                     employee.JoiningDate.Value.Year < today.Year)
                 {
                     var years = today.Year - employee.JoiningDate.Value.Year;
                     
-                    _logger.LogInformation("Queuing Work Anniversary HTML generation for {Name} ({Years} years)", employee.EmployeeName, years);
+                    _logger.LogInformation("Queuing Work Anniversary HTML generation for {Name} ({Years} years) in Org {Org}", employee.EmployeeName, years, employee.Organization?.Name);
                     
                     var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
                     string photoBase64 = "";

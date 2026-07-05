@@ -25,6 +25,16 @@ public class CurrentTenantProvider : ICurrentTenantProvider
             var user = _httpContextAccessor.HttpContext?.User;
             if (user?.Identity?.IsAuthenticated == true)
             {
+                // Check if user is SuperAdmin and has an active tenant cookie
+                if (user.IsInRole("SuperAdmin"))
+                {
+                    var cookieValue = _httpContextAccessor.HttpContext?.Request.Cookies["ActiveTenantId"];
+                    if (!string.IsNullOrEmpty(cookieValue) && int.TryParse(cookieValue, out var activeTenantId))
+                    {
+                        return activeTenantId;
+                    }
+                }
+
                 var tenantClaim = user.FindFirst("OrganizationId");
                 if (tenantClaim != null && int.TryParse(tenantClaim.Value, out var tenantId))
                 {
@@ -32,9 +42,7 @@ public class CurrentTenantProvider : ICurrentTenantProvider
                 }
             }
             
-            // If we can't find a tenant id (e.g., background service or unauthenticated), 
-            // return a default or handle appropriately. Usually this means TenantId = 1 or 0 depending on the app design.
-            // For this admin system, if not authenticated, we could return 1 for the default organization or 0 to trigger an error.
+            // Default fallback
             return 1;
         }
     }
