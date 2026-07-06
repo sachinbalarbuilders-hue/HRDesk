@@ -41,16 +41,15 @@ if '%errorlevel%' NEQ '0' (
     xcopy "%SOURCE_DIR%\index.js" "%SERVICE_DIR%\" /Y /Q
     xcopy "%SOURCE_DIR%\package.json" "%SERVICE_DIR%\" /Y /Q
     xcopy "%SOURCE_DIR%\install_service.js" "%SERVICE_DIR%\" /Y /Q
+    xcopy "%SOURCE_DIR%\*.html" "%SERVICE_DIR%\" /Y /Q
     
     :: We do not copy node_modules to avoid massive I/O. We run npm install there.
     
     echo    Files copied.
     echo.
 
-    :: ---- Step 2: Stop existing service if running ----
     echo Step 2: Stopping existing service (if any)...
-    sc stop "%SERVICE_NAME%" >nul 2>&1
-    timeout /t 3 >nul
+    net stop "%SERVICE_NAME%" >nul 2>&1
     echo.
 
     :: ---- Step 3: Install Node modules and Service ----
@@ -60,7 +59,18 @@ if '%errorlevel%' NEQ '0' (
     
     echo.
     echo Running Windows Service Installer...
-    node install_service.js
+    sc query "hrdeskwhatsappservice.exe" >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo Service not found. Installing...
+        node install_service.js
+        timeout /t 3 >nul
+    ) else (
+        echo Service already installed. Skipping install script.
+    )
+    
+    echo.
+    echo Starting the Service...
+    net start "%SERVICE_NAME%" >nul 2>&1
 
     echo.
     echo =====================================================

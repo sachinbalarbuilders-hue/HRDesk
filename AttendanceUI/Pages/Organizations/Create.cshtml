@@ -21,7 +21,20 @@
             
             <div class="form-group mb-3">
                 <label asp-for="Organization.WhatsAppGroupId" class="control-label"></label>
-                <input asp-for="Organization.WhatsAppGroupId" class="form-control" />
+                @if (Model.AvailableGroups.Any())
+                {
+                    <select asp-for="Organization.WhatsAppGroupId" class="form-select">
+                        <option value="">-- No Group Selected --</option>
+                        @foreach (var group in Model.AvailableGroups)
+                        {
+                            <option value="@group.Value">@group.Text</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <input asp-for="Organization.WhatsAppGroupId" class="form-control" />
+                }
                 <span asp-validation-for="Organization.WhatsAppGroupId" class="text-danger"></span>
             </div>
             

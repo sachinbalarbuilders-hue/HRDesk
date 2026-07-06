@@ -28,6 +28,8 @@ namespace AttendanceUI.Services
             _configuration = configuration;
         }
 
+        private DateTime _lastProcessedDate = DateTime.MinValue;
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Celebration Notification Service is starting.");
@@ -37,24 +39,30 @@ namespace AttendanceUI.Services
             {
                 var now = DateTime.Now;
                 
-                // Trigger exactly at 10:30 AM every day
-                if (now.Hour == 10 && now.Minute == 30)
+                // Trigger at 9:30 AM or 10:30 AM
+                bool is930 = now.Hour == 9 && now.Minute == 30;
+                bool is1030 = now.Hour == 10 && now.Minute == 30;
+
+                if (is930 || is1030)
                 {
-                    try
+                    if (_lastProcessedDate.Date != now.Date)
                     {
-                        await ProcessCelebrationsAsync(now.Date);
-                        
-                        // Wait for a minute to ensure we don't trigger multiple times in the same minute
-                        await Task.Delay(TimeSpan.FromMinutes(1.5), stoppingToken);
-                        continue;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error processing celebrations.");
+                        try
+                        {
+                            await ProcessCelebrationsAsync(now.Date);
+                            _lastProcessedDate = now.Date; // Mark as processed for today
+                            
+                            // Wait for a minute to ensure we don't trigger multiple times in the same minute
+                            await Task.Delay(TimeSpan.FromMinutes(1.5), stoppingToken);
+                            continue;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error processing celebrations.");
+                        }
                     }
                 }
 
-                // Wait 1 minute before checking again
                 await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
             }
         }
@@ -78,15 +86,9 @@ namespace AttendanceUI.Services
                 var groupId = employee.Organization?.WhatsAppGroupId;
                 if (string.IsNullOrEmpty(groupId))
                 {
-                    // Fallback to appsettings if the organization doesn't have one configured
-                    groupId = _configuration.GetValue<string>("CelebrationWhatsAppGroupId");
-                    
-                    if (string.IsNullOrEmpty(groupId))
-                    {
-                        _logger.LogWarning("No WhatsApp Group ID configured for Organization {OrgName} or globally. Skipping celebration for {EmpName}.", 
-                            employee.Organization?.Name, employee.EmployeeName);
-                        continue;
-                    }
+                    _logger.LogWarning("No WhatsApp Group ID configured for Organization {OrgName}. Skipping celebration for {EmpName}.", 
+                        employee.Organization?.Name, employee.EmployeeName);
+                    continue;
                 }
 
                 // Check Birthday
@@ -108,9 +110,9 @@ namespace AttendanceUI.Services
                             photoBase64 = Convert.ToBase64String(bytes);
                         }
                     }
-                    var caption = $@"🎉 Happy Birthday, {employee.EmployeeName}! 🎂
+                    var caption = $@"Happy Birthday, {employee.EmployeeName}!
 
-The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes you a day filled with joy, good health, and happiness. Thank you for your dedication and hard work. Wishing you continued success and a wonderful year ahead! 🥳";
+The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes you a day filled with joy, good health, and happiness. Thank you for your dedication and hard work. Wishing you continued success and a wonderful year ahead!";
                     // Send to Node.js microservice to generate HTML/Puppeteer poster
                     await whatsappProvider.SendCelebrationAsync(groupId, employee.EmployeeName, "Birthday", photoBase64, caption);
                 }

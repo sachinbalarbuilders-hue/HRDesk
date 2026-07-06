@@ -115,7 +115,26 @@ const processQueue = async () => {
                 
                 // Ensure photo base64 has data URI prefix
                 let photoSrc = task.photoBase64;
-                if (!photoSrc.startsWith('data:image')) {
+                let dynamicCss = '';
+                
+                if (!photoSrc || photoSrc.trim() === '') {
+                    // No photo provided, hide the photo container and center the text
+                    photoSrc = '';
+                    dynamicCss = `
+                        .photo-container, .photo-frame { display: none !important; }
+                        /* Poster Template */
+                        .left-content { width: 1080px !important; }
+                        .text-happy { font-size: 180px !important; }
+                        .text-birthday { font-size: 110px !important; margin-top: -20px !important; }
+                        .text-message { font-size: 32px !important; max-width: 800px !important; line-height: 1.8 !important; }
+                        /* Anniversary Template */
+                        .content { justify-content: center !important; padding-top: 0 !important; }
+                        .headline { font-size: 100px !important; margin-bottom: 30px !important; }
+                        .name { font-size: 55px !important; margin-top: 30px !important; }
+                        .message { font-size: 26px !important; max-width: 800px !important; line-height: 1.8 !important; }
+                        .footer { position: absolute !important; bottom: 30px !important; margin-top: 0 !important; }
+                    `;
+                } else if (!photoSrc.startsWith('data:image')) {
                     photoSrc = 'data:image/jpeg;base64,' + photoSrc;
                 }
                 
@@ -123,13 +142,14 @@ const processQueue = async () => {
                            .replace('{{PHOTO_BASE64}}', photoSrc)
                            .replace('{{EMPLOYEE_NAME}}', task.name)
                            .replace('{{EVENT_TYPE}}', task.eventType)
-                           .replace('{{YEARS}}', task.years || '');
+                           .replace('{{YEARS}}', task.years || '')
+                           .replace('{{DYNAMIC_CSS}}', dynamicCss);
                            
                 const browser = client.pupBrowser;
                 const page = await browser.newPage();
                 // Set viewport to match the poster size
                 await page.setViewport({ width: 1080, height: 1080 });
-                await page.setContent(html, { waitUntil: 'networkidle0' }); // Wait for fonts
+                await page.setContent(html, { waitUntil: 'load' }); // Fast load since image is base64
                 
                 const element = await page.$('#poster');
                 const screenshotBase64 = await element.screenshot({ encoding: 'base64' });
