@@ -34,7 +34,6 @@ public class ProcessModel : PageModel
 
     public List<Employee> Employees { get; set; } = new();
 
-    [TempData]
     public string Message { get; set; } = "";
 
     public async Task OnGetAsync()
