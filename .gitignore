@@ -26,3 +26,5 @@ build_output*.txt
 # Local settings
 appsettings.Development.json
 *.sql
+*.db
+*.sqlite
