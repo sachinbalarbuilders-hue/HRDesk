@@ -595,17 +595,34 @@ public class AttendanceProcessorService
 
             bool isCurrentDay = date == DateOnly.FromDateTime(DateTime.Now);
 
-            // BUT: Don't penalize approved full day leaves or overwrite half-day leave status
             if (existingRecord.Status != "Present (Leave)")
             {
                 if (isCurrentDay && !isOutOnly)
                 {
-                    // Employee recently punched IN and is at work today. Do not penalize yet!
-                    if (existingRecord.Status == null || existingRecord.Status == "Absent")
+                    // Employee recently punched IN and is at work today.
+                    // DO NOT penalize for missing OUT punch yet.
+                    // BUT DO penalize if they arrived Major Late (> Half Time)!
+                    bool isMajorLate = roster.Shift != null && 
+                                       roster.Shift.HalfTime.HasValue && 
+                                       inTime > roster.Shift.HalfTime.Value;
+
+                    if (isMajorLate)
                     {
-                        existingRecord.Status = "Present";
+                        if (existingRecord.Status == null || (!existingRecord.Status.EndsWith("HF") && existingRecord.Status != "Half Day"))
+                        {
+                            existingRecord.Status = "Half Day";
+                            existingRecord.IsHalfDay = true;
+                            existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Major Late (> Half Time)");
+                        }
                     }
-                    existingRecord.IsHalfDay = false;
+                    else
+                    {
+                        if (existingRecord.Status == null || existingRecord.Status == "Absent")
+                        {
+                            existingRecord.Status = "Present";
+                        }
+                        existingRecord.IsHalfDay = false;
+                    }
                 }
                 else
                 {
