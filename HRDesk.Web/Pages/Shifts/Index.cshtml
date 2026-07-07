@@ -1,0 +1,79 @@
+@page
+@model HRDesk.Web.Pages.Shifts.IndexModel
+@{
+    ViewData["Title"] = "Shifts";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-1 fw-bold">Shifts</h4>
+        <p class="text-muted mb-0 small">Configure work shifts and schedules</p>
+    </div>
+    <a class="btn btn-primary" asp-page="./Create">
+        <i class="bi bi-plus-lg me-1"></i>Add Shift
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">All Shifts</h5>
+        <span class="badge text-bg-secondary">@Model.Shifts.Count total</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Name</th>
+                        <th>Code</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Lunch (min)</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Shifts.Count == 0)
+                {
+                    <tr><td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-clock fs-1 d-block mb-2 opacity-25"></i>No shifts found.
+                    </td></tr>
+                }
+                else
+                {
+                    foreach (var s in Model.Shifts)
+                    {
+                        var isActive = string.Equals(s.Status, "active", StringComparison.OrdinalIgnoreCase);
+                        <tr>
+                            <td class="ps-4 fw-semibold">
+                                <i class="bi bi-clock me-2 text-primary opacity-50"></i>@s.ShiftName
+                            </td>
+                            <td><code class="text-primary">@s.ShiftCode</code></td>
+                            <td>@s.StartTime.ToString("HH:mm")</td>
+                            <td>@s.EndTime.ToString("HH:mm")</td>
+                            <td>@s.LunchBreakDuration</td>
+                            <td>
+                                <span class="badge @(isActive ? "text-bg-success" : "text-bg-secondary")">
+                                    @((s.Status ?? "—").ToUpper())
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex gap-1 justify-content-end">
+                                    <a class="btn btn-sm btn-outline-primary" asp-page="./Edit" asp-route-id="@s.Id">Edit</a>
+                                    <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@s.Id" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm @(isActive ? "btn-outline-secondary" : "btn-outline-success")">
+                                            @(isActive ? "Deactivate" : "Activate")
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

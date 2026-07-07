@@ -1,0 +1,89 @@
+@page
+@model HRDesk.Web.Pages.Payroll.EmployeeSalary.IndexModel
+
+@{
+    ViewData["Title"] = "Employee Salaries";
+}
+
+<div class="container-fluid pb-5">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="mb-1 fw-bold">Employee Salaries</h4>
+            <p class="text-muted mb-0 small">Manage base pay and allowances for the organization</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-page="/Payroll/Process" class="btn btn-outline-primary">
+                <i class="bi bi-calculator me-2"></i>Process Payroll
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between pt-4 px-4 pb-0">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-cash-stack me-2 text-primary"></i>Salary Configuration</h5>
+            <div class="dropdown">
+                <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Export Report</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="card-body p-0 mt-3">
+            <div class="table-responsive">
+                <table class="table table-modern align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Employee</th>
+                            <th>Department</th>
+                            <th>Basic Salary</th>
+                            <th>Special Allowance</th>
+                            <th>Total Salary</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.Employees)
+                    {
+                        <tr class="@(!item.HasSalary ? "bg-soft-warning" : "")">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-circle">
+                                        @(string.IsNullOrEmpty(item.EmployeeName) ? "?" : item.EmployeeName[0].ToString().ToUpper())
+                                    </div>
+                                    <div class="fw-semibold text-dark">@item.EmployeeName</div>
+                                </div>
+                            </td>
+                            <td class="text-muted small">@item.Department</td>
+                            <td><span class="text-secondary small">₹</span>@item.BasicSalary.ToString("N2")</td>
+                            <td><span class="text-secondary small">₹</span>@item.SpecialAllowance.ToString("N2")</td>
+                            <td>
+                                <span class="fw-bold text-primary">₹@item.TotalSalary.ToString("N2")</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a asp-page="./Edit" asp-route-id="@item.EmployeeId" class="btn btn-sm @(item.HasSalary ? "btn-soft-primary" : "btn-primary") px-3 rounded-pill">
+                                    <i class="bi bi-pencil-square me-1"></i> @(item.HasSalary ? "Edit" : "Set Salary")
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Employees.Any(e => !e.HasSalary))
+    {
+        <div class="alert bg-soft-warning text-warning border-0 mt-4 d-flex align-items-center shadow-sm">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div>
+                <strong>Missing Configurations:</strong> Some employees do not have a salary set (highlighted above). 
+                They will be automatically <strong>skipped</strong> during the monthly payroll generation.
+            </div>
+        </div>
+    }
+</div>

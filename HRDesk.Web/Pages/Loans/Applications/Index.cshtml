@@ -1,0 +1,110 @@
+@page
+@model HRDesk.Web.Pages.Loans.Applications.IndexModel
+
+@{
+    ViewData["Title"] = "Loan Applications";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-1 fw-bold">Loan Applications</h4>
+        <p class="text-muted mb-0 small">Manage employee loan and advance requests</p>
+    </div>
+    <a asp-page="Create" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Apply for Loan
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-info-circle me-2"></i>@Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">All Loan Applications</h5>
+        <span class="badge text-bg-secondary">@Model.LoanApplications.Count total</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">App #</th>
+                        <th>App Date</th>
+                        <th>Employee</th>
+                        <th>Loan Type</th>
+                        <th>Amount</th>
+                        <th>Installments</th>
+                        <th>Remaining</th>
+                        <th>Start Month</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (!Model.LoanApplications.Any())
+                {
+                    <tr><td colspan="9" class="text-center py-5 text-muted">
+                        <i class="bi bi-cash-stack fs-1 d-block mb-2 opacity-25"></i>No loan applications found.
+                    </td></tr>
+                }
+                else
+                {
+                    foreach (var item in Model.LoanApplications)
+                    {
+                        var statusClass = (item.Status == "Approved" || item.Status == "Active") ? "text-bg-success" :
+                                          item.Status == "Completed" ? "text-bg-secondary" :
+                                          item.Status == "Rejected" ? "text-bg-danger" :
+                                          item.Status == "Cancelled" ? "text-bg-secondary" : "text-bg-warning";
+                        <tr>
+                            <td class="ps-4">
+                                @if (!string.IsNullOrEmpty(item.ApplicationNumber))
+                                {
+                                    <code class="text-primary">@item.ApplicationNumber</code>
+                                }
+                                else { <span class="text-muted">—</span> }
+                            </td>
+                            <td>@item.ApplicationDate.ToString("dd MMM yyyy")</td>
+                            <td class="fw-semibold">@item.Employee?.EmployeeName</td>
+                            <td><span class="badge text-bg-secondary">@item.LoanType?.TypeName</span></td>
+                            <td class="fw-bold">₹@item.LoanAmount.ToString("N0")</td>
+                            <td>
+                                <div>@item.Installments months</div>
+                                <small class="text-muted">₹@item.InstallmentAmount.ToString("N0")/mo</small>
+                            </td>
+                            <td>
+                                @if (item.Status == "Active" || item.Status == "Completed")
+                                {
+                                    <div>₹@item.RemainingAmount.ToString("N0")</div>
+                                    <small class="text-muted">@item.RemainingInstallments left</small>
+                                }
+                                else { <span class="text-muted">—</span> }
+                            </td>
+                            <td class="text-muted">@item.StartDate.ToString("MMM yyyy")</td>
+                            <td><span class="badge @statusClass">@item.Status.ToUpper()</span></td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex gap-1 justify-content-end">
+                                    <a asp-page="./Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@item.Id" class="d-inline"
+                                          onsubmit="return confirm('Delete this loan application? This also removes pending installments.');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

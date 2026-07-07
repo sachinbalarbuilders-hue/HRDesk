@@ -1,0 +1,135 @@
+@page
+@model HRDesk.Web.Pages.Reports.ApplicationTrackingModel
+@{
+    ViewData["Title"] = "Application Tracking Report";
+}
+
+<div class="container-fluid pb-5">
+    <div class="card border-0 shadow-sm mb-4 mt-4">
+        <div class="card-body px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-1 fw-bold text-primary"><i class="bi bi-list-ol me-2"></i>Application Tracking Report</h4>
+                <p class="text-muted mb-0 small">Master list of all application tracking numbers in the series</p>
+            </div>
+                <div class="col-auto">
+                    <div class="d-flex gap-2">
+                        <form method="get" class="row g-2 align-items-center">
+                            <div class="col-auto">
+                                <select asp-for="Month" class="form-select form-select-sm">
+                                    @for (int i = 1; i <= 12; i++)
+                                    {
+                                        <option value="@i">@System.Globalization.DateTimeFormatInfo.InvariantInfo.GetMonthName(i)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <select asp-for="Year" class="form-select form-select-sm">
+                                    @for (int i = DateTime.Now.Year - 1; i <= DateTime.Now.Year + 1; i++)
+                                    {
+                                        <option value="@i">@i</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive border-top">
+                <table class="table table-modern align-middle mb-0">
+                    <thead class="bg-light text-uppercase small text-muted">
+                        <tr>
+                            <th class="ps-3" style="width: 150px;">App No</th>
+                            <th>Date</th>
+                            <th>Employee</th>
+                            <th>Category</th>
+                            <th>Details</th>
+                            <th>Reason</th>
+                            <th class="text-end pe-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Applications.Any())
+                        {
+                            foreach (var app in Model.Applications)
+                            {
+                                <tr>
+                                    <td class="ps-3">
+                                        @if (string.IsNullOrEmpty(app.ApplicationNumber))
+                                        {
+                                            <span class="badge bg-light text-muted border">No tracking</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="fw-bold text-dark">@app.ApplicationNumber</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @app.Date.ToString("dd-MMM-yyyy")
+                                        @if (app.EndDate.HasValue && app.EndDate.Value != app.Date)
+                                        {
+                                            <span class="text-muted">→ @app.EndDate.Value.ToString("dd-MMM")</span>
+                                        }
+                                    </td>
+                                    <td>@app.EmployeeName</td>
+                                    <td>
+                                        @if (app.Category == "Leave")
+                                        {
+                                            <span class="badge bg-soft-info text-info border border-info border-opacity-25 rounded-pill px-3">Leave</span>
+                                        }
+                                        else if (app.Category == "Regularization")
+                                        {
+                                            <span class="badge bg-soft-warning text-dark border border-warning border-opacity-25 rounded-pill px-3">Regularization</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-soft-secondary text-secondary border border-secondary border-opacity-25 rounded-pill px-3">Manual Entry</span>
+                                        }
+                                    </td>
+                                    <td>@app.Details</td>
+                                    <td>@app.Reason</td>
+                                    <td class="text-end pe-3">
+                                        @if (app.Category == "Attendance Record")
+                                        {
+                                            <form method="post" asp-page-handler="Clear" class="d-inline">
+                                                <input type="hidden" name="id" value="@app.Id" />
+                                                <input type="hidden" name="category" value="@app.Category" />
+                                                <button type="submit" class="btn btn-sm btn-soft-danger" onclick="return confirm('Clear this tracking number?')">
+                                                    <i class="bi bi-trash me-1"></i>Clear
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (app.Status == "Approved")
+                                        {
+                                            <span class="text-success small fw-medium"><i class="bi bi-check-circle-fill me-1"></i>Approved</span>
+                                        }
+                                        else if (app.Status == "Rejected")
+                                        {
+                                            <span class="text-danger small fw-medium"><i class="bi bi-x-circle-fill me-1"></i>Rejected</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-secondary small fw-medium"><i class="bi bi-clock-history me-1"></i>@app.Status</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-info-circle mb-2 d-block fa-2x"></i>
+                                    No applications found for the selected period.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

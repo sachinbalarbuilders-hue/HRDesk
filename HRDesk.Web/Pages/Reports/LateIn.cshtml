@@ -1,0 +1,94 @@
+@page
+@model HRDesk.Web.Pages.Reports.LateInModel
+@{
+    ViewData["Title"] = "Late In Report";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+        <h4 class="mb-1 fw-bold"><i class="bi bi-clock-history text-danger me-2"></i>Late In Report</h4>
+        <p class="text-muted mb-0 small">Employees who arrived after shift start</p>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+        <select name="Month" class="form-select" asp-for="Month" style="width:140px;">
+            @for (int i = 1; i <= 12; i++)
+            {
+                <option value="@i">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
+            }
+        </select>
+        <input type="number" name="Year" class="form-control" asp-for="Year" style="width:90px;" />
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-bar-chart me-1"></i>Load Report
+        </button>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">Late Arrivals — @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(Model.Month) @Model.Year</h5>
+        <span class="badge text-bg-danger">@Model.Records.Count records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">#</th>
+                        <th>Date</th>
+                        <th>Employee</th>
+                        <th>Shift Start</th>
+                        <th>In Time</th>
+                        <th class="text-danger">Delay (mins)</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Records.Any())
+                    {
+                        <tr><td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-clock-history fs-1 d-block mb-2 opacity-25"></i>No late arrivals found for this period.
+                        </td></tr>
+                    }
+                    else
+                    {
+                        int i = 1;
+                        foreach (var record in Model.Records)
+                        {
+                            var isProbation = record.Employee?.ProbationEnd.HasValue == true && record.RecordDate < record.Employee.ProbationEnd.Value;
+                            var hasPenalty = record.Remarks?.Contains("Penalty") == true;
+                            var isLate = record.LateMinutes > (record.Shift?.LateComingGraceMinutes ?? 30) || (isProbation && record.LateMinutes > 0) || hasPenalty;
+                            <tr>
+                                <td class="ps-4 text-muted">@(i++)</td>
+                                <td>
+                                    <div class="fw-semibold small">@record.RecordDate.ToString("dd MMM yyyy")</div>
+                                    <div class="text-muted" style="font-size:0.75rem;">@record.RecordDate.DayOfWeek</div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">@record.Employee?.EmployeeName</div>
+                                    <div class="text-muted small">@record.EmployeeId</div>
+                                </td>
+                                <td class="text-muted">@record.Shift?.StartTime.ToString("HH:mm")</td>
+                                <td class="fw-bold">@record.InTime?.ToString("HH:mm")</td>
+                                <td>
+                                    <span class="fw-bold text-danger">+@record.LateMinutes m</span>
+                                </td>
+                                <td>
+                                    @if (isLate)
+                                    {
+                                        <span class="badge text-bg-danger">Late In</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-secondary">Within Grace</span>
+                                    }
+                                </td>
+                                <td class="small text-muted">@record.Remarks</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

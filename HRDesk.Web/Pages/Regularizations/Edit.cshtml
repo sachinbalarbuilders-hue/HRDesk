@@ -1,0 +1,208 @@
+@page
+@model HRDesk.Web.Pages.Regularizations.EditModel
+
+@{
+    ViewData["Title"] = "Edit Regularization Request";
+    var punchInVal  = Model.Regularization.PunchTimeIn.HasValue  ? Model.Regularization.PunchTimeIn.Value.ToString("yyyy-MM-ddTHH:mm")  : "";
+    var punchOutVal = Model.Regularization.PunchTimeOut.HasValue ? Model.Regularization.PunchTimeOut.Value.ToString("yyyy-MM-ddTHH:mm") : "";
+    var dateVal     = Model.Regularization.RequestDate.ToString("yyyy-MM-dd");
+    var hasIn       = Model.Regularization.PunchTimeIn.HasValue  ? "true" : "false";
+    var hasOut      = Model.Regularization.PunchTimeOut.HasValue ? "true" : "false";
+}
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8 col-xl-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-soft-primary stat-icon me-3">
+                            <i class="bi bi-pencil-square"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-0">Edit Regularization</h4>
+                            <p class="text-muted small mb-0">Modify the regularization request details below.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger soft-alert mb-4" role="alert"></div>
+                        <input type="hidden" asp-for="Regularization.Id" />
+
+                        <div class="row g-3">
+                            <!-- Employee Selection -->
+                            <div class="col-12">
+                                <label asp-for="Regularization.EmployeeId" class="form-label fw-medium">
+                                    <i class="bi bi-person me-1"></i> Employee
+                                </label>
+                                <select asp-for="Regularization.EmployeeId" class="form-select select-modern" asp-items="ViewBag.EmployeeId"></select>
+                                <span asp-validation-for="Regularization.EmployeeId" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Request Type -->
+                            <div class="col-md-6">
+                                <label asp-for="Regularization.RequestType" class="form-label fw-medium">
+                                    <i class="bi bi-tag me-1"></i> Request Type
+                                </label>
+                                <select asp-for="Regularization.RequestType" class="form-select select-modern" id="requestTypeSelect">
+                                    <option value="Late Coming">Late Coming</option>
+                                    <option value="Early Go">Early Go</option>
+                                    <option value="Missed Punch">Missed Punch</option>
+                                </select>
+                                <span asp-validation-for="Regularization.RequestType" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Request Date -->
+                            <div class="col-md-6">
+                                <label asp-for="Regularization.RequestDate" class="form-label fw-medium">
+                                    <i class="bi bi-calendar3 me-1"></i> Date
+                                </label>
+                                <input asp-for="Regularization.RequestDate" class="form-control" type="date"
+                                       id="RequestDate" value="@dateVal" />
+                                <span asp-validation-for="Regularization.RequestDate" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Waive Penalty -->
+                            <div class="col-12" id="waivePenaltyGroup">
+                                <div class="px-3 py-2 bg-light rounded-3 border">
+                                    <div class="form-check form-switch d-flex justify-content-between align-items-center p-0">
+                                        <label class="form-check-label fw-medium" for="waivePenalty">
+                                            <i class="bi bi-shield-check me-1"></i> Waive Attendance Penalty
+                                        </label>
+                                        <input class="form-check-input ms-2" type="checkbox" role="switch" id="waivePenalty" asp-for="Regularization.WaivePenalty">
+                                    </div>
+                                    <div class="form-text text-muted small">
+                                        If unchecked, the request is recorded for tracking but penalties (like Half Day for lateness) will still apply.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Application Number -->
+                            <div class="col-12">
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <label class="form-label fw-medium mb-1">
+                                        <i class="bi bi-hash me-1"></i> Application Number
+                                    </label>
+                                    <input asp-for="Regularization.ApplicationNumber" class="form-control" placeholder="e.g. REG-2025-001" />
+                                    <div class="form-text text-muted small mt-1">
+                                        Tracking number for this application.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Punch Target selector (Missed Punch only) -->
+                            <div class="col-12" id="punchLocationGroup" style="display:none;">
+                                <label class="form-label fw-medium">What needs to be filled?</label>
+                                <div class="d-flex flex-wrap gap-3 p-3 bg-light rounded-3 border mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="punchTarget" id="targetIn" value="in" checked>
+                                        <label class="form-check-label" for="targetIn">Punch In Only</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="punchTarget" id="targetOut" value="out">
+                                        <label class="form-check-label" for="targetOut">Punch Out Only</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="punchTarget" id="targetBoth" value="both">
+                                        <label class="form-check-label" for="targetBoth">Both (Full Day)</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Punch IN Time -->
+                            <div class="col-md-6" id="punchInTimeGroup" style="display:none;">
+                                <div class="p-3 bg-soft-warning rounded-3 border border-warning border-dashed">
+                                    <label asp-for="Regularization.PunchTimeIn" class="form-label fw-medium text-dark">
+                                        <i class="bi bi-box-arrow-in-right me-1"></i> Punch IN Time
+                                    </label>
+                                    <input asp-for="Regularization.PunchTimeIn" class="form-control" type="datetime-local"
+                                           id="Regularization_PunchTimeIn" value="@punchInVal" />
+                                    <span asp-validation-for="Regularization.PunchTimeIn" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <!-- Punch OUT Time -->
+                            <div class="col-md-6" id="punchOutTimeGroup" style="display:none;">
+                                <div class="p-3 bg-soft-warning rounded-3 border border-warning border-dashed">
+                                    <label asp-for="Regularization.PunchTimeOut" class="form-label fw-medium text-dark">
+                                        <i class="bi bi-box-arrow-left me-1"></i> Punch OUT Time
+                                    </label>
+                                    <input asp-for="Regularization.PunchTimeOut" class="form-control" type="datetime-local"
+                                           id="Regularization_PunchTimeOut" value="@punchOutVal" />
+                                    <span asp-validation-for="Regularization.PunchTimeOut" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <!-- Reason -->
+                            <div class="col-12">
+                                <label asp-for="Regularization.Reason" class="form-label fw-medium">
+                                    <i class="bi bi-chat-left-text me-1"></i> Reason / Remarks
+                                </label>
+                                <textarea asp-for="Regularization.Reason" class="form-control" rows="4" placeholder="Briefly explain the reason for this request..."></textarea>
+                                <span asp-validation-for="Regularization.Reason" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top d-flex flex-wrap gap-2">
+                            <button type="submit" class="btn btn-primary d-flex align-items-center gap-2 px-4 py-2">
+                                <i class="bi bi-check-circle"></i> Save Changes
+                            </button>
+                            <a asp-page="Index" class="btn btn-light d-flex align-items-center gap-2 px-4 py-2 text-dark">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .select-modern { background-color: #fff; }
+    .border-dashed { border-style: dashed !important; }
+    .soft-alert { background-color: #fee2e2; border: none; color: #991b1b; border-radius: 0.5rem; }
+    .bg-soft-warning { background-color: #fef3c7; }
+</style>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+            function updateVisibility() {
+                var type   = $("#requestTypeSelect").val();
+                var target = $("input[name='punchTarget']:checked").val();
+
+                if (type === "Missed Punch") {
+                    $("#waivePenaltyGroup").hide();
+                    $("#waivePenalty").prop("checked", true); 
+                    $("#punchLocationGroup").fadeIn(200);
+                    if (target === "in") {
+                        $("#punchInTimeGroup").show();
+                        $("#punchOutTimeGroup").hide();
+                    } else if (target === "out") {
+                        $("#punchInTimeGroup").hide();
+                        $("#punchOutTimeGroup").show();
+                    } else {
+                        $("#punchInTimeGroup, #punchOutTimeGroup").show();
+                    }
+                } else {
+                    $("#waivePenaltyGroup").show();
+                    $("#punchLocationGroup, #punchInTimeGroup, #punchOutTimeGroup").fadeOut(200);
+                }
+            }
+
+            // Pre-select the correct radio based on existing saved punch values
+            var hasIn  = @hasIn;
+            var hasOut = @hasOut;
+            if (hasIn && hasOut)       $("#targetBoth").prop("checked", true);
+            else if (hasOut && !hasIn) $("#targetOut").prop("checked", true);
+            else                       $("#targetIn").prop("checked", true);
+
+            $("#requestTypeSelect").change(updateVisibility);
+            $("input[name='punchTarget']").change(updateVisibility);
+            updateVisibility(); // Run on load
+        });
+    </script>
+}

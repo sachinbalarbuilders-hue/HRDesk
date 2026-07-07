@@ -1,0 +1,109 @@
+@page
+@model HRDesk.Web.Pages.Employees.CreateModel
+@{
+    ViewData["Title"] = "Add Employee";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-1 fw-bold">Add Employee</h4>
+        <p class="text-muted mb-0 small">Create a new employee record</p>
+    </div>
+    <a asp-page="./Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to List
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-person-plus me-2 text-primary"></i>Employee Details</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" style="display:none;"></div>
+
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <label asp-for="Input.EmployeeId" class="form-label fw-semibold"></label>
+                    <input asp-for="Input.EmployeeId" class="form-control" />
+                    <span asp-validation-for="Input.EmployeeId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-9">
+                    <label asp-for="Input.EmployeeName" class="form-label fw-semibold"></label>
+                    <input asp-for="Input.EmployeeName" class="form-control" />
+                    <span asp-validation-for="Input.EmployeeName" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Input.DepartmentId" class="form-label fw-semibold"></label>
+                    <select asp-for="Input.DepartmentId" class="form-select" asp-items="Model.DepartmentOptions">
+                        <option value="">(None)</option>
+                    </select>
+                    <span asp-validation-for="Input.DepartmentId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.DesignationId" class="form-label fw-semibold"></label>
+                    <select asp-for="Input.DesignationId" class="form-select" asp-items="Model.DesignationOptions">
+                        <option value="">(None)</option>
+                    </select>
+                    <span asp-validation-for="Input.DesignationId" class="text-danger small"></span>
+                </div>
+
+
+                <div class="col-md-4">
+                    <label asp-for="Input.Weekoff" class="form-label fw-semibold"></label>
+                    <select asp-for="Input.Weekoff" class="form-select" asp-items="Model.WeekoffOptions">
+                        <option value="">Select weekoff</option>
+                    </select>
+                    <span asp-validation-for="Input.Weekoff" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.JoiningDate" class="form-label fw-semibold"></label>
+                    <input asp-for="Input.JoiningDate" class="form-control" type="date" />
+                    <span asp-validation-for="Input.JoiningDate" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.DateOfBirth" class="form-label fw-semibold"></label>
+                    <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
+                    <span asp-validation-for="Input.DateOfBirth" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.ResignationDate" class="form-label fw-semibold"></label>
+                    <input asp-for="Input.ResignationDate" class="form-control" type="date" />
+                    <div class="form-text text-muted">Benefits like grace period & paid leave restricted from this date.</div>
+                    <span asp-validation-for="Input.ResignationDate" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Input.PhotoUpload" class="form-label fw-semibold"></label>
+                    <input asp-for="Input.PhotoUpload" class="form-control" type="file" accept="image/jpeg,image/png" />
+                    <div class="form-text text-muted">Optional: Upload employee photo for ID and celebrations.</div>
+                    <span asp-validation-for="Input.PhotoUpload" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Input.Phone" class="form-label fw-semibold"></label>
+                    <input asp-for="Input.Phone" class="form-control" />
+                    <span asp-validation-for="Input.Phone" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Input.Status" class="form-label fw-semibold"></label>
+                    <select asp-for="Input.Status" class="form-select" asp-items="Model.StatusOptions"></select>
+                    <span asp-validation-for="Input.Status" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <hr class="my-4">
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-check-lg me-1"></i>Save Employee
+                </button>
+                <a asp-page="./Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

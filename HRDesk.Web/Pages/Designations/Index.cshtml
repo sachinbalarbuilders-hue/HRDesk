@@ -1,0 +1,71 @@
+@page
+@model HRDesk.Web.Pages.Designations.IndexModel
+@{
+    ViewData["Title"] = "Designations";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-1 fw-bold">Designations</h4>
+        <p class="text-muted mb-0 small">Manage job titles and designations</p>
+    </div>
+    <a class="btn btn-primary" asp-page="./Create">
+        <i class="bi bi-plus-lg me-1"></i>Add Designation
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">All Designations</h5>
+        <span class="badge text-bg-secondary">@Model.Designations.Count total</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Designation Name</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Designations.Count == 0)
+                {
+                    <tr><td colspan="3" class="text-center py-5 text-muted">
+                        <i class="bi bi-person-badge fs-1 d-block mb-2 opacity-25"></i>No designations found.
+                    </td></tr>
+                }
+                else
+                {
+                    foreach (var d in Model.Designations)
+                    {
+                        var isActive = string.Equals(d.Status, "active", StringComparison.OrdinalIgnoreCase);
+                        <tr>
+                            <td class="ps-4 fw-semibold">
+                                <i class="bi bi-person-badge me-2 text-primary opacity-50"></i>@d.DesignationName
+                            </td>
+                            <td>
+                                <span class="badge @(isActive ? "text-bg-success" : "text-bg-secondary")">
+                                    @((d.Status ?? "—").ToUpper())
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex gap-1 justify-content-end">
+                                    <a class="btn btn-sm btn-outline-primary" asp-page="./Edit" asp-route-id="@d.Id">Edit</a>
+                                    <form method="post" asp-page-handler="ToggleStatus" asp-route-id="@d.Id" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm @(isActive ? "btn-outline-secondary" : "btn-outline-success")">
+                                            @(isActive ? "Deactivate" : "Activate")
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

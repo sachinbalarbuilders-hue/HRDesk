@@ -1,0 +1,87 @@
+@page
+@model HRDesk.Web.Pages.Holidays.IndexModel
+@{
+    ViewData["Title"] = "Holidays";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-1 fw-bold">Holidays</h4>
+        <p class="text-muted mb-0 small">Manage public and company holidays</p>
+    </div>
+    <a class="btn btn-primary" asp-page="./Create">
+        <i class="bi bi-plus-lg me-1"></i>Add Holiday
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">All Holidays</h5>
+        <span class="badge text-bg-secondary">@Model.Holidays.Count total</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Date</th>
+                        <th>Holiday Name</th>
+                        <th>Applicability</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Holidays.Count == 0)
+                {
+                    <tr><td colspan="4" class="text-center py-5 text-muted">
+                        <i class="bi bi-calendar-x fs-1 d-block mb-2 opacity-25"></i>No holidays found.
+                    </td></tr>
+                }
+                else
+                {
+                    foreach (var h in Model.Holidays)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                @if (h.StartDate == h.EndDate)
+                                {
+                                    <span class="badge text-bg-secondary">@h.StartDate.ToString("dd MMM yyyy")</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-secondary">@h.StartDate.ToString("dd MMM") - @h.EndDate.ToString("dd MMM yyyy")</span>
+                                }
+                            </td>
+                            <td class="fw-semibold">
+                                <i class="bi bi-calendar-event me-2 text-warning opacity-75"></i>@h.HolidayName
+                            </td>
+                            <td>
+                                @if (h.IsGlobal)
+                                {
+                                    <span class="badge text-bg-info">GLOBAL</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-warning">SPECIFIC</span>
+                                }
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="btn-group btn-group-sm">
+                                    <a asp-page="./Edit" asp-route-id="@h.Id" class="btn btn-outline-primary" title="Edit Holiday">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@h.Id" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this holiday? This cannot be undone.');">
+                                        <button type="submit" class="btn btn-outline-danger" title="Delete Holiday">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

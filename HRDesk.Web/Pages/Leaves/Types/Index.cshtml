@@ -1,0 +1,252 @@
+@page
+@model HRDesk.Web.Pages.Leaves.Types.IndexModel
+@{
+    ViewData["Title"] = "Leave Types";
+}
+
+<div class="container-fluid pb-5">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 mt-4">
+        <div>
+            <h4 class="mb-1 fw-bold">Leave Types</h4>
+            <p class="text-muted mb-0 small">Manage employee leave types and quotas</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLeaveTypeModal">
+                <i class="bi bi-plus-lg me-1"></i> Add Leave Type
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-modern align-middle mb-0">
+                    <thead class="bg-light text-uppercase small text-muted">
+                        <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th class="text-center">Yearly Quota</th>
+                    <th>Is Paid?</th>
+                    <th>After Probation?</th>
+                    <th>Carry Fwd?</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var type in Model.LeaveTypes)
+                {
+                    <tr>
+                        <td><span class="badge bg-secondary">@type.Code</span></td>
+                        <td>@type.Name</td>
+                        <td class="text-center fw-bold">@type.DefaultYearlyQuota</td>
+                        <td>
+                            @if (type.IsPaid)
+                            {
+                                <span class="text-success"><i class="bi bi-check-circle-fill"></i> Yes</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger"><i class="bi bi-x-circle-fill"></i> No</span>
+                            }
+                        </td>
+                        <td>
+                            @if (type.ApplicableAfterProbation)
+                            {
+                                <span class="text-primary"><i class="bi bi-shield-lock-fill"></i> Yes</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted"><i class="bi bi-unlock-fill"></i> No</span>
+                            }
+                        </td>
+                        <td>
+                            @if (type.AllowCarryForward)
+                            {
+                                <span class="text-success"><i class="bi bi-arrow-right-circle-fill"></i> Yes</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted"><i class="bi bi-dash-circle"></i> No</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="badge @(type.Status == "Active" ? "bg-soft-success text-success border border-success border-opacity-25" : "bg-soft-warning text-dark border border-warning border-opacity-25")">@type.Status</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            @{
+                                var employeeIdsJson = System.Text.Json.JsonSerializer.Serialize(type.EligibleEmployees.Select(e => e.EmployeeId));
+                            }
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-sm btn-soft-primary" 
+                                        onclick="editLeaveType(@type.Id, '@type.Code', '@type.Name', @type.DefaultYearlyQuota, @(type.IsPaid.ToString().ToLower()), @(type.ApplicableAfterProbation.ToString().ToLower()), @(type.AllowCarryForward.ToString().ToLower()), '@type.Status', '@employeeIdsJson')">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@type.Id" onsubmit="return confirm('Delete this leave type?')" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-soft-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addLeaveTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Add">
+                <div class="modal-header">
+                    <h5 class="modal-title">New Leave Type</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div asp-validation-summary="All" class="text-danger small mb-2"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Code (e.g. CL, SL)</label>
+                        <input asp-for="NewLeaveType.Code" class="form-control" placeholder="PL" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input asp-for="NewLeaveType.Name" class="form-control" placeholder="Paid Leave" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Default Yearly Quota (Full)</label>
+                        <input asp-for="NewLeaveType.DefaultYearlyQuota" class="form-control" type="number" step="any" value="10" required />
+                        <small class="text-muted">Used for pro-rata suggestions and next year setup.</small>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input asp-for="NewLeaveType.IsPaid" class="form-check-input" type="checkbox" checked />
+                        <label class="form-check-label">Paid Leave?</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input asp-for="NewLeaveType.ApplicableAfterProbation" class="form-check-input" type="checkbox" checked />
+                        <label class="form-check-label">Applicable after probation only?</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Assign Employees (Optional)</label>
+                        <div class="border rounded p-3 bg-light drop-shadow-sm" style="max-height: 200px; overflow-y: auto;">
+                            @foreach (var emp in Model.Employees)
+                            {
+                                <div class="form-check mb-2">
+                                    <input name="SelectedEmployeeIds" class="form-check-input shadow-sm" type="checkbox" value="@emp.EmployeeId" id="addEmp_@emp.EmployeeId">
+                                    <label class="form-check-label" for="addEmp_@emp.EmployeeId">
+                                        <i class="bi bi-person text-secondary me-1"></i> @emp.EmployeeName <span class="text-muted small">(@emp.EmployeeId)</span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                        <small class="text-muted mt-2 d-block"><i class="bi bi-info-circle text-primary"></i> Check specific employees, or leave all unchecked to assign to everyone.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Leave Type</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Edit Modal -->
+<div class="modal fade" id="editLeaveTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Edit">
+                <input type="hidden" asp-for="EditLeaveType.Id" id="editId" />
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Leave Type</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div asp-validation-summary="All" class="text-danger small mb-2"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Code</label>
+                        <input asp-for="EditLeaveType.Code" id="editCode" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input asp-for="EditLeaveType.Name" id="editName" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Default Yearly Quota</label>
+                        <input asp-for="EditLeaveType.DefaultYearlyQuota" id="editQuota" class="form-control" type="number" step="any" required />
+                    </div>
+                    <div class="form-check mb-2">
+                        <input asp-for="EditLeaveType.IsPaid" id="editIsPaid" class="form-check-input" type="checkbox" />
+                        <label class="form-check-label">Paid Leave?</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input asp-for="EditLeaveType.ApplicableAfterProbation" id="editAfterProbation" class="form-check-input" type="checkbox" />
+                        <label class="form-check-label">Applicable after probation only?</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input asp-for="EditLeaveType.AllowCarryForward" id="editAllowCarryForward" class="form-check-input" type="checkbox" />
+                        <label class="form-check-label">Allow Carry Forward?</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select asp-for="EditLeaveType.Status" id="editStatus" class="form-select">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Assigned Employees</label>
+                        <div class="border rounded p-3 bg-light drop-shadow-sm" style="max-height: 200px; overflow-y: auto;">
+                            @foreach (var emp in Model.Employees)
+                            {
+                                <div class="form-check mb-2">
+                                    <input name="SelectedEmployeeIds" class="form-check-input shadow-sm edit-emp-checkbox" type="checkbox" value="@emp.EmployeeId" id="editEmp_@emp.EmployeeId">
+                                    <label class="form-check-label" for="editEmp_@emp.EmployeeId">
+                                        <i class="bi bi-person text-secondary me-1"></i> @emp.EmployeeName <span class="text-muted small">(@emp.EmployeeId)</span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                        <small class="text-muted mt-2 d-block"><i class="bi bi-info-circle text-primary"></i> Check specific employees, or leave all unchecked to assign to everyone.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update Leave Type</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function editLeaveType(id, code, name, quota, isPaid, afterProbation, carryFwd, status, employeeIdsJson) {
+            document.getElementById('editId').value = id;
+            document.getElementById('editCode').value = code;
+            document.getElementById('editName').value = name;
+            document.getElementById('editQuota').value = quota;
+            document.getElementById('editIsPaid').checked = isPaid;
+            document.getElementById('editAfterProbation').checked = afterProbation;
+            document.getElementById('editAllowCarryForward').checked = carryFwd;
+            document.getElementById('editStatus').value = status;
+            
+            // Clear and set employee checkboxes
+            const checkboxes = document.querySelectorAll('.edit-emp-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+            
+            if (employeeIdsJson) {
+                const employeeIds = JSON.parse(employeeIdsJson);
+                checkboxes.forEach(cb => {
+                    if (employeeIds.includes(parseInt(cb.value))) {
+                        cb.checked = true;
+                    }
+                });
+            }
+            
+            new bootstrap.Modal(document.getElementById('editLeaveTypeModal')).show();
+        }
+    </script>
+}
+</div>

@@ -1,0 +1,49 @@
+@page
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Http
+@using System.Text.Json
+@inject HRDesk.Web.Data.BiometricAttendanceDbContext _db
+
+@{
+    Layout = null; // No layout for JSON responses
+    
+    // Read and parse the ID
+    int id = 0;
+    if (Request.Query.ContainsKey("id"))
+    {
+        int.TryParse(Request.Query["id"], out id);
+    }
+
+    // Set JSON content type
+    Response.ContentType = "application/json";
+
+    if (id <= 0)
+    {
+        await Response.WriteAsync("[]");
+        return;
+    }
+
+    try
+    {
+        // Fetch details from DB
+        var details = await _db.PayrollDetails
+            .Where(d => d.PayrollId == id)
+            .Select(d => new { d.ComponentName, d.ComponentType, d.Amount, d.Remarks })
+            .ToListAsync();
+
+        // Serialize to JSON with CamelCase (matches frontend expectations)
+        var json = JsonSerializer.Serialize(details, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+        
+        await Response.WriteAsync(json);
+    }
+    catch (Exception ex)
+    {
+        Response.StatusCode = 500;
+        // Escape quotes to ensure valid JSON error message
+        string safeError = ex.Message.Replace("\"", "\\\"");
+        await Response.WriteAsync($"{{\"error\":\"{safeError}\"}}");
+    }
+}

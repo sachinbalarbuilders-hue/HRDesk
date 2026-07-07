@@ -1,0 +1,68 @@
+@page
+@model HRDesk.Web.Pages.Reports.EmployeeLeaveDetailModel
+@{
+    ViewData["Title"] = "Detailed Leave Breakdown";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-person-lines-fill text-primary me-2"></i>Detailed Leave Breakdown</h4>
+        <p class="text-muted small mb-0">Leave history for <strong>@Model.Employee.EmployeeName</strong> (@Model.Employee.Department?.DepartmentName) from @Model.StartDate.ToString("MMM dd, yyyy") to @Model.EndDate.ToString("MMM dd, yyyy")</p>
+    </div>
+    <a asp-page="./EmployeeLeaveReport" asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")" asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Report
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (Model.LeaveApplications.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Leave Date(s)</th>
+                            <th class="text-center">Total Days</th>
+                            <th>Day Type</th>
+                            <th>Leave Type</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var app in Model.LeaveApplications)
+                        {
+                            <tr>
+                                <td>
+                                    @if (app.StartDate == app.EndDate)
+                                    {
+                                        <span class="fw-medium">@app.StartDate.ToString("MMM dd, yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="fw-medium">@app.StartDate.ToString("MMM dd, yyyy")</span> <span class="text-muted small mx-1">to</span> <span class="fw-medium">@app.EndDate.ToString("MMM dd, yyyy")</span>
+                                    }
+                                </td>
+                                <td class="text-center fw-bold">@app.TotalDays.ToString("0.##")</td>
+                                <td><span class="badge bg-secondary opacity-75">@app.DayType</span></td>
+                                <td>
+                                    <span class="badge bg-primary">@(app.LeaveType?.Code ?? "Unknown")</span>
+                                    <small class="text-muted ms-1">@app.LeaveType?.Name</small>
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace(app.Reason) ? "-" : app.Reason)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="p-5 text-center text-muted">
+                <i class="bi bi-file-earmark-x fs-1 d-block mb-3 opacity-50"></i>
+                <h5>No Leaves Found</h5>
+                <p>There are no formal leave applications for this employee within the selected date range.</p>
+            </div>
+        }
+    </div>
+</div>

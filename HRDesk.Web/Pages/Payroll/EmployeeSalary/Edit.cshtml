@@ -1,0 +1,240 @@
+@page
+@model HRDesk.Web.Pages.Payroll.EmployeeSalary.EditModel
+
+@{
+    ViewData["Title"] = "Edit Employee Salary";
+}
+
+<div class="container pb-5">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="mb-1 fw-bold">Salary Settings</h4>
+            <p class="text-muted mb-0 small">Configure monthly pay components for Organization Employees</p>
+        </div>
+        <a asp-page="./Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to List
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm overflow-hidden">
+                <div class="row g-0">
+                    <!-- Form Side -->
+                    <div class="col-md-7 p-4 p-lg-5">
+                        <div class="d-flex align-items-center gap-2 mb-4">
+                            <div class="avatar-circle">
+                                @(string.IsNullOrEmpty(Model.EmployeeName) ? "?" : Model.EmployeeName[0].ToString().ToUpper())
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold">@Model.EmployeeName</h5>
+                                <span class="text-muted small">Update salary details</span>
+                            </div>
+                        </div>
+
+                        <form method="post">
+                            <input type="hidden" asp-for="EmployeeId" />
+                            <input type="hidden" asp-for="EmployeeName" />
+
+                            <div class="mb-4">
+                                <label asp-for="EffectiveDate" class="form-label fw-semibold small text-uppercase text-muted">Effective Start Date</label>
+                                <div class="input-group drop-shadow-sm">
+                                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar-event text-primary"></i></span>
+                                    <input asp-for="EffectiveDate" class="form-control border-start-0 ps-0" type="date" />
+                                </div>
+                                <span asp-validation-for="EffectiveDate" class="text-danger small mt-1 d-block"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="BasicSalary" class="form-label fw-semibold small text-uppercase text-muted">Basic Salary (₹)</label>
+                                <div class="input-group drop-shadow-sm">
+                                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-cash text-primary"></i></span>
+                                    <input asp-for="BasicSalary" class="form-control border-start-0 ps-0" type="number" step="0.01" min="0" placeholder="0.00" />
+                                </div>
+                                <span asp-validation-for="BasicSalary" class="text-danger small mt-1 d-block"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="SpecialAllowance" class="form-label fw-semibold small text-uppercase text-muted">Special Allowance (₹)</label>
+                                <div class="input-group drop-shadow-sm">
+                                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-plus-circle text-success"></i></span>
+                                    <input asp-for="SpecialAllowance" class="form-control border-start-0 ps-0" type="number" step="0.01" min="0" placeholder="0.00" />
+                                </div>
+                                <span asp-validation-for="SpecialAllowance" class="text-danger small mt-1 d-block"></span>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6 mb-4">
+                                    <label asp-for="ProvidentFund" class="form-label fw-semibold small text-uppercase text-muted">PF Deduction (₹)</label>
+                                    <div class="input-group drop-shadow-sm">
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-dash-circle text-danger"></i></span>
+                                        <input asp-for="ProvidentFund" class="form-control border-start-0 ps-0 text-danger" type="number" step="0.01" min="0" placeholder="0.00" />
+                                    </div>
+                                    <span asp-validation-for="ProvidentFund" class="text-danger small mt-1 d-block"></span>
+                                </div>
+                                <div class="col-md-6 mb-4">
+                                    <label asp-for="ESIC" class="form-label fw-semibold small text-uppercase text-muted">ESIC Deduction (₹)</label>
+                                    <div class="input-group drop-shadow-sm">
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-dash-circle text-danger"></i></span>
+                                        <input asp-for="ESIC" class="form-control border-start-0 ps-0 text-danger" type="number" step="0.01" min="0" placeholder="0.00" />
+                                    </div>
+                                    <span asp-validation-for="ESIC" class="text-danger small mt-1 d-block"></span>
+                                </div>
+                            </div>
+
+                            <div class="mt-5 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary px-4 py-2">
+                                    <i class="bi bi-save me-2"></i>Save Configuration
+                                </button>
+                                <a asp-page="./Index" class="btn btn-soft-secondary px-4 py-2">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Info/Summary Side -->
+                    <div class="col-md-5 bg-light p-4 p-lg-5 border-start">
+                        <h6 class="fw-bold text-uppercase small text-muted mb-4">Salary Summary</h6>
+                        <div class="mb-4 bg-white p-3 rounded border">
+                                <span class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Net Annual Projection</span>
+                                <h3 class="mb-0 text-primary fw-bolder mt-1" id="annualProjection">
+                                    @{ 
+                                        var netAnnual = ((Model.BasicSalary + Model.SpecialAllowance) - (Model.ProvidentFund + Model.ESIC)) * 12;
+                                        var formattedNetAnnual = netAnnual.ToString("C0", new System.Globalization.CultureInfo("en-IN"));
+                                     }
+                                    @formattedNetAnnual
+                                </h3>
+                            </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Monthly Gross</span>
+                            <span class="fw-bold text-dark">₹<span id="grossSalary">@((Model.BasicSalary + Model.SpecialAllowance).ToString("N2"))</span></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Total Deductions</span>
+                            <span class="fw-bold text-danger">- ₹<span id="totalDeductions">@((Model.ProvidentFund + Model.ESIC).ToString("N2"))</span></span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-0 mt-3 pt-3 border-top">
+                            <span class="fw-bold text-dark">Net Payout</span>
+                            <span class="fw-900 text-primary fs-5">₹<span id="totalSalary">@((Model.BasicSalary + Model.SpecialAllowance - Model.ProvidentFund - Model.ESIC).ToString("N2"))</span></span>
+                        </div>
+                        
+                        <hr class="my-4">
+
+                        <h6 class="fw-bold text-uppercase small text-muted mb-3">Policy Reminders</h6>
+                        <ul class="list-unstyled small text-muted">
+                            <li class="mb-3 d-flex gap-3">
+                                <i class="bi bi-info-circle text-primary fs-5"></i>
+                                <div><strong>Auto-Proration:</strong> Earnings are calculated based on monthly attendance logs.</div>
+                            </li>
+                            <li class="mb-3 d-flex gap-3">
+                                <i class="bi bi-dash-circle text-danger fs-5"></i>
+                                <div><strong>Deductions:</strong> Unpaid leaves or absent days will reduce net payout automatically.</div>
+                            </li>
+                            <li class="d-flex gap-3">
+                                <i class="bi bi-shield-check text-success fs-5"></i>
+                                <div><strong>Validation:</strong> Ensure basic salary follows regional statutory minimums.</div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Salary History Section -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>Salary Change History</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Component</th>
+                                    <th>Amount</th>
+                                    <th>Effective From</th>
+                                    <th>Effective To</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.SalaryHistory != null && Model.SalaryHistory.Any())
+                                {
+                                    @foreach (var history in Model.SalaryHistory)
+                                    {
+                                        <tr>
+                                            <td class="ps-4 fw-medium text-dark">@history.ComponentName</td>
+                                            <td>₹@history.Amount.ToString("N2")</td>
+                                            <td>@history.EffectiveFrom.ToString("dd MMM yyyy")</td>
+                                            <td>
+                                                @(history.EffectiveTo.HasValue ? history.EffectiveTo.Value.ToString("dd MMM yyyy") : "-")
+                                            </td>
+                                            <td>
+                                                @if (history.IsActive)
+                                                {
+                                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">Expired</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">No salary history found.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const basicInput = document.querySelector('input[name="BasicSalary"]');
+            const specialInput = document.querySelector('input[name="SpecialAllowance"]');
+            const pfInput = document.querySelector('input[name="ProvidentFund"]');
+            const esicInput = document.querySelector('input[name="ESIC"]');
+            
+            const grossSpan = document.getElementById('grossSalary');
+            const deductionSpan = document.getElementById('totalDeductions');
+            const netSpan = document.getElementById('totalSalary');
+            const annualSpan = document.getElementById('annualSalary');
+
+            function updateTotal() {
+                const basic = parseFloat(basicInput.value) || 0;
+                const special = parseFloat(specialInput.value) || 0;
+                const pf = parseFloat(pfInput.value) || 0;
+                const esic = parseFloat(esicInput.value) || 0;
+
+                const gross = basic + special;
+                const deductions = pf + esic;
+                const net = gross - deductions;
+                const annual = net * 12;
+
+                grossSpan.textContent = gross.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                deductionSpan.textContent = deductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                netSpan.textContent = net.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                annualSpan.textContent = annual.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+            }
+
+            [basicInput, specialInput, pfInput, esicInput].forEach(inp => {
+                if(inp) inp.addEventListener('input', updateTotal);
+            });
+        });
+    </script>
+}

@@ -1,0 +1,57 @@
+@page
+@model HRDesk.Web.Pages.Organizations.CreateModel
+@{
+    ViewData["Title"] = "Create Organization";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Create Organization</h1>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="Organization.Name" class="control-label"></label>
+                <input asp-for="Organization.Name" class="form-control" />
+                <span asp-validation-for="Organization.Name" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label asp-for="Organization.WhatsAppGroupId" class="control-label"></label>
+                @if (Model.AvailableGroups.Any())
+                {
+                    <select asp-for="Organization.WhatsAppGroupId" class="form-select">
+                        <option value="">-- No Group Selected --</option>
+                        @foreach (var group in Model.AvailableGroups)
+                        {
+                            <option value="@group.Value">@group.Text</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <input asp-for="Organization.WhatsAppGroupId" class="form-control" />
+                }
+                <span asp-validation-for="Organization.WhatsAppGroupId" class="text-danger"></span>
+            </div>
+            
+            <div class="form-group form-check mb-3">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="Organization.IsActive" /> @Html.DisplayNameFor(model => model.Organization.IsActive)
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-page="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

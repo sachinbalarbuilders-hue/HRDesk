@@ -1,0 +1,211 @@
+@page
+@model HRDesk.Web.Pages.Masters.DeviceSettingsModel
+@{
+    ViewData["Title"] = "Device Settings";
+}
+
+<div class="container-fluid pb-5">
+    <div class="d-flex align-items-center justify-content-between mb-4 mt-4">
+        <div>
+            <h4 class="mb-1 fw-bold text-primary"><i class="bi bi-hdd-network me-2"></i>Biometric Device configurations</h4>
+            <p class="text-muted mb-0 small">Manage multiple biometric devices for attendance synchronization</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
+                <i class="bi bi-plus-lg me-1"></i>Add New Device
+            </button>
+            <a asp-page="/Index" class="btn btn-outline-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert @(Model.IsError ? "alert-danger" : "alert-success") alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+            <i class="bi @(Model.IsError ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill") me-2"></i>
+            @Model.Message
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead class="bg-light text-uppercase small text-muted">
+                    <tr>
+                        <th class="ps-4">Device Name</th>
+                        <th>IP Address</th>
+                        <th>Port</th>
+                        <th>Machine #</th>
+                        <th>Comm Key</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var device in Model.Devices)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-bold text-dark">@device.Name</span>
+                            </td>
+                            <td><code class="bg-light px-2 py-1 rounded text-primary">@device.IpAddress</code></td>
+                            <td>@device.Port</td>
+                            <td><span class="badge bg-soft-info text-info rounded-pill px-3">@device.MachineNumber</span></td>
+                            <td>@device.CommKey</td>
+                            <td class="text-end pe-4">
+                                <div class="btn-group btn-group-sm">
+                                    <form method="post" asp-page-handler="TestConnection" asp-route-id="@device.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-soft-warning px-3" title="Test Connection">
+                                            <i class="bi bi-broadcast"></i> Test
+                                        </button>
+                                    </form>
+                                    <button type="button" class="btn btn-soft-primary px-3" data-bs-toggle="modal" data-bs-target="#editModal@(device.Id)">
+                                        <i class="bi bi-pencil-square"></i> Edit
+                                    </button>
+                                    <form method="post" asp-page-handler="DeleteDevice" asp-route-id="@device.Id" class="d-inline" onsubmit="return confirm('Remove this device?')">
+                                        <button type="submit" class="btn btn-soft-danger px-3">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Edit Modal -->
+                                <div class="modal fade text-start" id="editModal@(device.Id)" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content border-0 shadow">
+                                            <form method="post" asp-page-handler="UpdateDevice">
+                                                <input type="hidden" name="id" value="@device.Id" />
+                                                <div class="modal-header border-bottom-0">
+                                                    <h5 class="modal-title fw-bold">Edit Device Configuration</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body py-0">
+                                                    <div class="mb-3">
+                                                        <label class="form-label small text-muted text-uppercase fw-bold">Device Name</label>
+                                                        <input type="text" name="name" value="@device.Name" class="form-control" required />
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label small text-muted text-uppercase fw-bold">IP Address</label>
+                                                        <input type="text" name="ip" value="@device.IpAddress" class="form-control" required />
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label small text-muted text-uppercase fw-bold">Port</label>
+                                                            <input type="number" name="port" value="@device.Port" class="form-control" required />
+                                                        </div>
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label small text-muted text-uppercase fw-bold">Machine #</label>
+                                                            <input type="number" name="machine" value="@device.MachineNumber" class="form-control" required />
+                                                        </div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label small text-muted text-uppercase fw-bold">Comm Key</label>
+                                                        <input type="number" name="commKey" value="@device.CommKey" class="form-control" required />
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer border-top-0 pt-0">
+                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    </div>
+ 
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+                    <h5 class="fw-bold text-dark"><i class="bi bi-gear-fill me-2 text-primary"></i>Global Service Settings</h5>
+                    <p class="text-muted small">Configure global parameters for the attendance windows service</p>
+                </div>
+                <div class="card-body px-4 pb-4 pt-2">
+                    <form method="post" asp-page-handler="UpdateSyncInterval">
+                        <div class="mb-3">
+                            <label asp-for="SyncIntervalMinutes" class="form-label small text-muted text-uppercase fw-bold">Sync Interval (Minutes)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-stopwatch"></i></span>
+                                <input asp-for="SyncIntervalMinutes" type="number" class="form-control border-start-0" min="1" max="1440" required />
+                                <button type="submit" class="btn btn-primary px-4">
+                                    <i class="bi bi-save me-1"></i> Update Frequency
+                                </button>
+                            </div>
+                            <div class="form-text mt-2 small">
+                                <i class="bi bi-info-circle me-1"></i> 
+                                Recommended: 5-10 minutes. Changes take effect immediately in the background service.
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="alert alert-info border-0 shadow-sm bg-soft-info h-100 mb-0 d-flex align-items-center">
+                <i class="bi bi-info-circle-fill me-4 fs-1 text-info opacity-50"></i>
+                <div class="text-info">
+                    <h6 class="fw-bold mb-1">How Sync Works:</h6>
+                    <p class="small mb-0 mt-2">
+                        The Windows Service periodically connects to all devices configured above. 
+                        A shorter interval (e.g., 2 mins) means faster updates, while a longer interval (e.g., 15 mins) reduces network traffic.
+                        <br/><br/>
+                        <strong>Note:</strong> Ensure the <code>Z903AttendanceService</code> is running on the server for automated syncing.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Device Modal -->
+<div class="modal fade" id="addDeviceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="AddDevice">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold">Add New Biometric Device</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-0">
+                    <div class="mb-3">
+                        <label asp-for="NewDevice.Name" class="form-label small text-muted text-uppercase fw-bold">Device Name</label>
+                        <input asp-for="NewDevice.Name" class="form-control" placeholder="e.g. Main Gate" required />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewDevice.IpAddress" class="form-label small text-muted text-uppercase fw-bold">IP Address</label>
+                        <input asp-for="NewDevice.IpAddress" class="form-control" placeholder="e.g. 192.168.1.201" required />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewDevice.Port" class="form-label small text-muted text-uppercase fw-bold">Port</label>
+                            <input asp-for="NewDevice.Port" class="form-control" value="4370" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewDevice.MachineNumber" class="form-label small text-muted text-uppercase fw-bold">Machine #</label>
+                            <input asp-for="NewDevice.MachineNumber" class="form-control" value="1" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewDevice.CommKey" class="form-label small text-muted text-uppercase fw-bold">Comm Key</label>
+                        <input asp-for="NewDevice.CommKey" class="form-control" value="0" required />
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Add Device</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
