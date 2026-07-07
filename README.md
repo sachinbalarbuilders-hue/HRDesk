@@ -8,12 +8,12 @@ A comprehensive Human Resource Management System (HRMS) integrated with biometri
 
 ```
 HRDesk/
-├── AttendanceUI/                    # ASP.NET Core Razor Pages web app
+├── HRDesk.Web/                      # ASP.NET Core Razor Pages web app
 ├── Z903AttendanceService/           # Windows Service (biometric sync)
 │   ├── Z903AttendanceService/       # Main service project (.NET Framework 4.8)
 │   └── BackendExample/              # Example API controller for reference
 ├── biometric_attendance_schema.sql  # Full database schema
-├── Update_AttendanceUI.bat          # One-click deploy for web app
+├── Update_HRDeskWeb.bat             # One-click deploy for web app
 ├── Update_Z903Service.bat           # One-click build & deploy for service
 └── README.md
 ```
@@ -25,10 +25,10 @@ HRDesk/
 | Tool | Version | Purpose |
 |------|---------|---------|
 | MySQL | 8.x | Database |
-| .NET SDK | 8.0+ | AttendanceUI web app |
+| .NET SDK | 8.0+ | HRDesk.Web web app |
 | .NET Framework | 4.8 | Z903 Windows Service |
 | Visual Studio Community | 2022+ | Building the Windows Service |
-| IIS | 10 | Hosting AttendanceUI in production |
+| IIS | 10 | Hosting HRDesk.Web in production |
 
 ---
 
@@ -45,12 +45,12 @@ HRDesk/
    ```
 
 3. Update connection strings:
-   - **Web app**: `AttendanceUI/appsettings.json`
+   - **Web app**: `HRDesk.Web/appsettings.json`
    - **Service**: `Z903AttendanceService/Z903AttendanceService/App.config`
 
 ---
 
-## 🌐 AttendanceUI (Web Application)
+## 🌐 HRDesk.Web (Web Application)
 
 **Tech**: ASP.NET Core Razor Pages, Entity Framework Core, MySQL
 
@@ -64,16 +64,16 @@ HRDesk/
 
 ### Run Locally (Development)
 ```bash
-cd AttendanceUI
+cd HRDesk.Web
 dotnet run
 # Access at http://localhost:5000
 ```
 
 ### Deploy to IIS (Production)
-Double-click **`Update_AttendanceUI.bat`** as Administrator. It will:
+Double-click **`Update_HRDeskWeb.bat`** as Administrator. It will:
 1. Publish the app in Release mode
 2. Stop IIS & kill worker processes
-3. Copy files to `C:\inetpub\AttendanceUI`
+3. Copy files to `C:\inetpub\HRDesk.Web`
 4. Restart IIS
 
 ---

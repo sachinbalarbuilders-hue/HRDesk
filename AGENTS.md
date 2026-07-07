@@ -24,7 +24,7 @@ that had approved Comp Off leave).
 All attendance counting logic was extracted into a **single shared service**:
 
 ```
-AttendanceUI/Services/AttendanceSummaryService.cs
+HRDesk.Web/Services/AttendanceSummaryService.cs
 ```
 
 Both `MonthlyAttendanceSheet` and `PayrollService` now call this shared service.

@@ -128,7 +128,7 @@ app.UseAuthorization();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<HRDesk.Web.Data.BiometricAttendanceDbContext>();
-    db.Database.EnsureCreated(); // Ensure DB and tables exist
+    db.Database.Migrate(); // Apply pending migrations automatically
 
     // Create eligibility table if missing (Split to avoid atomicity issues with InnoDB on failure)
     try {
