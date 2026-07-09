@@ -104,7 +104,29 @@ public sealed class EditModel : PageModel
         employee.Phone = string.IsNullOrWhiteSpace(Input.Phone) ? null : Input.Phone.Trim();
         employee.Status = Input.Status;
 
-        if (Input.PhotoUpload != null && Input.PhotoUpload.Length > 0)
+        if (!string.IsNullOrEmpty(Input.CroppedPhotoBase64))
+        {
+            var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
+            if (!string.IsNullOrEmpty(photoDir))
+            {
+                if (!System.IO.Directory.Exists(photoDir))
+                    System.IO.Directory.CreateDirectory(photoDir);
+                
+                var base64Data = Input.CroppedPhotoBase64.Contains(",") 
+                    ? Input.CroppedPhotoBase64.Split(',')[1] 
+                    : Input.CroppedPhotoBase64;
+                    
+                var bytes = Convert.FromBase64String(base64Data);
+                var fileName = $"{employee.EmployeeId}_{Guid.NewGuid()}.jpg";
+                var filePath = System.IO.Path.Combine(photoDir, fileName);
+                
+                await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+                
+                // Note: Not deleting old photo to keep history/backups
+                employee.PhotoPath = fileName;
+            }
+        }
+        else if (Input.PhotoUpload != null && Input.PhotoUpload.Length > 0)
         {
             var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
             if (!string.IsNullOrEmpty(photoDir))
@@ -211,6 +233,8 @@ public sealed class EditModel : PageModel
 
         [Display(Name = "Employee Photo")]
         public IFormFile? PhotoUpload { get; set; }
+
+        public string? CroppedPhotoBase64 { get; set; }
 
         [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits.")]
         [StringLength(10)]

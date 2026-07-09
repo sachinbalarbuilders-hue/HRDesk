@@ -182,7 +182,7 @@
                                     <div class="bg-white rounded-circle mx-auto shadow-sm overflow-hidden d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; border: 4px solid @(isBirthday ? "#ff4081" : "#00c853");">
                                         @if (!string.IsNullOrEmpty(celeb.PhotoPath))
                                         {
-                                            <img src="/EmployeePhotos/@celeb.PhotoPath" alt="@celeb.EmployeeName" class="w-100 h-100 object-fit-cover" style="object-fit: cover; display: block;" />
+                                            <img src="/api/Thumbnail?filename=@celeb.PhotoPath&width=150&height=150" alt="@celeb.EmployeeName" class="w-100 h-100" style="object-fit: cover; object-position: top center; display: block;" />
                                         }
                                         else
                                         {

@@ -77,7 +77,8 @@
                 <div class="col-md-4">
                     <label asp-for="Input.PhotoUpload" class="form-label fw-semibold"></label>
                     <input asp-for="Input.PhotoUpload" class="form-control" type="file" accept="image/jpeg,image/png" />
-                    <div class="form-text text-muted">Optional: Upload employee photo for ID and celebrations.</div>
+                    <input type="hidden" asp-for="Input.CroppedPhotoBase64" />
+                    <div class="form-text text-muted">Optional: Upload employee photo for ID and celebrations. You can crop it after selecting.</div>
                     <span asp-validation-for="Input.PhotoUpload" class="text-danger small"></span>
                 </div>
 
@@ -104,6 +105,92 @@
     </div>
 </div>
 
+<!-- Cropper Modal -->
+<div class="modal fade" id="cropperModal" tabindex="-1" aria-labelledby="cropperModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cropperModalLabel">Crop Profile Photo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="img-container" style="max-height: 500px; display:flex; justify-content:center; background-color: #f8f9fa;">
+          <img id="imageToCrop" src="" style="max-width: 100%; display:block;" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btnCropAndSave">Crop & Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var photoInput = document.getElementById('Input_PhotoUpload');
+            var image = document.getElementById('imageToCrop');
+            var cropperModalEl = document.getElementById('cropperModal');
+            var cropperModal = new bootstrap.Modal(cropperModalEl);
+            var cropper;
+            var croppedBase64Input = document.getElementById('Input_CroppedPhotoBase64');
+
+            photoInput.addEventListener('change', function (e) {
+                var files = e.target.files;
+                if (files && files.length > 0) {
+                    var reader = new FileReader();
+                    reader.onload = function (event) {
+                        image.src = event.target.result;
+                        cropperModal.show();
+                    };
+                    reader.readAsDataURL(files[0]);
+                }
+            });
+
+            cropperModalEl.addEventListener('shown.bs.modal', function () {
+                cropper = new Cropper(image, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 1,
+                });
+            });
+
+            cropperModalEl.addEventListener('hidden.bs.modal', function () {
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                // Clear the input file if they cancelled, unless they already cropped
+                if (!croppedBase64Input.value) {
+                    photoInput.value = "";
+                }
+            });
+
+            document.getElementById('btnCropAndSave').addEventListener('click', function () {
+                if (cropper) {
+                    var canvas = cropper.getCroppedCanvas({
+                        width: 500,
+                        height: 500,
+                    });
+                    var base64 = canvas.toDataURL('image/jpeg', 0.9);
+                    croppedBase64Input.value = base64;
+                    cropperModal.hide();
+                    
+                    var previewDiv = document.getElementById('photoPreviewContainer');
+                    if (!previewDiv) {
+                        previewDiv = document.createElement('div');
+                        previewDiv.id = 'photoPreviewContainer';
+                        previewDiv.className = 'mt-3 d-flex align-items-center gap-3 p-3 border rounded bg-light';
+                        previewDiv.innerHTML = '<img id="photoPreviewImg" src="" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.1);" /><div class="fw-bold text-success"><i class="bi bi-check-circle-fill me-1"></i> Cropped photo ready to upload</div>';
+                        photoInput.parentNode.appendChild(previewDiv);
+                    }
+                    document.getElementById('photoPreviewImg').src = base64;
+                }
+            });
+        });
+    </script>
 }
