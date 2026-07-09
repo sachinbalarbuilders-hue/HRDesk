@@ -70,6 +70,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<LeaveTypeEligibility> LeaveTypeEligibilities => Set<LeaveTypeEligibility>();
     public DbSet<EmployeeShiftAssignment> EmployeeShiftAssignments => Set<EmployeeShiftAssignment>();
     public DbSet<ShiftRoster> ShiftRosters => Set<ShiftRoster>();
+    public DbSet<CelebrationLog> CelebrationLogs => Set<CelebrationLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -439,6 +440,11 @@ public sealed class BiometricAttendanceDbContext : DbContext
         });
 
         modelBuilder.Entity<AttendanceLog>(entity =>
+        {
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
+        });
+        
+        modelBuilder.Entity<CelebrationLog>(entity =>
         {
             entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
         });

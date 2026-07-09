@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using HRDesk.Web.Data;
+using HRDesk.Web.Models;
 using HRDesk.Web.Services.Notifications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -39,13 +40,10 @@ namespace HRDesk.Web.Services
             {
                 var now = DateTime.Now;
                 
-                // Trigger at 9:30 AM or 10:30 AM
-                bool is930 = now.Hour == 9 && now.Minute == 30;
-                bool is1030 = now.Hour == 10 && now.Minute == 30;
+                // Trigger any time after 9:30 AM if it hasn't run today
+                bool shouldTrigger = (now.Hour == 9 && now.Minute >= 30) || (now.Hour >= 10);
 
-                if (is930 || is1030)
-                {
-                    if (_lastProcessedDate.Date != now.Date)
+                if (shouldTrigger && _lastProcessedDate.Date != now.Date)
                     {
                         try
                         {
@@ -61,7 +59,6 @@ namespace HRDesk.Web.Services
                             _logger.LogError(ex, "Error processing celebrations.");
                         }
                     }
-                }
 
                 await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
             }
@@ -72,6 +69,13 @@ namespace HRDesk.Web.Services
             using var scope = _serviceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<BiometricAttendanceDbContext>();
             var whatsappProvider = scope.ServiceProvider.GetRequiredService<IWhatsAppProvider>();
+
+            // Get today's logs to prevent duplicates
+            var todaysLogs = await db.CelebrationLogs
+                .IgnoreQueryFilters()
+                .Where(l => l.SentDate.Date == today.Date)
+                .Select(l => new { l.EmployeeId, l.EventType })
+                .ToListAsync();
 
             // Get all active employees across all organizations, bypassing tenant filters for the background service
             var employees = await db.Employees
@@ -97,6 +101,11 @@ namespace HRDesk.Web.Services
                     employee.DateOfBirth.Value.Month == today.Month && 
                     employee.DateOfBirth.Value.Day == today.Day)
                 {
+                    if (todaysLogs.Any(l => l.EmployeeId == employee.EmployeeId && l.EventType == "Birthday"))
+                    {
+                        continue;
+                    }
+
                     _logger.LogInformation("Queuing Birthday HTML generation for {Name} in Org {Org}", employee.EmployeeName, employee.Organization?.Name);
                     
                     var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
@@ -115,6 +124,15 @@ namespace HRDesk.Web.Services
 The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes you a day filled with joy, good health, and happiness. Thank you for your dedication and hard work. Wishing you continued success and a wonderful year ahead!";
                     // Send to Node.js microservice to generate HTML/Puppeteer poster
                     await whatsappProvider.SendCelebrationAsync(groupId, employee.EmployeeName, "Birthday", photoBase64, caption);
+                    
+                    db.CelebrationLogs.Add(new CelebrationLog 
+                    {
+                        OrganizationId = employee.OrganizationId,
+                        EmployeeId = employee.EmployeeId,
+                        EventType = "Birthday",
+                        SentDate = today,
+                        CreatedAt = DateTime.Now
+                    });
                 }
 
                 // Check Work Anniversary
@@ -124,6 +142,11 @@ The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes yo
                     employee.JoiningDate.Value.Day == today.Day &&
                     employee.JoiningDate.Value.Year < today.Year)
                 {
+                    if (todaysLogs.Any(l => l.EmployeeId == employee.EmployeeId && l.EventType == "Anniversary"))
+                    {
+                        continue;
+                    }
+
                     var years = today.Year - employee.JoiningDate.Value.Year;
                     
                     _logger.LogInformation("Queuing Work Anniversary HTML generation for {Name} ({Years} years) in Org {Org}", employee.EmployeeName, years, employee.Organization?.Name);
@@ -144,12 +167,22 @@ The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes yo
                     
                     // Send to Node.js microservice to generate HTML/Puppeteer poster
                     await whatsappProvider.SendCelebrationAsync(groupId, employee.EmployeeName, "Anniversary", photoBase64, caption, years);
+                    
+                    db.CelebrationLogs.Add(new CelebrationLog 
+                    {
+                        OrganizationId = employee.OrganizationId,
+                        EmployeeId = employee.EmployeeId,
+                        EventType = "Anniversary",
+                        SentDate = today,
+                        CreatedAt = DateTime.Now
+                    });
                 }
             }
             
-            // Note: In a production app, we would log that we processed today's celebrations in the database
+            await db.SaveChangesAsync();
+            
+            // Note: In a production app, we now log that we processed today's celebrations in the database
             // so we don't send duplicates if the service restarts during the 9 AM hour.
-            // But this is a basic implementation as requested.
         }
     }
 }
