@@ -68,7 +68,7 @@ namespace HRDesk.Web.Services.Notifications
             }
         }
 
-        public async Task<bool> SendImageAsync(string phoneOrGroupId, byte[] imageBytes, string fileName, string mimeType, string caption = null)
+        public async Task<bool> SendImageAsync(string phoneOrGroupId, byte[] imageBytes, string fileName, string mimeType, string? caption = null)
         {
             try
             {
@@ -95,7 +95,7 @@ namespace HRDesk.Web.Services.Notifications
             }
         }
 
-        public async Task<bool> SendCelebrationAsync(string phoneOrGroupId, string employeeName, string eventType, string photoBase64, string caption = null, int years = 0)
+        public async Task<bool> SendCelebrationAsync(string phoneOrGroupId, string employeeName, string eventType, string photoBase64, string? caption = null, int years = 0)
         {
             try
             {
@@ -135,7 +135,7 @@ namespace HRDesk.Web.Services.Notifications
                     
                     if (status == "qr_ready")
                     {
-                        return (status, result.GetProperty("qr").GetString(), 0);
+                        return (status ?? string.Empty, result.GetProperty("qr").GetString() ?? string.Empty, 0);
                     }
                     else if (status == "connected")
                     {
@@ -145,12 +145,12 @@ namespace HRDesk.Web.Services.Notifications
                         {
                             var statusResult = await statusResponse.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
                             int queueLength = statusResult.GetProperty("queueLength").GetInt32();
-                            return (status, string.Empty, queueLength);
+                            return (status ?? string.Empty, string.Empty, queueLength);
                         }
-                        return (status, string.Empty, 0);
+                        return (status ?? string.Empty, string.Empty, 0);
                     }
                     
-                    return (status, string.Empty, 0);
+                    return (status ?? string.Empty, string.Empty, 0);
                 }
             }
             catch (Exception ex)

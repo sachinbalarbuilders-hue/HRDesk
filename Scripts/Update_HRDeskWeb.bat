@@ -45,7 +45,7 @@ if '%errorlevel%' NEQ '0' (
     :: /MIR = Mirror directory (copies all, deletes extras)
     :: /Z = Restartable mode
     :: /XD = Exclude logs folder if exists
-    robocopy "%~dp0..\HRDesk.Web\publish" "C:\inetpub\AttendanceUI" /MIR /Z /XD "logs" "UserUploads"
+    robocopy "%~dp0..\HRDesk.Web\publish" "C:\inetpub\HRDesk" /MIR /Z /XD "logs" "UserUploads"
     
     echo.
     echo Step 4: Restarting IIS services...

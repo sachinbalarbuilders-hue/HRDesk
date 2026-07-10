@@ -61,7 +61,7 @@ public class EmployeeLeaveReportModel : PageModel
                 
                 var breakdownDict = empLeaves
                     .Where(l => l.LeaveType != null)
-                    .GroupBy(l => l.LeaveType.Code)
+                    .GroupBy(l => l.LeaveType!.Code)
                     .ToDictionary(g => g.Key, g => g.Sum(l => l.TotalDays));
                     
                 var breakdown = string.Join(", ", breakdownDict.Select(x => $"{x.Key}: {x.Value}"));

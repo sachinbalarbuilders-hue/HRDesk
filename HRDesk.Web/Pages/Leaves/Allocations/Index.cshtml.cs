@@ -41,7 +41,7 @@ public class IndexModel : PageModel
 
         if (!string.IsNullOrEmpty(SearchString))
         {
-            query = query.Where(la => la.Employee.EmployeeName.Contains(SearchString));
+            query = query.Where(la => la.Employee!.EmployeeName.Contains(SearchString));
         }
 
         var allAllocations = await query.ToListAsync();

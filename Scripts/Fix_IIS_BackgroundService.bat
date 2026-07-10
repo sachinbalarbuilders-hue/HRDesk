@@ -26,16 +26,16 @@ echo Step 1: Installing IIS Application Initialization Feature (required for Pre
 dism /online /enable-feature /featurename:IIS-ApplicationInit /all /NoRestart
 
 echo.
-echo Step 2: Setting App Pool 'AttendanceUI' to AlwaysRunning...
-%systemroot%\system32\inetsrv\appcmd.exe set config -section:applicationPools -[name='AttendanceUI'].startMode:"AlwaysRunning" /commit:apphost
+echo Step 2: Setting App Pool 'HRDesk' to AlwaysRunning...
+%systemroot%\system32\inetsrv\appcmd.exe set config -section:applicationPools -[name='HRDesk'].startMode:"AlwaysRunning" /commit:apphost
 
 echo.
 echo Step 3: Disabling Idle Time-out (Setting to 0)...
-%systemroot%\system32\inetsrv\appcmd.exe set config -section:applicationPools -[name='AttendanceUI'].processModel.idleTimeout:"00:00:00" /commit:apphost
+%systemroot%\system32\inetsrv\appcmd.exe set config -section:applicationPools -[name='HRDesk'].processModel.idleTimeout:"00:00:00" /commit:apphost
 
 echo.
-echo Step 4: Enabling Preload on Website 'AttendanceUI'...
-%systemroot%\system32\inetsrv\appcmd.exe set site /site.name:"AttendanceUI" /applicationDefaults.preloadEnabled:true
+echo Step 4: Enabling Preload on Website 'HRDesk'...
+%systemroot%\system32\inetsrv\appcmd.exe set site /site.name:"HRDesk" /applicationDefaults.preloadEnabled:true
 
 echo.
 echo Step 5: Restarting IIS to apply changes...

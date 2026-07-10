@@ -9,7 +9,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     public BiometricAttendanceDbContext(
         DbContextOptions<BiometricAttendanceDbContext> options,
-        HRDesk.Web.Services.ICurrentTenantProvider tenantProvider = null)
+        HRDesk.Web.Services.ICurrentTenantProvider tenantProvider = null!)
         : base(options)
     {
         _tenantProvider = tenantProvider;

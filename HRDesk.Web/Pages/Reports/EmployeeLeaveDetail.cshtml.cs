@@ -22,14 +22,16 @@ public class EmployeeLeaveDetailModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(int id, DateOnly startDate, DateOnly endDate)
     {
-        Employee = await _context.Employees
+        var employee = await _context.Employees
             .Include(e => e.Department)
             .FirstOrDefaultAsync(e => e.EmployeeId == id);
 
-        if (Employee == null)
+        if (employee == null)
         {
             return NotFound();
         }
+        
+        Employee = employee;
 
         StartDate = startDate;
         EndDate = endDate;

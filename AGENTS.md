@@ -121,3 +121,12 @@ var summary = _attendanceSummaryService.ComputeSummary(employeeId, year, month, 
 - `UnpaidLeaveCount` — unpaid / LWP
 - `PayableDays` — `PresentCount + WeekoffCount + HolidayCount + LeaveCount`
 - `LopBreakdown` — `Dictionary<DateOnly, decimal>` of LOP per date
+
+---
+
+## ?? Security First
+
+- **NEVER use vulnerable libraries.**
+- **Security is the first priority.** Always check for known vulnerabilities in NuGet or npm packages before installing or updating them.
+- If a vulnerability is found in a package, immediately find a safe, patched version (e.g., using dotnet list package --vulnerable).
+- When updating packages to patch security issues, always verify licensing changes (e.g. Split Licenses) to ensure the project remains legally compliant.

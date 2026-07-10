@@ -20,7 +20,7 @@ namespace HRDesk.Web.Models
         [Required]
         [Column("event_type")]
         [MaxLength(50)]
-        public string EventType { get; set; }
+        public string EventType { get; set; } = null!;
 
         [Column("sent_date")]
         public DateTime SentDate { get; set; }
@@ -29,7 +29,7 @@ namespace HRDesk.Web.Models
         public DateTime CreatedAt { get; set; }
 
         // Navigation Property
-        public virtual Employee Employee { get; set; }
-        public virtual Organization Organization { get; set; }
+        public virtual Employee? Employee { get; set; }
+        public virtual Organization? Organization { get; set; }
     }
 }

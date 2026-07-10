@@ -182,7 +182,7 @@ public class RosterModel : PageModel
 
         await _db.SaveChangesAsync();
         string targetName = (employeeIds != null && employeeIds.Count == 1) 
-            ? targetEmployees.FirstOrDefault()?.EmployeeName 
+            ? targetEmployees.FirstOrDefault()?.EmployeeName ?? "unknown"
             : (employeeIds != null && employeeIds.Any() ? $"{targetEmployees.Count} employees" : "all active employees");
         TempData["SuccessMessage"] = $"Roster generated for {targetName} from {start:dd/MM/yyyy} to {end:dd/MM/yyyy}.";
         return RedirectToPage(new { StartDate = start.ToString("yyyy-MM-dd") });

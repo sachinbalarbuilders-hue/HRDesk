@@ -95,7 +95,6 @@ public sealed class IndexModel : PageModel
         
         employee.Status = willBeActive ? "active" : "inactive";
         string message = willBeActive ? "Employee activated successfully." : "Employee deactivated successfully.";
-        bool success = true;
 
         // Also enable/disable on the biometric device if user is synced
         if (employee.DeviceSynced == 1)
@@ -187,7 +186,7 @@ public sealed class IndexModel : PageModel
             return RedirectToPage();
         }
 
-        string deviceError = null;
+        string? deviceError = null;
         
         // Try to delete from device first (if synced)
         if (employee.DeviceSynced == 1)

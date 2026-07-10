@@ -589,7 +589,7 @@ public class AttendanceProcessorService
             // Check if this is explicitly an OUT punch (Regularized as Out)
             bool isOutOnly = dailyLogs.Count == 1 && 
                              dailyLogs[0].VerifyType != null && 
-                             dailyLogs[0].VerifyType.EndsWith("-Out");
+                             dailyLogs[0].VerifyType!.EndsWith("-Out");
 
             // Single Punch Rule
 

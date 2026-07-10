@@ -39,13 +39,13 @@ namespace HRDesk.Web.Pages.Reports
 
             if (IncludeRegularized)
             {
-                query = query.Where(d => d.Remarks.Contains("Single Punch") || 
+                query = query.Where(d => d.Remarks!.Contains("Single Punch") || 
                                          d.Remarks.Contains("Missing") || 
                                          d.Remarks.Contains("Missed Punch Regularized"));
             }
             else
             {
-                query = query.Where(d => d.Remarks.Contains("Single Punch") || d.Remarks.Contains("Missing"));
+                query = query.Where(d => d.Remarks!.Contains("Single Punch") || d.Remarks.Contains("Missing"));
             }
 
             Records = await query

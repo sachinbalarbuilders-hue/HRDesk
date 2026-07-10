@@ -280,7 +280,7 @@ public class IndexModel : PageModel
             return Page();
         }
 
-        string baseAppNo = NewApplication.ApplicationNumber;
+        string baseAppNo = NewApplication.ApplicationNumber ?? string.Empty;
         
         // 1. Generate App Number if needed
         if (AutoGenerate)
@@ -383,7 +383,7 @@ public class IndexModel : PageModel
             }
             else
             {
-                remaining = allocation.TotalAllocated + allocation.OpeningBalance - allocation.UsedCount;
+                remaining = allocation!.TotalAllocated + allocation.OpeningBalance - allocation.UsedCount;
             }
             
             int extSandwichCount = await GetExternalSandwichCountAsync(NewApplication.EmployeeId, NewApplication.StartDate, NewApplication.EndDate, NewApplication.DayType, NewApplication.IgnoreSandwichRule);
@@ -468,7 +468,7 @@ public class IndexModel : PageModel
                 };
 
                 // Deduct PL balance
-                allocation.UsedCount += plDays;
+                allocation!.UsedCount += plDays;
                 allocation.UpdatedAt = DateTime.Now;
 
                 _db.LeaveApplications.Add(NewApplication);
@@ -632,7 +632,7 @@ public class IndexModel : PageModel
             }
             else
             {
-                remaining = newAllocation.TotalAllocated + newAllocation.OpeningBalance - newAllocation.UsedCount;
+                remaining = newAllocation!.TotalAllocated + newAllocation.OpeningBalance - newAllocation.UsedCount;
             }
 
             int extSandwichCount = await GetExternalSandwichCountAsync(application.EmployeeId, EditApplication.StartDate, EditApplication.EndDate, EditApplication.DayType, EditApplication.IgnoreSandwichRule);
