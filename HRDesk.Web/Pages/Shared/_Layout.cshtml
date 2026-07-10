@@ -86,7 +86,7 @@
                     <i class="bi bi-wallet2"></i> Loan Applications
                 </a>
                 <a asp-page="/Payroll/EmployeeSalary/Index" class="nav-link">
-                    <i class="bi bi-currency-dollar"></i> Employee Salaries
+                    <i class="bi bi-currency-rupee"></i> Employee Salaries
                 </a>
                 <a asp-page="/Payroll/Process" class="nav-link">
                     <i class="bi bi-calculator"></i> Process Payroll
@@ -226,6 +226,8 @@
         document.querySelectorAll('.sidebar-content .nav-link').forEach(link => {
             if (link.getAttribute('href') === window.location.pathname) {
                 link.classList.add('active');
+                // Auto-scroll the sidebar to ensure the active item is visible
+                link.scrollIntoView({ behavior: 'instant', block: 'center' });
             }
         });
 
