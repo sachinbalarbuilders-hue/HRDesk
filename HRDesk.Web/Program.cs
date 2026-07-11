@@ -8,21 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages(options =>
 {
-    options.Conventions.AuthorizeFolder("/Attendance");
-    options.Conventions.AuthorizeFolder("/AttendanceLogs");
-    options.Conventions.AuthorizeFolder("/CompOff");
-    options.Conventions.AuthorizeFolder("/Departments");
-    options.Conventions.AuthorizeFolder("/Designations");
-    options.Conventions.AuthorizeFolder("/Employees");
-    options.Conventions.AuthorizeFolder("/Holidays");
-    options.Conventions.AuthorizeFolder("/Leaves");
-    options.Conventions.AuthorizeFolder("/Loans");
-    options.Conventions.AuthorizeFolder("/Masters");
-    options.Conventions.AuthorizeFolder("/Payroll");
-    options.Conventions.AuthorizeFolder("/Regularizations");
-    options.Conventions.AuthorizeFolder("/Reports");
-    options.Conventions.AuthorizeFolder("/Shifts");
-    options.Conventions.AuthorizeFolder("/ServiceLogs");
+    // Secure the entire application by default (no login bypass)
+    options.Conventions.AuthorizeFolder("/");
+    
+    // Only allow anonymous access to the Account folder (Login, AccessDenied)
+    options.Conventions.AllowAnonymousToFolder("/Account");
 }).AddRazorRuntimeCompilation();
 builder.Services.AddControllers();
 
