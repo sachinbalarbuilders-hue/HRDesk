@@ -61,4 +61,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // Fix for Bootstrap dropdowns getting clipped inside .table-responsive containers
+    document.addEventListener('show.bs.dropdown', function (e) {
+        let tableResponsive = e.target.closest('.table-responsive');
+        if (tableResponsive) {
+            // Store the original overflow value
+            tableResponsive.dataset.originalOverflow = getComputedStyle(tableResponsive).overflow;
+            tableResponsive.style.overflow = 'visible';
+        }
+    });
+
+    document.addEventListener('hide.bs.dropdown', function (e) {
+        let tableResponsive = e.target.closest('.table-responsive');
+        if (tableResponsive) {
+            tableResponsive.style.overflow = '';
+        }
+    });
 });
