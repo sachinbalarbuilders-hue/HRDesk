@@ -62,6 +62,31 @@
         font-style: italic;
         cursor: help;
     }
+
+    /* Dark Mode Overrides for Attendance Sheet */
+    [data-bs-theme="dark"] .row-header { background-color: var(--bg-surface); color: var(--text-main); border-color: var(--border-color); }
+    [data-bs-theme="dark"] .emp-header { background-color: var(--bg-surface); color: var(--text-main); border-color: var(--border-color); }
+    [data-bs-theme="dark"] .weekoff-col { background-color: rgba(255, 193, 7, 0.1) !important; color: #ffcd39 !important; }
+    [data-bs-theme="dark"] .status-W\/OP { color: #4ade80 !important; }
+    [data-bs-theme="dark"] .status-W\/OHF { color: #fbbf24 !important; }
+    [data-bs-theme="dark"] .table-light,
+    [data-bs-theme="dark"] .table-light th,
+    [data-bs-theme="dark"] .table-light td { 
+        background-color: var(--bg-surface) !important; 
+        color: var(--text-main) !important; 
+        border-color: var(--border-color) !important;
+    }
+    
+    /* Dark Mode Overrides for Summary Badges */
+    [data-bs-theme="dark"] .badge-p { background-color: rgba(76, 175, 80, 0.2); color: #81c784; border-color: rgba(76, 175, 80, 0.3); }
+    [data-bs-theme="dark"] .badge-a { background-color: rgba(244, 67, 54, 0.2); color: #e57373; border-color: rgba(244, 67, 54, 0.3); }
+    [data-bs-theme="dark"] .badge-wo { background-color: rgba(33, 150, 243, 0.2); color: #64b5f6; border-color: rgba(33, 150, 243, 0.3); }
+    [data-bs-theme="dark"] .badge-pl { background-color: rgba(156, 39, 176, 0.2); color: #ba68c8; border-color: rgba(156, 39, 176, 0.3); }
+    [data-bs-theme="dark"] .badge-ul { background-color: rgba(158, 158, 158, 0.2); color: #e0e0e0; border-color: rgba(158, 158, 158, 0.3); }
+    [data-bs-theme="dark"] .badge-hf { background-color: rgba(255, 152, 0, 0.2); color: #ffb74d; border-color: rgba(255, 152, 0, 0.3); }
+    [data-bs-theme="dark"] .badge-payable { background-color: rgba(103, 58, 183, 0.5); color: #ffffff; border-color: #7e57c2; }
+    [data-bs-theme="dark"] .badge-work { background-color: rgba(255, 255, 255, 0.1); color: #e0e0e0; border-color: rgba(255, 255, 255, 0.2); }
+    [data-bs-theme="dark"] .badge-h { background-color: rgba(255, 193, 7, 0.2); color: #ffd54f; border-color: rgba(255, 193, 7, 0.3); }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3 d-print-none">
@@ -92,7 +117,7 @@
             {
                 <!-- Spacer Row -->
                 <tr class="table-borderless" style="height: 20px;">
-                    <td colspan="@(Model.DaysInMonth + 1)" style="background-color: white;"></td>
+                    <td colspan="@(Model.DaysInMonth + 1)" style="background-color: transparent; border: none;"></td>
                 </tr>
 
                 <!-- Employee Header Row with Stats -->

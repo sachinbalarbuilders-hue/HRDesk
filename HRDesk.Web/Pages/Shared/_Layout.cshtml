@@ -3,6 +3,10 @@
 @inject HRDesk.Web.Services.ICurrentTenantProvider TenantProvider
 <html lang="en">
 <head>
+    <script>
+        const storedTheme = localStorage.getItem('theme') || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        if (storedTheme) document.documentElement.setAttribute('data-bs-theme', storedTheme);
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - HRDesk</title>
@@ -141,7 +145,7 @@
                     <button class="topbar-toggler" id="sidebarToggle">
                         <i class="bi bi-list"></i>
                     </button>
-                    <h5 class="mb-0 ms-2 fw-semibold text-dark">@ViewData["Title"]</h5>
+                    <h5 class="mb-0 ms-2 fw-semibold text-body-emphasis">@ViewData["Title"]</h5>
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     @if (User.Identity != null && User.Identity.IsAuthenticated)
@@ -171,6 +175,10 @@
                                 </ul>
                             </div>
                         }
+
+                        <button id="themeToggle" class="btn btn-sm btn-outline-secondary" type="button" title="Toggle Dark/Light Mode">
+                            <i class="bi bi-circle-half"></i>
+                        </button>
 
                         <span class="text-secondary">
                             <i class="bi bi-person-circle"></i>
