@@ -13,4 +13,52 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('theme', newTheme);
         });
     }
+
+    // Global interceptor for inline confirm() calls on buttons and forms
+    document.querySelectorAll('[onclick*="return confirm"], [onsubmit*="return confirm"]').forEach(el => {
+        let isForm = el.tagName === 'FORM';
+        let attr = isForm ? 'onsubmit' : 'onclick';
+        let code = el.getAttribute(attr);
+        
+        let match = code.match(/return confirm\s*\(\s*['"](.*?)['"]\s*\)/);
+        if (match) {
+            let message = match[1];
+            el.removeAttribute(attr);
+            
+            let handler = function(e) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: message,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, proceed!',
+                    backdrop: 'rgba(0,0,0,0.4)'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        if (!isForm && el.type === 'submit' && el.form) {
+                            if (el.name) {
+                                let hidden = document.createElement('input');
+                                hidden.type = 'hidden';
+                                hidden.name = el.name;
+                                hidden.value = el.value || '';
+                                el.form.appendChild(hidden);
+                            }
+                            el.form.submit();
+                        } else if (isForm) {
+                            el.submit();
+                        }
+                    }
+                });
+            };
+
+            if (isForm) {
+                el.addEventListener('submit', handler);
+            } else {
+                el.addEventListener('click', handler);
+            }
+        }
+    });
 });

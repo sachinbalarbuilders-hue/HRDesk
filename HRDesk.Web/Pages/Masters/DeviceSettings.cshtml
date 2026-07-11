@@ -52,20 +52,32 @@
                             <td><span class="badge bg-soft-info text-info rounded-pill px-3">@device.MachineNumber</span></td>
                             <td>@device.CommKey</td>
                             <td class="text-end pe-4">
-                                <div class="btn-group btn-group-sm">
-                                    <form method="post" asp-page-handler="TestConnection" asp-route-id="@device.Id" class="d-inline">
-                                        <button type="submit" class="btn btn-soft-warning px-3" title="Test Connection">
-                                            <i class="bi bi-broadcast"></i> Test
-                                        </button>
-                                    </form>
-                                    <button type="button" class="btn btn-soft-primary px-3" data-bs-toggle="modal" data-bs-target="#editModal@(device.Id)">
-                                        <i class="bi bi-pencil-square"></i> Edit
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical"></i>
                                     </button>
-                                    <form method="post" asp-page-handler="DeleteDevice" asp-route-id="@device.Id" class="d-inline" onsubmit="return confirm('Remove this device?')">
-                                        <button type="submit" class="btn btn-soft-danger px-3">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <form method="post" asp-page-handler="TestConnection" asp-route-id="@device.Id">
+                                                <button type="submit" class="dropdown-item text-warning">
+                                                    <i class="bi bi-broadcast me-2"></i>Test Connection
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <button type="button" class="dropdown-item text-primary" data-bs-toggle="modal" data-bs-target="#editModal@(device.Id)">
+                                                <i class="bi bi-pencil-square me-2"></i>Edit
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="post" asp-page-handler="DeleteDevice" asp-route-id="@device.Id" onsubmit="return confirm('Remove this device?')">
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i>Remove
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
 
                                 <!-- Edit Modal -->

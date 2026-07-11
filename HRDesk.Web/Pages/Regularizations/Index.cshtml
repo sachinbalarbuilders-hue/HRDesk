@@ -138,29 +138,49 @@
                             <td><span class="badge @statusClass">@status.ToUpper()</span></td>
                             <td class="small text-muted">@group.Key.CreatedAt.ToString("dd MMM HH:mm")</td>
                             <td class="text-end pe-4">
-                                <div class="d-flex gap-1 justify-content-end">
-                                    @if (count == 1)
-                                    {
-                                        <a asp-page="./Edit" asp-route-id="@first.Id" class="btn btn-sm btn-outline-primary" title="Edit">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                    }
-                                    <form method="post" asp-page-handler="Delete" asp-route-ids="@ids" class="d-inline"
-                                          onsubmit="return confirm('Delete @(count > 1 ? "these " + count + " requests" : "this request")?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="Delete"><i class="bi bi-trash"></i></button>
-                                    </form>
-                                    @if (status == "Pending")
-                                    {
-                                        <form method="post" asp-page-handler="Approve" asp-route-ids="@ids" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-success" title="Approve"><i class="bi bi-check-lg"></i></button>
-                                        </form>
-                                        <form method="post" asp-page-handler="Reject" asp-route-ids="@ids" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Reject"><i class="bi bi-x-lg"></i></button>
-                                        </form>
-                                    }
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        @if (count == 1)
+                                        {
+                                            <li>
+                                                <a asp-page="./Edit" asp-route-id="@first.Id" class="dropdown-item text-primary">
+                                                    <i class="bi bi-pencil me-2"></i>Edit
+                                                </a>
+                                            </li>
+                                        }
+                                        @if (status == "Pending")
+                                        {
+                                            <li>
+                                                <form method="post" asp-page-handler="Approve" asp-route-ids="@ids">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="dropdown-item text-success">
+                                                        <i class="bi bi-check-lg me-2"></i>Approve
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="post" asp-page-handler="Reject" asp-route-ids="@ids">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="dropdown-item text-warning">
+                                                        <i class="bi bi-x-lg me-2"></i>Reject
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                        }
+                                        <li>
+                                            <form method="post" asp-page-handler="Delete" asp-route-ids="@ids"
+                                                  onsubmit="return confirm('Delete @(count > 1 ? "these " + count + " requests" : "this request")?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i>Delete
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>

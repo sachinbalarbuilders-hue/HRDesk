@@ -116,16 +116,28 @@
                             <td class="text-end pe-4">
                                 @if (!isAdjusted)
                                 {
-                                    <div class="d-flex gap-1 justify-content-end">
-                                        <button type="button" class="btn btn-sm btn-outline-primary"
-                                            onclick="editLeave(@app.Id, @app.LeaveTypeId, '@app.StartDate.ToString("yyyy-MM-dd")', '@app.EndDate.ToString("yyyy-MM-dd")', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(app.Reason ?? ""))', '@app.Employee?.EmployeeName', '@app.DayType', @app.EmployeeId, @app.IgnoreSandwichRule.ToString().ToLower())">
-                                            <i class="bi bi-pencil"></i>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-three-dots-vertical"></i>
                                         </button>
-                                        <form method="post" asp-page-handler="Delete" asp-route-id="@app.Id"
-                                              onsubmit="return confirm('Delete this leave entry? This will reverse the used count in allocations.')" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                                        </form>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button type="button" class="dropdown-item text-primary"
+                                                    onclick="editLeave(@app.Id, @app.LeaveTypeId, '@app.StartDate.ToString("yyyy-MM-dd")', '@app.EndDate.ToString("yyyy-MM-dd")', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(app.Reason ?? ""))', '@app.Employee?.EmployeeName', '@app.DayType', @app.EmployeeId, @app.IgnoreSandwichRule.ToString().ToLower())">
+                                                    <i class="bi bi-pencil me-2"></i>Edit
+                                                </button>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="post" asp-page-handler="Delete" asp-route-id="@app.Id"
+                                                      onsubmit="return confirm('Delete this leave entry? This will reverse the used count in allocations.')">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="bi bi-trash me-2"></i>Delete
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
                                     </div>
                                 }
                                 else
@@ -626,6 +638,19 @@
                 summary.removeClass('validation-summary-errors').addClass('validation-summary-valid').hide();
                 summary.find('ul').empty();
             });
+
+            // Auto-open modal and pre-select employee when coming from Employee Profile page
+            var urlParams = new URLSearchParams(window.location.search);
+            var applyForEmployee = urlParams.get('applyForEmployee');
+            if (applyForEmployee) {
+                var empSelect = $('select[name="NewApplication.EmployeeId"]');
+                empSelect.val(applyForEmployee);
+                // Trigger change to load leave balance info if needed
+                empSelect.trigger('change');
+                // Open the modal
+                var addModal = new bootstrap.Modal(document.getElementById('addLeaveModal'));
+                addModal.show();
+            }
         });
     </script>
 }

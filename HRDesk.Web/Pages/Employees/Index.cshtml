@@ -133,25 +133,47 @@
                                 </span>
                             </td>
                             <td class="text-end pe-4">
-                                <div class="d-flex gap-1 justify-content-end">
-                                    <a class="btn btn-sm btn-outline-primary" asp-page="./Edit" asp-route-id="@e.EmployeeId">Edit</a>
-
-                                    <button type="button"
-                                            class="btn btn-sm @(isActive ? "btn-outline-secondary" : "btn-outline-success") toggle-status-ajax"
-                                            data-employee-id="@e.EmployeeId"
-                                            data-current-status="@(isActive ? "active" : "inactive")">
-                                        @(isActive ? "Deactivate" : "Activate")
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical"></i>
                                     </button>
-
-                                    <button type="button" class="btn btn-sm @btnClass set-name-ajax" data-employee-id="@e.EmployeeId">
-                                        @btnLabel
-                                    </button>
-
-                                    <form method="post" asp-page-handler="Delete" asp-route-id="@e.EmployeeId" class="d-inline"
-                                          onsubmit="return confirm('Delete this employee? This also removes them from the biometric device.');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                    </form>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item" asp-page="./Details" asp-route-id="@e.EmployeeId">
+                                                <i class="bi bi-eye me-2 text-info"></i>View Profile
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-page="./Edit" asp-route-id="@e.EmployeeId">
+                                                <i class="bi bi-pencil me-2 text-primary"></i>Edit
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <button type="button"
+                                                    class="dropdown-item toggle-status-ajax"
+                                                    data-employee-id="@e.EmployeeId"
+                                                    data-current-status="@(isActive ? "active" : "inactive")">
+                                                <i class="bi @(isActive ? "bi-person-slash" : "bi-person-check") me-2 @(isActive ? "text-warning" : "text-success")"></i>
+                                                @(isActive ? "Deactivate" : "Activate")
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button type="button" class="dropdown-item set-name-ajax" data-employee-id="@e.EmployeeId">
+                                                <i class="bi bi-phone me-2 text-secondary"></i>@btnLabel
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="post" asp-page-handler="Delete" asp-route-id="@e.EmployeeId"
+                                                  onsubmit="return confirm('Delete this employee? This also removes them from the biometric device.');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i>Delete
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>

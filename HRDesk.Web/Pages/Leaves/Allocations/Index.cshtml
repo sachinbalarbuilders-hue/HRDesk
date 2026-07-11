@@ -319,10 +319,21 @@
         }
 
         function confirmDelete(id) {
-            if (confirm('Are you sure you want to remove this allocation?')) {
-                document.getElementById('delete-id-field').value = id;
-                document.getElementById('hiddenDeleteForm').submit();
-            }
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Are you sure you want to remove this allocation?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, remove it!',
+                backdrop: 'rgba(0,0,0,0.4)'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('delete-id-field').value = id;
+                    document.getElementById('hiddenDeleteForm').submit();
+                }
+            });
         }
 
         async function applyProRata() {

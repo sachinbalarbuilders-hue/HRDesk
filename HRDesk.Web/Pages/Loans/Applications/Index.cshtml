@@ -87,17 +87,27 @@
                             <td class="text-muted">@item.StartDate.ToString("MMM yyyy")</td>
                             <td><span class="badge @statusClass">@item.Status.ToUpper()</span></td>
                             <td class="text-end pe-4">
-                                <div class="d-flex gap-1 justify-content-end">
-                                    <a asp-page="./Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="View">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <form method="post" asp-page-handler="Delete" asp-route-id="@item.Id" class="d-inline"
-                                          onsubmit="return confirm('Delete this loan application? This also removes pending installments.');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a asp-page="./Details" asp-route-id="@item.Id" class="dropdown-item text-primary">
+                                                <i class="bi bi-eye me-2"></i>View Details
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="post" asp-page-handler="Delete" asp-route-id="@item.Id"
+                                                  onsubmit="return confirm('Delete this loan application? This also removes pending installments.');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i>Delete
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
