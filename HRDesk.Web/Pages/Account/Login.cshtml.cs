@@ -26,6 +26,9 @@ public class LoginModel : PageModel
 
     public string? ReturnUrl { get; set; }
 
+    // Pre-filled username from the remembered cookie
+    public string? SavedUsername { get; set; }
+
     [TempData]
     public string? ErrorMessage { get; set; }
 
@@ -51,6 +54,14 @@ public class LoginModel : PageModel
 
         returnUrl ??= Url.Content("~/");
         ReturnUrl = returnUrl;
+
+        // Pre-fill username if we have a saved cookie
+        SavedUsername = Request.Cookies["hrdesk_remembered_user"];
+        if (!string.IsNullOrEmpty(SavedUsername))
+        {
+            Input.Username = SavedUsername;
+            Input.RememberMe = true;
+        }
     }
 
     public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
@@ -90,6 +101,28 @@ public class LoginModel : PageModel
                     new ClaimsPrincipal(claimsIdentity),
                     authProperties);
 
+                // Save or clear the remembered username cookie
+                if (Input.RememberMe)
+                {
+                    Response.Cookies.Append("hrdesk_remembered_user", Input.Username, new CookieOptions
+                    {
+                        Expires = DateTimeOffset.UtcNow.AddDays(90),
+                        HttpOnly = true,
+                        SameSite = SameSiteMode.Lax,
+                        IsEssential = true
+                    });
+                }
+                else
+                {
+                    Response.Cookies.Delete("hrdesk_remembered_user");
+                }
+
+                // Auto-upgrade plain-text password to BCrypt hash on first login
+                if (!user.PasswordHash.StartsWith("$2a$") && !user.PasswordHash.StartsWith("$2b$") && !user.PasswordHash.StartsWith("$2y$"))
+                {
+                    user.PasswordHash = HashPassword(Input.Password);
+                }
+
                 user.LastLogin = DateTime.Now;
                 await _context.SaveChangesAsync();
 
@@ -104,8 +137,18 @@ public class LoginModel : PageModel
 
     private bool VerifyPassword(string password, string hash)
     {
-        // For this demo/setup, we use simple string comparison
-        // In a real production app, you should use hashing (like BCrypt or Identity PasswordHasher)
+        // If the stored hash looks like a BCrypt hash, use BCrypt to verify
+        if (hash.StartsWith("$2a$") || hash.StartsWith("$2b$") || hash.StartsWith("$2y$"))
+        {
+            return BCrypt.Net.BCrypt.Verify(password, hash);
+        }
+
+        // Legacy plain-text check — only for migration on first login
         return password == hash;
+    }
+
+    private string HashPassword(string password)
+    {
+        return BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
     }
 }

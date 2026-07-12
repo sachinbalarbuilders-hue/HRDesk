@@ -435,6 +435,18 @@
                         <input type="date" id="leaveEndDate" class="form-control" />
                     </div>
 
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-semibold mb-0">Application Number</label>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="leaveAutoGenerate" checked>
+                                <label class="form-check-label small" for="leaveAutoGenerate">Auto-generate</label>
+                            </div>
+                        </div>
+                        <input type="text" id="leaveAppNumber" class="form-control" placeholder="e.g. JUL 1" />
+                        <div class="form-text">Leave blank if tracking number is not required.</div>
+                    </div>
+
                     <div class="col-6">
                         <label class="form-label fw-semibold">Day Type</label>
                         <select id="leaveDayType" class="form-select">
@@ -544,6 +556,15 @@
             document.getElementById('leaveBalanceInfo').style.display = '';
         }
 
+        // Auto-generate toggle: disable/enable the app number input
+        document.getElementById('leaveAutoGenerate').addEventListener('change', function() {
+            const input = document.getElementById('leaveAppNumber');
+            input.disabled = this.checked;
+            if (this.checked) input.value = '';
+        });
+        // Disable by default since auto-generate is checked
+        document.getElementById('leaveAppNumber').disabled = true;
+
         // Save leave via AJAX using the existing Leave Applications handler
         document.getElementById('saveLeaveBtn').addEventListener('click', async function() {
             const leaveTypeId = document.getElementById('leaveTypeSelect').value;
@@ -551,6 +572,8 @@
             const endDate = document.getElementById('leaveEndDate').value || startDate;
             const dayType = document.getElementById('leaveDayType').value;
             const reason = document.getElementById('leaveReason').value;
+            const autoGenerate = document.getElementById('leaveAutoGenerate').checked;
+            const appNumber = document.getElementById('leaveAppNumber').value.trim();
 
             if (!leaveTypeId || !startDate) {
                 showAlert('danger', 'Please select a leave type and date.');
@@ -567,7 +590,8 @@
             formData.append('NewApplication.EndDate', endDate);
             formData.append('NewApplication.DayType', dayType);
             formData.append('NewApplication.Reason', reason);
-            formData.append('AutoGenerate', 'true');
+            formData.append('AutoGenerate', autoGenerate ? 'true' : 'false');
+            if (!autoGenerate && appNumber) formData.append('NewApplication.ApplicationNumber', appNumber);
 
             // Get CSRF token from the hidden field injected by server
             const token = document.getElementById('afToken')?.value || '';
