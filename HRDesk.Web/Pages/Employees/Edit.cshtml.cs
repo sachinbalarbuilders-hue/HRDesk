@@ -91,6 +91,8 @@ public sealed class EditModel : PageModel
 
         // Shift change history tracking moved to Roster page
 
+        var oldWeekoff = employee.Weekoff;
+
         employee.EmployeeName = Input.EmployeeName.Trim();
         employee.DepartmentId = Input.DepartmentId;
         employee.DesignationId = Input.DesignationId;
@@ -145,6 +147,20 @@ public sealed class EditModel : PageModel
                 
                 // Note: Not deleting old photo to keep history/backups
                 employee.PhotoPath = fileName;
+            }
+        }
+
+        if (oldWeekoff != Input.Weekoff)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var futureRosters = await _db.ShiftRosters
+                .Where(r => r.EmployeeId == employee.EmployeeId && r.RosterDate >= today)
+                .ToListAsync();
+
+            foreach (var roster in futureRosters)
+            {
+                roster.IsWeekOff = !string.IsNullOrWhiteSpace(Input.Weekoff) && 
+                    roster.RosterDate.DayOfWeek.ToString().Equals(Input.Weekoff, StringComparison.OrdinalIgnoreCase);
             }
         }
 
