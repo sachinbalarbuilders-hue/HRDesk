@@ -12,14 +12,7 @@ app.use(cors());
 // State variables
 let qrCodeData = null;
 let clientReady = false;
-
-// Prevent Puppeteer "Execution context was destroyed" errors from crashing the app
-process.on('unhandledRejection', (reason, promise) => {
-    console.log('Unhandled Rejection (ignored to prevent crash):', reason);
-});
-process.on('uncaughtException', (err) => {
-    console.log('Uncaught Exception (ignored to prevent crash):', err);
-});
+let isAuthenticated = false;
 
 const { execSync } = require('child_process');
 
@@ -42,6 +35,7 @@ const resetSession = async () => {
 
     console.log('Resetting WhatsApp session and clearing auth storage...');
     clientReady = false;
+    isAuthenticated = false;
     qrCodeData = null;
 
     if (client) {
@@ -115,6 +109,13 @@ function initClient() {
         console.log('QR RECEIVED', qr);
         qrcode.generate(qr, { small: true });
         qrCodeData = qr;
+        isAuthenticated = false;
+    });
+
+    client.on('authenticated', () => {
+        console.log('AUTHENTICATED SUCCESSFULLY!');
+        isAuthenticated = true;
+        qrCodeData = null;
     });
 
     client.on('loading_screen', (percent, message) => {
@@ -128,6 +129,7 @@ function initClient() {
     client.on('ready', () => {
         console.log('Client is ready!');
         clientReady = true;
+        isAuthenticated = true;
         qrCodeData = null;
     });
 
@@ -325,6 +327,9 @@ app.get('/status', (req, res) => {
 app.get('/qr', (req, res) => {
     if (clientReady) {
         return res.json({ status: 'connected' });
+    }
+    if (isAuthenticated) {
+        return res.json({ status: 'authenticated' });
     }
     if (qrCodeData) {
         return res.json({ status: 'qr_ready', qr: qrCodeData });
