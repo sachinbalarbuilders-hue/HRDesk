@@ -21,7 +21,10 @@ public class DeviceSettingsModel : PageModel
     [BindProperty]
     public DeviceConfiguration NewDevice { get; set; } = new();
 
+    [TempData]
     public string? Message { get; set; }
+
+    [TempData]
     public bool IsError { get; set; }
  
     [BindProperty]
@@ -30,21 +33,6 @@ public class DeviceSettingsModel : PageModel
     public async Task OnGetAsync()
     {
         Devices = await _db.DeviceConfigurations.ToListAsync();
-        if (!Devices.Any())
-        {
-            // Create default if none exist
-            var config = new DeviceConfiguration
-            {
-                Name = "Main Device",
-                IpAddress = "192.168.1.201",
-                Port = 4370,
-                MachineNumber = 1,
-                CommKey = 0
-            };
-            _db.DeviceConfigurations.Add(config);
-            await _db.SaveChangesAsync();
-            Devices.Add(config);
-        }
  
         var intervalSetting = await _db.SystemSettings
             .FirstOrDefaultAsync(s => s.SettingKey == "SyncIntervalMinutes");
@@ -117,7 +105,9 @@ public class DeviceSettingsModel : PageModel
 
         var (success, errorMessage) = await Services.WindowsServiceClient.UpdateDeviceConfigAsync(device.IpAddress, device.Port, device.MachineNumber, device.CommKey);
         
-        if (success)
+        bool isConnectionFailure = !success || (!string.IsNullOrEmpty(errorMessage) && errorMessage.Contains("connection failed", StringComparison.OrdinalIgnoreCase));
+
+        if (!isConnectionFailure)
         {
             Message = $"Device '{device.Name}' connection successful. Service Response: {errorMessage}";
             IsError = false;
