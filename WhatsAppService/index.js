@@ -22,19 +22,31 @@ process.on('uncaughtException', (err) => {
 });
 
 let client = null;
+let isResetting = false;
 
 const resetSession = async () => {
+    if (isResetting) return;
+    isResetting = true;
+
     console.log('Resetting WhatsApp session and clearing auth storage...');
     clientReady = false;
     qrCodeData = null;
 
-    try {
-        if (client) {
-            await client.destroy().catch(e => console.log('Client destroy error (ignored):', e));
+    if (client) {
+        try {
+            // Promise.race to prevent client.destroy() from hanging indefinitely if Chrome is unresponsive
+            await Promise.race([
+                client.destroy().catch(e => console.log('Client destroy error (ignored):', e)),
+                new Promise(resolve => setTimeout(resolve, 4000))
+            ]);
+        } catch (e) {
+            console.log('Error destroying client:', e);
         }
-    } catch (e) {
-        console.log('Error destroying client:', e);
     }
+    client = null;
+
+    // Small delay to ensure file handles are released by OS
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     const authPath = path.join(__dirname, '.wwebjs_auth');
     try {
@@ -46,6 +58,7 @@ const resetSession = async () => {
         console.error('Failed to remove auth directory:', e);
     }
 
+    isResetting = false;
     initClient();
 };
 
@@ -54,7 +67,17 @@ function initClient() {
         authStrategy: new LocalAuth(),
         puppeteer: {
             executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--disable-gpu'
+            ],
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
         }
     });
 
@@ -272,9 +295,9 @@ app.get('/qr', (req, res) => {
 });
 
 // Reset Session / Unlink Device
-app.post('/reset', async (req, res) => {
-    await resetSession();
+app.post('/reset', (req, res) => {
     res.json({ success: true, message: 'Session reset initiated.' });
+    resetSession();
 });
 
 // Send Message (adds to queue)
