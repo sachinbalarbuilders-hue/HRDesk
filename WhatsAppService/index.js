@@ -17,16 +17,25 @@ let isAuthenticated = false;
 const { execSync } = require('child_process');
 
 let client = null;
-let isResetting = false;
+let clientBrowserPid = null;
 
-const killOrphanChrome = () => {
+const killServiceChrome = () => {
     try {
-        if (process.platform === 'win32') {
-            execSync('taskkill /F /IM chrome.exe /T', { stdio: 'ignore' });
+        let pidToKill = null;
+        if (client && client.pupBrowser && client.pupBrowser.process()) {
+            pidToKill = client.pupBrowser.process().pid;
+        } else if (clientBrowserPid) {
+            pidToKill = clientBrowserPid;
+        }
+
+        if (pidToKill && process.platform === 'win32') {
+            execSync(`taskkill /F /PID ${pidToKill} /T`, { stdio: 'ignore' });
+            console.log(`Closed WhatsApp service Chrome PID ${pidToKill}`);
         }
     } catch (e) {
         // Ignored
     }
+    clientBrowserPid = null;
 };
 
 const resetSession = async () => {
@@ -40,12 +49,10 @@ const resetSession = async () => {
 
     if (client) {
         try {
-            if (client.pupBrowser) {
-                await client.pupBrowser.close().catch(() => {});
-            }
+            killServiceChrome();
             await Promise.race([
                 client.destroy().catch(e => console.log('Client destroy error (ignored):', e)),
-                new Promise(resolve => setTimeout(resolve, 3000))
+                new Promise(resolve => setTimeout(resolve, 2000))
             ]);
         } catch (e) {
             console.log('Error destroying client:', e);
@@ -53,8 +60,8 @@ const resetSession = async () => {
     }
     client = null;
 
-    killOrphanChrome();
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    killServiceChrome();
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const authPath = path.join(__dirname, '.wwebjs_auth');
     const cachePath = path.join(__dirname, '.wwebjs_cache');
@@ -71,9 +78,9 @@ const resetSession = async () => {
             }
             break;
         } catch (e) {
-            console.error(`Attempt ${i + 1}: Failed to remove auth/cache directory (${e.message}). Killing chrome processes and retrying...`);
-            killOrphanChrome();
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            console.error(`Attempt ${i + 1}: Failed to remove auth/cache directory (${e.message}). Retrying...`);
+            killServiceChrome();
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
 
