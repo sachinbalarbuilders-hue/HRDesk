@@ -21,8 +21,20 @@ process.on('uncaughtException', (err) => {
     console.log('Uncaught Exception (ignored to prevent crash):', err);
 });
 
+const { execSync } = require('child_process');
+
 let client = null;
 let isResetting = false;
+
+const killOrphanChrome = () => {
+    try {
+        if (process.platform === 'win32') {
+            execSync('taskkill /F /IM chrome.exe /T', { stdio: 'ignore' });
+        }
+    } catch (e) {
+        // Ignored
+    }
+};
 
 const resetSession = async () => {
     if (isResetting) return;
@@ -34,10 +46,12 @@ const resetSession = async () => {
 
     if (client) {
         try {
-            // Promise.race to prevent client.destroy() from hanging indefinitely if Chrome is unresponsive
+            if (client.pupBrowser) {
+                await client.pupBrowser.close().catch(() => {});
+            }
             await Promise.race([
                 client.destroy().catch(e => console.log('Client destroy error (ignored):', e)),
-                new Promise(resolve => setTimeout(resolve, 4000))
+                new Promise(resolve => setTimeout(resolve, 3000))
             ]);
         } catch (e) {
             console.log('Error destroying client:', e);
@@ -45,17 +59,28 @@ const resetSession = async () => {
     }
     client = null;
 
-    // Small delay to ensure file handles are released by OS
+    killOrphanChrome();
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     const authPath = path.join(__dirname, '.wwebjs_auth');
-    try {
-        if (fs.existsSync(authPath)) {
-            fs.rmSync(authPath, { recursive: true, force: true });
-            console.log('Cleared .wwebjs_auth directory.');
+    const cachePath = path.join(__dirname, '.wwebjs_cache');
+    
+    for (let i = 0; i < 3; i++) {
+        try {
+            if (fs.existsSync(authPath)) {
+                fs.rmSync(authPath, { recursive: true, force: true });
+                console.log('Cleared .wwebjs_auth directory.');
+            }
+            if (fs.existsSync(cachePath)) {
+                fs.rmSync(cachePath, { recursive: true, force: true });
+                console.log('Cleared .wwebjs_cache directory.');
+            }
+            break;
+        } catch (e) {
+            console.error(`Attempt ${i + 1}: Failed to remove auth/cache directory (${e.message}). Killing chrome processes and retrying...`);
+            killOrphanChrome();
+            await new Promise(resolve => setTimeout(resolve, 1500));
         }
-    } catch (e) {
-        console.error('Failed to remove auth directory:', e);
     }
 
     isResetting = false;
@@ -65,6 +90,10 @@ const resetSession = async () => {
 function initClient() {
     client = new Client({
         authStrategy: new LocalAuth(),
+        webVersionCache: {
+            type: 'remote',
+            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1012248833-alpha.html'
+        },
         puppeteer: {
             executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
             headless: true,
@@ -75,7 +104,8 @@ function initClient() {
                 '--disable-accelerated-2d-canvas',
                 '--no-first-run',
                 '--no-zygote',
-                '--disable-gpu'
+                '--disable-gpu',
+                '--user-data-dir=' + path.join(__dirname, '.chrome_profile')
             ],
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
         }
@@ -85,6 +115,14 @@ function initClient() {
         console.log('QR RECEIVED', qr);
         qrcode.generate(qr, { small: true });
         qrCodeData = qr;
+    });
+
+    client.on('loading_screen', (percent, message) => {
+        console.log('LOADING SCREEN:', percent, message);
+    });
+
+    client.on('change_state', state => {
+        console.log('STATE CHANGE:', state);
     });
 
     client.on('ready', () => {
