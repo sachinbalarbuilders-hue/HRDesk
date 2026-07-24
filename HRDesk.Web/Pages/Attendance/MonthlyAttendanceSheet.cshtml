@@ -66,9 +66,11 @@
     /* Dark Mode Overrides for Attendance Sheet */
     [data-bs-theme="dark"] .row-header { background-color: var(--bg-surface); color: var(--text-main); border-color: var(--border-color); }
     [data-bs-theme="dark"] .emp-header { background-color: var(--bg-surface); color: var(--text-main); border-color: var(--border-color); }
-    [data-bs-theme="dark"] .weekoff-col { background-color: rgba(255, 193, 7, 0.1) !important; color: #ffcd39 !important; }
-    [data-bs-theme="dark"] .status-W\/OP { color: #4ade80 !important; }
-    [data-bs-theme="dark"] .status-W\/OHF { color: #fbbf24 !important; }
+    [data-bs-theme="dark"] th.weekoff-col, [data-bs-theme="dark"] td.weekoff-col,
+    [data-bs-theme="dark"] .table-light th.weekoff-col, [data-bs-theme="dark"] .table-light td.weekoff-col { background-color: rgba(255, 193, 7, 0.1) !important; color: #ffcd39 !important; }
+    [data-bs-theme="dark"] td.status-W\/O, [data-bs-theme="dark"] td.status-WO { background-color: rgba(33, 150, 243, 0.2) !important; color: #64b5f6 !important; }
+    [data-bs-theme="dark"] td.status-W\/OP { color: #4ade80 !important; background-color: transparent !important; }
+    [data-bs-theme="dark"] td.status-W\/OHF { color: #fbbf24 !important; background-color: transparent !important; }
     [data-bs-theme="dark"] .table-light,
     [data-bs-theme="dark"] .table-light th,
     [data-bs-theme="dark"] .table-light td { 

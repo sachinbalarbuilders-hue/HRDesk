@@ -301,6 +301,7 @@ public class MonthlyAttendanceSheetModel : PageModel
         if (log.Status == "Absent") return "A";
         if (log.Status == "Weekoff" || log.Status == "W/O") return "W/O";
         if (log.Status == "Holiday") return "H";
+        if (log.Status == "Roster Missing") return "RM";
         if (log.Status?.Contains("Leave") == true) return "L";
         return log.Status ?? "-";
     }
@@ -331,7 +332,7 @@ public class MonthlyAttendanceSheetModel : PageModel
         public string Tooltip { get; set; } = "";
         public bool IsEarly { get; set; }
         public TimeOnly? ShiftStartTime { get; set; }
-        public string TextColor { get; set; } = "#212529"; // Default black/dark gray
+        public string TextColor { get; set; } = "inherit"; // Inherit for better dark mode support
         public string BackgroundColor { get; set; } = "transparent";
         public bool IsInRegularized { get; set; }
         public bool IsOutRegularized { get; set; }
