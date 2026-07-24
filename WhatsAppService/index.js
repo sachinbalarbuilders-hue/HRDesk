@@ -306,22 +306,31 @@ const processQueue = async () => {
 // Get Groups (Helper to find Group IDs)
 app.get('/groups', async (req, res) => {
     if (!clientReady) {
-        return res.status(503).json({ error: 'WhatsApp client is not ready yet.' });
+        return res.status(503).json({ error: 'WhatsApp client is not ready yet.', groups: [] });
     }
     
     try {
-        const chats = await client.getChats();
-        const groups = chats
-            .filter(chat => chat.isGroup)
+        let chats = [];
+        try {
+            chats = await client.getChats();
+        } catch (err) {
+            console.log('getChats first attempt failed, retrying after delay...', err.message);
+            await delay(1500, 2500);
+            chats = await client.getChats();
+        }
+
+        const groups = (chats || [])
+            .filter(chat => chat && chat.isGroup)
             .map(chat => ({
-                name: chat.name,
-                id: chat.id._serialized
-            }));
+                name: chat.name || chat.formattedTitle || 'Unnamed Group',
+                id: (chat.id && chat.id._serialized) ? chat.id._serialized : String(chat.id)
+            }))
+            .filter(g => g.id);
             
         res.json({ count: groups.length, groups: groups });
     } catch (error) {
         console.error('Failed to get groups:', error);
-        res.status(500).json({ error: 'Failed to fetch groups' });
+        res.status(200).json({ count: 0, groups: [], error: 'Could not fetch groups: ' + error.message });
     }
 });
 
