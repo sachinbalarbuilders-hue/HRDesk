@@ -70,6 +70,25 @@ namespace HRDesk.Web.Pages.Organizations
             {
                 // Ignore if Node service is unreachable
             }
+
+            // Ensure current selected group is present in list if assigned
+            if (!string.IsNullOrEmpty(Organization.WhatsAppGroupId))
+            {
+                var existing = AvailableGroups.FirstOrDefault(g => g.Value == Organization.WhatsAppGroupId);
+                if (existing != null)
+                {
+                    existing.Selected = true;
+                }
+                else
+                {
+                    AvailableGroups.Insert(0, new SelectListItem
+                    {
+                        Text = $"Selected Group ({Organization.WhatsAppGroupId})",
+                        Value = Organization.WhatsAppGroupId,
+                        Selected = true
+                    });
+                }
+            }
             
             return Page();
         }
