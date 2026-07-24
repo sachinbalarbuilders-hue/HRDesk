@@ -310,19 +310,43 @@ app.get('/groups', async (req, res) => {
     }
     
     try {
-        const chats = await Promise.race([
-            client.getChats(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('getChats timeout after 5s')), 5000))
-        ]);
+        let groups = [];
 
-        const groups = (chats || [])
-            .filter(chat => chat && chat.isGroup)
-            .map(chat => ({
-                name: chat.name || chat.formattedTitle || 'Unnamed Group',
-                id: (chat.id && chat.id._serialized) ? chat.id._serialized : String(chat.id)
-            }))
-            .filter(g => g.id);
-            
+        // Method 1: Instant direct evaluate from WhatsApp Web Store
+        try {
+            if (client.pupPage) {
+                groups = await client.pupPage.evaluate(() => {
+                    if (!window.Store || !window.Store.Chat) return [];
+                    return window.Store.Chat.models
+                        .filter(c => c && (c.isGroup || (c.id && c.id._serialized && c.id._serialized.endsWith('@g.us')) || (c.id && c.id.server === 'g.us')))
+                        .map(c => {
+                            const serializedId = c.id && c.id._serialized ? c.id._serialized : (typeof c.id === 'string' ? c.id : '');
+                            const title = c.name || c.formattedTitle || c.title || (c.contact && c.contact.name) || 'Unnamed Group';
+                            return { name: title, id: serializedId };
+                        })
+                        .filter(g => g.id && g.id.endsWith('@g.us'));
+                });
+            }
+        } catch (e) {
+            console.log('Direct store evaluation error (will try getChats fallback):', e.message);
+        }
+
+        // Method 2: Fallback to getChats if direct evaluate returned empty
+        if (!groups || groups.length === 0) {
+            const chats = await Promise.race([
+                client.getChats(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('getChats timeout after 10s')), 10000))
+            ]);
+
+            groups = (chats || [])
+                .filter(chat => chat && (chat.isGroup || (chat.id && chat.id._serialized && chat.id._serialized.endsWith('@g.us'))))
+                .map(chat => ({
+                    name: chat.name || chat.formattedTitle || 'Unnamed Group',
+                    id: (chat.id && chat.id._serialized) ? chat.id._serialized : String(chat.id)
+                }))
+                .filter(g => g.id && g.id.endsWith('@g.us'));
+        }
+
         res.json({ count: groups.length, groups: groups });
     } catch (error) {
         console.log('Failed or timed out fetching groups:', error.message);
