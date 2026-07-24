@@ -14,6 +14,15 @@
                 <div class="card-body">
                     <p class="text-muted">Manage your HRDesk WhatsApp connection.</p>
                     
+                    @if (!string.IsNullOrEmpty(Model.Message))
+                    {
+                        <div class="alert alert-info alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            @Model.Message
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
                     <div class="alert @(Model.WhatsAppStatus == "connected" ? "alert-success" : "alert-warning")" role="alert">
                         <strong>Status:</strong> 
                         @if (Model.WhatsAppStatus == "connected")
@@ -54,6 +63,18 @@
                             <p class="small text-danger mt-2">Note: This page does not auto-refresh. Please refresh the page after scanning.</p>
                         </div>
                     }
+
+                    <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="fw-bold mb-1">Unlinked Device or Stuck Status?</h6>
+                            <p class="text-muted small mb-0">If you removed the device from WhatsApp on your phone or status is stuck on 'initializing', reset the session to generate a fresh QR code.</p>
+                        </div>
+                        <form method="post" asp-page-handler="ResetSession" onsubmit="return confirm('This will clear stored WhatsApp session tokens and generate a new QR code. Proceed?')">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Reset & Relink Device
+                            </button>
+                        </form>
+                    </div>
 
                 </div>
             </div>

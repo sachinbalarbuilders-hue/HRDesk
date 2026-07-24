@@ -159,5 +159,19 @@ namespace HRDesk.Web.Services.Notifications
             }
             return ("disconnected", string.Empty, 0);
         }
+
+        public async Task<bool> ResetSessionAsync()
+        {
+            try
+            {
+                var response = await _httpClient.PostAsync("/reset", null);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to reset WhatsApp session");
+                return false;
+            }
+        }
     }
 }

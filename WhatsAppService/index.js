@@ -21,34 +21,76 @@ process.on('uncaughtException', (err) => {
     console.log('Uncaught Exception (ignored to prevent crash):', err);
 });
 
-// Initialize WhatsApp Client with LocalAuth to persist session
-const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: {
-        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    }
-});
+let client = null;
 
-client.on('qr', (qr) => {
-    // Generate and scan this code with your phone
-    console.log('QR RECEIVED', qr);
-    qrcode.generate(qr, { small: true });
-    qrCodeData = qr;
-});
-
-client.on('ready', () => {
-    console.log('Client is ready!');
-    clientReady = true;
-    qrCodeData = null; // Clear QR code as it's no longer needed
-});
-
-client.on('disconnected', (reason) => {
-    console.log('Client was logged out', reason);
+const resetSession = async () => {
+    console.log('Resetting WhatsApp session and clearing auth storage...');
     clientReady = false;
-});
+    qrCodeData = null;
 
-client.initialize();
+    try {
+        if (client) {
+            await client.destroy().catch(e => console.log('Client destroy error (ignored):', e));
+        }
+    } catch (e) {
+        console.log('Error destroying client:', e);
+    }
+
+    const authPath = path.join(__dirname, '.wwebjs_auth');
+    try {
+        if (fs.existsSync(authPath)) {
+            fs.rmSync(authPath, { recursive: true, force: true });
+            console.log('Cleared .wwebjs_auth directory.');
+        }
+    } catch (e) {
+        console.error('Failed to remove auth directory:', e);
+    }
+
+    initClient();
+};
+
+function initClient() {
+    client = new Client({
+        authStrategy: new LocalAuth(),
+        puppeteer: {
+            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        }
+    });
+
+    client.on('qr', (qr) => {
+        console.log('QR RECEIVED', qr);
+        qrcode.generate(qr, { small: true });
+        qrCodeData = qr;
+    });
+
+    client.on('ready', () => {
+        console.log('Client is ready!');
+        clientReady = true;
+        qrCodeData = null;
+    });
+
+    client.on('auth_failure', (msg) => {
+        console.error('AUTHENTICATION FAILURE:', msg);
+        clientReady = false;
+        qrCodeData = null;
+        resetSession();
+    });
+
+    client.on('disconnected', (reason) => {
+        console.log('Client was logged out:', reason);
+        clientReady = false;
+        qrCodeData = null;
+        resetSession();
+    });
+
+    client.initialize().catch(err => {
+        console.error('Initialization error:', err);
+        clientReady = false;
+    });
+}
+
+initClient();
 
 // --- Rate Limited Message Queue ---
 const messageQueue = [];
@@ -227,6 +269,12 @@ app.get('/qr', (req, res) => {
         return res.json({ status: 'qr_ready', qr: qrCodeData });
     }
     return res.json({ status: 'initializing' });
+});
+
+// Reset Session / Unlink Device
+app.post('/reset', async (req, res) => {
+    await resetSession();
+    res.json({ success: true, message: 'Session reset initiated.' });
 });
 
 // Send Message (adds to queue)

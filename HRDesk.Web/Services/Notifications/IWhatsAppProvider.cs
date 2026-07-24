@@ -9,5 +9,6 @@ namespace HRDesk.Web.Services.Notifications
         Task<bool> SendImageAsync(string phoneOrGroupId, byte[] imageBytes, string fileName, string mimeType, string? caption = null);
         Task<bool> SendCelebrationAsync(string phoneOrGroupId, string employeeName, string eventType, string photoBase64, string? caption = null, int years = 0);
         Task<(string Status, string QrCode, int QueueLength)> GetStatusAsync();
+        Task<bool> ResetSessionAsync();
     }
 }

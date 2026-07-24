@@ -40,5 +40,10 @@ namespace HRDesk.Web.Services.Notifications
         {
             return await _whatsAppProvider.GetStatusAsync();
         }
+
+        public async Task<bool> ResetSessionAsync()
+        {
+            return await _whatsAppProvider.ResetSessionAsync();
+        }
     }
 }
