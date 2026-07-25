@@ -123,6 +123,14 @@ function initClient() {
         console.log('AUTHENTICATED SUCCESSFULLY!');
         isAuthenticated = true;
         qrCodeData = null;
+
+        // Auto-enable clientReady fallback 5s post-authentication if ready event is delayed
+        setTimeout(() => {
+            if (!clientReady) {
+                console.log('Auto-setting clientReady = true post-authentication fallback.');
+                clientReady = true;
+            }
+        }, 4000);
     });
 
     client.on('loading_screen', (percent, message) => {
@@ -305,7 +313,7 @@ const processQueue = async () => {
 
 // Get Groups (Helper to find Group IDs)
 app.get('/groups', async (req, res) => {
-    if (!clientReady || !client) {
+    if ((!clientReady && !isAuthenticated) || !client) {
         return res.json({ count: 0, groups: [], error: 'WhatsApp client is not ready yet.' });
     }
     
