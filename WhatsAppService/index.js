@@ -313,41 +313,47 @@ const processQueue = async () => {
 
 // Get Groups (Helper to find Group IDs)
 app.get('/groups', async (req, res) => {
-    if ((!clientReady && !isAuthenticated) || !client) {
-        return res.json({ count: 0, groups: [], error: 'WhatsApp client is not ready yet.' });
+    if (!client) {
+        return res.json({ count: 0, groups: [], error: 'WhatsApp client is not initialized.' });
     }
     
     try {
-        const page = client.pupPage || (client.pupBrowser ? (await client.pupBrowser.pages())[0] : null);
-        if (!page) {
-            return res.json({ count: 0, groups: [], error: 'Puppeteer page not accessible.' });
+        let rawChats = [];
+
+        // Attempt 1: Standard client.getChats()
+        try {
+            rawChats = await client.getChats();
+        } catch (e1) {
+            console.log('[GET /groups] client.getChats() error:', e1.message);
         }
 
-        // Direct evaluate window.WWebJS.getChats() which executes in ~50ms inside Chrome
-        const rawChats = await page.evaluate(async () => {
-            if (window.WWebJS && typeof window.WWebJS.getChats === 'function') {
-                return await window.WWebJS.getChats();
+        // Attempt 2: Direct browser evaluate if client.getChats() returned empty
+        if (!rawChats || rawChats.length === 0) {
+            try {
+                const page = client.pupPage || (client.pupBrowser ? (await client.pupBrowser.pages())[0] : null);
+                if (page) {
+                    rawChats = await page.evaluate(async () => {
+                        if (window.WWebJS && typeof window.WWebJS.getChats === 'function') {
+                            return await window.WWebJS.getChats();
+                        }
+                        return [];
+                    });
+                }
+            } catch (e2) {
+                console.log('[GET /groups] Direct page evaluate error:', e2.message);
             }
-            if (window.Store && window.Store.Chat) {
-                return (window.Store.Chat.models || []).map(c => ({
-                    id: c.id ? c.id._serialized : null,
-                    name: c.name || c.formattedTitle || c.title,
-                    isGroup: c.isGroup
-                }));
-            }
-            return [];
-        });
+        }
 
         const groups = (rawChats || [])
             .filter(chat => {
-                if (!chat || !chat.id) return false;
-                const serialized = typeof chat.id === 'string' ? chat.id : (chat.id._serialized || '');
-                return chat.isGroup || serialized.endsWith('@g.us');
+                if (!chat) return false;
+                const idStr = chat.id ? (typeof chat.id === 'string' ? chat.id : (chat.id._serialized || '')) : '';
+                return chat.isGroup || idStr.endsWith('@g.us');
             })
             .map(chat => {
-                const serialized = typeof chat.id === 'string' ? chat.id : (chat.id._serialized || '');
+                const idStr = chat.id ? (typeof chat.id === 'string' ? chat.id : (chat.id._serialized || '')) : '';
                 const title = chat.name || chat.formattedTitle || chat.title || 'Unnamed Group';
-                return { name: title, id: serialized };
+                return { name: title, id: idStr };
             })
             .filter(g => g.id && g.id.endsWith('@g.us'));
 
@@ -355,7 +361,7 @@ app.get('/groups', async (req, res) => {
         return res.json({ count: groups.length, groups: groups });
     } catch (error) {
         console.error('[GET /groups] Error fetching groups:', error.message);
-        return res.json({ count: 0, groups: [], error: error.message });
+        return res.json({ count: 0, groups: [], error: String(error.message || error) });
     }
 });
 
