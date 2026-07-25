@@ -309,64 +309,61 @@ app.get('/groups', async (req, res) => {
     }
     
     try {
-        let rawChats = [];
-
-        // Attempt 1: Standard client.getChats()
-        try {
-            rawChats = await client.getChats();
-            console.log(`[GET /groups] client.getChats() returned ${rawChats ? rawChats.length : 0} total chats.`);
-        } catch (e1) {
-            console.log('[GET /groups] client.getChats() error:', e1.message);
+        const page = client.pupPage || (client.pupBrowser ? (await client.pupBrowser.pages())[0] : null);
+        if (!page) {
+            return res.json({ count: 0, groups: [], error: 'Puppeteer page not accessible.' });
         }
 
-        // Attempt 2: Direct page evaluate from window.Store if rawChats is empty
-        if (!rawChats || rawChats.length === 0) {
+        // Method 1: Direct extract from WAWebCollections inside Chrome (bypasses serialization errors)
+        let groups = await page.evaluate(() => {
             try {
-                const page = client.pupPage || (client.pupBrowser ? (await client.pupBrowser.pages())[0] : null);
-                if (page) {
-                    rawChats = await page.evaluate(() => {
-                        try {
-                            if (window.WWebJS && typeof window.WWebJS.getChats === 'function') {
-                                return window.WWebJS.getChats();
-                            }
-                            const models = (window.Store && window.Store.Chat) ? (window.Store.Chat.models || window.Store.Chat._models || []) : [];
-                            return models.map(c => ({
-                                id: c.id ? (c.id._serialized || c.id) : null,
-                                name: c.name || c.formattedTitle || c.title || (c.contact ? c.contact.name : null),
-                                isGroup: c.isGroup || (c.id && c.id.server === 'g.us')
-                            }));
-                        } catch (err) {
-                            return [];
+                let models = [];
+                if (window.require && typeof window.require === 'function') {
+                    try {
+                        const collections = window.require('WAWebCollections');
+                        if (collections && collections.Chat) {
+                            models = collections.Chat.getModelsArray() || [];
                         }
-                    });
-                    console.log(`[GET /groups] Direct page evaluate returned ${rawChats ? rawChats.length : 0} total chats.`);
+                    } catch (e) {}
                 }
-            } catch (e2) {
-                console.log('[GET /groups] Direct page evaluate error:', e2.message);
+
+                if (!models || models.length === 0) {
+                    models = (window.Store && window.Store.Chat) ? (window.Store.Chat.models || window.Store.Chat._models || []) : [];
+                }
+
+                return models
+                    .filter(c => {
+                        if (!c || !c.id) return false;
+                        const idStr = c.id._serialized || (typeof c.id === 'string' ? c.id : '');
+                        return c.isGroup || (c.id && c.id.server === 'g.us') || idStr.endsWith('@g.us');
+                    })
+                    .map(c => {
+                        const idStr = c.id._serialized || (typeof c.id === 'string' ? c.id : '');
+                        const title = c.name || c.formattedTitle || c.title || (c.contact ? c.contact.name : null) || 'Unnamed Group';
+                        return { name: title, id: idStr };
+                    })
+                    .filter(g => g.id && g.id.endsWith('@g.us'));
+            } catch (err) {
+                return [];
             }
+        });
+
+        // Method 2: Fallback to client.getChats() if WAWebCollections direct query returned 0
+        if (!groups || groups.length === 0) {
+            try {
+                const chats = await client.getChats();
+                groups = (chats || [])
+                    .filter(chat => chat && (chat.isGroup || (chat.id && chat.id._serialized && chat.id._serialized.endsWith('@g.us'))))
+                    .map(chat => ({
+                        name: chat.name || chat.formattedTitle || 'Unnamed Group',
+                        id: (chat.id && chat.id._serialized) ? chat.id._serialized : String(chat.id)
+                    }))
+                    .filter(g => g.id && g.id.endsWith('@g.us'));
+            } catch (e) {}
         }
 
-        const groups = (rawChats || [])
-            .filter(chat => {
-                if (!chat) return false;
-                const idObj = chat.id || {};
-                const idStr = typeof idObj === 'string' ? idObj : (idObj._serialized || idObj.user || '');
-                const isG = chat.isGroup || (idObj.server === 'g.us') || idStr.includes('@g.us');
-                return isG;
-            })
-            .map(chat => {
-                const idObj = chat.id || {};
-                let idStr = typeof idObj === 'string' ? idObj : (idObj._serialized || '');
-                if (!idStr && idObj.user) {
-                    idStr = `${idObj.user}@g.us`;
-                }
-                const title = chat.name || chat.formattedTitle || chat.title || (chat.contact ? chat.contact.name : null) || 'Unnamed Group';
-                return { name: title, id: idStr };
-            })
-            .filter(g => g.id && g.id.includes('@g.us'));
-
-        console.log(`[GET /groups] Successfully filtered ${groups.length} WhatsApp groups.`);
-        return res.json({ count: groups.length, groups: groups });
+        console.log(`[GET /groups] Successfully retrieved ${groups ? groups.length : 0} WhatsApp groups.`);
+        return res.json({ count: groups ? groups.length : 0, groups: groups || [] });
     } catch (error) {
         console.error('[GET /groups] Error fetching groups:', error.message);
         return res.json({ count: 0, groups: [], error: String(error.message || error) });
