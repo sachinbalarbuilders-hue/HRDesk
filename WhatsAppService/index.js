@@ -361,7 +361,7 @@ app.get('/groups', async (req, res) => {
 
 // Get Status
 app.get('/status', (req, res) => {
-    res.json({ ready: clientReady, queueLength: messageQueue.length });
+    res.json({ ready: clientReady || isAuthenticated, queueLength: messageQueue.length });
 });
 
 // Get QR Code
