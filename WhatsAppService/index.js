@@ -323,21 +323,32 @@ app.get('/groups', async (req, res) => {
         // Attempt 1: Standard client.getChats()
         try {
             rawChats = await client.getChats();
+            console.log(`[GET /groups] client.getChats() returned ${rawChats ? rawChats.length : 0} total chats.`);
         } catch (e1) {
             console.log('[GET /groups] client.getChats() error:', e1.message);
         }
 
-        // Attempt 2: Direct browser evaluate if client.getChats() returned empty
+        // Attempt 2: Direct page evaluate from window.Store if rawChats is empty
         if (!rawChats || rawChats.length === 0) {
             try {
                 const page = client.pupPage || (client.pupBrowser ? (await client.pupBrowser.pages())[0] : null);
                 if (page) {
-                    rawChats = await page.evaluate(async () => {
-                        if (window.WWebJS && typeof window.WWebJS.getChats === 'function') {
-                            return await window.WWebJS.getChats();
+                    rawChats = await page.evaluate(() => {
+                        try {
+                            if (window.WWebJS && typeof window.WWebJS.getChats === 'function') {
+                                return window.WWebJS.getChats();
+                            }
+                            const models = (window.Store && window.Store.Chat) ? (window.Store.Chat.models || window.Store.Chat._models || []) : [];
+                            return models.map(c => ({
+                                id: c.id ? (c.id._serialized || c.id) : null,
+                                name: c.name || c.formattedTitle || c.title || (c.contact ? c.contact.name : null),
+                                isGroup: c.isGroup || (c.id && c.id.server === 'g.us')
+                            }));
+                        } catch (err) {
+                            return [];
                         }
-                        return [];
                     });
+                    console.log(`[GET /groups] Direct page evaluate returned ${rawChats ? rawChats.length : 0} total chats.`);
                 }
             } catch (e2) {
                 console.log('[GET /groups] Direct page evaluate error:', e2.message);
@@ -347,17 +358,23 @@ app.get('/groups', async (req, res) => {
         const groups = (rawChats || [])
             .filter(chat => {
                 if (!chat) return false;
-                const idStr = chat.id ? (typeof chat.id === 'string' ? chat.id : (chat.id._serialized || '')) : '';
-                return chat.isGroup || idStr.endsWith('@g.us');
+                const idObj = chat.id || {};
+                const idStr = typeof idObj === 'string' ? idObj : (idObj._serialized || idObj.user || '');
+                const isG = chat.isGroup || (idObj.server === 'g.us') || idStr.includes('@g.us');
+                return isG;
             })
             .map(chat => {
-                const idStr = chat.id ? (typeof chat.id === 'string' ? chat.id : (chat.id._serialized || '')) : '';
-                const title = chat.name || chat.formattedTitle || chat.title || 'Unnamed Group';
+                const idObj = chat.id || {};
+                let idStr = typeof idObj === 'string' ? idObj : (idObj._serialized || '');
+                if (!idStr && idObj.user) {
+                    idStr = `${idObj.user}@g.us`;
+                }
+                const title = chat.name || chat.formattedTitle || chat.title || (chat.contact ? chat.contact.name : null) || 'Unnamed Group';
                 return { name: title, id: idStr };
             })
-            .filter(g => g.id && g.id.endsWith('@g.us'));
+            .filter(g => g.id && g.id.includes('@g.us'));
 
-        console.log(`[GET /groups] Successfully retrieved ${groups.length} WhatsApp groups.`);
+        console.log(`[GET /groups] Successfully filtered ${groups.length} WhatsApp groups.`);
         return res.json({ count: groups.length, groups: groups });
     } catch (error) {
         console.error('[GET /groups] Error fetching groups:', error.message);
