@@ -310,58 +310,44 @@ app.get('/groups', async (req, res) => {
     }
     
     try {
-        let groups = [];
         const page = client.pupPage || (client.pupBrowser ? (await client.pupBrowser.pages())[0] : null);
-
-        // Method 1: Instant direct evaluate from WhatsApp Web Store
-        if (page) {
-            try {
-                groups = await page.evaluate(() => {
-                    const chatModels = (window.Store && window.Store.Chat) 
-                        ? (window.Store.Chat.models || window.Store.Chat._models || []) 
-                        : [];
-                    return chatModels
-                        .filter(c => {
-                            if (!c || !c.id) return false;
-                            const idStr = (c.id._serialized || c.id.toString() || '');
-                            return c.isGroup || idStr.includes('@g.us') || c.id.server === 'g.us';
-                        })
-                        .map(c => {
-                            const idStr = (c.id._serialized || c.id.toString() || '');
-                            const title = c.name || c.formattedTitle || c.title || (c.contact ? c.contact.name : null) || 'Unnamed Group';
-                            return { name: title, id: idStr };
-                        })
-                        .filter(g => g.id && g.id.includes('@g.us'));
-                });
-            } catch (e) {
-                console.log('Direct store evaluation error:', e.message);
-            }
+        if (!page) {
+            return res.json({ count: 0, groups: [], error: 'Puppeteer page not accessible.' });
         }
 
-        // Method 2: Fallback to getChats if direct evaluate returned empty
-        if (!groups || groups.length === 0) {
-            try {
-                const chats = await Promise.race([
-                    client.getChats(),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('getChats timeout after 5s')), 5000))
-                ]);
-
-                groups = (chats || [])
-                    .filter(chat => chat && (chat.isGroup || (chat.id && chat.id._serialized && chat.id._serialized.endsWith('@g.us'))))
-                    .map(chat => ({
-                        name: chat.name || chat.formattedTitle || 'Unnamed Group',
-                        id: (chat.id && chat.id._serialized) ? chat.id._serialized : String(chat.id)
-                    }))
-                    .filter(g => g.id && g.id.endsWith('@g.us'));
-            } catch (err) {
-                console.log('getChats fallback error:', err.message);
+        // Direct evaluate window.WWebJS.getChats() which executes in ~50ms inside Chrome
+        const rawChats = await page.evaluate(async () => {
+            if (window.WWebJS && typeof window.WWebJS.getChats === 'function') {
+                return await window.WWebJS.getChats();
             }
-        }
+            if (window.Store && window.Store.Chat) {
+                return (window.Store.Chat.models || []).map(c => ({
+                    id: c.id ? c.id._serialized : null,
+                    name: c.name || c.formattedTitle || c.title,
+                    isGroup: c.isGroup
+                }));
+            }
+            return [];
+        });
 
-        res.json({ count: groups.length, groups: groups || [] });
+        const groups = (rawChats || [])
+            .filter(chat => {
+                if (!chat || !chat.id) return false;
+                const serialized = typeof chat.id === 'string' ? chat.id : (chat.id._serialized || '');
+                return chat.isGroup || serialized.endsWith('@g.us');
+            })
+            .map(chat => {
+                const serialized = typeof chat.id === 'string' ? chat.id : (chat.id._serialized || '');
+                const title = chat.name || chat.formattedTitle || chat.title || 'Unnamed Group';
+                return { name: title, id: serialized };
+            })
+            .filter(g => g.id && g.id.endsWith('@g.us'));
+
+        console.log(`[GET /groups] Successfully retrieved ${groups.length} WhatsApp groups.`);
+        return res.json({ count: groups.length, groups: groups });
     } catch (error) {
-        console.log('Failed fetching groups:', error.message);
-        res.json({ count: 0, groups: [], error: error.message });
+        console.error('[GET /groups] Error fetching groups:', error.message);
+        return res.json({ count: 0, groups: [], error: error.message });
     }
 });
 
