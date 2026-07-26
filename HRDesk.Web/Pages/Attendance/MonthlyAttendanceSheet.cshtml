@@ -153,10 +153,7 @@
                     @for (int i = 1; i <= Model.DaysInMonth; i++)
                     {
                         var dateForHeader = new DateOnly(Model.Year, Model.Month, i);
-                        bool isWeekoffCol = !string.IsNullOrWhiteSpace(summary.Employee?.Weekoff) &&
-                            summary.Employee!.Weekoff.Trim().Equals(dateForHeader.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase) &&
-                            (summary.Employee.JoiningDate == null || dateForHeader >= summary.Employee.JoiningDate) &&
-                            (summary.Employee.LastWorkingDate == null || dateForHeader <= summary.Employee.LastWorkingDate);
+                        bool isWeekoffCol = summary.DailyRecords.ContainsKey(i) && summary.DailyRecords[i].IsWeekOff;
                         <th class="@(isWeekoffCol ? "weekoff-col" : "")">@i</th>
                     }
                 </tr>
@@ -167,10 +164,7 @@
                     @for (int i = 1; i <= Model.DaysInMonth; i++)
                     {
                         var date = new DateOnly(Model.Year, Model.Month, i);
-                        bool isWeekoffDay = !string.IsNullOrWhiteSpace(summary.Employee?.Weekoff) &&
-                            summary.Employee!.Weekoff.Trim().Equals(date.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase) &&
-                            (summary.Employee.JoiningDate == null || date >= summary.Employee.JoiningDate) &&
-                            (summary.Employee.LastWorkingDate == null || date <= summary.Employee.LastWorkingDate);
+                        bool isWeekoffDay = summary.DailyRecords.ContainsKey(i) && summary.DailyRecords[i].IsWeekOff;
                         <th class="small @(isWeekoffDay ? "weekoff-col fw-semibold" : "text-muted")">@date.ToString("ddd")</th>
                     }
                 </tr>

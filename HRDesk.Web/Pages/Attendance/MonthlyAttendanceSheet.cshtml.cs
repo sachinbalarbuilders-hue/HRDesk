@@ -74,7 +74,13 @@ public class MonthlyAttendanceSheetModel : PageModel
 
         // 2c. Fetch all Missed Punch regularizations for the month
         var regularizations = await _db.AttendanceRegularizations
-            .Where(r => r.RequestType == "Missed Punch" && r.Status == "Approved" && r.RequestDate >= startDate && r.RequestDate < endDate)
+            .AsNoTracking()
+            .Where(r => r.RequestType == "Missed Punch" && r.Status == "Approved" && r.RequestDate >= startDate && r.RequestDate <= endDate)
+            .ToListAsync();
+
+        var monthRosters = await _db.ShiftRosters
+            .AsNoTracking()
+            .Where(r => r.RosterDate >= startDate && r.RosterDate <= endDate)
             .ToListAsync();
 
         // 3. Transform data
@@ -101,6 +107,14 @@ public class MonthlyAttendanceSheetModel : PageModel
                 var date = new DateOnly(Year, Month, day);
                 var log = empLogs.FirstOrDefault(l => l.RecordDate == date);
                 var dto = new DailyAttendanceDto();
+
+                bool isDefaultWeekoff = !string.IsNullOrWhiteSpace(emp.Weekoff) &&
+                    emp.Weekoff.Trim().Equals(date.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase) &&
+                    (emp.JoiningDate == null || date >= emp.JoiningDate) &&
+                    (emp.LastWorkingDate == null || date <= emp.LastWorkingDate);
+
+                var rosterOverride = monthRosters.FirstOrDefault(r => r.EmployeeId == emp.EmployeeId && r.RosterDate == date);
+                dto.IsWeekOff = rosterOverride != null ? rosterOverride.IsWeekOff : isDefaultWeekoff;
 
                 if (log != null)
                 {
@@ -336,5 +350,6 @@ public class MonthlyAttendanceSheetModel : PageModel
         public string BackgroundColor { get; set; } = "transparent";
         public bool IsInRegularized { get; set; }
         public bool IsOutRegularized { get; set; }
+        public bool IsWeekOff { get; set; }
     }
 }

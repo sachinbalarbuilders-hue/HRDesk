@@ -38,7 +38,7 @@ public class IndexModel : PageModel
             .AsNoTracking()
             .Include(la => la.Employee)
             .Include(la => la.LeaveType).ThenInclude(lt => lt != null ? lt.EligibleEmployees : null)
-            .Where(la => la.Year == Year && la.Employee.Status == "active")
+            .Where(la => la.Year == Year && la.Employee != null && la.Employee.Status == "active")
             .AsSplitQuery();
 
         if (!string.IsNullOrEmpty(SearchString))
