@@ -31,13 +31,15 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
-        LeaveTypes = await _db.LeaveTypes.Include(lt => lt.EligibleEmployees).Where(lt => lt.Status == "Active").ToListAsync();
-        Employees = await _db.Employees.Include(e => e.Department).OrderBy(e => e.EmployeeName).ToListAsync();
+        LeaveTypes = await _db.LeaveTypes.AsNoTracking().Include(lt => lt.EligibleEmployees).Where(lt => lt.Status == "Active").ToListAsync();
+        Employees = await _db.Employees.AsNoTracking().Include(e => e.Department).OrderBy(e => e.EmployeeName).ToListAsync();
         
         var query = _db.LeaveAllocations
+            .AsNoTracking()
             .Include(la => la.Employee)
             .Include(la => la.LeaveType).ThenInclude(lt => lt != null ? lt.EligibleEmployees : null)
-            .Where(la => la.Year == Year);
+            .Where(la => la.Year == Year)
+            .AsSplitQuery();
 
         if (!string.IsNullOrEmpty(SearchString))
         {
