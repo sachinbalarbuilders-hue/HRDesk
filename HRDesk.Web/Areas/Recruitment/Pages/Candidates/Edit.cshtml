@@ -72,6 +72,28 @@
                     }
                 </div>
 
+                <div class="col-md-4">
+                    <label asp-for="Candidate.Source" class="form-label">Source</label>
+                    <input asp-for="Candidate.Source" class="form-control" placeholder="e.g. LinkedIn, Referral" />
+                    <span asp-validation-for="Candidate.Source" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Candidate.CurrentSalary" class="form-label">Current Salary</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₹</span>
+                        <input asp-for="Candidate.CurrentSalary" type="number" step="0.01" class="form-control" />
+                    </div>
+                    <span asp-validation-for="Candidate.CurrentSalary" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Candidate.ExpectedSalary" class="form-label">Expected Salary</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₹</span>
+                        <input asp-for="Candidate.ExpectedSalary" type="number" step="0.01" class="form-control" />
+                    </div>
+                    <span asp-validation-for="Candidate.ExpectedSalary" class="text-danger"></span>
+                </div>
+
                 <div class="col-12">
                     <label asp-for="Candidate.Notes" class="form-label">Notes (e.g. Interview Feedback)</label>
                     <textarea asp-for="Candidate.Notes" class="form-control" rows="5"></textarea>

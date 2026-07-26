@@ -1,0 +1,183 @@
+@page
+@model HRDesk.Web.Areas.Recruitment.Pages.Interviews.CalendarModel
+@{
+    ViewData["Title"] = "Interview Calendar";
+}
+
+@if (Model.Success != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@Model.Success
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h3 mb-0">Interview Calendar</h2>
+    <a asp-page="./Schedule" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Schedule Interview
+    </a>
+</div>
+
+@{
+    string StatusBadge(string status) => status switch
+    {
+        "Completed" => "bg-success",
+        "Cancelled" => "bg-secondary",
+        "No Show"   => "bg-warning text-dark",
+        _           => "bg-primary"
+    };
+    string ResultBadge(string? result) => result switch
+    {
+        "Pass" => "text-success fw-bold",
+        "Fail" => "text-danger fw-bold",
+        "Hold" => "text-warning fw-bold",
+        _      => "text-muted"
+    };
+}
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white border-bottom pt-3 pb-0 px-4">
+        <ul class="nav nav-tabs border-bottom-0" id="interviewTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active d-flex align-items-center gap-2" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab">
+                    <i class="bi bi-calendar-event text-primary"></i> <strong>Upcoming</strong>
+                    <span class="badge bg-primary rounded-pill">@Model.Upcoming.Count</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link d-flex align-items-center gap-2" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab">
+                    <i class="bi bi-clock-history text-secondary"></i> <strong>Past Interviews</strong>
+                    <span class="badge bg-secondary rounded-pill">@Model.Past.Count</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body p-0">
+        <div class="tab-content" id="interviewTabsContent">
+            <!-- UPCOMING TAB -->
+            <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
+                @if (!Model.Upcoming.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-calendar-x fs-1 d-block mb-3"></i>
+                        No upcoming interviews scheduled.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 border-top-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Date & Time</th>
+                                    <th>Candidate</th>
+                                    <th>Round</th>
+                                    <th>Type</th>
+                                    <th>Interviewer</th>
+                                    <th>Location</th>
+                                    <th>WA</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var i in Model.Upcoming)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="fw-semibold">@i.InterviewDateTime.ToString("dd MMM yyyy")</div>
+                                            <div class="text-muted small">@i.InterviewDateTime.ToString("hh:mm tt")</div>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold">@i.Candidate?.CandidateName</div>
+                                            <div class="text-muted small">@i.Candidate?.AppliedFor</div>
+                                        </td>
+                                        <td><span class="badge bg-info">@i.Round</span></td>
+                                        <td>@i.InterviewType</td>
+                                        <td>@i.InterviewerName</td>
+                                        <td class="small text-muted">@(i.Location ?? "—")</td>
+                                        <td>
+                                            @if (i.ReminderSent)
+                                            {
+                                                <i class="bi bi-whatsapp text-success" title="Reminder sent"></i>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a asp-page="./Edit" asp-route-id="@i.Id" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <form method="post" asp-page-handler="Delete" asp-route-id="@i.Id" class="d-inline"
+                                                  onsubmit="return confirm('Remove this interview?')">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger ms-1">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <!-- PAST TAB -->
+            <div class="tab-pane fade" id="past" role="tabpanel">
+                @if (!Model.Past.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                        No past interviews found.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 border-top-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Date</th>
+                                    <th>Candidate</th>
+                                    <th>Round</th>
+                                    <th>Interviewer</th>
+                                    <th>Status</th>
+                                    <th>Result</th>
+                                    <th>Feedback</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var i in Model.Past)
+                                {
+                                    <tr>
+                                        <td class="ps-4 text-muted small">@i.InterviewDateTime.ToString("dd MMM yyyy, hh:mm tt")</td>
+                                        <td>
+                                            <div class="fw-bold">@i.Candidate?.CandidateName</div>
+                                            <div class="text-muted small">@i.Candidate?.AppliedFor</div>
+                                        </td>
+                                        <td><span class="badge bg-secondary">@i.Round</span></td>
+                                        <td>@i.InterviewerName</td>
+                                        <td><span class="badge @StatusBadge(i.Status)">@i.Status</span></td>
+                                        <td class="@ResultBadge(i.Result)">@(i.Result ?? "—")</td>
+                                        <td class="small text-muted" style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"
+                                            title="@i.Feedback">@(i.Feedback ?? "—")</td>
+                                        <td class="text-end pe-4">
+                                            <a asp-page="./Edit" asp-route-id="@i.Id" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

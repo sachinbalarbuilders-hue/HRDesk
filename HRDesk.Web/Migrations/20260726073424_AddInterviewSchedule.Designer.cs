@@ -3,6 +3,7 @@ using System;
 using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRDesk.Web.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260726073424_AddInterviewSchedule")]
+    partial class AddInterviewSchedule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,15 +44,9 @@ namespace HRDesk.Web.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<decimal?>("CurrentSalary")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("Email")
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)");
-
-                    b.Property<decimal?>("ExpectedSalary")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("HiredEmployeeId")
                         .HasColumnType("int");
@@ -75,10 +72,6 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("ResumeFileName")
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
-
-                    b.Property<string>("Source")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Status")
                         .IsRequired()

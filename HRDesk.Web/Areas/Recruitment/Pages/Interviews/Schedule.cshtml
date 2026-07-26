@@ -1,0 +1,104 @@
+@page "{candidateId?}"
+@model HRDesk.Web.Areas.Recruitment.Pages.Interviews.ScheduleModel
+@{
+    ViewData["Title"] = "Schedule Interview";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h3 mb-0">Schedule Interview</h2>
+    <a asp-page="../Candidates/Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Candidates
+    </a>
+</div>
+
+@if (Model.Candidate != null)
+{
+    <div class="alert alert-info d-flex gap-3 align-items-center mb-4 border-0 shadow-sm">
+        <i class="bi bi-person-circle fs-4 text-primary"></i>
+        <div>
+            <strong class="text-dark">@Model.Candidate.CandidateName</strong> <span class="text-muted">— @Model.Candidate.AppliedFor</span>
+            <div class="text-muted small mt-1"><i class="bi bi-envelope"></i> @Model.Candidate.Email &nbsp;|&nbsp; <i class="bi bi-telephone"></i> @Model.Candidate.Phone</div>
+        </div>
+    </div>
+}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+        <form method="post">
+            @Html.AntiForgeryToken()
+            @if (Model.CandidateId.HasValue)
+            {
+                <input type="hidden" asp-for="Interview.CandidateId" />
+            }
+            else
+            {
+                <div class="row g-3 mb-3">
+                    <div class="col-md-12">
+                        <label asp-for="Interview.CandidateId" class="form-label fw-semibold">Select Candidate</label>
+                        <select asp-for="Interview.CandidateId" asp-items="Model.CandidateOptions" class="form-select">
+                            <option value="">-- Choose Candidate --</option>
+                        </select>
+                        <span asp-validation-for="Interview.CandidateId" class="text-danger small"></span>
+                    </div>
+                </div>
+            }
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Interview.InterviewDateTime" class="form-label fw-semibold"></label>
+                    <input asp-for="Interview.InterviewDateTime" type="datetime-local" class="form-control"
+                           value="@Model.Interview.InterviewDateTime.ToString("yyyy-MM-ddTHH:mm")" />
+                    <span asp-validation-for="Interview.InterviewDateTime" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Interview.Round" class="form-label fw-semibold"></label>
+                    <select asp-for="Interview.Round" asp-items="Model.RoundOptions" class="form-select"></select>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Interview.InterviewType" class="form-label fw-semibold"></label>
+                    <select asp-for="Interview.InterviewType" asp-items="Model.TypeOptions" class="form-select"></select>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Interview.InterviewerName" class="form-label fw-semibold"></label>
+                    <input asp-for="Interview.InterviewerName" class="form-control" placeholder="e.g. Rahul Shah" list="interviewerList" />
+                    <datalist id="interviewerList">
+                        @foreach (var interviewer in Model.InterviewerOptions)
+                        {
+                            <option value="@interviewer"></option>
+                        }
+                    </datalist>
+                    <span asp-validation-for="Interview.InterviewerName" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Interview.InterviewerPhone" class="form-label fw-semibold"></label>
+                    <input asp-for="Interview.InterviewerPhone" class="form-control" placeholder="Optional" />
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Interview.Location" class="form-label fw-semibold"></label>
+                    <input asp-for="Interview.Location" class="form-control" placeholder="Room / Google Meet link / Phone" />
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Interview.Feedback" class="form-label fw-semibold">Pre-interview Notes</label>
+                    <textarea asp-for="Interview.Feedback" class="form-control" rows="3" placeholder="Any notes for the interviewer..."></textarea>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-calendar-check"></i> Schedule Interview
+                </button>
+                <a asp-page="../Candidates/Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -96,19 +96,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-var photoPath = builder.Configuration.GetValue<string>("EmployeePhotoPath");
-if (!string.IsNullOrWhiteSpace(photoPath))
-{
-    if (!System.IO.Directory.Exists(photoPath))
-    {
-        System.IO.Directory.CreateDirectory(photoPath);
-    }
-    app.UseStaticFiles(new StaticFileOptions
-    {
-        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(photoPath),
-        RequestPath = "/EmployeePhotos"
-    });
-}
+
+
 
 app.UseRouting();
 

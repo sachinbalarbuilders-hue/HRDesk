@@ -51,7 +51,7 @@ public class DeleteModel : PageModel
         var candidate = await _context.Candidates.FindAsync(id);
         if (candidate != null)
         {
-            _context.Candidates.Remove(Candidate);
+            _context.Candidates.Remove(candidate);
             await _context.SaveChangesAsync();
         }
 

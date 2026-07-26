@@ -73,6 +73,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<ShiftRoster> ShiftRosters => Set<ShiftRoster>();
     public DbSet<CelebrationLog> CelebrationLogs => Set<CelebrationLog>();
     public DbSet<Candidate> Candidates => Set<Candidate>();
+    public DbSet<InterviewSchedule> InterviewSchedules => Set<InterviewSchedule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,0 +1,87 @@
+@page "{id:int}"
+@model HRDesk.Web.Areas.Recruitment.Pages.Interviews.EditModel
+@{
+    ViewData["Title"] = "Edit Interview";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h3 mb-0">Edit Interview</h2>
+    <a asp-page="./Calendar" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Calendar
+    </a>
+</div>
+
+    @if (Model.Candidate != null)
+    {
+        <div class="alert alert-info d-flex gap-3 align-items-center mb-4 border-0 shadow-sm">
+            <i class="bi bi-person-circle fs-4 text-primary"></i>
+            <div>
+                <strong class="text-dark">@Model.Candidate.CandidateName</strong> <span class="text-muted">— @Model.Candidate.AppliedFor</span>
+            </div>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Interview.Id" />
+            <input type="hidden" asp-for="Interview.CandidateId" />
+            <input type="hidden" asp-for="Interview.ReminderSent" />
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Interview.InterviewDateTime" class="form-label fw-semibold"></label>
+                    <input asp-for="Interview.InterviewDateTime" type="datetime-local" class="form-control"
+                           value="@Model.Interview.InterviewDateTime.ToString("yyyy-MM-ddTHH:mm")" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Interview.Round" class="form-label fw-semibold"></label>
+                    <select asp-for="Interview.Round" asp-items="Model.RoundOptions" class="form-select"></select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Interview.InterviewType" class="form-label fw-semibold"></label>
+                    <select asp-for="Interview.InterviewType" asp-items="Model.TypeOptions" class="form-select"></select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Interview.InterviewerName" class="form-label fw-semibold"></label>
+                    <input asp-for="Interview.InterviewerName" class="form-control" list="interviewerListEdit" />
+                    <datalist id="interviewerListEdit">
+                        @foreach (var interviewer in Model.InterviewerOptions)
+                        {
+                            <option value="@interviewer"></option>
+                        }
+                    </datalist>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Interview.InterviewerPhone" class="form-label fw-semibold"></label>
+                    <input asp-for="Interview.InterviewerPhone" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Interview.Location" class="form-label fw-semibold"></label>
+                    <input asp-for="Interview.Location" class="form-control" />
+                </div>
+
+                <div class="col-12"><hr class="my-1"><p class="fw-semibold text-muted small mb-2">OUTCOME</p></div>
+
+                <div class="col-md-6">
+                    <label asp-for="Interview.Status" class="form-label fw-semibold"></label>
+                    <select asp-for="Interview.Status" asp-items="Model.StatusOptions" class="form-select"></select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Interview.Result" class="form-label fw-semibold"></label>
+                    <select asp-for="Interview.Result" asp-items="Model.ResultOptions" class="form-select"></select>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Interview.Feedback" class="form-label fw-semibold">Feedback / Notes</label>
+                    <textarea asp-for="Interview.Feedback" class="form-control" rows="4"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save Changes</button>
+                <a asp-page="./Calendar" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

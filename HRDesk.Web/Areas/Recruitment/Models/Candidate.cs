@@ -46,6 +46,15 @@ public sealed class Candidate : IMustHaveTenant
 
     public DateOnly ApplicationDate { get; set; }
 
+    [StringLength(100)]
+    public string? Source { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? CurrentSalary { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? ExpectedSalary { get; set; }
+
     public int? HiredEmployeeId { get; set; }
     
     [ForeignKey(nameof(HiredEmployeeId))]

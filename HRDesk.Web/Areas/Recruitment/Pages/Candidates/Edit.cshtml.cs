@@ -57,6 +57,9 @@ public class EditModel : PageModel
         existingCandidate.AppliedFor = Candidate.AppliedFor;
         existingCandidate.Status = Candidate.Status;
         existingCandidate.ApplicationDate = Candidate.ApplicationDate;
+        existingCandidate.Source = Candidate.Source;
+        existingCandidate.CurrentSalary = Candidate.CurrentSalary;
+        existingCandidate.ExpectedSalary = Candidate.ExpectedSalary;
         existingCandidate.Notes = Candidate.Notes;
         existingCandidate.UpdatedAt = DateTime.UtcNow;
 
