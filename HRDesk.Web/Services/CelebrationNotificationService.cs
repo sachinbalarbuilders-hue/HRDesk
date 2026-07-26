@@ -108,10 +108,14 @@ namespace HRDesk.Web.Services
 
                     _logger.LogInformation("Queuing Birthday HTML generation for {Name} in Org {Org}", employee.EmployeeName, employee.Organization?.Name);
                     
-                    var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
                     string photoBase64 = "";
-                    if (!string.IsNullOrEmpty(employee.PhotoPath))
+                    if (employee.PhotoData != null && employee.PhotoData.Length > 0)
                     {
+                        photoBase64 = Convert.ToBase64String(employee.PhotoData);
+                    }
+                    else if (!string.IsNullOrEmpty(employee.PhotoPath))
+                    {
+                        var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
                         var fullPhotoPath = System.IO.Path.Combine(photoDir ?? "", employee.PhotoPath);
                         if (System.IO.File.Exists(fullPhotoPath))
                         {
@@ -151,10 +155,14 @@ The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes yo
                     
                     _logger.LogInformation("Queuing Work Anniversary HTML generation for {Name} ({Years} years) in Org {Org}", employee.EmployeeName, years, employee.Organization?.Name);
                     
-                    var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
                     string photoBase64 = "";
-                    if (!string.IsNullOrEmpty(employee.PhotoPath))
+                    if (employee.PhotoData != null && employee.PhotoData.Length > 0)
                     {
+                        photoBase64 = Convert.ToBase64String(employee.PhotoData);
+                    }
+                    else if (!string.IsNullOrEmpty(employee.PhotoPath))
+                    {
+                        var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
                         var fullPhotoPath = System.IO.Path.Combine(photoDir ?? "", employee.PhotoPath);
                         if (System.IO.File.Exists(fullPhotoPath))
                         {

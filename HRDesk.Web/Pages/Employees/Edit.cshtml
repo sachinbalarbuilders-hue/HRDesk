@@ -104,8 +104,8 @@
                     @if (!string.IsNullOrEmpty(Model.CurrentPhotoPath))
                     {
                         <div class="mb-2 d-flex align-items-center gap-2">
-                            <span class="badge text-bg-info">Current Photo: @Model.CurrentPhotoPath</span>
-                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" id="btnCropExisting" data-url="/EmployeePhotos/@Model.CurrentPhotoPath">
+                            <span class="badge text-bg-info">Current Photo: Loaded from Database</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" id="btnCropExisting" data-url="/api/Thumbnail?employeeId=@Model.Id&width=800&height=800">
                                 <i class="bi bi-crop"></i> Re-crop
                             </button>
                         </div>

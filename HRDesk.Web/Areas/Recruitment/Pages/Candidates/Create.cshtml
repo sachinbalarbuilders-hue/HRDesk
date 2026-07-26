@@ -1,0 +1,83 @@
+@page
+@model HRDesk.Web.Areas.Recruitment.Pages.Candidates.CreateModel
+@{
+    ViewData["Title"] = "Add Candidate";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h3 mb-0">Add Candidate</h2>
+    <a asp-page="./Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Pipeline
+    </a>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label asp-for="Candidate.CandidateName" class="form-label">Candidate Name *</label>
+                    <input asp-for="Candidate.CandidateName" class="form-control" required />
+                    <span asp-validation-for="Candidate.CandidateName" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Candidate.Email" class="form-label">Email</label>
+                    <input asp-for="Candidate.Email" type="email" class="form-control" />
+                    <span asp-validation-for="Candidate.Email" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Candidate.Phone" class="form-label">Phone</label>
+                    <input asp-for="Candidate.Phone" class="form-control" />
+                    <span asp-validation-for="Candidate.Phone" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Candidate.AppliedFor" class="form-label">Applied For (Position) *</label>
+                    <input asp-for="Candidate.AppliedFor" class="form-control" required />
+                    <span asp-validation-for="Candidate.AppliedFor" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Candidate.Status" class="form-label">Initial Status</label>
+                    <select asp-for="Candidate.Status" class="form-select">
+                        <option value="Sourced">Sourced</option>
+                        <option value="Applied">Applied</option>
+                        <option value="Screening">Screening</option>
+                        <option value="Interview">Interview</option>
+                    </select>
+                    <span asp-validation-for="Candidate.Status" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="Candidate.ApplicationDate" class="form-label">Application Date *</label>
+                    <input asp-for="Candidate.ApplicationDate" type="date" class="form-control" required />
+                    <span asp-validation-for="Candidate.ApplicationDate" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="ResumeUpload" class="form-label">Resume (PDF/Word)</label>
+                    <input asp-for="ResumeUpload" type="file" class="form-control" accept=".pdf,.doc,.docx" />
+                    <span asp-validation-for="ResumeUpload" class="text-danger"></span>
+                </div>
+
+                <div class="col-12">
+                    <label asp-for="Candidate.Notes" class="form-label">Notes</label>
+                    <textarea asp-for="Candidate.Notes" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Candidate.Notes" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Save Candidate
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -91,9 +91,16 @@
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="avatar-circle" style="overflow: hidden; padding: 0;">
-                                        @if (!string.IsNullOrEmpty(e.PhotoPath))
+                                        @{
+                                            // PhotoData is not loaded in list queries to avoid loading BLOBs.
+                                            // We check PhotoPath as a proxy: migrated employees keep their PhotoPath set.
+                                            // For employees uploaded after migration, PhotoData exists but PhotoPath may be null,
+                                            // so we call the API unconditionally and let it return 404 gracefully.
+                                            bool hasPhoto = !string.IsNullOrEmpty(e.PhotoPath) || e.PhotoData != null;
+                                        }
+                                        @if (hasPhoto)
                                         {
-                                            <img src="/api/Thumbnail?filename=@e.PhotoPath&width=150&height=150" alt="@e.EmployeeName" style="width: 100%; height: 100%; object-fit: cover; object-position: top center;" loading="lazy" />
+                                            <img src="/api/Thumbnail?employeeId=@e.EmployeeId&width=150&height=150" alt="@e.EmployeeName" style="width: 100%; height: 100%; object-fit: cover; object-position: top center;" loading="lazy" />
                                         }
                                         else
                                         {

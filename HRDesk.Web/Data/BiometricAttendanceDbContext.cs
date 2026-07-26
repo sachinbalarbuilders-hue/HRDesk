@@ -1,4 +1,5 @@
 using HRDesk.Web.Models;
+using HRDesk.Web.Areas.Recruitment.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Data;
@@ -71,6 +72,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<EmployeeShiftAssignment> EmployeeShiftAssignments => Set<EmployeeShiftAssignment>();
     public DbSet<ShiftRoster> ShiftRosters => Set<ShiftRoster>();
     public DbSet<CelebrationLog> CelebrationLogs => Set<CelebrationLog>();
+    public DbSet<Candidate> Candidates => Set<Candidate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -448,6 +450,14 @@ public sealed class BiometricAttendanceDbContext : DbContext
         {
             entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
         });
+
+        modelBuilder.Entity<Candidate>(entity =>
+        {
+            entity.ToTable("candidates");
+            entity.HasOne(c => c.Organization).WithMany().HasForeignKey(c => c.OrganizationId);
+            entity.HasOne(c => c.HiredEmployee).WithMany().HasForeignKey(c => new { c.OrganizationId, c.HiredEmployeeId });
+        });
+        
         base.OnModelCreating(modelBuilder);
     }
 

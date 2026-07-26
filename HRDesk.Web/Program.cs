@@ -18,6 +18,7 @@ builder.Services.AddControllers();
 
 // Add HttpContextAccessor and Tenant Provider
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<HRDesk.Web.Services.ICurrentTenantProvider, HRDesk.Web.Services.CurrentTenantProvider>();
 
 // Configure Authentication: Primary is Cookies for the Web Portal
@@ -119,6 +120,9 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<HRDesk.Web.Data.BiometricAttendanceDbContext>();
     db.Database.Migrate(); // Apply pending migrations automatically
+
+    // Auto-migration removed due to performance/crashing on startup.
+    // Thumbnails will lazily fallback to disk until a dedicated migration job is run.
 
     // Create eligibility table if missing (Split to avoid atomicity issues with InnoDB on failure)
     try {

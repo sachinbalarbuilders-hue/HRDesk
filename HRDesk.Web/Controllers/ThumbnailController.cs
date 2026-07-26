@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HRDesk.Web.Controllers;
 
@@ -9,53 +12,52 @@ namespace HRDesk.Web.Controllers;
 public class ThumbnailController : ControllerBase
 {
     private readonly IConfiguration _configuration;
+    private readonly HRDesk.Web.Data.BiometricAttendanceDbContext _db;
+    private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
 
-    public ThumbnailController(IConfiguration configuration)
+    public ThumbnailController(IConfiguration configuration, HRDesk.Web.Data.BiometricAttendanceDbContext db, Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
     {
         _configuration = configuration;
+        _db = db;
+        _cache = cache;
     }
 
     [HttpGet]
-    public IActionResult GetThumbnail(string? filename, int width = 150, int height = 150)
+    public async Task<IActionResult> GetThumbnail(int? employeeId, int width = 150, int height = 150)
     {
-        if (string.IsNullOrWhiteSpace(filename))
+        if (employeeId == null)
         {
-            return BadRequest("Filename is required.");
+            return BadRequest("Employee ID is required.");
         }
 
-        // Prevent directory traversal attacks
-        var sanitizedFilename = Path.GetFileName(filename);
+        // Use a projection to avoid loading the full Employee entity (composite key issue with FindAsync)
+        var photo = await _db.Employees
+            .Where(e => e.EmployeeId == employeeId)
+            .Select(e => new { e.PhotoData, e.PhotoContentType })
+            .FirstOrDefaultAsync();
 
-        var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
-        if (string.IsNullOrWhiteSpace(photoDir))
+        if (photo == null)
         {
-            return NotFound("Photo directory not configured.");
+            return NotFound("Employee not found.");
         }
 
-        var fullPath = Path.Combine(photoDir, sanitizedFilename);
-        if (!System.IO.File.Exists(fullPath))
+        byte[]? photoBytes = photo.PhotoData;
+
+        if (photoBytes == null)
         {
-            return NotFound();
+            return NotFound("No photo found.");
         }
 
-        var thumbDir = Path.Combine(photoDir, "Thumbnails");
-        if (!Directory.Exists(thumbDir))
+        var cacheKey = $"thumb_{employeeId}_{width}_{height}";
+        if (_cache.TryGetValue(cacheKey, out byte[]? cachedBytes))
         {
-            Directory.CreateDirectory(thumbDir);
-        }
-
-        var thumbPath = Path.Combine(thumbDir, $"{width}x{height}_{sanitizedFilename}");
-
-        // If thumbnail already exists, serve it instantly from the disk cache
-        if (System.IO.File.Exists(thumbPath))
-        {
-            return PhysicalFile(thumbPath, GetMimeType(thumbPath));
+            return File(cachedBytes!, "image/jpeg");
         }
 
         try
         {
-            // If thumbnail doesn't exist, generate it in memory and save to disk cache
-            using (var image = Image.Load(fullPath))
+            using (var ms = new MemoryStream(photoBytes))
+            using (var image = Image.Load(ms))
             {
                 image.Mutate(x => x.Resize(new ResizeOptions
                 {
@@ -63,15 +65,18 @@ public class ThumbnailController : ControllerBase
                     Mode = ResizeMode.Crop
                 }));
 
-                image.Save(thumbPath);
+                var outStream = new MemoryStream();
+                image.SaveAsJpeg(outStream);
+                var finalBytes = outStream.ToArray();
+                
+                _cache.Set(cacheKey, finalBytes, TimeSpan.FromDays(1)); // Cache for 1 day
+                return File(finalBytes, "image/jpeg");
             }
-
-            return PhysicalFile(thumbPath, GetMimeType(thumbPath));
         }
         catch (Exception)
         {
-            // If anything goes wrong, safely fallback to serving the original file
-            return PhysicalFile(fullPath, GetMimeType(fullPath));
+            // If anything goes wrong with resizing, safely fallback to serving the original bytes
+            return File(photoBytes, photo.PhotoContentType ?? "image/jpeg");
         }
     }
 

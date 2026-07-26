@@ -108,46 +108,22 @@ public sealed class EditModel : PageModel
 
         if (!string.IsNullOrEmpty(Input.CroppedPhotoBase64))
         {
-            var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
-            if (!string.IsNullOrEmpty(photoDir))
-            {
-                if (!System.IO.Directory.Exists(photoDir))
-                    System.IO.Directory.CreateDirectory(photoDir);
+            var base64Data = Input.CroppedPhotoBase64.Contains(",") 
+                ? Input.CroppedPhotoBase64.Split(',')[1] 
+                : Input.CroppedPhotoBase64;
                 
-                var base64Data = Input.CroppedPhotoBase64.Contains(",") 
-                    ? Input.CroppedPhotoBase64.Split(',')[1] 
-                    : Input.CroppedPhotoBase64;
-                    
-                var bytes = Convert.FromBase64String(base64Data);
-                var fileName = $"{employee.EmployeeId}_{Guid.NewGuid()}.jpg";
-                var filePath = System.IO.Path.Combine(photoDir, fileName);
-                
-                await System.IO.File.WriteAllBytesAsync(filePath, bytes);
-                
-                // Note: Not deleting old photo to keep history/backups
-                employee.PhotoPath = fileName;
-            }
+            var bytes = Convert.FromBase64String(base64Data);
+            employee.PhotoData = bytes;
+            employee.PhotoContentType = "image/jpeg";
         }
         else if (Input.PhotoUpload != null && Input.PhotoUpload.Length > 0)
         {
-            var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
-            if (!string.IsNullOrEmpty(photoDir))
+            using (var memoryStream = new System.IO.MemoryStream())
             {
-                if (!System.IO.Directory.Exists(photoDir))
-                    System.IO.Directory.CreateDirectory(photoDir);
-                
-                var ext = System.IO.Path.GetExtension(Input.PhotoUpload.FileName);
-                var fileName = $"{employee.EmployeeId}_{Guid.NewGuid()}{ext}";
-                var filePath = System.IO.Path.Combine(photoDir, fileName);
-                
-                using (var stream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
-                {
-                    await Input.PhotoUpload.CopyToAsync(stream);
-                }
-                
-                // Note: Not deleting old photo to keep history/backups
-                employee.PhotoPath = fileName;
+                await Input.PhotoUpload.CopyToAsync(memoryStream);
+                employee.PhotoData = memoryStream.ToArray();
             }
+            employee.PhotoContentType = Input.PhotoUpload.ContentType;
         }
 
         if (oldWeekoff != Input.Weekoff)

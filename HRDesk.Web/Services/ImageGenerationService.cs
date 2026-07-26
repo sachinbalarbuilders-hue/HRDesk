@@ -20,7 +20,7 @@ namespace HRDesk.Web.Services
             _configuration = configuration;
         }
 
-        public async Task<byte[]> GenerateCelebrationPosterAsync(string employeeName, string eventType, string photoPath)
+        public async Task<byte[]> GenerateCelebrationPosterAsync(string employeeName, string eventType, byte[]? photoBytes)
         {
             var baseDir = AppContext.BaseDirectory;
             var assetsDir = System.IO.Path.Combine(baseDir, "Assets");
@@ -66,14 +66,12 @@ namespace HRDesk.Web.Services
             using var image = Image.Load(templatePath);
             
             // Prepare the photo
-            if (!string.IsNullOrEmpty(photoPath))
+            if (photoBytes != null && photoBytes.Length > 0)
             {
-                var photoDir = _configuration.GetValue<string>("EmployeePhotoPath");
-                var fullPhotoPath = System.IO.Path.Combine(photoDir ?? "", photoPath);
-                
-                if (File.Exists(fullPhotoPath))
+                try
                 {
-                    using var photo = Image.Load(fullPhotoPath);
+                    using var photoMs = new MemoryStream(photoBytes);
+                    using var photo = Image.Load(photoMs);
                     
                     // Resize to a square first
                     photo.Mutate(x => x.Resize(new ResizeOptions
@@ -98,6 +96,10 @@ namespace HRDesk.Web.Services
 
                     // Overlay the photo in the center, slightly higher up
                     image.Mutate(x => x.DrawImage(roundAvatar, new Point(400, 150), 1f));
+                }
+                catch
+                {
+                    // If image load fails, skip drawing photo
                 }
             }
 

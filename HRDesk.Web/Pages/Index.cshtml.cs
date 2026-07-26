@@ -85,9 +85,11 @@ public class IndexModel : PageModel
                 
                 Celebrations.Add(new CelebrationViewModel
                 {
+                    EmployeeId = emp.EmployeeId,
                     EmployeeName = emp.EmployeeName,
                     Initials = GetInitials(emp.EmployeeName),
                     PhotoPath = emp.PhotoPath,
+                    HasPhotoData = emp.PhotoData != null,
                     Type = "Birthday",
                     CelebrationDate = nextBday,
                     DaysLeft = daysLeft
@@ -105,9 +107,11 @@ public class IndexModel : PageModel
                     
                     Celebrations.Add(new CelebrationViewModel
                     {
+                        EmployeeId = emp.EmployeeId,
                         EmployeeName = emp.EmployeeName,
                         Initials = GetInitials(emp.EmployeeName),
                         PhotoPath = emp.PhotoPath,
+                        HasPhotoData = emp.PhotoData != null,
                         Type = $"{years}{GetOrdinalSuffix(years)} Work Anniversary",
                         CelebrationDate = nextAnniversary,
                         DaysLeft = daysLeft
@@ -194,9 +198,11 @@ public class IndexModel : PageModel
 
     public class CelebrationViewModel
     {
+        public int EmployeeId { get; set; }
         public string EmployeeName { get; set; } = "";
         public string Initials { get; set; } = "";
         public string? PhotoPath { get; set; }
+        public bool HasPhotoData { get; set; }
         public string Type { get; set; } = ""; 
         public DateTime CelebrationDate { get; set; }
         public int DaysLeft { get; set; }

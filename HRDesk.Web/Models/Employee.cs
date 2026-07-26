@@ -38,6 +38,11 @@ public sealed class Employee : IMustHaveTenant
 
     public string? PhotoPath { get; set; }
 
+    public byte[]? PhotoData { get; set; }
+    
+    [System.ComponentModel.DataAnnotations.StringLength(100)]
+    public string? PhotoContentType { get; set; }
+
     [Column("device_synced")]
     public int DeviceSynced { get; set; } // 0 = not in machine, 1 = in machine
 

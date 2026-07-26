@@ -191,6 +191,37 @@
                     document.getElementById('photoPreviewImg').src = base64;
                 }
             });
+
+            // Live check for Employee ID
+            var empIdInput = document.getElementById('Input_EmployeeId');
+            var errorSpan = document.querySelector('span[data-valmsg-for="Input.EmployeeId"]');
+            
+            if (empIdInput) {
+                empIdInput.addEventListener('input', function () {
+                    var id = this.value;
+                    if (!id) {
+                        errorSpan.textContent = '';
+                        empIdInput.classList.remove('is-invalid', 'is-valid');
+                        return;
+                    }
+
+                    fetch('/api/EmployeeApi/check-id?id=' + id)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.exists) {
+                                errorSpan.textContent = 'Employee ID ' + id + ' is already taken.';
+                                errorSpan.className = 'text-danger small';
+                                empIdInput.classList.add('is-invalid');
+                                empIdInput.classList.remove('is-valid');
+                            } else {
+                                errorSpan.textContent = 'Available';
+                                errorSpan.className = 'text-success small fw-bold';
+                                empIdInput.classList.remove('is-invalid');
+                                empIdInput.classList.add('is-valid');
+                            }
+                        });
+                });
+            }
         });
     </script>
 }
