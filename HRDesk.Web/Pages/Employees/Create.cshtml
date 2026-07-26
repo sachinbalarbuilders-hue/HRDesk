@@ -63,6 +63,11 @@
                     <span asp-validation-for="Input.JoiningDate" class="text-danger small"></span>
                 </div>
                 <div class="col-md-4">
+                    <label asp-for="Input.ProbationDays" class="form-label fw-semibold"></label>
+                    <input asp-for="Input.ProbationDays" class="form-control" type="number" min="0" max="365" />
+                    <span asp-validation-for="Input.ProbationDays" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
                     <label asp-for="Input.DateOfBirth" class="form-label fw-semibold"></label>
                     <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
                     <span asp-validation-for="Input.DateOfBirth" class="text-danger small"></span>

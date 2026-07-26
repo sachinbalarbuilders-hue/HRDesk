@@ -75,8 +75,6 @@ public sealed class CreateModel : PageModel
             JoiningDate = Input.JoiningDate,
             ResignationDate = Input.ResignationDate,
             DateOfBirth = Input.DateOfBirth,
-            ProbationStart = Input.ProbationStart,
-            ProbationEnd = Input.ProbationEnd,
             Phone = string.IsNullOrWhiteSpace(Input.Phone) ? null : Input.Phone.Trim(),
             Status = Input.Status
         };
@@ -99,6 +97,12 @@ public sealed class CreateModel : PageModel
                 employee.PhotoData = memoryStream.ToArray();
             }
             employee.PhotoContentType = Input.PhotoUpload.ContentType;
+        }
+
+        if (Input.ProbationDays.HasValue && Input.ProbationDays.Value > 0 && employee.JoiningDate.HasValue)
+        {
+            employee.ProbationStart = employee.JoiningDate;
+            employee.ProbationEnd = employee.JoiningDate.Value.AddDays(Input.ProbationDays.Value);
         }
 
         _db.Employees.Add(employee);
@@ -158,9 +162,9 @@ public sealed class CreateModel : PageModel
         [Display(Name = "Joining Date")]
         public DateOnly? JoiningDate { get; set; }
 
-        // Probation is always 90 days from joining date
-        public DateOnly? ProbationStart => JoiningDate;
-        public DateOnly? ProbationEnd => JoiningDate.HasValue ? JoiningDate.Value.AddDays(90) : null;
+        [Display(Name = "Probation Period (Days)")]
+        [Range(0, 365, ErrorMessage = "Please enter a valid number of days between 0 and 365")]
+        public int? ProbationDays { get; set; } = 90;
 
         [Display(Name = "Resignation Date")]
         public DateOnly? ResignationDate { get; set; }

@@ -62,7 +62,10 @@ public sealed class EditModel : PageModel
             LastWorkingDate = employee.LastWorkingDate,
             DateOfBirth = employee.DateOfBirth,
             Phone = employee.Phone,
-            Status = employee.Status
+            Status = employee.Status,
+            ProbationDays = employee.ProbationStart.HasValue && employee.ProbationEnd.HasValue 
+                ? employee.ProbationEnd.Value.DayNumber - employee.ProbationStart.Value.DayNumber 
+                : null
         };
         CurrentPhotoPath = employee.PhotoPath;
 
@@ -101,8 +104,17 @@ public sealed class EditModel : PageModel
         employee.ResignationDate = Input.ResignationDate;
         employee.LastWorkingDate = Input.LastWorkingDate;
         employee.DateOfBirth = Input.DateOfBirth;
-        employee.ProbationStart = Input.ProbationStart;
-        employee.ProbationEnd = Input.ProbationEnd;
+        // Calculate Probation Dates
+        if (Input.ProbationDays.HasValue && Input.ProbationDays.Value > 0 && employee.JoiningDate.HasValue)
+        {
+            employee.ProbationStart = employee.JoiningDate;
+            employee.ProbationEnd = employee.JoiningDate.Value.AddDays(Input.ProbationDays.Value);
+        }
+        else
+        {
+            employee.ProbationStart = null;
+            employee.ProbationEnd = null;
+        }
         employee.Phone = string.IsNullOrWhiteSpace(Input.Phone) ? null : Input.Phone.Trim();
         employee.Status = Input.Status;
 
@@ -216,9 +228,9 @@ public sealed class EditModel : PageModel
         [Display(Name = "Last Working Date")]
         public DateOnly? LastWorkingDate { get; set; }
 
-        // Probation is always 90 days from joining date
-        public DateOnly? ProbationStart => JoiningDate;
-        public DateOnly? ProbationEnd => JoiningDate.HasValue ? JoiningDate.Value.AddDays(90) : null;
+        [Display(Name = "Probation Period (Days)")]
+        [Range(0, 365, ErrorMessage = "Please enter a valid number of days between 0 and 365")]
+        public int? ProbationDays { get; set; }
 
         [Display(Name = "Date of Birth")]
         public DateOnly? DateOfBirth { get; set; }

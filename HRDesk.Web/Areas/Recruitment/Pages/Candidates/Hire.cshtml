@@ -50,15 +50,21 @@
                     </select>
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label asp-for="Employee.JoiningDate" class="form-label">Joining Date *</label>
                     <input asp-for="Employee.JoiningDate" type="date" class="form-control" required />
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
+                    <label asp-for="ProbationDays" class="form-label">Probation Period (Days)</label>
+                    <input asp-for="ProbationDays" class="form-control" type="number" min="0" max="365" />
+                    <span asp-validation-for="ProbationDays" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
                     <label asp-for="Employee.Status" class="form-label">Status</label>
                     <select asp-for="Employee.Status" class="form-select">
-                        <option value="Active">Active</option>
-                        <option value="Probation">Probation</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
                     </select>
                 </div>
             </div>

@@ -25,6 +25,9 @@ public class HireModel : PageModel
     [BindProperty]
     public Employee Employee { get; set; } = default!;
 
+    [BindProperty]
+    public int? ProbationDays { get; set; } = 90;
+
     public SelectList Departments { get; set; } = default!;
     public SelectList Designations { get; set; } = default!;
 
@@ -51,7 +54,7 @@ public class HireModel : PageModel
             EmployeeName = Candidate.CandidateName,
             Phone = Candidate.Phone,
             JoiningDate = DateOnly.FromDateTime(DateTime.UtcNow),
-            Status = "Active"
+            Status = "active"
         };
 
         Departments = new SelectList(await _context.Departments.ToListAsync(), "Id", "DepartmentName");
@@ -77,6 +80,18 @@ public class HireModel : PageModel
 
         // Create the new employee
         Employee.OrganizationId = candidateToUpdate.OrganizationId;
+        
+        // Calculate Probation Dates
+        if (ProbationDays.HasValue && ProbationDays.Value > 0 && Employee.JoiningDate.HasValue)
+        {
+            Employee.ProbationStart = Employee.JoiningDate;
+            Employee.ProbationEnd = Employee.JoiningDate.Value.AddDays(ProbationDays.Value);
+        }
+        else
+        {
+            Employee.ProbationStart = null;
+            Employee.ProbationEnd = null;
+        }
         
         _context.Employees.Add(Employee);
         
