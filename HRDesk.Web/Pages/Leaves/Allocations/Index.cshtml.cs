@@ -32,13 +32,13 @@ public class IndexModel : PageModel
     public async Task OnGetAsync()
     {
         LeaveTypes = await _db.LeaveTypes.AsNoTracking().Include(lt => lt.EligibleEmployees).Where(lt => lt.Status == "Active").ToListAsync();
-        Employees = await _db.Employees.AsNoTracking().Include(e => e.Department).OrderBy(e => e.EmployeeName).ToListAsync();
+        Employees = await _db.Employees.AsNoTracking().Where(e => e.Status == "active").Include(e => e.Department).OrderBy(e => e.EmployeeName).ToListAsync();
         
         var query = _db.LeaveAllocations
             .AsNoTracking()
             .Include(la => la.Employee)
             .Include(la => la.LeaveType).ThenInclude(lt => lt != null ? lt.EligibleEmployees : null)
-            .Where(la => la.Year == Year)
+            .Where(la => la.Year == Year && la.Employee.Status == "active")
             .AsSplitQuery();
 
         if (!string.IsNullOrEmpty(SearchString))
@@ -180,7 +180,7 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostInitializeAllAsync()
     {
-        var employees = await _db.Employees.Where(e => e.Status == "Active").ToListAsync();
+        var employees = await _db.Employees.Where(e => e.Status == "active").ToListAsync();
         var leaveTypes = await _db.LeaveTypes
             .Include(lt => lt.EligibleEmployees)
             .Where(lt => lt.Status == "Active").ToListAsync();
@@ -201,10 +201,14 @@ public class IndexModel : PageModel
                 {
                     decimal quota = lt.DefaultYearlyQuota;
                     
-                    // Apply pro-rata logic only for PAID leaves and if probation end date is set
-                    if (lt.IsPaid && emp.ProbationEnd.HasValue)
+                    // Apply pro-rata logic only for PAID leaves
+                    if (lt.IsPaid)
                     {
-                        quota = AttendanceProcessorService.CalculateProRataQuota(lt.DefaultYearlyQuota, emp.ProbationEnd.Value, Year);
+                        var effectiveDate = emp.ProbationEnd ?? emp.JoiningDate;
+                        if (effectiveDate.HasValue)
+                        {
+                            quota = AttendanceProcessorService.CalculateProRataQuota(lt.DefaultYearlyQuota, effectiveDate.Value, Year);
+                        }
                     }
 
                     _db.LeaveAllocations.Add(new LeaveAllocation
@@ -286,13 +290,19 @@ public class IndexModel : PageModel
     public async Task<JsonResult> OnGetCalculateProRata(int employeeId, decimal yearlyQuota, int year)
     {
         var emp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
-        if (emp == null || !emp.ProbationEnd.HasValue)
+        if (emp == null)
         {
-            return new JsonResult(new { success = false, message = "Employee not found or no probation date set." });
+            return new JsonResult(new { success = false, message = "Employee not found." });
         }
 
-        var proRata = AttendanceProcessorService.CalculateProRataQuota(yearlyQuota, emp.ProbationEnd.Value, year);
-        return new JsonResult(new { success = true, value = proRata, probationEnd = emp.ProbationEnd.Value.ToString("dd MMM yyyy") });
+        var effectiveDate = emp.ProbationEnd ?? emp.JoiningDate;
+        if (!effectiveDate.HasValue)
+        {
+            return new JsonResult(new { success = false, message = "Employee has no joining or probation date." });
+        }
+
+        var proRata = AttendanceProcessorService.CalculateProRataQuota(yearlyQuota, effectiveDate.Value, year);
+        return new JsonResult(new { success = true, value = proRata, effectiveDate = effectiveDate.Value.ToString("dd MMM yyyy") });
     }
 
     public async Task<JsonResult> OnGetLeaveTypeDetails(int id)

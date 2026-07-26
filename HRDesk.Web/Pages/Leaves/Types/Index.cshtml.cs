@@ -25,7 +25,7 @@ public class IndexModel : PageModel
             .OrderBy(lt => lt.Name)
             .ToListAsync();
             
-        Employees = await _db.Employees.OrderBy(e => e.EmployeeName).ToListAsync();
+        Employees = await _db.Employees.Where(e => e.Status == "active").OrderBy(e => e.EmployeeName).ToListAsync();
     }
 
     [BindProperty]
