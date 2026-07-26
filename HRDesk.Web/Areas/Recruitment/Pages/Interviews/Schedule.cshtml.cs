@@ -85,16 +85,33 @@ public class ScheduleModel : PageModel
         {
             var dateStr = Interview.InterviewDateTime.ToString("dddd, dd MMM yyyy 'at' hh:mm tt");
             var locationLine = !string.IsNullOrEmpty(Interview.Location)
-                ? $"\nLocation/Link: {Interview.Location}"
+                ? $"\n➢ *Location/Link:* {Interview.Location}"
                 : string.Empty;
 
-            var msg = $"Dear {candidate.CandidateName},\n\n" +
-                      $"Your interview for the {candidate.AppliedFor} position has been scheduled.\n\n" +
-                      $"Date & Time: {dateStr}\n" +
-                      $"Round: {Interview.Round}\n" +
-                      $"Type: {Interview.InterviewType}" +
+            if (Interview.InterviewType == "In-Person")
+            {
+                var org = await _db.Organizations.FirstOrDefaultAsync();
+                if (org != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(org.Address))
+                    {
+                        locationLine += $"\n➢ *Address:* {org.Address}";
+                    }
+                    if (org.Latitude.HasValue && org.Longitude.HasValue)
+                    {
+                        var mapUrl = $"https://maps.google.com/?q={org.Latitude.Value},{org.Longitude.Value}";
+                        locationLine += $"\n➢ *Map:* {mapUrl}";
+                    }
+                }
+            }
+
+            var msg = $"Hello *{candidate.CandidateName}*,\n\n" +
+                      $"We are pleased to inform you that your interview for the *{candidate.AppliedFor}* position has been scheduled.\n\n" +
+                      $"➢ *Date & Time:* {dateStr}\n" +
+                      $"➢ *Round:* {Interview.Round}\n" +
+                      $"➢ *Type:* {Interview.InterviewType}" +
                       locationLine +
-                      $"\n\nPlease ensure you are available on time.";
+                      $"\n\nPlease ensure you are available on time. Best of luck!";
 
             await _whatsApp.SendGenericAlertAsync(candidate.Phone, msg);
             Interview.ReminderSent = true;

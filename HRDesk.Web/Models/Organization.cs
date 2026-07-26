@@ -25,4 +25,14 @@ public class Organization
     [StringLength(100)]
     [Display(Name = "WhatsApp Group ID")]
     public string? WhatsAppGroupId { get; set; }
+
+    [Column("address")]
+    [StringLength(500)]
+    public string? Address { get; set; }
+
+    [Column("latitude")]
+    public double? Latitude { get; set; }
+
+    [Column("longitude")]
+    public double? Longitude { get; set; }
 }
