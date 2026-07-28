@@ -24,9 +24,9 @@ namespace HRDesk.Web.Pages.Reports
         [BindProperty(SupportsGet = true)]
         public bool IncludeRegularized { get; set; } = false;
 
-        public List<DailyAttendance> Records { get; set; } = new();
+        public PaginatedList<DailyAttendance> Records { get; set; } = default!;
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int pageNum = 1)
         {
             var startDate = new DateOnly(Year, Month, 1);
             var endDate = startDate.AddMonths(1);
@@ -48,10 +48,16 @@ namespace HRDesk.Web.Pages.Reports
                 query = query.Where(d => d.Remarks!.Contains("Single Punch") || d.Remarks.Contains("Missing"));
             }
 
-            Records = await query
+            var count = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(d => d.Employee != null ? d.Employee.EmployeeName : "")
                 .ThenBy(d => d.RecordDate)
+                .Skip((pageNum - 1) * 50)
+                .Take(50)
                 .ToListAsync();
+
+            Records = new PaginatedList<DailyAttendance>(items, count, pageNum, 50);
         }
     }
 }

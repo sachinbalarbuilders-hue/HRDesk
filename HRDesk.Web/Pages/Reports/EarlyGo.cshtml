@@ -1,4 +1,5 @@
-@page
+@page "{pageNum:int?}"
+@using HRDesk.Web.Models
 @model HRDesk.Web.Pages.Reports.EarlyGoModel
 @{
     ViewData["Title"] = "Early Go Report";
@@ -90,6 +91,16 @@
                     }
                 </tbody>
             </table>
+        </div>
+        <div class="mt-4 px-4 pb-4">
+            <partial name="_Pagination" model="@(new PaginationViewModel { 
+                List = Model.Records, 
+                PageName = "./EarlyGo",
+                QueryParams = new Dictionary<string, string?> {
+                    { "Month", Model.Month.ToString() },
+                    { "Year", Model.Year.ToString() }
+                } 
+            })" />
         </div>
     </div>
 </div>

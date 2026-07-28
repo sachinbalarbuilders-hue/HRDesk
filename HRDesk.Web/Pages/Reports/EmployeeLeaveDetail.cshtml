@@ -1,4 +1,5 @@
-@page
+@page "{pageNum:int?}"
+@using HRDesk.Web.Models
 @model HRDesk.Web.Pages.Reports.EmployeeLeaveDetailModel
 @{
     ViewData["Title"] = "Detailed Leave Breakdown";
@@ -54,6 +55,17 @@
                         }
                     </tbody>
                 </table>
+            </div>
+            <div class="mt-4 px-4 pb-4">
+                <partial name="_Pagination" model="@(new PaginationViewModel { 
+                    List = Model.LeaveApplications, 
+                    PageName = "./EmployeeLeaveDetail",
+                    QueryParams = new Dictionary<string, string?> {
+                        { "id", Model.Employee.EmployeeId.ToString() },
+                        { "startDate", Model.StartDate.ToString("yyyy-MM-dd") },
+                        { "endDate", Model.EndDate.ToString("yyyy-MM-dd") }
+                    } 
+                })" />
             </div>
         }
         else

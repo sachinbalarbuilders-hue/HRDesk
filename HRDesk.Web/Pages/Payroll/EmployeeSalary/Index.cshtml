@@ -1,5 +1,6 @@
-@page
+@page "{pageNum:int?}"
 @model HRDesk.Web.Pages.Payroll.EmployeeSalary.IndexModel
+@using HRDesk.Web.Models
 
 @{
     ViewData["Title"] = "Employee Salaries";
@@ -72,6 +73,9 @@
                     }
                     </tbody>
                 </table>
+            </div>
+            <div class="mt-4 px-4 pb-4">
+                <partial name="_Pagination" model="@(new PaginationViewModel { List = Model.Employees })" />
             </div>
         </div>
     </div>

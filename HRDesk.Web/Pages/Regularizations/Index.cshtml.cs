@@ -23,10 +23,7 @@ namespace HRDesk.Web.Pages.Regularizations
             _sequenceService = sequenceService;
         }
 
-        public IList<AttendanceRegularization> RegularizationRequests { get;set; } = default!;
-
-        [BindProperty(SupportsGet = true)]
-        public int PageNumber { get; set; } = 1;
+        public PaginatedList<AttendanceRegularization> RegularizationRequests { get;set; } = default!;
 
         [BindProperty(SupportsGet = true)]
         public int PageSize { get; set; } = 50;
@@ -34,10 +31,7 @@ namespace HRDesk.Web.Pages.Regularizations
         [BindProperty(SupportsGet = true)]
         public string? SearchTerm { get; set; }
 
-        public int TotalCount { get; set; }
-        public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
-
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int pageNum = 1)
         {
             if (_context.AttendanceRegularizations != null)
             {
@@ -55,15 +49,17 @@ namespace HRDesk.Web.Pages.Regularizations
                     );
                 }
 
-                TotalCount = await query.CountAsync();
+                if (pageNum < 1) pageNum = 1;
 
-                if (PageNumber < 1) PageNumber = 1;
+                var totalCount = await query.CountAsync();
 
-                RegularizationRequests = await query
+                var items = await query
                     .OrderByDescending(r => r.CreatedAt)
-                    .Skip((PageNumber - 1) * PageSize)
+                    .Skip((pageNum - 1) * PageSize)
                     .Take(PageSize)
                     .ToListAsync();
+                    
+                RegularizationRequests = new PaginatedList<AttendanceRegularization>(items, totalCount, pageNum, PageSize);
             }
         }
 

@@ -25,9 +25,9 @@ public class EmployeeLeaveReportModel : PageModel
     [BindProperty(SupportsGet = true)]
     public DateOnly? EndDate { get; set; }
 
-    public List<EmployeeLeaveData> ReportData { get; set; } = new();
+    public PaginatedList<EmployeeLeaveData> ReportData { get; set; } = default!;
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(int pageNum = 1)
     {
         // Default to current month if not provided
         if (!StartDate.HasValue || !EndDate.HasValue)
@@ -51,6 +51,8 @@ public class EmployeeLeaveReportModel : PageModel
                          la.StartDate <= eDate && la.EndDate >= sDate)
             .ToListAsync();
 
+        var unsortedData = new List<EmployeeLeaveData>();
+
         foreach (var emp in allActiveEmployees)
         {
             var empLeaves = leaveApps.Where(l => l.EmployeeId == emp.EmployeeId).ToList();
@@ -66,7 +68,7 @@ public class EmployeeLeaveReportModel : PageModel
                     
                 var breakdown = string.Join(", ", breakdownDict.Select(x => $"{x.Key}: {x.Value}"));
 
-                ReportData.Add(new EmployeeLeaveData
+                unsortedData.Add(new EmployeeLeaveData
                 {
                     EmployeeId = emp.EmployeeId,
                     EmployeeName = emp.EmployeeName,
@@ -78,7 +80,9 @@ public class EmployeeLeaveReportModel : PageModel
             }
         }
         
-        ReportData = ReportData.OrderBy(r => r.Department).ThenBy(r => r.EmployeeName).ToList();
+        var sorted = unsortedData.OrderBy(r => r.Department).ThenBy(r => r.EmployeeName).ToList();
+        var paged = sorted.Skip((pageNum - 1) * 50).Take(50).ToList();
+        ReportData = new PaginatedList<EmployeeLeaveData>(paged, sorted.Count, pageNum, 50);
     }
 
     public class EmployeeLeaveData

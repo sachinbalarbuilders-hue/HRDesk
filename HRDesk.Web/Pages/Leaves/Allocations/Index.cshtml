@@ -1,5 +1,6 @@
-@page
+@page "{pageNum:int?}"
 @model HRDesk.Web.Pages.Leaves.Allocations.IndexModel
+@using HRDesk.Web.Models
 @{
     ViewData["Title"] = "Leave Allocations";
 }
@@ -150,6 +151,7 @@
                 </tbody>
             </table>
             </div> <!-- End table-responsive -->
+            <partial name="_Pagination" model="@(new PaginationViewModel { List = Model.Allocations, QueryParams = new Dictionary<string, string?> { { "Year", Model.Year.ToString() }, { "SearchString", Model.SearchString } }, PageName = "./Index" })" />
         </div> <!-- End card-body -->
     </div> <!-- End card -->
 </form>

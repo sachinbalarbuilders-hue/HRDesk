@@ -29,23 +29,14 @@ public class IndexModel : PageModel
         _adjustmentService = adjustmentService;
     }
 
-    public List<LeaveApplication> LeaveApplications { get; set; } = new();
+    public PaginatedList<LeaveApplication> LeaveApplications { get; set; } = default!;
     public List<Employee> Employees { get; set; } = new();
     public List<LeaveType> LeaveTypes { get; set; } = new();
 
     [BindProperty(SupportsGet = true)]
-    public int PageNumber { get; set; } = 1;
-
-    [BindProperty(SupportsGet = true)]
-    public int PageSize { get; set; } = 50;
-
-    [BindProperty(SupportsGet = true)]
     public string? SearchTerm { get; set; }
 
-    public int TotalCount { get; set; }
-    public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
-
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(int pageNum = 1)
     {
         Employees = await _db.Employees.Where(e => e.Status == "active").OrderBy(e => e.EmployeeName).ToListAsync();
         LeaveTypes = await _db.LeaveTypes.Where(lt => lt.Status == "Active").ToListAsync();
@@ -60,6 +51,7 @@ public class IndexModel : PageModel
         var query = _db.LeaveApplications
             .Include(la => la.Employee)
             .Include(la => la.LeaveType)
+            .OrderByDescending(la => la.CreatedAt)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(SearchTerm))
@@ -72,15 +64,7 @@ public class IndexModel : PageModel
             );
         }
 
-        TotalCount = await query.CountAsync();
-        
-        if (PageNumber < 1) PageNumber = 1;
-
-        LeaveApplications = await query
-            .OrderByDescending(la => la.CreatedAt)
-            .Skip((PageNumber - 1) * PageSize)
-            .Take(PageSize)
-            .ToListAsync();
+        LeaveApplications = await PaginatedList<LeaveApplication>.CreateAsync(query, pageNum, 50);
     }
 
     public async Task<IActionResult> OnGetCheckBalanceAsync(int employeeId, int leaveTypeId, DateOnly date, int? currentAppId = null)

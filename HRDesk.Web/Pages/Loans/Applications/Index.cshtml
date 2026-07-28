@@ -1,5 +1,6 @@
-@page
+@page "{pageNum:int?}"
 @model HRDesk.Web.Pages.Loans.Applications.IndexModel
+@using HRDesk.Web.Models
 
 @{
     ViewData["Title"] = "Loan Applications";
@@ -26,7 +27,7 @@
 <div class="card">
     <div class="card-header d-flex align-items-center justify-content-between">
         <h5 class="mb-0">All Loan Applications</h5>
-        <span class="badge text-bg-secondary">@Model.LoanApplications.Count total</span>
+        <span class="badge text-bg-secondary">@Model.LoanApplications.TotalCount total</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -116,5 +117,6 @@
                 </tbody>
             </table>
         </div>
+        <partial name="_Pagination" model="@(new PaginationViewModel { List = Model.LoanApplications, PageName = "./Index" })" />
     </div>
 </div>

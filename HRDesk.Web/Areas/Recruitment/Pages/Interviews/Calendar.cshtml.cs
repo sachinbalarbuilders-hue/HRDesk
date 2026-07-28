@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using HRDesk.Web.Models;
 
 namespace HRDesk.Web.Areas.Recruitment.Pages.Interviews;
 
@@ -14,24 +15,38 @@ public class CalendarModel : PageModel
 
     public CalendarModel(BiometricAttendanceDbContext db) => _db = db;
 
-    public List<InterviewSchedule> Upcoming { get; set; } = new();
-    public List<InterviewSchedule> Past { get; set; } = new();
+    public PaginatedList<InterviewSchedule> Upcoming { get; set; } = default!;
+    public PaginatedList<InterviewSchedule> Past { get; set; } = default!;
 
     [TempData]
     public string? Success { get; set; }
 
-    public async Task OnGetAsync()
+    [BindProperty(SupportsGet = true)]
+    public string ActiveTab { get; set; } = "upcoming";
+
+    public async Task OnGetAsync(int pageNum = 1)
     {
         var now = DateTime.UtcNow;
-        var all = await _db.InterviewSchedules
-            .Include(i => i.Candidate)
-            .OrderBy(i => i.InterviewDateTime)
-            .ToListAsync();
+        var query = _db.InterviewSchedules
+            .Include(i => i.Candidate);
 
-        Upcoming = all.Where(i => i.InterviewDateTime >= now && i.Status == "Scheduled").ToList();
-        Past     = all.Where(i => i.InterviewDateTime < now || i.Status != "Scheduled")
-                      .OrderByDescending(i => i.InterviewDateTime)
-                      .ToList();
+        var upcomingQuery = query.Where(i => i.InterviewDateTime >= now && i.Status == "Scheduled");
+        var upcomingCount = await upcomingQuery.CountAsync();
+        var upcomingItems = await upcomingQuery
+            .OrderBy(i => i.InterviewDateTime)
+            .Skip((pageNum - 1) * 50)
+            .Take(50)
+            .ToListAsync();
+        Upcoming = new PaginatedList<InterviewSchedule>(upcomingItems, upcomingCount, pageNum, 50);
+
+        var pastQuery = query.Where(i => i.InterviewDateTime < now || i.Status != "Scheduled");
+        var pastCount = await pastQuery.CountAsync();
+        var pastItems = await pastQuery
+            .OrderByDescending(i => i.InterviewDateTime)
+            .Skip((pageNum - 1) * 50)
+            .Take(50)
+            .ToListAsync();
+        Past = new PaginatedList<InterviewSchedule>(pastItems, pastCount, pageNum, 50);
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(int id)

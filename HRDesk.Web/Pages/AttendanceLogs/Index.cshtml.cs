@@ -18,10 +18,7 @@ public sealed class IndexModel : PageModel
         _db = db;
     }
 
-    public IReadOnlyList<AttendanceLog> Logs { get; private set; } = Array.Empty<AttendanceLog>();
-
-    [BindProperty(SupportsGet = true)]
-    public int PageNumber { get; set; } = 1;
+    public PaginatedList<AttendanceLog> Logs { get; private set; } = default!;
 
     [BindProperty(SupportsGet = true)]
     public int PageSize { get; set; } = DefaultPageSize;
@@ -38,15 +35,11 @@ public sealed class IndexModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string? EmployeeNameFilter { get; set; }
 
-    public bool HasNextPage { get; private set; }
-
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(int pageNum = 1)
     {
-        if (PageNumber < 1) PageNumber = 1;
+        if (pageNum < 1) pageNum = 1;
         if (PageSize < 1) PageSize = DefaultPageSize;
         if (PageSize > MaxPageSize) PageSize = MaxPageSize;
-
-        var skip = (PageNumber - 1) * PageSize;
 
         var query = _db.AttendanceLogs
             .AsNoTracking()
@@ -82,12 +75,6 @@ public sealed class IndexModel : PageModel
         query = query.OrderByDescending(x => x.PunchTime)
                      .ThenByDescending(x => x.Id);
 
-        var pagePlusOne = await query
-            .Skip(skip)
-            .Take(PageSize + 1)
-            .ToListAsync();
-
-        HasNextPage = pagePlusOne.Count > PageSize;
-        Logs = pagePlusOne.Take(PageSize).ToList();
+        Logs = await PaginatedList<AttendanceLog>.CreateAsync(query, pageNum, PageSize);
     }
 }

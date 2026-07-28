@@ -23,17 +23,17 @@ namespace HRDesk.Web.Pages.CompOff.Requests
 
         public IList<CompOffRequest> DraftRequests { get; set; } = new List<CompOffRequest>();
         public IList<CompOffRequest> PendingRequests { get; set; } = new List<CompOffRequest>();
-        public IList<CompOffRequest> ProcessedRequests { get; set; } = new List<CompOffRequest>();
+        public PaginatedList<CompOffRequest> ProcessedRequests { get; set; } = default!;
         public IList<Employee> Employees { get; set; } = new List<Employee>();
 
         public string? Message { get; set; }
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int pageNum = 1)
         {
-            await LoadRequestsAsync();
+            await LoadRequestsAsync(pageNum);
         }
 
-        public async Task<IActionResult> OnPostApproveAsync(int id, decimal? compOffDays)
+        public async Task<IActionResult> OnPostApproveAsync(int id, decimal? compOffDays, int pageNum = 1)
         {
             try
             {
@@ -55,11 +55,11 @@ namespace HRDesk.Web.Pages.CompOff.Requests
                 Message = $"Error: {ex.Message}";
             }
 
-            await LoadRequestsAsync();
+            await LoadRequestsAsync(pageNum);
             return Page();
         }
 
-        public async Task<IActionResult> OnPostRejectAsync(int id, string reason)
+        public async Task<IActionResult> OnPostRejectAsync(int id, string reason, int pageNum = 1)
         {
             try
             {
@@ -71,11 +71,11 @@ namespace HRDesk.Web.Pages.CompOff.Requests
                 Message = $"Error: {ex.Message}";
             }
 
-            await LoadRequestsAsync();
+            await LoadRequestsAsync(pageNum);
             return Page();
         }
 
-        public async Task<IActionResult> OnPostManualCreditAsync(int employeeId, System.DateTime workedDate, decimal days, string remarks)
+        public async Task<IActionResult> OnPostManualCreditAsync(int employeeId, System.DateTime workedDate, decimal days, string remarks, int pageNum = 1)
         {
             try
             {
@@ -88,21 +88,29 @@ namespace HRDesk.Web.Pages.CompOff.Requests
                 Message = $"Error: {ex.Message}";
             }
 
-            await LoadRequestsAsync();
+            await LoadRequestsAsync(pageNum);
             return Page();
         }
 
-        private async Task LoadRequestsAsync()
+        private async Task LoadRequestsAsync(int pageNum)
         {
-            var allRequests = await _context.CompOffRequests
+            var baseQuery = _context.CompOffRequests
                 .Include(r => r.Employee)
                 .Include(r => r.Shift)
+                .AsNoTracking();
+
+            DraftRequests = await baseQuery.Where(r => r.Status == "Draft")
                 .OrderByDescending(r => r.RequestDate)
                 .ToListAsync();
 
-            DraftRequests = allRequests.Where(r => r.Status == "Draft").ToList();
-            PendingRequests = allRequests.Where(r => r.Status == "Pending").ToList();
-            ProcessedRequests = allRequests.Where(r => r.Status == "Approved" || r.Status == "Rejected").ToList();
+            PendingRequests = await baseQuery.Where(r => r.Status == "Pending")
+                .OrderByDescending(r => r.RequestDate)
+                .ToListAsync();
+
+            var processedQuery = baseQuery.Where(r => r.Status == "Approved" || r.Status == "Rejected")
+                .OrderByDescending(r => r.RequestDate);
+
+            ProcessedRequests = await PaginatedList<CompOffRequest>.CreateAsync(processedQuery, pageNum, 50);
 
             Employees = await _context.Employees
                 .Where(e => e.Status == "Active")

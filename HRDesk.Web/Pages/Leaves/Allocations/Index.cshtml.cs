@@ -18,7 +18,7 @@ public class IndexModel : PageModel
 
     public List<Employee> Employees { get; set; } = new();
     public List<LeaveType> LeaveTypes { get; set; } = new();
-    public List<LeaveAllocation> Allocations { get; set; } = new();
+    public PaginatedList<LeaveAllocation> Allocations { get; set; } = default!;
     
     [BindProperty]
     public List<LeaveAllocation> BulkAllocations { get; set; } = new();
@@ -29,32 +29,43 @@ public class IndexModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string? SearchString { get; set; }
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(int pageNum = 1)
     {
         LeaveTypes = await _db.LeaveTypes.AsNoTracking().Include(lt => lt.EligibleEmployees).Where(lt => lt.Status == "Active").ToListAsync();
         Employees = await _db.Employees.AsNoTracking().Where(e => e.Status == "active").Include(e => e.Department).OrderBy(e => e.EmployeeName).ToListAsync();
         
         var query = _db.LeaveAllocations
             .AsNoTracking()
-            .Include(la => la.Employee)
-            .Include(la => la.LeaveType).ThenInclude(lt => lt != null ? lt.EligibleEmployees : null)
-            .Where(la => la.Year == Year && la.Employee != null && la.Employee.Status == "active")
-            .AsSplitQuery();
+            .Where(la => la.Year == Year && la.Employee != null && la.Employee.Status == "active");
 
         if (!string.IsNullOrEmpty(SearchString))
         {
             query = query.Where(la => la.Employee!.EmployeeName.Contains(SearchString));
         }
-
-        var allAllocations = await query.ToListAsync();
-
-        // Filter to only show eligible allocations
-        Allocations = allAllocations.Where(la => 
+        
+        var filteredQuery = query.Where(la => 
             la.LeaveType == null || 
-            la.LeaveType.EligibleEmployees == null ||
             !la.LeaveType.EligibleEmployees.Any() || 
             la.LeaveType.EligibleEmployees.Any(e => e.EmployeeId == la.EmployeeId)
-        ).ToList();
+        ).OrderBy(la => la.Employee!.EmployeeName);
+
+        var count = await filteredQuery.CountAsync();
+        
+        var pagedIds = await filteredQuery
+            .Skip((pageNum - 1) * 50)
+            .Take(50)
+            .Select(la => la.Id)
+            .ToListAsync();
+
+        var pagedItems = await _db.LeaveAllocations
+            .AsNoTracking()
+            .Include(la => la.Employee)
+            .Include(la => la.LeaveType)
+            .Where(la => pagedIds.Contains(la.Id))
+            .OrderBy(la => la.Employee!.EmployeeName)
+            .ToListAsync();
+
+        Allocations = new PaginatedList<LeaveAllocation>(pagedItems, count, pageNum, 50);
     }
 
     [BindProperty]

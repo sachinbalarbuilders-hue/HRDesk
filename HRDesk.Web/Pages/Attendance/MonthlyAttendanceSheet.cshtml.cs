@@ -24,18 +24,18 @@ public class MonthlyAttendanceSheetModel : PageModel
     [BindProperty(SupportsGet = true)]
     public int Year { get; set; } = DateTime.Now.Year;
 
-    public List<EmployeeSummaryDto> EmployeeSummaries { get; set; } = new();
+    public PaginatedList<EmployeeSummaryDto> EmployeeSummaries { get; set; } = default!;
 
     public int DaysInMonth { get; set; }
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(int pageNum = 1)
     {
         var startDate = new DateOnly(Year, Month, 1);
         DaysInMonth = DateTime.DaysInMonth(Year, Month);
         var endDate = startDate.AddMonths(1);
 
         // 1. Fetch employees: Active OR those who were working during this month
-        var employees = await _db.Employees
+        var empQuery = _db.Employees
             .Include(e => e.Department)
             .Where(e => 
                 (e.JoiningDate == null || e.JoiningDate < endDate) 
@@ -47,8 +47,14 @@ public class MonthlyAttendanceSheetModel : PageModel
                     ||
                     (_db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate >= startDate && a.RecordDate < endDate && a.InTime != null))
                 )
-            )
+            );
+
+        var totalCount = await empQuery.CountAsync();
+        
+        var employees = await empQuery
             .OrderBy(e => e.EmployeeName)
+            .Skip((pageNum - 1) * 50)
+            .Take(50)
             .ToListAsync();
 
         // 2. Fetch all attendance logs for the month
@@ -82,6 +88,8 @@ public class MonthlyAttendanceSheetModel : PageModel
             .AsNoTracking()
             .Where(r => r.RosterDate >= startDate && r.RosterDate <= endDate)
             .ToListAsync();
+
+        var items = new List<EmployeeSummaryDto>();
 
         // 3. Transform data
         foreach (var emp in employees)
@@ -301,8 +309,10 @@ public class MonthlyAttendanceSheetModel : PageModel
             summary.UnpaidLeaveCount = counts.UnpaidLeaveCount;
             summary.PayableDays      = counts.PayableDays;
 
-            EmployeeSummaries.Add(summary);
+            items.Add(summary);
         }
+        
+        EmployeeSummaries = new PaginatedList<EmployeeSummaryDto>(items, totalCount, pageNum, 50);
     }
 
     private string GetStatusChar(DailyAttendance log)

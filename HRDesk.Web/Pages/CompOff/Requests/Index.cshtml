@@ -1,5 +1,6 @@
-@page
+@page "{pageNum:int?}"
 @model HRDesk.Web.Pages.CompOff.Requests.IndexModel
+@using HRDesk.Web.Models
 
 @{
     ViewData["Title"] = "Comp Off Requests";
@@ -62,7 +63,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link fw-semibold drop-shadow-sm" id="processed-tab" data-bs-toggle="pill" data-bs-target="#processed" type="button" role="tab">
                 <i class="bi bi-check2-all me-2"></i>Processed
-                <span class="badge bg-white text-success ms-2">@Model.ProcessedRequests.Count</span>
+                <span class="badge bg-white text-success ms-2">@Model.ProcessedRequests.TotalCount</span>
             </button>
         </li>
     </ul>
@@ -107,7 +108,7 @@
                                                 }
                                             </td>
                                             <td>
-                                                <form method="post" asp-page-handler="Approve" asp-route-id="@item.Id" class="d-flex align-items-center gap-2">
+                                                <form method="post" asp-page-handler="Approve" asp-route-id="@item.Id" asp-route-pageNum="@Model.ProcessedRequests.PageIndex" class="d-flex align-items-center gap-2">
                                                     <input type="number" name="compOffDays" value="@item.CompOffDays" 
                                                            class="form-control form-control-sm" style="width: 70px;" 
                                                            step="0.5" min="0" required />
@@ -237,6 +238,10 @@
                         </div>
                     </div>
                 </div>
+                
+                <div class="mt-4">
+                    <partial name="_Pagination" model="@(new PaginationViewModel { List = Model.ProcessedRequests })" />
+                </div>
             }
             else
             {
@@ -252,7 +257,7 @@
 <div class="modal fade" id="manualModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" asp-page-handler="ManualCredit">
+            <form method="post" asp-page-handler="ManualCredit" asp-route-pageNum="@Model.ProcessedRequests.PageIndex">
                 <div class="modal-header">
                     <h5 class="modal-title">Manual Comp Off Credit</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -302,7 +307,7 @@
 <div class="modal fade" id="rejectModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" asp-page-handler="Reject">
+            <form method="post" asp-page-handler="Reject" asp-route-pageNum="@Model.ProcessedRequests.PageIndex">
                 <div class="modal-header">
                     <h5 class="modal-title">Reject Comp Off Request</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -423,5 +428,14 @@
                 });
             });
         }
+        
+        // Auto-switch to Processed tab if we are on page > 1 (since only Processed is paginated)
+        document.addEventListener('DOMContentLoaded', function() {
+            const pageIndex = @Model.ProcessedRequests.PageIndex;
+            if (pageIndex > 1) {
+                var processedTab = new bootstrap.Tab(document.getElementById('processed-tab'));
+                processedTab.show();
+            }
+        });
     </script>
 }

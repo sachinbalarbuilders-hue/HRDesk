@@ -1,5 +1,6 @@
-@page
+@page "{pageNum:int?}"
 @using HRDesk.Web.Services
+@using HRDesk.Web.Models
 @model HRDesk.Web.Pages.AttendanceLogs.IndexModel
 @{
     ViewData["Title"] = "Attendance Logs";
@@ -54,24 +55,8 @@
 <div class="card">
     <div class="card-header d-flex align-items-center justify-content-between">
         <h5 class="mb-0">Punch Records</h5>
-        <div class="d-flex gap-2 align-items-center">
-            <span class="small text-muted">Page @Model.PageNumber</span>
-            <a class="btn btn-sm btn-outline-secondary @((Model.PageNumber <= 1) ? "disabled" : "")"
-               asp-page="./Index" asp-route-PageNumber="@(Model.PageNumber - 1)"
-               asp-route-PageSize="@Model.PageSize" asp-route-StartDate="@(Model.StartDate?.ToString("yyyy-MM-dd"))"
-               asp-route-EndDate="@(Model.EndDate?.ToString("yyyy-MM-dd"))"
-               asp-route-EmployeeIdFilter="@Model.EmployeeIdFilter"
-               asp-route-EmployeeNameFilter="@Model.EmployeeNameFilter">
-                <i class="bi bi-chevron-left"></i>
-            </a>
-            <a class="btn btn-sm btn-outline-secondary @((!Model.HasNextPage) ? "disabled" : "")"
-               asp-page="./Index" asp-route-PageNumber="@(Model.PageNumber + 1)"
-               asp-route-PageSize="@Model.PageSize" asp-route-StartDate="@(Model.StartDate?.ToString("yyyy-MM-dd"))"
-               asp-route-EndDate="@(Model.EndDate?.ToString("yyyy-MM-dd"))"
-               asp-route-EmployeeIdFilter="@Model.EmployeeIdFilter"
-               asp-route-EmployeeNameFilter="@Model.EmployeeNameFilter">
-                <i class="bi bi-chevron-right"></i>
-            </a>
+        <div>
+            <span class="badge text-bg-secondary">@Model.Logs.TotalCount total</span>
         </div>
     </div>
     <div class="card-body p-0">
@@ -115,6 +100,17 @@
                 }
                 </tbody>
             </table>
+        </div>
+        <div class="mt-4 px-4 pb-4">
+            <partial name="_Pagination" model="@(new PaginationViewModel { 
+                List = Model.Logs, 
+                QueryParams = new Dictionary<string, string?> {
+                    { "StartDate", Model.StartDate?.ToString("yyyy-MM-dd") },
+                    { "EndDate", Model.EndDate?.ToString("yyyy-MM-dd") },
+                    { "EmployeeIdFilter", Model.EmployeeIdFilter },
+                    { "EmployeeNameFilter", Model.EmployeeNameFilter }
+                } 
+            })" />
         </div>
     </div>
 </div>

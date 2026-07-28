@@ -1,4 +1,5 @@
-@page
+@page "{pageNum:int?}"
+@using HRDesk.Web.Models
 @model HRDesk.Web.Areas.Recruitment.Pages.Interviews.CalendarModel
 @{
     ViewData["Title"] = "Interview Calendar";
@@ -40,15 +41,15 @@
     <div class="card-header bg-white border-bottom pt-3 pb-0 px-4">
         <ul class="nav nav-tabs border-bottom-0" id="interviewTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active d-flex align-items-center gap-2" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab">
+                <button class="nav-link @(Model.ActiveTab == "upcoming" ? "active" : "") d-flex align-items-center gap-2" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab" onclick="updateTab('upcoming')">
                     <i class="bi bi-calendar-event text-primary"></i> <strong>Upcoming</strong>
-                    <span class="badge bg-primary rounded-pill">@Model.Upcoming.Count</span>
+                    <span class="badge bg-primary rounded-pill">@Model.Upcoming.TotalCount</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link d-flex align-items-center gap-2" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab">
+                <button class="nav-link @(Model.ActiveTab == "past" ? "active" : "") d-flex align-items-center gap-2" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab" onclick="updateTab('past')">
                     <i class="bi bi-clock-history text-secondary"></i> <strong>Past Interviews</strong>
-                    <span class="badge bg-secondary rounded-pill">@Model.Past.Count</span>
+                    <span class="badge bg-secondary rounded-pill">@Model.Past.TotalCount</span>
                 </button>
             </li>
         </ul>
@@ -56,7 +57,7 @@
     <div class="card-body p-0">
         <div class="tab-content" id="interviewTabsContent">
             <!-- UPCOMING TAB -->
-            <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
+            <div class="tab-pane fade @(Model.ActiveTab == "upcoming" ? "show active" : "")" id="upcoming" role="tabpanel">
                 @if (!Model.Upcoming.Any())
                 {
                     <div class="text-center py-5 text-muted">
@@ -123,11 +124,18 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="mt-4 px-4 pb-4">
+                        <partial name="/Pages/Shared/_Pagination.cshtml" model="@(new PaginationViewModel { 
+                            List = Model.Upcoming,
+                            PageName = "./Calendar",
+                            QueryParams = new Dictionary<string, string?> { { "ActiveTab", "upcoming" } }
+                        })" />
+                    </div>
                 }
             </div>
 
             <!-- PAST TAB -->
-            <div class="tab-pane fade" id="past" role="tabpanel">
+            <div class="tab-pane fade @(Model.ActiveTab == "past" ? "show active" : "")" id="past" role="tabpanel">
                 @if (!Model.Past.Any())
                 {
                     <div class="text-center py-5 text-muted">
@@ -176,8 +184,26 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="mt-4 px-4 pb-4">
+                        <partial name="/Pages/Shared/_Pagination.cshtml" model="@(new PaginationViewModel { 
+                            List = Model.Past,
+                            PageName = "./Calendar",
+                            QueryParams = new Dictionary<string, string?> { { "ActiveTab", "past" } }
+                        })" />
+                    </div>
                 }
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function updateTab(tabName) {
+            const url = new URL(window.location);
+            url.searchParams.set('ActiveTab', tabName);
+            url.searchParams.delete('pageNum'); // Reset page number when switching tabs
+            window.history.replaceState({}, '', url);
+        }
+    </script>
+}

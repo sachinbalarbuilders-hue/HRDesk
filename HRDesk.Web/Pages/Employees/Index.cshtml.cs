@@ -16,13 +16,7 @@ public sealed class IndexModel : PageModel
         _db = db;
     }
 
-    public IReadOnlyList<Employee> Employees { get; private set; } = Array.Empty<Employee>();
-    
-    // Pagination properties
-    public int CurrentPage { get; private set; } = 1;
-    public int TotalPages { get; private set; } = 1;
-    public int TotalCount { get; private set; } = 0;
-    public int PageSize { get; private set; } = DefaultPageSize;
+    public PaginatedList<Employee> Employees { get; private set; } = default!;
     
     // Search property
     [BindProperty(SupportsGet = true)]
@@ -38,8 +32,6 @@ public sealed class IndexModel : PageModel
         {
             StatusFilter = "active";
         }
-        
-        CurrentPage = pageNum < 1 ? 1 : pageNum;
         
         var query = _db.Employees
             .AsNoTracking()
@@ -66,20 +58,11 @@ public sealed class IndexModel : PageModel
             query = query.Where(e => e.Status != null && e.Status.ToLower() == StatusFilter.ToLower());
         }
         
-        TotalCount = await query.CountAsync();
-        TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
-        
-        if (CurrentPage > TotalPages && TotalPages > 0)
-        {
-            CurrentPage = TotalPages;
-        }
-        
-        Employees = await query
+        var orderedQuery = query
             .OrderBy(e => e.EmployeeName)
-            .ThenBy(e => e.EmployeeId)
-            .Skip((CurrentPage - 1) * PageSize)
-            .Take(PageSize)
-            .ToListAsync();
+            .ThenBy(e => e.EmployeeId);
+            
+        Employees = await PaginatedList<Employee>.CreateAsync(orderedQuery, pageNum, DefaultPageSize);
     }
 
     public async Task<IActionResult> OnPostToggleStatusAsync(int id)

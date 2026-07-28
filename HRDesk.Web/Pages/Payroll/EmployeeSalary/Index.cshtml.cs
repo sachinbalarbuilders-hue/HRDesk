@@ -29,13 +29,19 @@ namespace HRDesk.Web.Pages.Payroll.EmployeeSalary
             public bool HasSalary { get; set; }
         }
 
-        public IList<EmployeeSalaryViewModel> Employees { get; set; } = default!;
+        public PaginatedList<EmployeeSalaryViewModel> Employees { get; set; } = default!;
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int pageNum = 1)
         {
-            var employees = await _context.Employees
+            var baseQuery = _context.Employees
                 .Include(e => e.Department)
                 .Where(e => e.Status == "Active")
+                .OrderBy(e => e.EmployeeName);
+
+            var count = await baseQuery.CountAsync();
+            var employees = await baseQuery
+                .Skip((pageNum - 1) * 50)
+                .Take(50)
                 .ToListAsync();
 
             var salaryComponents = await _context.SalaryComponents
@@ -45,7 +51,7 @@ namespace HRDesk.Web.Pages.Payroll.EmployeeSalary
             var basicComponent = salaryComponents.FirstOrDefault(c => c.ComponentCode == "BASIC");
             var specialComponent = salaryComponents.FirstOrDefault(c => c.ComponentCode == "SPECIAL");
 
-            Employees = new List<EmployeeSalaryViewModel>();
+            var items = new List<EmployeeSalaryViewModel>();
 
             var empIds = employees.Select(e => e.EmployeeId).ToList();
             var allStructures = await _context.EmployeeSalaryStructures
@@ -60,7 +66,7 @@ namespace HRDesk.Web.Pages.Payroll.EmployeeSalary
                 var basic = salaryStructure.FirstOrDefault(s => s.ComponentId == basicComponent?.Id)?.Amount ?? 0;
                 var special = salaryStructure.FirstOrDefault(s => s.ComponentId == specialComponent?.Id)?.Amount ?? 0;
 
-                Employees.Add(new EmployeeSalaryViewModel
+                items.Add(new EmployeeSalaryViewModel
                 {
                     EmployeeId = emp.EmployeeId,
                     EmployeeName = emp.EmployeeName,
@@ -71,6 +77,8 @@ namespace HRDesk.Web.Pages.Payroll.EmployeeSalary
                     HasSalary = basic > 0 || special > 0
                 });
             }
+
+            Employees = new PaginatedList<EmployeeSalaryViewModel>(items, count, pageNum, 50);
         }
     }
 }

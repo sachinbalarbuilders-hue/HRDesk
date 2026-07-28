@@ -21,17 +21,18 @@ namespace HRDesk.Web.Pages.Loans.Applications
             _loanService = loanService;
         }
 
-        public IList<EmployeeLoan> LoanApplications { get; set; } = default!;
+        public PaginatedList<EmployeeLoan> LoanApplications { get; set; } = default!;
 
         public string? Message { get; set; }
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int pageNum = 1)
         {
-            LoanApplications = await _context.EmployeeLoans
+            var query = _context.EmployeeLoans
                 .Include(l => l.Employee)
                 .Include(l => l.LoanType)
-                .OrderByDescending(l => l.ApplicationDate)
-                .ToListAsync();
+                .OrderByDescending(l => l.ApplicationDate);
+
+            LoanApplications = await PaginatedList<EmployeeLoan>.CreateAsync(query, pageNum, 50);
         }
 
         public async Task<IActionResult> OnPostDeleteAsync(int id)

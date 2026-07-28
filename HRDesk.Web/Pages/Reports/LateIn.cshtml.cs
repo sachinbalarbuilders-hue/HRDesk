@@ -21,22 +21,30 @@ namespace HRDesk.Web.Pages.Reports
         [BindProperty(SupportsGet = true)]
         public int Year { get; set; } = DateTime.Now.Year;
 
-        public List<DailyAttendance> Records { get; set; } = new();
+        public PaginatedList<DailyAttendance> Records { get; set; } = default!;
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int pageNum = 1)
         {
             var startDate = new DateOnly(Year, Month, 1);
             var endDate = startDate.AddMonths(1);
 
-            Records = await _db.DailyAttendance
+            var query = _db.DailyAttendance
                 .Include(d => d.Employee)
                 .Include(d => d.Shift)
                 .Where(d => d.RecordDate >= startDate && d.RecordDate < endDate && 
                        d.InTime.HasValue && d.Employee != null && 
-                       d.LateMinutes > 0)
+                       d.LateMinutes > 0);
+
+            var count = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(d => d.Employee != null ? d.Employee.EmployeeName : "")
                 .ThenBy(d => d.RecordDate)
+                .Skip((pageNum - 1) * 50)
+                .Take(50)
                 .ToListAsync();
+
+            Records = new PaginatedList<DailyAttendance>(items, count, pageNum, 50);
         }
     }
 }

@@ -45,8 +45,8 @@ namespace HRDesk.Web.Pages.Payroll
             public List<ManualAdjustment> Adjustments { get; set; } = new();
         }
 
-        public IList<EmployeeListItem> AvailableEmployees { get; set; } = default!;
-        public IList<PayrollMaster> PayrollRecords { get; set; } = default!;
+        public PaginatedList<EmployeeListItem> AvailableEmployees { get; set; } = default!;
+        public PaginatedList<PayrollMaster> PayrollRecords { get; set; } = default!;
         public string? Message { get; set; }
 
         public decimal TotalNetPayout { get; set; }
@@ -54,17 +54,17 @@ namespace HRDesk.Web.Pages.Payroll
         public decimal TotalManualAdjustments { get; set; }
         public decimal TotalManualDeductions { get; set; }
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int pageNum = 1)
         {
-            await LoadDataAsync();
+            await LoadDataAsync(pageNum);
         }
 
-        public async Task<IActionResult> OnPostProcessSelectedAsync()
+        public async Task<IActionResult> OnPostProcessSelectedAsync(int pageNum = 1)
         {
             if (EmployeeIdsToProcess == null || !EmployeeIdsToProcess.Any())
             {
                 Message = "Please select at least one employee to process";
-                await LoadDataAsync();
+                await LoadDataAsync(pageNum);
                 return Page();
             }
 
@@ -96,7 +96,7 @@ namespace HRDesk.Web.Pages.Payroll
                 Message = $"Error: {ex.Message}";
             }
 
-            await LoadDataAsync();
+            await LoadDataAsync(pageNum);
             return Page();
         }
 
@@ -120,53 +120,69 @@ namespace HRDesk.Web.Pages.Payroll
             }
         }
 
-        private async Task LoadDataAsync()
+        private async Task LoadDataAsync(int pageNum)
         {
-            // Load existing payroll records
-            PayrollRecords = await _context.PayrollMasters
-                .Include(p => p.Employee)
-                .Where(p => p.Month == TargetProcessMonth)
-                .OrderBy(p => p.Employee!.EmployeeName)
-                .ToListAsync();
-
             // Calculate High Level Summaries
-            TotalNetPayout = PayrollRecords.Sum(p => p.NetSalary);
-            ProcessedCount = PayrollRecords.Count;
+            var summaryStats = await _context.PayrollMasters
+                .Where(p => p.Month == TargetProcessMonth)
+                .GroupBy(p => 1)
+                .Select(g => new { TotalNetPayout = g.Sum(x => x.NetSalary), Count = g.Count() })
+                .FirstOrDefaultAsync();
+
+            TotalNetPayout = summaryStats?.TotalNetPayout ?? 0;
+            ProcessedCount = summaryStats?.Count ?? 0;
             
-            // Total manual adjustments (Earnings - Deductions) from the PayrollDetails
-            var payrollIds = PayrollRecords.Select(p => p.Id).ToList();
-            var allManualDetails = await _context.PayrollDetails
-                .Where(d => payrollIds.Contains(d.PayrollId) && d.Remarks == "Manual adjustment")
+            // Total manual adjustments (Earnings - Deductions) for the whole month
+            var manualAdjStats = await _context.PayrollDetails
+                .Where(d => d.PayrollMaster != null && d.PayrollMaster.Month == TargetProcessMonth && d.Remarks == "Manual adjustment")
+                .GroupBy(d => d.ComponentType)
+                .Select(g => new { Type = g.Key, Total = g.Sum(x => x.Amount) })
                 .ToListAsync();
 
-            TotalManualAdjustments = allManualDetails
-                .Where(d => d.ComponentType == "Earning").Sum(d => d.Amount);
-            
-            TotalManualDeductions = allManualDetails
-                .Where(d => d.ComponentType == "Deduction").Sum(d => d.Amount);
+            TotalManualAdjustments = manualAdjStats.Where(x => x.Type == "Earning").Sum(x => x.Total);
+            TotalManualDeductions = manualAdjStats.Where(x => x.Type == "Deduction").Sum(x => x.Total);
 
             // Load available employees: Active staff OR anyone who has records (Attendance or Payroll) for this month
             int targetYear = int.Parse(TargetProcessMonth.Substring(0, 4));
             int targetMonth = int.Parse(TargetProcessMonth.Substring(5, 2));
             var lastDayOfMonth = new DateOnly(targetYear, targetMonth, DateTime.DaysInMonth(targetYear, targetMonth));
 
-            var employees = await _context.Employees
+            var employeesQuery = _context.Employees
                 .Include(e => e.Department)
                 .Where(e => ((e.Status == "Active" || e.Status == "active") && (e.JoiningDate == null || e.JoiningDate <= lastDayOfMonth)) || 
                             (_context.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate.Year == targetYear && a.RecordDate.Month == targetMonth && a.Status != "Absent") && (e.LastWorkingDate != null && e.LastWorkingDate >= new DateOnly(targetYear, targetMonth, 1))))
+                .OrderBy(e => e.EmployeeName);
+
+            var paginatedEmployees = await PaginatedList<Employee>.CreateAsync(employeesQuery, pageNum, 50);
+            
+            var employeeIds = paginatedEmployees.Select(e => e.EmployeeId).ToList();
+            
+            var currentPayrollRecords = await _context.PayrollMasters
+                .Where(p => p.Month == TargetProcessMonth && employeeIds.Contains(p.EmployeeId))
+                .ToListAsync();
+                
+            var payrollQuery = _context.PayrollMasters
+                .Include(p => p.Employee)
+                .Where(p => p.Month == TargetProcessMonth)
+                .OrderBy(p => p.Employee!.EmployeeName);
+                
+            PayrollRecords = await PaginatedList<PayrollMaster>.CreateAsync(payrollQuery, pageNum, 50);
+            
+            var payrollIds = currentPayrollRecords.Select(p => p.Id).ToList();
+            var allManualDetails = await _context.PayrollDetails
+                .Where(d => payrollIds.Contains(d.PayrollId) && d.Remarks == "Manual adjustment")
                 .ToListAsync();
 
-            AvailableEmployees = new List<EmployeeListItem>();
-            
-            var employeeIds = employees.Select(e => e.EmployeeId).ToList();
             var grossSalaries = await _payrollService.GetGrossSalariesBatchAsync(employeeIds, TargetProcessMonth);
             var manualDetailsByPayrollId = allManualDetails.GroupBy(d => d.PayrollId).ToDictionary(g => g.Key, g => g.ToList());
 
-            foreach (var emp in employees)
+            var employeeListItems = new List<EmployeeListItem>();
+
+            foreach (var emp in paginatedEmployees)
             {
                 var grossSalary = grossSalaries.GetValueOrDefault(emp.EmployeeId, 0m);
 
-                var alreadyProcessed = PayrollRecords.FirstOrDefault(p => p.EmployeeId == emp.EmployeeId);
+                var alreadyProcessed = currentPayrollRecords.FirstOrDefault(p => p.EmployeeId == emp.EmployeeId);
                 var adjustments = new List<ManualAdjustment>();
                 if (alreadyProcessed != null)
                 {
@@ -183,7 +199,7 @@ namespace HRDesk.Web.Pages.Payroll
                     }
                 }
 
-                AvailableEmployees.Add(new EmployeeListItem
+                employeeListItems.Add(new EmployeeListItem
                 {
                     EmployeeId = emp.EmployeeId,
                     EmployeeName = emp.EmployeeName,
@@ -194,6 +210,8 @@ namespace HRDesk.Web.Pages.Payroll
                     Adjustments = adjustments
                 });
             }
+            
+            AvailableEmployees = new PaginatedList<EmployeeListItem>(employeeListItems, paginatedEmployees.TotalCount, paginatedEmployees.PageIndex, paginatedEmployees.PageSize);
         }
     }
 }

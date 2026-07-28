@@ -18,9 +18,9 @@ public class EmployeeLeaveDetailModel : PageModel
     public Employee Employee { get; set; } = null!;
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
-    public List<LeaveApplication> LeaveApplications { get; set; } = new();
+    public PaginatedList<LeaveApplication> LeaveApplications { get; set; } = default!;
 
-    public async Task<IActionResult> OnGetAsync(int id, DateOnly startDate, DateOnly endDate)
+    public async Task<IActionResult> OnGetAsync(int id, DateOnly startDate, DateOnly endDate, int pageNum = 1)
     {
         var employee = await _context.Employees
             .Include(e => e.Department)
@@ -36,13 +36,21 @@ public class EmployeeLeaveDetailModel : PageModel
         StartDate = startDate;
         EndDate = endDate;
 
-        LeaveApplications = await _context.LeaveApplications
+        var query = _context.LeaveApplications
             .Include(la => la.LeaveType)
             .Where(la => la.EmployeeId == id &&
                          (la.Status == "Approved" || la.Status == "Adjusted") &&
-                         la.StartDate <= endDate && la.EndDate >= startDate)
+                         la.StartDate <= endDate && la.EndDate >= startDate);
+
+        var count = await query.CountAsync();
+
+        var items = await query
             .OrderBy(la => la.StartDate)
+            .Skip((pageNum - 1) * 50)
+            .Take(50)
             .ToListAsync();
+
+        LeaveApplications = new PaginatedList<LeaveApplication>(items, count, pageNum, 50);
 
         return Page();
     }

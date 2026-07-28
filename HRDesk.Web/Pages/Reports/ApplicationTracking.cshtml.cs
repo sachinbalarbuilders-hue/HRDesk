@@ -27,7 +27,7 @@ namespace HRDesk.Web.Pages.Reports
         [BindProperty(SupportsGet = true)]
         public int Year { get; set; } = DateTime.Now.Year;
 
-        public List<ApplicationTrackItem> Applications { get; set; } = new();
+        public PaginatedList<ApplicationTrackItem> Applications { get; set; } = default!;
 
         public class ApplicationTrackItem
         {
@@ -42,7 +42,7 @@ namespace HRDesk.Web.Pages.Reports
             public string Status { get; set; } = "";
         }
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(int pageNum = 1)
         {
             var monthStart = new DateOnly(Year, Month, 1);
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
@@ -110,7 +110,7 @@ namespace HRDesk.Web.Pages.Reports
                 .ToList();
 
             // 4. Combine and Sort (Group by Month Descending, then Numeric ID Descending)
-            Applications = regularizations.Concat(leaves).Concat(attendanceItems)
+            var allApps = regularizations.Concat(leaves).Concat(attendanceItems)
                 .OrderByDescending(a => a.Date.Year)
                 .ThenByDescending(a => a.Date.Month)
                 .ThenByDescending(a => {
@@ -119,6 +119,9 @@ namespace HRDesk.Web.Pages.Reports
                     return parts.Length > 1 && int.TryParse(parts[^1], out var num) ? num : -1;
                 })
                 .ToList();
+                
+            var paged = allApps.Skip((pageNum - 1) * 50).Take(50).ToList();
+            Applications = new PaginatedList<ApplicationTrackItem>(paged, allApps.Count, pageNum, 50);
         }
 
 

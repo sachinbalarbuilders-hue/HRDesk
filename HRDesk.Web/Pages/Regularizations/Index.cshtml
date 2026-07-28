@@ -1,5 +1,6 @@
-@page
+@page "{pageNum:int?}"
 @model HRDesk.Web.Pages.Regularizations.IndexModel
+@using HRDesk.Web.Models
 
 @{
     ViewData["Title"] = "Regularization Requests";
@@ -34,15 +35,6 @@
                     }
                 </div>
             </form>
-        </div>
-        <div>
-            @if (Model.TotalCount > 0)
-            {
-                var first = (Model.PageNumber - 1) * Model.PageSize + 1;
-                var last = Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount);
-                <span class="badge text-bg-light border me-2">Showing @first-@last of @Model.TotalCount</span>
-            }
-            <span class="badge text-bg-secondary">@Model.TotalCount total</span>
         </div>
     </div>
     <div class="card-body p-0">
@@ -190,41 +182,12 @@
             </table>
         </div>
     </div>
-    @if (Model.TotalPages > 1)
-    {
-        <div class="card-footer bg-white border-top-0 py-3">
-            <nav aria-label="Page navigation">
-                <ul class="pagination pagination-sm justify-content-center mb-0">
-                    <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
-                        <a class="page-link" asp-page="./Index" asp-route-PageNumber="@(Model.PageNumber - 1)" asp-route-SearchTerm="@Model.SearchTerm" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    
-                    @for (int i = 1; i <= Model.TotalPages; i++)
-                    {
-                        if (i == 1 || i == Model.TotalPages || (i >= Model.PageNumber - 2 && i <= Model.PageNumber + 2))
-                        {
-                            <li class="page-item @(i == Model.PageNumber ? "active" : "")">
-                                <a class="page-link" asp-page="./Index" asp-route-PageNumber="@i" asp-route-SearchTerm="@Model.SearchTerm">@i</a>
-                            </li>
-                        }
-                        else if (i == 2 || (i == Model.TotalPages - 1 && Model.TotalPages > 5))
-                        {
-                            if ((i == 2 && Model.PageNumber > 4) || (i == Model.TotalPages - 1 && Model.PageNumber < Model.TotalPages - 3))
-                            {
-                                <li class="page-item disabled"><span class="page-link">...</span></li>
-                            }
-                        }
-                    }
-
-                    <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
-                        <a class="page-link" asp-page="./Index" asp-route-PageNumber="@(Model.PageNumber + 1)" asp-route-SearchTerm="@Model.SearchTerm" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    }
+    <div class="mt-4 px-4 pb-4 bg-white">
+        <partial name="_Pagination" model="@(new PaginationViewModel { 
+            List = Model.RegularizationRequests, 
+            QueryParams = new Dictionary<string, string?> {
+                { "SearchTerm", Model.SearchTerm }
+            } 
+        })" />
+    </div>
 </div>

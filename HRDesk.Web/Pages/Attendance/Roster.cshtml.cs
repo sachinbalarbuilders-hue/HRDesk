@@ -16,7 +16,7 @@ public class RosterModel : PageModel
         _db = db;
     }
 
-    public List<Employee> Employees { get; set; } = new();
+    public PaginatedList<Employee> Employees { get; set; } = default!;
     public List<Shift> Shifts { get; set; } = new();
     public List<Department> Departments { get; set; } = new();
     public List<ShiftRoster> RosterEntries { get; set; } = new();
@@ -74,11 +74,13 @@ public class RosterModel : PageModel
         if (PageNum < 1) PageNum = 1;
         if (TotalPages > 0 && PageNum > TotalPages) PageNum = TotalPages;
 
-        Employees = await query
+        var items = await query
             .OrderBy(e => e.EmployeeName)
             .Skip((PageNum - 1) * PageSize)
             .Take(PageSize)
             .ToListAsync();
+            
+        Employees = new PaginatedList<Employee>(items, TotalCount, PageNum, PageSize);
         
         var employeeIds = Employees.Select(e => e.EmployeeId).ToList();
 
