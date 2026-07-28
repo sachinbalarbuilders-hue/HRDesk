@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -143,7 +143,7 @@ public class LoginModel : PageModel
             return BCrypt.Net.BCrypt.Verify(password, hash);
         }
 
-        // Legacy plain-text check — only for migration on first login
+        // Legacy plain-text check â€” only for migration on first login
         return password == hash;
     }
 

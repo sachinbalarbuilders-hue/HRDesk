@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.IO.Pipes;
 using System.Text;
@@ -94,7 +94,7 @@ public static class WindowsServiceClient
             }
             catch (JsonException)
             {
-                // Not JSON — return raw line as message
+                // Not JSON â€” return raw line as message
                 return (false, responseLine);
             }
         }

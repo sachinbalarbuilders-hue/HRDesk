@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -13,9 +13,9 @@ namespace HRDesk.Web.Pages.Loans.Applications
     public class DetailsModel : PageModel
     {
         private readonly BiometricAttendanceDbContext _context;
-        private readonly LoanService _loanService;
+        private readonly ILoanService _loanService;
 
-        public DetailsModel(BiometricAttendanceDbContext context, LoanService loanService)
+        public DetailsModel(BiometricAttendanceDbContext context, ILoanService loanService)
         {
             _context = context;
             _loanService = loanService;

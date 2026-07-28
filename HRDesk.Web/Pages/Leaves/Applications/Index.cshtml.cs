@@ -1,4 +1,4 @@
-using HRDesk.Web.Data;
+﻿using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -9,11 +9,11 @@ namespace HRDesk.Web.Pages.Leaves.Applications;
 
 public class IndexModel : PageModel
 {
-    private readonly LeaveAdjustmentService _adjustmentService;
-    private readonly CompOffService _compOffService;
+    private readonly ILeaveAdjustmentService _adjustmentService;
+    private readonly ICompOffService _compOffService;
     private readonly BiometricAttendanceDbContext _db;
     private readonly ISequenceService _sequenceService;
-    private readonly AttendanceProcessorService _processor;
+    private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
 
     public IndexModel(
         BiometricAttendanceDbContext db, 
@@ -428,14 +428,14 @@ public class IndexModel : PageModel
                 string plAppNo = baseAppNo;
                 string lwpAppNo = baseAppNo; // Use the same app no since it's a connected leave
 
-                // 1. Create PL application (start → split date)
+                // 1. Create PL application (start â†’ split date)
                 NewApplication.EndDate = plEndDate;
                 NewApplication.TotalDays = plDays;
                 NewApplication.ApplicationNumber = plAppNo;
                 NewApplication.Status = "Approved";
                 NewApplication.CreatedAt = now;
 
-                // 2. Create LWP application (split date + 1 → original end)
+                // 2. Create LWP application (split date + 1 â†’ original end)
                 var lwpApp = new LeaveApplication
                 {
                     EmployeeId = NewApplication.EmployeeId,

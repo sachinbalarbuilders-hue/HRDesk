@@ -1,4 +1,4 @@
-using HRDesk.Web.Data;
+﻿using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;

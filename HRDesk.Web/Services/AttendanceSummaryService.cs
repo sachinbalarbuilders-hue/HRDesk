@@ -1,4 +1,4 @@
-using HRDesk.Web.Data;
+﻿using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +8,7 @@ namespace HRDesk.Web.Services;
 /// Single source of truth for attendance counting logic.
 /// Ensures MonthlyAttendanceSheet and PayrollService always produce identical results.
 /// </summary>
-public class AttendanceSummaryService
+public class AttendanceSummaryService : IAttendanceSummaryService
 {
     private readonly BiometricAttendanceDbContext _db;
 
@@ -136,17 +136,17 @@ public class AttendanceSummaryService
             la.StartDate <= date && la.EndDate >= date &&
             la.Status == "Approved");
 
-        // ── Holiday takes absolute priority ──────────────────────────────────
+        // â”€â”€ Holiday takes absolute priority â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // If the DB record is a Holiday, always count it as HolidayCount
         // regardless of any leave application that may exist on the same date.
-        // (Holiday is already paid — leave balance was never deducted for it.)
+        // (Holiday is already paid â€” leave balance was never deducted for it.)
         if (log.Status == "Holiday")
         {
             result.HolidayCount += 1.0m;
             return;
         }
 
-        // ── Half-Day records (COHF, PHF, SHF, HF etc.) ──────────────────────
+        // â”€â”€ Half-Day records (COHF, PHF, SHF, HF etc.) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if (log.IsHalfDay || (log.Status != null && log.Status.EndsWith("HF")))
         {
             if (activeApp == null) result.HalfDayCount++;
@@ -167,7 +167,7 @@ public class AttendanceSummaryService
 
             if (isCompOff)
             {
-                result.WeekoffCount += 0.5m;          // CO credit — no LOP
+                result.WeekoffCount += 0.5m;          // CO credit â€” no LOP
             }
             else if (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid)
             {
@@ -176,12 +176,12 @@ public class AttendanceSummaryService
             }
             else if (activeApp?.LeaveType != null && activeApp.LeaveType.IsPaid)
             {
-                result.LeaveCount += 0.5m;            // Paid leave — no LOP
+                result.LeaveCount += 0.5m;            // Paid leave â€” no LOP
                 AddLeave(activeApp.LeaveType.Code, 0.5m);
             }
             else
             {
-                // No leave app — fall back to status string
+                // No leave app â€” fall back to status string
                 if (log.Status == "W/OHF")
                 {
                     result.WeekoffCount += 0.5m; // Unworked half of weekoff = W/O credit (no LOP)
@@ -202,31 +202,31 @@ public class AttendanceSummaryService
                 }
             }
         }
-        // ── Present / worked on weekoff ───────────────────────────────────────
+        // â”€â”€ Present / worked on weekoff â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         else if (log.Status == "Present" || log.Status == "W/OP" ||
                  log.Status == "Present (W/O)" || log.Status == "Present (WO)" ||
                  log.Status == "Present (Leave)" || log.Status == "COP")
         {
             result.PresentCount += 1.0m;
         }
-        // ── Absent ───────────────────────────────────────────────────────────
+        // â”€â”€ Absent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         else if (log.Status == "Absent")
         {
             result.AbsentCount += 1.0m;
             AddLop(date, 1.0m);
         }
-        // ── Week Off / Comp Off full day ──────────────────────────────────────
+        // â”€â”€ Week Off / Comp Off full day â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         else if (log.Status == "Weekoff" || log.Status == "W/O" ||
                  log.Status == "WO" || log.Status == "CO")
         {
             result.WeekoffCount += 1.0m;
         }
-        // ── Holiday ──────────────────────────────────────────────────────────
+        // â”€â”€ Holiday â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         else if (log.Status == "Holiday")
         {
             result.HolidayCount += 1.0m;
         }
-        // ── Leave (full day) ─────────────────────────────────────────────────
+        // â”€â”€ Leave (full day) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         else if (activeApp != null ||
                  log.Status == "Leave" || log.Status == "LWP" ||
                  log.Status?.Contains("Leave") == true ||
@@ -237,7 +237,7 @@ public class AttendanceSummaryService
         {
             if (activeApp?.LeaveType?.Code == "CO")
             {
-                result.WeekoffCount += 1.0m;          // CO credit — no LOP
+                result.WeekoffCount += 1.0m;          // CO credit â€” no LOP
             }
             else if (activeApp?.LeaveType != null && !activeApp.LeaveType.IsPaid)
             {

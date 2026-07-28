@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;

@@ -1,4 +1,4 @@
-using HRDesk.Web.Models;
+﻿using HRDesk.Web.Models;
 using HRDesk.Web.Areas.Recruitment.Models;
 using Microsoft.EntityFrameworkCore;
 

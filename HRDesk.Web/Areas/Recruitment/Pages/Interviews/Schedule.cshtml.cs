@@ -1,4 +1,4 @@
-using HRDesk.Web.Areas.Recruitment.Models;
+﻿using HRDesk.Web.Areas.Recruitment.Models;
 using HRDesk.Web.Data;
 using HRDesk.Web.Services.Notifications;
 using Microsoft.AspNetCore.Authorization;
@@ -85,7 +85,7 @@ public class ScheduleModel : PageModel
         {
             var dateStr = Interview.InterviewDateTime.ToString("dddd, dd MMM yyyy 'at' hh:mm tt");
             var locationLine = !string.IsNullOrEmpty(Interview.Location)
-                ? $"\n➢ *Location/Link:* {Interview.Location}"
+                ? $"\nâž¢ *Location/Link:* {Interview.Location}"
                 : string.Empty;
 
             if (Interview.InterviewType == "In-Person")
@@ -95,21 +95,21 @@ public class ScheduleModel : PageModel
                 {
                     if (!string.IsNullOrWhiteSpace(org.Address))
                     {
-                        locationLine += $"\n➢ *Address:* {org.Address}";
+                        locationLine += $"\nâž¢ *Address:* {org.Address}";
                     }
                     if (org.Latitude.HasValue && org.Longitude.HasValue)
                     {
                         var mapUrl = $"https://maps.google.com/?q={org.Latitude.Value},{org.Longitude.Value}";
-                        locationLine += $"\n➢ *Map:* {mapUrl}";
+                        locationLine += $"\nâž¢ *Map:* {mapUrl}";
                     }
                 }
             }
 
             var msg = $"Hello *{candidate.CandidateName}*,\n\n" +
                       $"We are pleased to inform you that your interview for the *{candidate.AppliedFor}* position has been scheduled.\n\n" +
-                      $"➢ *Date & Time:* {dateStr}\n" +
-                      $"➢ *Round:* {Interview.Round}\n" +
-                      $"➢ *Type:* {Interview.InterviewType}" +
+                      $"âž¢ *Date & Time:* {dateStr}\n" +
+                      $"âž¢ *Round:* {Interview.Round}\n" +
+                      $"âž¢ *Type:* {Interview.InterviewType}" +
                       locationLine +
                       $"\n\nPlease ensure you are available on time. Best of luck!";
 

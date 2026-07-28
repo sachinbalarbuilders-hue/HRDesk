@@ -1,4 +1,4 @@
-using HRDesk.Web.Areas.Recruitment.Models;
+﻿using HRDesk.Web.Areas.Recruitment.Models;
 using HRDesk.Web.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

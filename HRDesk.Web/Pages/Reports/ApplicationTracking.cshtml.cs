@@ -1,4 +1,4 @@
-using HRDesk.Web.Data;
+﻿using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -12,9 +12,9 @@ namespace HRDesk.Web.Pages.Reports
     {
         private readonly BiometricAttendanceDbContext _db;
         private readonly ISequenceService _sequenceService;
-        private readonly AttendanceProcessorService _processor;
+        private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
 
-        public ApplicationTrackingModel(BiometricAttendanceDbContext db, ISequenceService sequenceService, AttendanceProcessorService processor)
+        public ApplicationTrackingModel(BiometricAttendanceDbContext db, ISequenceService sequenceService, HRDesk.Web.Services.IAttendanceProcessorService processor)
         {
             _db = db;
             _sequenceService = sequenceService;

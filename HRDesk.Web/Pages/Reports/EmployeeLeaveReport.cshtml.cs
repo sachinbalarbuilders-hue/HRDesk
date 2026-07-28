@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using HRDesk.Web.Data;
@@ -11,9 +11,9 @@ namespace HRDesk.Web.Pages.Reports;
 public class EmployeeLeaveReportModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _context;
-    private readonly AttendanceSummaryService _summaryService;
+    private readonly IAttendanceSummaryService _summaryService;
 
-    public EmployeeLeaveReportModel(BiometricAttendanceDbContext context, AttendanceSummaryService summaryService)
+    public EmployeeLeaveReportModel(BiometricAttendanceDbContext context, IAttendanceSummaryService summaryService)
     {
         _context = context;
         _summaryService = summaryService;

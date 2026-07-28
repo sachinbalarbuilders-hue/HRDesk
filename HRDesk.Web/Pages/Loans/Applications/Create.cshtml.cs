@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -13,9 +13,9 @@ namespace HRDesk.Web.Pages.Loans.Applications
     public class CreateModel : PageModel
     {
         private readonly BiometricAttendanceDbContext _context;
-        private readonly LoanService _loanService;
+        private readonly ILoanService _loanService;
 
-        public CreateModel(BiometricAttendanceDbContext context, LoanService loanService)
+        public CreateModel(BiometricAttendanceDbContext context, ILoanService loanService)
         {
             _context = context;
             _loanService = loanService;

@@ -1,4 +1,4 @@
-namespace HRDesk.Web.Models;
+﻿namespace HRDesk.Web.Models;
 
 public interface IMustHaveTenant
 {

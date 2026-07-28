@@ -1,4 +1,4 @@
-using HRDesk.Web.Data;
+﻿using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -10,9 +10,9 @@ namespace HRDesk.Web.Pages.Attendance;
 public class MonthlyAttendanceSheetModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
-    private readonly AttendanceSummaryService _attendanceSummaryService;
+    private readonly IAttendanceSummaryService _attendanceSummaryService;
 
-    public MonthlyAttendanceSheetModel(BiometricAttendanceDbContext db, AttendanceSummaryService attendanceSummaryService)
+    public MonthlyAttendanceSheetModel(BiometricAttendanceDbContext db, IAttendanceSummaryService attendanceSummaryService)
     {
         _db = db;
         _attendanceSummaryService = attendanceSummaryService;
@@ -137,7 +137,7 @@ public class MonthlyAttendanceSheetModel : PageModel
                     var dayApps = leaveApps.Where(la => la.EmployeeId == emp.EmployeeId && date >= la.StartDate && date <= la.EndDate).ToList();
                     var activeApp = dayApps.FirstOrDefault(la => la.Status == "Approved");
 
-                    // ── Holiday takes absolute priority ──────────────────────────────────
+                    // â”€â”€ Holiday takes absolute priority â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     // If the DB record is a Holiday, always show "H" regardless of any
                     // leave application that may exist on the same date.
                     if (log.Status == "Holiday")
@@ -150,10 +150,10 @@ public class MonthlyAttendanceSheetModel : PageModel
                         {
                             dto.Tooltip = string.IsNullOrEmpty(holiday.Description)
                                 ? holiday.HolidayName
-                                : $"{holiday.HolidayName} — {holiday.Description}";
+                                : $"{holiday.HolidayName} â€” {holiday.Description}";
                         }
                     }
-                    // ── Weekoff takes priority over overlapping leave IF it was not processed as a sandwich
+                    // â”€â”€ Weekoff takes priority over overlapping leave IF it was not processed as a sandwich
                     else if (log.Status == "W/O" || log.Status == "Weekoff")
                     {
                         dto.Status = "W/O";
@@ -170,7 +170,7 @@ public class MonthlyAttendanceSheetModel : PageModel
                             dto.Tooltip = "Weekoff";
                         }
                     }
-                    // ── Leave application display logic ───────────────────────────────────
+                    // â”€â”€ Leave application display logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     else if (activeApp?.LeaveType != null)
                     {
                         dto.TextColor = activeApp.LeaveType.TextColor;
@@ -224,7 +224,7 @@ public class MonthlyAttendanceSheetModel : PageModel
                     }
 
                     // Build tooltip: Application No + Reason/Remarks
-                    // (Skipped for holidays — tooltip already set to holiday name above)
+                    // (Skipped for holidays â€” tooltip already set to holiday name above)
                     if (log.Status != "Holiday")
                     {
                         var tooltipParts = new List<string>();
@@ -285,7 +285,7 @@ public class MonthlyAttendanceSheetModel : PageModel
                         dto.IsActualBreak = log.IsActualBreak;
                     }
 
-                    // Count logic — delegated to shared AttendanceSummaryService
+                    // Count logic â€” delegated to shared AttendanceSummaryService
                     // (pre-loaded logs and leaveApps are passed in to avoid extra DB queries)
                 }
                 else
@@ -297,7 +297,7 @@ public class MonthlyAttendanceSheetModel : PageModel
                 summary.DailyRecords[day] = dto;
             }
 
-            // Apply counts from the shared AttendanceSummaryService (no extra DB queries —
+            // Apply counts from the shared AttendanceSummaryService (no extra DB queries â€”
             // pre-loaded logs and leaveApps are passed in)
             var counts = _attendanceSummaryService.ComputeSummary(emp.EmployeeId, Year, Month, logs, leaveApps);
             summary.PresentCount     = counts.PresentCount;

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -48,7 +48,7 @@ namespace HRDesk.Web.Migrations
                 name: "PK_holiday_employees",
                 table: "holiday_employees");
 
-            // Disable FK checks for employees PK drop — many child tables reference employees.employee_id
+            // Disable FK checks for employees PK drop â€” many child tables reference employees.employee_id
             migrationBuilder.Sql("SET FOREIGN_KEY_CHECKS=0;");
 
             migrationBuilder.DropPrimaryKey(

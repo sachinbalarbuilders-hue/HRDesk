@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,9 +16,9 @@ namespace HRDesk.Web.Pages.Regularizations
     {
         private readonly BiometricAttendanceDbContext _context;
         private readonly ISequenceService _sequenceService;
-        private readonly AttendanceProcessorService _processor;
+        private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
 
-        public BulkCreateModel(BiometricAttendanceDbContext context, ISequenceService sequenceService, AttendanceProcessorService processor)
+        public BulkCreateModel(BiometricAttendanceDbContext context, ISequenceService sequenceService, HRDesk.Web.Services.IAttendanceProcessorService processor)
         {
             _context = context;
             _sequenceService = sequenceService;

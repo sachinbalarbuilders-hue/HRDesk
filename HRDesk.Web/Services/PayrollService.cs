@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
 using HRDesk.Web.Data;
@@ -8,11 +8,11 @@ using Microsoft.Extensions.Logging;
 
 namespace HRDesk.Web.Services;
 
-public class PayrollService
+public class PayrollService : IPayrollService
 {
     private readonly BiometricAttendanceDbContext _db;
-    private readonly LoanService _loanService;
-    private readonly AttendanceSummaryService _attendanceSummaryService;
+    private readonly ILoanService _loanService;
+    private readonly IAttendanceSummaryService _attendanceSummaryService;
     private readonly ILogger<PayrollService> _logger;
 
     public PayrollService(
@@ -29,7 +29,7 @@ public class PayrollService
 
     /// <summary>
     /// Get attendance summary for an employee for a specific month.
-    /// Delegates to AttendanceSummaryService — the single source of truth shared with MonthlyAttendanceSheet.
+    /// Delegates to AttendanceSummaryService â€” the single source of truth shared with MonthlyAttendanceSheet.
     /// </summary>
     public async Task<AttendanceSummaryResult> GetAttendanceSummaryAsync(int employeeId, string month)
     {
@@ -39,7 +39,7 @@ public class PayrollService
             throw new ArgumentException($"Invalid month format: '{month}'. Expected 'yyyy-MM'.");
         }
 
-        // Use the shared service — guaranteed to match MonthlyAttendanceSheet calculations
+        // Use the shared service â€” guaranteed to match MonthlyAttendanceSheet calculations
         return await _attendanceSummaryService.GetSummaryAsync(employeeId, parsedDate.Year, parsedDate.Month);
     }
 

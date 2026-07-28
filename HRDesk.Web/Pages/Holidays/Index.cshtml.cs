@@ -1,4 +1,4 @@
-using HRDesk.Web.Data;
+﻿using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -10,9 +10,9 @@ namespace HRDesk.Web.Pages.Holidays;
 public sealed class IndexModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
-    private readonly LeaveAdjustmentService _adjustmentService;
+    private readonly ILeaveAdjustmentService _adjustmentService;
 
-    public IndexModel(BiometricAttendanceDbContext db, LeaveAdjustmentService adjustmentService)
+    public IndexModel(BiometricAttendanceDbContext db, ILeaveAdjustmentService adjustmentService)
     {
         _db = db;
         _adjustmentService = adjustmentService;

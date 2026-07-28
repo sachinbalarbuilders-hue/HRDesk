@@ -1,4 +1,4 @@
-using HRDesk.Web.Data;
+﻿using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -9,11 +9,11 @@ namespace HRDesk.Web.Pages.Attendance;
 
 public class ProcessModel : PageModel
 {
-    private readonly AttendanceProcessorService _processor;
+    private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
     private readonly ILogger<ProcessModel> _logger;
     private readonly BiometricAttendanceDbContext _db;
 
-    public ProcessModel(AttendanceProcessorService processor, ILogger<ProcessModel> logger, BiometricAttendanceDbContext db)
+    public ProcessModel(HRDesk.Web.Services.IAttendanceProcessorService processor, ILogger<ProcessModel> logger, BiometricAttendanceDbContext db)
     {
         _processor = processor;
         _logger = logger;

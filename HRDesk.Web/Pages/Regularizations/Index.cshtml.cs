@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,10 +13,10 @@ namespace HRDesk.Web.Pages.Regularizations
     public class IndexModel : PageModel
     {
         private readonly BiometricAttendanceDbContext _context;
-        private readonly Services.AttendanceProcessorService _processor;
+        private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
         private readonly Services.ISequenceService _sequenceService;
 
-        public IndexModel(BiometricAttendanceDbContext context, Services.AttendanceProcessorService processor, Services.ISequenceService sequenceService)
+        public IndexModel(BiometricAttendanceDbContext context, HRDesk.Web.Services.IAttendanceProcessorService processor, Services.ISequenceService sequenceService)
         {
             _context = context;
             _processor = processor;

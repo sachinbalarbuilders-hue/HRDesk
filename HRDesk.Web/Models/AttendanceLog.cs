@@ -1,4 +1,4 @@
-namespace HRDesk.Web.Models;
+﻿namespace HRDesk.Web.Models;
 
 public sealed class AttendanceLog : IMustHaveTenant
 {

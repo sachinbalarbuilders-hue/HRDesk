@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -11,9 +11,9 @@ namespace HRDesk.Web.Pages.Holidays;
 public sealed class EditModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
-    private readonly LeaveAdjustmentService _adjustmentService;
+    private readonly ILeaveAdjustmentService _adjustmentService;
 
-    public EditModel(BiometricAttendanceDbContext db, LeaveAdjustmentService adjustmentService)
+    public EditModel(BiometricAttendanceDbContext db, ILeaveAdjustmentService adjustmentService)
     {
         _db = db;
         _adjustmentService = adjustmentService;

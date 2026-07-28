@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
 using HRDesk.Web.Data;
@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Services;
 
-public class CompOffService
+public class CompOffService : ICompOffService
 {
     private readonly BiometricAttendanceDbContext _db;
 
@@ -30,7 +30,7 @@ public class CompOffService
             // Update InTime/ShiftId if the record hasn't been admin-actioned yet (Draft or Pending).
             // Pending = waiting for admin review but was auto-set by processor; InTime may be wrong
             //   e.g. when only an OUT punch existed initially and processor used it as InTime.
-            // Approved/Rejected = admin has already acted — do NOT modify.
+            // Approved/Rejected = admin has already acted â€” do NOT modify.
             if (existing.Status == "Draft" || existing.Status == "Pending")
             {
                 existing.InTime = inTime;

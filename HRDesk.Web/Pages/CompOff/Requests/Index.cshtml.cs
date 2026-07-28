@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -13,9 +13,9 @@ namespace HRDesk.Web.Pages.CompOff.Requests
     public class IndexModel : PageModel
     {
         private readonly BiometricAttendanceDbContext _context;
-        private readonly CompOffService _compOffService;
+        private readonly ICompOffService _compOffService;
 
-        public IndexModel(BiometricAttendanceDbContext context, CompOffService compOffService)
+        public IndexModel(BiometricAttendanceDbContext context, ICompOffService compOffService)
         {
             _context = context;
             _compOffService = compOffService;

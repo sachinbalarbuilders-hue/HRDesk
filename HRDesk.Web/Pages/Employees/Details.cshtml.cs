@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using HRDesk.Web.Data;
@@ -43,8 +43,8 @@ public sealed class DetailsModel : PageModel
             return NotFound();
         }
 
-        // Use same leave year cycle as the rest of the app: Nov–Oct
-        // e.g. July 2026 → Leave Year 2025; November 2026 → Leave Year 2026
+        // Use same leave year cycle as the rest of the app: Novâ€“Oct
+        // e.g. July 2026 â†’ Leave Year 2025; November 2026 â†’ Leave Year 2026
         var today = DateOnly.FromDateTime(System.DateTime.Today);
         int currentLeaveYear = today.Month >= 11 ? today.Year : today.Year - 1;
 

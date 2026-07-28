@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -86,13 +86,13 @@ builder.Services.AddDbContext<HRDesk.Web.Data.BiometricAttendanceDbContext>(opti
     options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)));
 });
 
-builder.Services.AddScoped<HRDesk.Web.Services.AttendanceProcessorService>();
+builder.Services.AddScoped<HRDesk.Web.Services.IAttendanceProcessorService, HRDesk.Web.Services.AttendanceProcessorService>();
 builder.Services.AddScoped<HRDesk.Web.Services.ISequenceService, HRDesk.Web.Services.SequenceService>();
-builder.Services.AddScoped<HRDesk.Web.Services.LoanService>();
-builder.Services.AddScoped<HRDesk.Web.Services.AttendanceSummaryService>(); // Shared counting logic
-builder.Services.AddScoped<HRDesk.Web.Services.PayrollService>();
-builder.Services.AddScoped<HRDesk.Web.Services.CompOffService>();
-builder.Services.AddScoped<HRDesk.Web.Services.LeaveAdjustmentService>();
+builder.Services.AddScoped<HRDesk.Web.Services.ILoanService, HRDesk.Web.Services.LoanService>();
+builder.Services.AddScoped<HRDesk.Web.Services.IAttendanceSummaryService, HRDesk.Web.Services.AttendanceSummaryService>(); // Shared counting logic
+builder.Services.AddScoped<HRDesk.Web.Services.IPayrollService, HRDesk.Web.Services.PayrollService>();
+builder.Services.AddScoped<HRDesk.Web.Services.ICompOffService, HRDesk.Web.Services.CompOffService>();
+builder.Services.AddScoped<HRDesk.Web.Services.ILeaveAdjustmentService, HRDesk.Web.Services.LeaveAdjustmentService>();
 builder.Services.AddScoped<HRDesk.Web.Services.ImageGenerationService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.CelebrationNotificationService>();
 

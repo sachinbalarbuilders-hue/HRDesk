@@ -1,16 +1,16 @@
-using HRDesk.Web.Data;
+﻿using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Services;
 
-public class AttendanceProcessorService
+public class AttendanceProcessorService : IAttendanceProcessorService
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly ILogger<AttendanceProcessorService> _logger;
-    private readonly CompOffService _compOffService;
+    private readonly ICompOffService _compOffService;
 
-    public AttendanceProcessorService(BiometricAttendanceDbContext db, ILogger<AttendanceProcessorService> logger, CompOffService compOffService)
+    public AttendanceProcessorService(BiometricAttendanceDbContext db, ILogger<AttendanceProcessorService> logger, ICompOffService compOffService)
     {
         _db = db;
         _logger = logger;
@@ -169,15 +169,15 @@ public class AttendanceProcessorService
 
                 if (lastWorkingDay == null)
                 {
-                    // No punches and no LastWorkingDate — safe to remove
+                    // No punches and no LastWorkingDate â€” safe to remove
                     recordsToRemove.Add(record);
                 }
                 else if (date > lastWorkingDay.Value)
                 {
-                    // Date is after last working day — safe to remove (no weekoffs after exit)
+                    // Date is after last working day â€” safe to remove (no weekoffs after exit)
                     recordsToRemove.Add(record);
                 }
-                // else: date is on or before last working day — keep the record (valid weekoff/absent)
+                // else: date is on or before last working day â€” keep the record (valid weekoff/absent)
             }
 
             if (recordsToRemove.Any())
@@ -283,7 +283,7 @@ public class AttendanceProcessorService
             (h.IsGlobal || _db.HolidayEmployees.Any(he => he.HolidayId == h.Id && he.EmployeeId == emp.EmployeeId)));
         if (isHoliday) { existingRecord.Status = "Holiday"; return; }
 
-        // 3. Check for Approved Regularizations (Late/Early) — fetch ALL for this date
+        // 3. Check for Approved Regularizations (Late/Early) â€” fetch ALL for this date
         var approvedRegularizations = await _db.AttendanceRegularizations
             .Where(r => r.EmployeeId == emp.EmployeeId && 
                                       r.RequestDate == date && 
@@ -357,13 +357,13 @@ public class AttendanceProcessorService
                     existingRecord.IsActualBreak = false;
 
                     // Check if this weekoff is WITHIN the sandwiching leave's date range
-                    // If so, it's already counted in the application's TotalDays — don't deduct again
+                    // If so, it's already counted in the application's TotalDays â€” don't deduct again
                     bool alreadyInTotalDays = date >= sandwichingLeave.StartDate && date <= sandwichingLeave.EndDate;
 
                     if (alreadyInTotalDays)
                     {
-                        // Already counted in TotalDays — just mark the status, no balance change
-                        _logger.LogInformation("SANDWICH (within-range): Marking {Date} for {EmpId} — no deduction (already in TotalDays)", date, emp.EmployeeId);
+                        // Already counted in TotalDays â€” just mark the status, no balance change
+                        _logger.LogInformation("SANDWICH (within-range): Marking {Date} for {EmpId} â€” no deduction (already in TotalDays)", date, emp.EmployeeId);
                         existingRecord.Status = sandwichingLeave.LeaveType?.Code ?? "Leave";
                         existingRecord.ApplicationNumber = sandwichingLeave.ApplicationNumber;
                         existingRecord.Remarks = AppendRemark(existingRecord.Remarks,
@@ -371,7 +371,7 @@ public class AttendanceProcessorService
                     }
                     else
                     {
-                        // Cross-application sandwich — needs balance deduction
+                        // Cross-application sandwich â€” needs balance deduction
                         int leaveYear = GetLeaveYear(date);
                         var allocation = await _db.LeaveAllocations
                             .FirstOrDefaultAsync(a => a.EmployeeId == emp.EmployeeId
@@ -390,7 +390,7 @@ public class AttendanceProcessorService
                         }
                         else
                         {
-                            // No balance available — fall back to LWP
+                            // No balance available â€” fall back to LWP
                             existingRecord.Status = "LWP";
                             existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Sandwich Leave (LWP - No Balance)");
                         }
@@ -552,7 +552,7 @@ public class AttendanceProcessorService
                         {
                             firstLetter = leaveCode.Substring(0, 1).ToUpper();
                         }
-                        existingRecord.Status = $"{firstLetter}HF"; // PL→PHF, SL→SHF
+                        existingRecord.Status = $"{firstLetter}HF"; // PLâ†’PHF, SLâ†’SHF
                     }
                 }
                 // Skip adding remark here as it's already added at line ~359 (Half Day Leave: PL (Second Half))
@@ -666,8 +666,8 @@ public class AttendanceProcessorService
             existingRecord.WorkMinutes = 0;
             existingRecord.BreakMinutes = 0;
 
-            // Weekoff + single punch (half day worked) → W/OHF
-            // Unworked half stays as W/O credit — employee must never get LESS payable for showing up on weekoff
+            // Weekoff + single punch (half day worked) â†’ W/OHF
+            // Unworked half stays as W/O credit â€” employee must never get LESS payable for showing up on weekoff
             if (roster.IsWeekOff && existingRecord.Status == "Half Day")
                 existingRecord.Status = "W/OHF";
 
@@ -869,8 +869,8 @@ public class AttendanceProcessorService
         // 7. Monthly Penalties (Dynamic based on Shift limits)
         await ApplyMonthlyPenaltiesAsync(emp, existingRecord, currentShift);
 
-        // Weekoff + early exit / major late (half day) → W/OHF
-        // Unworked half stays as W/O credit — employee must never get LESS payable for showing up on weekoff
+        // Weekoff + early exit / major late (half day) â†’ W/OHF
+        // Unworked half stays as W/O credit â€” employee must never get LESS payable for showing up on weekoff
         if (roster.IsWeekOff && existingRecord.IsHalfDay && existingRecord.Status == "Half Day")
         {
             existingRecord.Status = "W/OHF";
@@ -1049,7 +1049,7 @@ public class AttendanceProcessorService
 
     private async Task<LeaveApplication?> GetSandwichingLeaveAsync(int employeeId, DateOnly weekoffDate)
     {
-        // Optimization: Fetch all potentially relevant leaves in the ±2 day range in ONE query
+        // Optimization: Fetch all potentially relevant leaves in the Â±2 day range in ONE query
         var fromDate = weekoffDate.AddDays(-2);
         var toDate = weekoffDate.AddDays(2);
 

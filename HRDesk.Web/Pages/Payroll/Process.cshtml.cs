@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,9 +14,9 @@ namespace HRDesk.Web.Pages.Payroll
     public class ProcessModel : PageModel
     {
         private readonly BiometricAttendanceDbContext _context;
-        private readonly PayrollService _payrollService;
+        private readonly IPayrollService _payrollService;
 
-        public ProcessModel(BiometricAttendanceDbContext context, PayrollService payrollService)
+        public ProcessModel(BiometricAttendanceDbContext context, IPayrollService payrollService)
         {
             _context = context;
             _payrollService = payrollService;

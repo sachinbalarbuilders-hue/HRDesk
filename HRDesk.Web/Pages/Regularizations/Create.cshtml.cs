@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -23,9 +23,9 @@ namespace HRDesk.Web.Pages.Regularizations
     {
         private readonly BiometricAttendanceDbContext _context;
         private readonly ISequenceService _sequenceService;
-        private readonly AttendanceProcessorService _processor;
+        private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
 
-        public CreateModel(BiometricAttendanceDbContext context, ISequenceService sequenceService, AttendanceProcessorService processor)
+        public CreateModel(BiometricAttendanceDbContext context, ISequenceService sequenceService, HRDesk.Web.Services.IAttendanceProcessorService processor)
         {
             _context = context;
             _sequenceService = sequenceService;

@@ -1,4 +1,4 @@
-namespace HRDesk.Web.Services;
+﻿namespace HRDesk.Web.Services;
 
 public static class PipeConstants
 {

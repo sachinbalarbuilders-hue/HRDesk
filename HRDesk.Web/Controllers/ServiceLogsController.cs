@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 
@@ -76,7 +76,7 @@ namespace HRDesk.Web.Controllers
                 using var fs = new FileStream(LogFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 long fileSize = fs.Length;
 
-                // File was truncated or rotated — reset
+                // File was truncated or rotated â€” reset
                 if (offset > fileSize)
                 {
                     var reset = ReadLastNLines(fs, 50);
@@ -170,7 +170,7 @@ namespace HRDesk.Web.Controllers
             }
         }
 
-        // ─── Helpers ───────────────────────────────────────────────────────────
+        // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private static List<string> ReadLastNLines(FileStream fs, int lineCount)
         {
