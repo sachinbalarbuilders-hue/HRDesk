@@ -17235,3 +17235,1285 @@ WHERE `o`.`is_active`
 2026-07-28 16:16:35.428 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
 2026-07-28 16:16:35.428 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 0.3527ms
 2026-07-28 16:20:30.087 +05:30 [INF] Application is shutting down...
+2026-07-28 16:23:13.502 +05:30 [INF] Executed DbCommand (14ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='biometric_attendance_test' AND TABLE_NAME='__EFMigrationsHistory';
+2026-07-28 16:23:13.538 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='biometric_attendance_test' AND TABLE_NAME='__EFMigrationsHistory';
+2026-07-28 16:23:13.559 +05:30 [INF] Executed DbCommand (7ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `MigrationId`, `ProductVersion`
+FROM `__EFMigrationsHistory`
+ORDER BY `MigrationId`;
+2026-07-28 16:23:13.617 +05:30 [INF] No migrations were applied. The database is already up to date.
+2026-07-28 16:23:13.731 +05:30 [INF] Executed DbCommand (8ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM `Organizations` AS `o`)
+2026-07-28 16:23:13.801 +05:30 [INF] Executed DbCommand (35ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM `users` AS `u`
+    WHERE `u`.`organization_id` = @__ef_filter__TenantId_0)
+2026-07-28 16:23:13.809 +05:30 [INF] Executed DbCommand (3ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM `salary_components` AS `s`
+    WHERE (`s`.`organization_id` = @__ef_filter__TenantId_0) AND (`s`.`component_code` = 'PF'))
+2026-07-28 16:23:13.847 +05:30 [INF] Executed DbCommand (7ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `d`.`Id`, `d`.`CommKey`, `d`.`IpAddress`, `d`.`MachineNumber`, `d`.`Name`, `d`.`organization_id`, `d`.`Port`
+FROM `DeviceConfigurations` AS `d`
+WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+LIMIT 1
+2026-07-28 16:23:14.168 +05:30 [INF] User profile is available. Using 'C:\Users\Admin\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-07-28 16:23:14.476 +05:30 [INF] Celebration Notification Service is starting.
+2026-07-28 16:23:14.876 +05:30 [INF] Executed DbCommand (111ms) [Parameters=[@__today_Date_0='?' (DbType = DateTime)], CommandType='"Text"', CommandTimeout='30']
+SELECT `c`.`employee_id` AS `EmployeeId`, `c`.`event_type` AS `EventType`
+FROM `celebration_logs` AS `c`
+WHERE CONVERT(`c`.`sent_date`, date) = @__today_Date_0
+2026-07-28 16:23:14.933 +05:30 [INF] Now listening on: http://localhost:5283
+2026-07-28 16:23:14.934 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2026-07-28 16:23:14.934 +05:30 [INF] Hosting environment: Development
+2026-07-28 16:23:14.934 +05:30 [INF] Content root path: C:\Users\Admin\HRDesk\HRDesk.Web
+2026-07-28 16:23:15.272 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/ - null null
+2026-07-28 16:23:15.288 +05:30 [WRN] Failed to determine the https port for redirect.
+2026-07-28 16:23:15.551 +05:30 [INF] Executed DbCommand (604ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`date_of_birth`, `e`.`department_id`, `e`.`designation_id`, `e`.`device_sync_error`, `e`.`device_synced`, `e`.`employee_name`, `e`.`joining_date`, `e`.`LastWorkingDate`, `e`.`phone`, `e`.`PhotoContentType`, `e`.`PhotoData`, `e`.`PhotoPath`, `e`.`probation_end`, `e`.`probation_start`, `e`.`resignation_date`, `e`.`status`, `e`.`weekoff`, `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `employees` AS `e`
+INNER JOIN `Organizations` AS `o` ON `e`.`organization_id` = `o`.`id`
+WHERE `e`.`status` = 'active'
+2026-07-28 16:23:19.088 +05:30 [INF] Executing endpoint '/Index'
+2026-07-28 16:23:20.059 +05:30 [INF] Route matched with {page = "/Index", action = "", controller = "", area = ""}. Executing page /Index
+2026-07-28 16:23:20.191 +05:30 [INF] Executing handler method HRDesk.Web.Pages.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:23:22.839 +05:30 [INF] Executed DbCommand (1,119ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT COUNT(*)
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`status` = 'active')
+2026-07-28 16:23:23.922 +05:30 [INF] Executed DbCommand (1,072ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__today_0='?' (DbType = Date)], CommandType='"Text"', CommandTimeout='30']
+SELECT COUNT(*)
+FROM `daily_attendance` AS `d`
+WHERE (`d`.`organization_id` = @__ef_filter__TenantId_0) AND ((`d`.`record_date` = @__today_0) AND `d`.`in_time` IS NOT NULL)
+2026-07-28 16:23:24.173 +05:30 [INF] Executed DbCommand (246ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__today_0='?' (DbType = Date)], CommandType='"Text"', CommandTimeout='30']
+SELECT COUNT(*)
+FROM `leave_applications` AS `l`
+WHERE (`l`.`organization_id` = @__ef_filter__TenantId_0) AND (((`l`.`status` = 'Approved') AND (`l`.`start_date` <= @__today_0)) AND (`l`.`end_date` >= @__today_0))
+2026-07-28 16:23:24.180 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__today_0='?' (DbType = Date)], CommandType='"Text"', CommandTimeout='30']
+SELECT COUNT(*)
+FROM `daily_attendance` AS `d`
+WHERE (`d`.`organization_id` = @__ef_filter__TenantId_0) AND ((`d`.`record_date` = @__today_0) AND `d`.`is_late`)
+2026-07-28 16:23:24.184 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `d`.`Id`, `d`.`CommKey`, `d`.`IpAddress`, `d`.`MachineNumber`, `d`.`Name`, `d`.`organization_id`, `d`.`Port`
+FROM `DeviceConfigurations` AS `d`
+WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+2026-07-28 16:23:24.520 +05:30 [INF] Executed DbCommand (331ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__cfg_Id_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `d`.`device_id`, `d`.`device_ip`, `d`.`last_sync_status`, `d`.`last_synced_time`, `d`.`organization_id`, `d`.`records_synced`, `d`.`updated_at`
+FROM `device_sync_state` AS `d`
+WHERE (`d`.`organization_id` = @__ef_filter__TenantId_0) AND (`d`.`device_id` = @__cfg_Id_0)
+LIMIT 1
+2026-07-28 16:23:24.581 +05:30 [INF] Executed DbCommand (56ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`date_of_birth`, `e`.`department_id`, `e`.`designation_id`, `e`.`device_sync_error`, `e`.`device_synced`, `e`.`employee_name`, `e`.`joining_date`, `e`.`LastWorkingDate`, `e`.`phone`, `e`.`PhotoContentType`, `e`.`PhotoData`, `e`.`PhotoPath`, `e`.`probation_end`, `e`.`probation_start`, `e`.`resignation_date`, `e`.`status`, `e`.`weekoff`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`status` = 'active')
+2026-07-28 16:23:30.320 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:23:30.323 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:23:30.324 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:23:35.800 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:23:35.892 +05:30 [INF] Executed page /Index in 15780.1548ms
+2026-07-28 16:23:35.893 +05:30 [INF] Executed endpoint '/Index'
+2026-07-28 16:23:35.897 +05:30 [INF] HTTP GET / responded 200 in 20605.6794 ms
+2026-07-28 16:23:35.990 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/ - 200 null text/html; charset=utf-8 20717.0192ms
+2026-07-28 16:23:35.992 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=38&width=150&height=150 - null null
+2026-07-28 16:23:35.993 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=32&width=150&height=150 - null null
+2026-07-28 16:23:35.997 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=132&width=150&height=150 - null null
+2026-07-28 16:23:36.007 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:36.007 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:36.007 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:36.034 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:36.034 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:36.034 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:36.098 +05:30 [INF] Executed DbCommand (9ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:36.148 +05:30 [INF] Executed DbCommand (56ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:36.212 +05:30 [INF] Executed DbCommand (124ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:37.590 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:37.600 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 1565.597ms
+2026-07-28 16:23:37.600 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:37.601 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 1603.9028 ms
+2026-07-28 16:23:37.601 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=32&width=150&height=150 - 200 49404 image/jpeg 1607.9564ms
+2026-07-28 16:23:37.603 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:37.605 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 1570.2247ms
+2026-07-28 16:23:37.606 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:37.606 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 1609.1015 ms
+2026-07-28 16:23:37.606 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=38&width=150&height=150 - 200 52063 image/jpeg 1614.5411ms
+2026-07-28 16:23:37.613 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=6&width=150&height=150 - null null
+2026-07-28 16:23:37.614 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:37.614 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 1579.8649ms
+2026-07-28 16:23:37.614 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:37.614 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 1616.7362 ms
+2026-07-28 16:23:37.615 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=132&width=150&height=150 - 200 47044 image/jpeg 1617.1141ms
+2026-07-28 16:23:37.622 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=16&width=150&height=150 - null null
+2026-07-28 16:23:37.687 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:37.687 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:37.687 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:37.687 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:37.692 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:37.702 +05:30 [INF] Executed DbCommand (10ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:37.713 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:37.713 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 25.5657ms
+2026-07-28 16:23:37.713 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:37.714 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 100.0360 ms
+2026-07-28 16:23:37.714 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=6&width=150&height=150 - 200 15761 image/jpeg 100.5478ms
+2026-07-28 16:23:37.757 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:23:37.757 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=103&width=150&height=150 - null null
+2026-07-28 16:23:37.758 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:37.758 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:37.761 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 3.8074ms
+2026-07-28 16:23:37.763 +05:30 [INF] Executed DbCommand (2ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:37.774 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=3&width=150&height=150 - null null
+2026-07-28 16:23:37.777 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:37.777 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:37.780 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:37.849 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:37.849 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 71.8233ms
+2026-07-28 16:23:37.849 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:37.849 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 74.2338 ms
+2026-07-28 16:23:37.850 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=3&width=150&height=150 - 200 4074 image/jpeg 75.4856ms
+2026-07-28 16:23:38.030 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/?handler=CheckConnection&id=1 - null null
+2026-07-28 16:23:38.033 +05:30 [INF] Executing endpoint '/Index'
+2026-07-28 16:23:38.035 +05:30 [INF] Route matched with {page = "/Index", action = "", controller = "", area = ""}. Executing page /Index
+2026-07-28 16:23:38.040 +05:30 [INF] Executing handler method HRDesk.Web.Pages.IndexModel.OnGetCheckConnectionAsync - ModelState is "Valid"
+2026-07-28 16:23:38.043 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:38.043 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 285.012ms
+2026-07-28 16:23:38.043 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:38.043 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 285.9385 ms
+2026-07-28 16:23:38.044 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=103&width=150&height=150 - 200 7260 image/jpeg 286.2648ms
+2026-07-28 16:23:38.045 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=101&width=150&height=150 - null null
+2026-07-28 16:23:38.045 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:38.045 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:38.063 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=99&width=150&height=150 - null null
+2026-07-28 16:23:38.064 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:38.064 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:38.070 +05:30 [INF] Executed DbCommand (5ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:38.090 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `d`.`Id`, `d`.`CommKey`, `d`.`IpAddress`, `d`.`MachineNumber`, `d`.`Name`, `d`.`organization_id`, `d`.`Port`
+FROM `DeviceConfigurations` AS `d`
+WHERE (`d`.`organization_id` = @__ef_filter__TenantId_0) AND (`d`.`Id` = @__p_0)
+LIMIT 1
+2026-07-28 16:23:38.092 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:38.092 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 28.22ms
+2026-07-28 16:23:38.092 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:38.092 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 28.7754 ms
+2026-07-28 16:23:38.092 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=99&width=150&height=150 - 200 5987 image/jpeg 29.0069ms
+2026-07-28 16:23:38.094 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=22&width=150&height=150 - null null
+2026-07-28 16:23:38.095 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:38.095 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:38.290 +05:30 [INF] Executed handler method OnGetCheckConnectionAsync, returned result Microsoft.AspNetCore.Mvc.JsonResult.
+2026-07-28 16:23:38.292 +05:30 [INF] Executing JsonResult, writing value of type '<>f__AnonymousType48`2[[System.Boolean, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2026-07-28 16:23:38.309 +05:30 [INF] Executed DbCommand (262ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:38.312 +05:30 [INF] Executed page /Index in 277.2141ms
+2026-07-28 16:23:38.313 +05:30 [INF] Executed endpoint '/Index'
+2026-07-28 16:23:38.313 +05:30 [INF] HTTP GET / responded 200 in 282.1137 ms
+2026-07-28 16:23:38.313 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/?handler=CheckConnection&id=1 - 200 null application/json; charset=utf-8 282.5533ms
+2026-07-28 16:23:38.316 +05:30 [INF] Executed DbCommand (220ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:38.361 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:38.362 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 316.3116ms
+2026-07-28 16:23:38.362 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:38.362 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 316.9861 ms
+2026-07-28 16:23:38.362 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=101&width=150&height=150 - 200 4862 image/jpeg 317.2672ms
+2026-07-28 16:23:38.364 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=43&width=150&height=150 - null null
+2026-07-28 16:23:38.364 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:38.364 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:38.373 +05:30 [INF] Executed DbCommand (7ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:38.623 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:38.624 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 936.1987ms
+2026-07-28 16:23:38.624 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:38.624 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 1001.8982 ms
+2026-07-28 16:23:38.624 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=16&width=150&height=150 - 200 49624 image/jpeg 1002.2269ms
+2026-07-28 16:23:38.633 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=10&width=150&height=150 - null null
+2026-07-28 16:23:38.634 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:38.634 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:38.643 +05:30 [INF] Executed DbCommand (7ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:39.326 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:39.326 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 1231.1763ms
+2026-07-28 16:23:39.326 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:39.326 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 1231.7221 ms
+2026-07-28 16:23:39.326 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=22&width=150&height=150 - 200 52218 image/jpeg 1231.9324ms
+2026-07-28 16:23:39.386 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=44&width=150&height=150 - null null
+2026-07-28 16:23:39.387 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:39.387 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:39.465 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:39.466 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 1101.9433ms
+2026-07-28 16:23:39.467 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:39.467 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 1102.7418 ms
+2026-07-28 16:23:39.467 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=43&width=150&height=150 - 200 53812 image/jpeg 1103.023ms
+2026-07-28 16:23:39.471 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=11&width=150&height=150 - null null
+2026-07-28 16:23:39.472 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:39.473 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:39.486 +05:30 [INF] Executed DbCommand (10ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:39.632 +05:30 [INF] Executed DbCommand (230ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:39.755 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:39.755 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 1121.1223ms
+2026-07-28 16:23:39.755 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:39.755 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 1122.4179 ms
+2026-07-28 16:23:39.755 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=10&width=150&height=150 - 200 47040 image/jpeg 1122.7837ms
+2026-07-28 16:23:39.760 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=7&width=150&height=150 - null null
+2026-07-28 16:23:39.760 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:39.761 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:39.768 +05:30 [INF] Executed DbCommand (5ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:39.782 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:39.783 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 22.042ms
+2026-07-28 16:23:39.783 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:39.783 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 23.1046 ms
+2026-07-28 16:23:39.784 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=7&width=150&height=150 - 200 8282 image/jpeg 23.735ms
+2026-07-28 16:23:39.787 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=2&width=150&height=150 - null null
+2026-07-28 16:23:39.788 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:39.788 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:39.796 +05:30 [INF] Executed DbCommand (7ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:40.449 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:40.449 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 975.3608ms
+2026-07-28 16:23:40.449 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:40.449 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 978.2251 ms
+2026-07-28 16:23:40.449 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=11&width=150&height=150 - 200 50485 image/jpeg 978.6118ms
+2026-07-28 16:23:40.453 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=12&width=150&height=150 - null null
+2026-07-28 16:23:40.453 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:40.453 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:40.627 +05:30 [INF] Executed DbCommand (172ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:40.715 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:40.716 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 927.3072ms
+2026-07-28 16:23:40.716 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:40.716 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 928.1650 ms
+2026-07-28 16:23:40.716 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=2&width=150&height=150 - 200 46931 image/jpeg 928.6237ms
+2026-07-28 16:23:40.729 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=121&width=150&height=150 - null null
+2026-07-28 16:23:40.730 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:40.731 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:40.743 +05:30 [INF] Executed DbCommand (4ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:40.752 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:40.752 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 1365.6103ms
+2026-07-28 16:23:40.753 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:40.753 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 1366.8489 ms
+2026-07-28 16:23:40.753 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=44&width=150&height=150 - 200 46110 image/jpeg 1367.6139ms
+2026-07-28 16:23:40.760 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=5&width=150&height=150 - null null
+2026-07-28 16:23:40.761 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:40.761 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:40.777 +05:30 [INF] Executed DbCommand (13ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:40.872 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:40.873 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 141.8651ms
+2026-07-28 16:23:40.873 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:40.873 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 143.8297 ms
+2026-07-28 16:23:40.873 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=121&width=150&height=150 - 200 8821 image/jpeg 144.3999ms
+2026-07-28 16:23:40.876 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=133&width=150&height=150 - null null
+2026-07-28 16:23:40.877 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:40.877 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:41.145 +05:30 [INF] Executed DbCommand (266ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:41.341 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:41.341 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 887.8717ms
+2026-07-28 16:23:41.342 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.342 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 888.8135 ms
+2026-07-28 16:23:41.342 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=12&width=150&height=150 - 200 49846 image/jpeg 889.1464ms
+2026-07-28 16:23:41.343 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:41.344 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 582.0723ms
+2026-07-28 16:23:41.344 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.344 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 583.7240 ms
+2026-07-28 16:23:41.344 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=5&width=150&height=150 - 200 49707 image/jpeg 584.2287ms
+2026-07-28 16:23:41.346 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=39&width=150&height=150 - null null
+2026-07-28 16:23:41.347 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.347 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:41.365 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=9999&width=150&height=150 - null null
+2026-07-28 16:23:41.366 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.366 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:41.456 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:41.456 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 578.9579ms
+2026-07-28 16:23:41.456 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.456 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 579.8525 ms
+2026-07-28 16:23:41.456 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=133&width=150&height=150 - 200 48704 image/jpeg 580.1828ms
+2026-07-28 16:23:41.460 +05:30 [INF] Executed DbCommand (92ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:41.475 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:41.475 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 108.7084ms
+2026-07-28 16:23:41.475 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.475 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 109.5098 ms
+2026-07-28 16:23:41.475 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=9999&width=150&height=150 - 200 4142 image/jpeg 109.9357ms
+2026-07-28 16:23:41.551 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=124&width=150&height=150 - null null
+2026-07-28 16:23:41.551 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.551 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:41.583 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=99999&width=150&height=150 - null null
+2026-07-28 16:23:41.584 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.584 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:41.760 +05:30 [INF] Executed DbCommand (207ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:41.770 +05:30 [INF] Executed DbCommand (184ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:41.793 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:41.794 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 242.3383ms
+2026-07-28 16:23:41.794 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.794 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 243.1932 ms
+2026-07-28 16:23:41.794 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=124&width=150&height=150 - 200 4629 image/jpeg 243.5836ms
+2026-07-28 16:23:41.798 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=131&width=150&height=150 - null null
+2026-07-28 16:23:41.799 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.800 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:41.820 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:41.820 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 236.0679ms
+2026-07-28 16:23:41.820 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.820 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 236.7829 ms
+2026-07-28 16:23:41.820 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=99999&width=150&height=150 - 200 5507 image/jpeg 237.4521ms
+2026-07-28 16:23:41.823 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=115&width=150&height=150 - null null
+2026-07-28 16:23:41.824 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.824 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:41.826 +05:30 [INF] Executed DbCommand (2ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:41.842 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:41.842 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 18.6783ms
+2026-07-28 16:23:41.843 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.843 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 19.2364 ms
+2026-07-28 16:23:41.843 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=115&width=150&height=150 - 200 2890 image/jpeg 19.4501ms
+2026-07-28 16:23:41.846 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=202&width=150&height=150 - null null
+2026-07-28 16:23:41.846 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:41.846 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:41.946 +05:30 [INF] Executed DbCommand (597ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:42.079 +05:30 [INF] Executed DbCommand (276ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:42.114 +05:30 [INF] Executed DbCommand (266ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:42.206 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:42.207 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 858.8842ms
+2026-07-28 16:23:42.207 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.207 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 860.2864 ms
+2026-07-28 16:23:42.207 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=39&width=150&height=150 - 200 45923 image/jpeg 860.7394ms
+2026-07-28 16:23:42.211 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=45&width=150&height=150 - null null
+2026-07-28 16:23:42.211 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.211 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:42.218 +05:30 [INF] Executed DbCommand (3ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:42.249 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:42.249 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 37.6604ms
+2026-07-28 16:23:42.249 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.250 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 38.5329 ms
+2026-07-28 16:23:42.250 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=45&width=150&height=150 - 200 3721 image/jpeg 38.8491ms
+2026-07-28 16:23:42.252 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=104&width=150&height=150 - null null
+2026-07-28 16:23:42.253 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.254 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:42.256 +05:30 [INF] Executed DbCommand (2ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:42.262 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:42.262 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 8.2727ms
+2026-07-28 16:23:42.262 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.262 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 9.4201 ms
+2026-07-28 16:23:42.262 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=104&width=150&height=150 - 200 6012 image/jpeg 9.7289ms
+2026-07-28 16:23:42.265 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=188&width=150&height=150 - null null
+2026-07-28 16:23:42.265 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.265 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:42.277 +05:30 [INF] Executed DbCommand (10ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:42.305 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:42.306 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 40.1288ms
+2026-07-28 16:23:42.306 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.306 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 40.8353 ms
+2026-07-28 16:23:42.306 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=188&width=150&height=150 - 200 23760 image/jpeg 41.1024ms
+2026-07-28 16:23:42.309 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=8&width=150&height=150 - null null
+2026-07-28 16:23:42.310 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.310 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:42.318 +05:30 [INF] Executed DbCommand (7ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:42.338 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:42.338 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 538.0598ms
+2026-07-28 16:23:42.338 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.338 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 539.8890 ms
+2026-07-28 16:23:42.338 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=131&width=150&height=150 - 200 49202 image/jpeg 540.216ms
+2026-07-28 16:23:42.386 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:42.386 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 539.5137ms
+2026-07-28 16:23:42.386 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.386 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 540.2943 ms
+2026-07-28 16:23:42.386 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=202&width=150&height=150 - 200 48500 image/jpeg 540.5549ms
+2026-07-28 16:23:42.407 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=19&width=150&height=150 - null null
+2026-07-28 16:23:42.408 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.408 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:42.410 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=123&width=150&height=150 - null null
+2026-07-28 16:23:42.411 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.411 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:42.413 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:42.422 +05:30 [INF] Executed DbCommand (12ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:42.428 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:42.428 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 16.6686ms
+2026-07-28 16:23:42.428 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.428 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 17.3502 ms
+2026-07-28 16:23:42.428 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=123&width=150&height=150 - 200 4168 image/jpeg 17.6955ms
+2026-07-28 16:23:42.430 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=1001&width=150&height=150 - null null
+2026-07-28 16:23:42.430 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.430 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:23:42.434 +05:30 [INF] Executed DbCommand (2ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:23:42.444 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:42.444 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:42.444 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 13.9392ms
+2026-07-28 16:23:42.444 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.444 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 36.1163ms
+2026-07-28 16:23:42.444 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.444 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 14.4116 ms
+2026-07-28 16:23:42.444 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 37.5113 ms
+2026-07-28 16:23:42.445 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=19&width=150&height=150 - 200 13798 image/jpeg 37.8782ms
+2026-07-28 16:23:42.445 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=1001&width=150&height=150 - 200 4168 image/jpeg 14.6335ms
+2026-07-28 16:23:42.565 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:23:42.566 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 255.5121ms
+2026-07-28 16:23:42.566 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:23:42.566 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 256.1400 ms
+2026-07-28 16:23:42.566 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=8&width=150&height=150 - 200 49680 image/jpeg 256.4531ms
+2026-07-28 16:24:32.074 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/Departments - null null
+2026-07-28 16:24:32.342 +05:30 [INF] Executing endpoint '/Departments/Index'
+2026-07-28 16:24:32.360 +05:30 [INF] Route matched with {page = "/Departments/Index", action = "", controller = "", area = ""}. Executing page /Departments/Index
+2026-07-28 16:24:32.362 +05:30 [INF] Executing handler method HRDesk.Web.Pages.Departments.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:24:32.385 +05:30 [INF] Executed DbCommand (6ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `d`.`id`, `d`.`department_name`, `d`.`organization_id`, `d`.`status`
+FROM `departments` AS `d`
+WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+ORDER BY `d`.`department_name`
+2026-07-28 16:24:32.386 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:24:32.386 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:24:32.387 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:24:32.411 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:24:32.413 +05:30 [INF] Executed page /Departments/Index in 53.2024ms
+2026-07-28 16:24:32.413 +05:30 [INF] Executed endpoint '/Departments/Index'
+2026-07-28 16:24:32.413 +05:30 [INF] HTTP GET /Departments responded 200 in 338.3825 ms
+2026-07-28 16:24:32.413 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/Departments - 200 null text/html; charset=utf-8 339.474ms
+2026-07-28 16:24:32.425 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:24:32.426 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 0.4464ms
+2026-07-28 16:24:33.660 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/Designations - null null
+2026-07-28 16:24:33.820 +05:30 [INF] Executing endpoint '/Designations/Index'
+2026-07-28 16:24:33.822 +05:30 [INF] Route matched with {page = "/Designations/Index", action = "", controller = "", area = ""}. Executing page /Designations/Index
+2026-07-28 16:24:33.823 +05:30 [INF] Executing handler method HRDesk.Web.Pages.Designations.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:24:33.836 +05:30 [INF] Executed DbCommand (6ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `d`.`id`, `d`.`designation_name`, `d`.`organization_id`, `d`.`status`
+FROM `designations` AS `d`
+WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+ORDER BY `d`.`designation_name`
+2026-07-28 16:24:33.837 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:24:33.837 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:24:33.838 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:24:33.845 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:24:33.846 +05:30 [INF] Executed page /Designations/Index in 23.4985ms
+2026-07-28 16:24:33.846 +05:30 [INF] Executed endpoint '/Designations/Index'
+2026-07-28 16:24:33.846 +05:30 [INF] HTTP GET /Designations responded 200 in 185.2458 ms
+2026-07-28 16:24:33.846 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/Designations - 200 null text/html; charset=utf-8 185.8473ms
+2026-07-28 16:24:33.855 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:24:33.856 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 0.3847ms
+2026-07-28 16:24:34.955 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/Employees - null null
+2026-07-28 16:24:35.168 +05:30 [INF] Executing endpoint '/Employees/Index'
+2026-07-28 16:24:35.171 +05:30 [INF] Route matched with {page = "/Employees/Index", action = "", controller = "", area = ""}. Executing page /Employees/Index
+2026-07-28 16:24:35.172 +05:30 [INF] Executing handler method HRDesk.Web.Pages.Employees.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:24:35.203 +05:30 [INF] Executed DbCommand (4ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__ToLower_0='?' (Size = 4000)], CommandType='"Text"', CommandTimeout='30']
+SELECT COUNT(*)
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`status` IS NOT NULL AND (LOWER(`e`.`status`) = @__ToLower_0))
+2026-07-28 16:24:37.213 +05:30 [INF] Executed DbCommand (1,985ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__ToLower_0='?' (Size = 4000), @__p_2='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `t`.`organization_id`, `t`.`employee_id`, `t`.`date_of_birth`, `t`.`department_id`, `t`.`designation_id`, `t`.`device_sync_error`, `t`.`device_synced`, `t`.`employee_name`, `t`.`joining_date`, `t`.`LastWorkingDate`, `t`.`phone`, `t`.`PhotoContentType`, `t`.`PhotoData`, `t`.`PhotoPath`, `t`.`probation_end`, `t`.`probation_start`, `t`.`resignation_date`, `t`.`status`, `t`.`weekoff`, `t0`.`id`, `t0`.`department_name`, `t0`.`organization_id`, `t0`.`status`, `t1`.`id`, `t1`.`designation_name`, `t1`.`organization_id`, `t1`.`status`
+FROM (
+    SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`date_of_birth`, `e`.`department_id`, `e`.`designation_id`, `e`.`device_sync_error`, `e`.`device_synced`, `e`.`employee_name`, `e`.`joining_date`, `e`.`LastWorkingDate`, `e`.`phone`, `e`.`PhotoContentType`, `e`.`PhotoData`, `e`.`PhotoPath`, `e`.`probation_end`, `e`.`probation_start`, `e`.`resignation_date`, `e`.`status`, `e`.`weekoff`
+    FROM `employees` AS `e`
+    WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`status` IS NOT NULL AND (LOWER(`e`.`status`) = @__ToLower_0))
+    ORDER BY `e`.`employee_name`, `e`.`employee_id`
+    LIMIT @__p_2 OFFSET @__p_1
+) AS `t`
+LEFT JOIN (
+    SELECT `d`.`id`, `d`.`department_name`, `d`.`organization_id`, `d`.`status`
+    FROM `departments` AS `d`
+    WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t0` ON `t`.`department_id` = `t0`.`id`
+LEFT JOIN (
+    SELECT `d0`.`id`, `d0`.`designation_name`, `d0`.`organization_id`, `d0`.`status`
+    FROM `designations` AS `d0`
+    WHERE `d0`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t1` ON `t`.`designation_id` = `t1`.`id`
+ORDER BY `t`.`employee_name`, `t`.`employee_id`
+2026-07-28 16:24:37.411 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:24:37.411 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:24:37.411 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:24:37.574 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:24:37.579 +05:30 [INF] Executed page /Employees/Index in 2407.7597ms
+2026-07-28 16:24:37.579 +05:30 [INF] Executed endpoint '/Employees/Index'
+2026-07-28 16:24:37.579 +05:30 [INF] HTTP GET /Employees responded 200 in 2623.1935 ms
+2026-07-28 16:24:37.579 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/Employees - 200 null text/html; charset=utf-8 2623.6232ms
+2026-07-28 16:24:37.593 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:24:37.593 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 0.4516ms
+2026-07-28 16:24:37.649 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=124&width=150&height=150 - null null
+2026-07-28 16:24:37.650 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=101&width=150&height=150 - null null
+2026-07-28 16:24:37.650 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=10&width=150&height=150 - null null
+2026-07-28 16:24:37.650 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=44&width=150&height=150 - null null
+2026-07-28 16:24:37.650 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.650 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.650 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.650 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.651 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.651 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.650 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.652 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.654 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=12&width=150&height=150 - null null
+2026-07-28 16:24:37.654 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=6&width=150&height=150 - null null
+2026-07-28 16:24:37.654 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.654 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.655 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.655 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.679 +05:30 [INF] Executed DbCommand (25ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.679 +05:30 [INF] Executed DbCommand (5ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.679 +05:30 [INF] Executed DbCommand (4ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.682 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.683 +05:30 [INF] Executed DbCommand (29ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.683 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 27.9286ms
+2026-07-28 16:24:37.683 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.683 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 28.8916 ms
+2026-07-28 16:24:37.683 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=6&width=150&height=150 - 200 15761 image/jpeg 29.2133ms
+2026-07-28 16:24:37.684 +05:30 [INF] Executed DbCommand (30ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.691 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=99&width=150&height=150 - null null
+2026-07-28 16:24:37.692 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.692 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.694 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.696 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 45.4136ms
+2026-07-28 16:24:37.696 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.696 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 46.2365 ms
+2026-07-28 16:24:37.696 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=124&width=150&height=150 - 200 4629 image/jpeg 46.6588ms
+2026-07-28 16:24:37.700 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=45&width=150&height=150 - null null
+2026-07-28 16:24:37.701 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.701 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.706 +05:30 [INF] Executed DbCommand (31ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.713 +05:30 [INF] Executed DbCommand (2ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.714 +05:30 [INF] Executed DbCommand (2ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.714 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.714 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.715 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 13.2316ms
+2026-07-28 16:24:37.715 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 22.3499ms
+2026-07-28 16:24:37.715 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.715 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.715 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 14.3526 ms
+2026-07-28 16:24:37.719 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 26.7202 ms
+2026-07-28 16:24:37.719 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=45&width=150&height=150 - 200 3721 image/jpeg 18.5313ms
+2026-07-28 16:24:37.719 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=99&width=150&height=150 - 200 5987 image/jpeg 28.1993ms
+2026-07-28 16:24:37.723 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.723 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.724 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 71.8441ms
+2026-07-28 16:24:37.724 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 72.3902ms
+2026-07-28 16:24:37.724 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.724 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.724 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 74.0851 ms
+2026-07-28 16:24:37.724 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 74.1560 ms
+2026-07-28 16:24:37.724 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=44&width=150&height=150 - 200 46110 image/jpeg 74.2782ms
+2026-07-28 16:24:37.724 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=10&width=150&height=150 - 200 47040 image/jpeg 74.2914ms
+2026-07-28 16:24:37.731 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=2&width=150&height=150 - null null
+2026-07-28 16:24:37.731 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.732 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 80.6552ms
+2026-07-28 16:24:37.732 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.732 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.732 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 82.0916 ms
+2026-07-28 16:24:37.732 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.732 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=101&width=150&height=150 - 200 4862 image/jpeg 82.3123ms
+2026-07-28 16:24:37.735 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=202&width=150&height=150 - null null
+2026-07-28 16:24:37.736 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.737 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=103&width=150&height=150 - null null
+2026-07-28 16:24:37.737 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.737 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=133&width=150&height=150 - null null
+2026-07-28 16:24:37.738 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.738 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.740 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.741 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:37.743 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.744 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 89.2966ms
+2026-07-28 16:24:37.744 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.744 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 90.0857 ms
+2026-07-28 16:24:37.745 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=12&width=150&height=150 - 200 49846 image/jpeg 90.8916ms
+2026-07-28 16:24:37.753 +05:30 [INF] Executed DbCommand (9ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.779 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.781 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 42.275ms
+2026-07-28 16:24:37.781 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.781 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 43.7954 ms
+2026-07-28 16:24:37.781 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=103&width=150&height=150 - 200 7260 image/jpeg 44.397ms
+2026-07-28 16:24:37.781 +05:30 [INF] Executed DbCommand (36ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.784 +05:30 [INF] Executed DbCommand (39ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.788 +05:30 [INF] Executed DbCommand (36ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:37.822 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.823 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 90.6159ms
+2026-07-28 16:24:37.823 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.823 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 91.6472 ms
+2026-07-28 16:24:37.823 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=2&width=150&height=150 - 200 46931 image/jpeg 91.9807ms
+2026-07-28 16:24:37.847 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.847 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:37.847 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 105.6957ms
+2026-07-28 16:24:37.847 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.847 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 110.0547ms
+2026-07-28 16:24:37.847 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 109.3104 ms
+2026-07-28 16:24:37.847 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:37.847 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 111.7132 ms
+2026-07-28 16:24:37.847 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=133&width=150&height=150 - 200 48704 image/jpeg 109.8119ms
+2026-07-28 16:24:37.847 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=202&width=150&height=150 - 200 48500 image/jpeg 112.0601ms
+2026-07-28 16:24:39.120 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/AttendanceLogs - null null
+2026-07-28 16:24:39.308 +05:30 [INF] Executing endpoint '/AttendanceLogs/Index'
+2026-07-28 16:24:39.314 +05:30 [INF] Route matched with {page = "/AttendanceLogs/Index", action = "", controller = "", area = ""}. Executing page /AttendanceLogs/Index
+2026-07-28 16:24:39.316 +05:30 [INF] Executing handler method HRDesk.Web.Pages.AttendanceLogs.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:24:39.349 +05:30 [INF] Executed DbCommand (20ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT COUNT(*)
+FROM `attendance_logs` AS `a`
+WHERE `a`.`organization_id` = @__ef_filter__TenantId_0
+2026-07-28 16:24:39.534 +05:30 [INF] Executed DbCommand (156ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `t`.`id`, `t`.`created_at`, `t`.`employee_id`, `t`.`machine_number`, `t`.`organization_id`, `t`.`punch_time`, `t`.`synced_at`, `t`.`verify_mode`, `t`.`verify_type`, `t0`.`organization_id`, `t0`.`employee_id`, `t0`.`date_of_birth`, `t0`.`department_id`, `t0`.`designation_id`, `t0`.`device_sync_error`, `t0`.`device_synced`, `t0`.`employee_name`, `t0`.`joining_date`, `t0`.`LastWorkingDate`, `t0`.`phone`, `t0`.`PhotoContentType`, `t0`.`PhotoData`, `t0`.`PhotoPath`, `t0`.`probation_end`, `t0`.`probation_start`, `t0`.`resignation_date`, `t0`.`status`, `t0`.`weekoff`
+FROM (
+    SELECT `a`.`id`, `a`.`created_at`, `a`.`employee_id`, `a`.`machine_number`, `a`.`organization_id`, `a`.`punch_time`, `a`.`synced_at`, `a`.`verify_mode`, `a`.`verify_type`
+    FROM `attendance_logs` AS `a`
+    WHERE `a`.`organization_id` = @__ef_filter__TenantId_0
+    ORDER BY `a`.`punch_time` DESC, `a`.`id` DESC
+    LIMIT @__p_1 OFFSET @__p_0
+) AS `t`
+INNER JOIN (
+    SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`date_of_birth`, `e`.`department_id`, `e`.`designation_id`, `e`.`device_sync_error`, `e`.`device_synced`, `e`.`employee_name`, `e`.`joining_date`, `e`.`LastWorkingDate`, `e`.`phone`, `e`.`PhotoContentType`, `e`.`PhotoData`, `e`.`PhotoPath`, `e`.`probation_end`, `e`.`probation_start`, `e`.`resignation_date`, `e`.`status`, `e`.`weekoff`
+    FROM `employees` AS `e`
+    WHERE `e`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t0` ON (`t`.`organization_id` = `t0`.`organization_id`) AND (`t`.`employee_id` = `t0`.`employee_id`)
+ORDER BY `t`.`punch_time` DESC, `t`.`id` DESC
+2026-07-28 16:24:40.788 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:24:40.788 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:24:40.788 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:24:40.805 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:24:40.807 +05:30 [INF] Executed page /AttendanceLogs/Index in 1492.4549ms
+2026-07-28 16:24:40.807 +05:30 [INF] Executed endpoint '/AttendanceLogs/Index'
+2026-07-28 16:24:40.807 +05:30 [INF] HTTP GET /AttendanceLogs responded 200 in 1687.3802 ms
+2026-07-28 16:24:40.807 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/AttendanceLogs - 200 null text/html; charset=utf-8 1687.865ms
+2026-07-28 16:24:40.817 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:24:40.817 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 0.2869ms
+2026-07-28 16:24:42.189 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/Employees - null null
+2026-07-28 16:24:42.190 +05:30 [INF] Executing endpoint '/Employees/Index'
+2026-07-28 16:24:42.190 +05:30 [INF] Route matched with {page = "/Employees/Index", action = "", controller = "", area = ""}. Executing page /Employees/Index
+2026-07-28 16:24:42.191 +05:30 [INF] Executing handler method HRDesk.Web.Pages.Employees.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:24:42.195 +05:30 [INF] Executed DbCommand (2ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__ToLower_0='?' (Size = 4000)], CommandType='"Text"', CommandTimeout='30']
+SELECT COUNT(*)
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`status` IS NOT NULL AND (LOWER(`e`.`status`) = @__ToLower_0))
+2026-07-28 16:24:42.420 +05:30 [INF] Executed DbCommand (221ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__ToLower_0='?' (Size = 4000), @__p_2='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `t`.`organization_id`, `t`.`employee_id`, `t`.`date_of_birth`, `t`.`department_id`, `t`.`designation_id`, `t`.`device_sync_error`, `t`.`device_synced`, `t`.`employee_name`, `t`.`joining_date`, `t`.`LastWorkingDate`, `t`.`phone`, `t`.`PhotoContentType`, `t`.`PhotoData`, `t`.`PhotoPath`, `t`.`probation_end`, `t`.`probation_start`, `t`.`resignation_date`, `t`.`status`, `t`.`weekoff`, `t0`.`id`, `t0`.`department_name`, `t0`.`organization_id`, `t0`.`status`, `t1`.`id`, `t1`.`designation_name`, `t1`.`organization_id`, `t1`.`status`
+FROM (
+    SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`date_of_birth`, `e`.`department_id`, `e`.`designation_id`, `e`.`device_sync_error`, `e`.`device_synced`, `e`.`employee_name`, `e`.`joining_date`, `e`.`LastWorkingDate`, `e`.`phone`, `e`.`PhotoContentType`, `e`.`PhotoData`, `e`.`PhotoPath`, `e`.`probation_end`, `e`.`probation_start`, `e`.`resignation_date`, `e`.`status`, `e`.`weekoff`
+    FROM `employees` AS `e`
+    WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`status` IS NOT NULL AND (LOWER(`e`.`status`) = @__ToLower_0))
+    ORDER BY `e`.`employee_name`, `e`.`employee_id`
+    LIMIT @__p_2 OFFSET @__p_1
+) AS `t`
+LEFT JOIN (
+    SELECT `d`.`id`, `d`.`department_name`, `d`.`organization_id`, `d`.`status`
+    FROM `departments` AS `d`
+    WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t0` ON `t`.`department_id` = `t0`.`id`
+LEFT JOIN (
+    SELECT `d0`.`id`, `d0`.`designation_name`, `d0`.`organization_id`, `d0`.`status`
+    FROM `designations` AS `d0`
+    WHERE `d0`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t1` ON `t`.`designation_id` = `t1`.`id`
+ORDER BY `t`.`employee_name`, `t`.`employee_id`
+2026-07-28 16:24:42.614 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:24:42.614 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:24:42.614 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:24:42.619 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:24:42.621 +05:30 [INF] Executed page /Employees/Index in 430.358ms
+2026-07-28 16:24:42.621 +05:30 [INF] Executed endpoint '/Employees/Index'
+2026-07-28 16:24:42.621 +05:30 [INF] HTTP GET /Employees responded 200 in 431.3864 ms
+2026-07-28 16:24:42.621 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/Employees - 200 null text/html; charset=utf-8 431.8806ms
+2026-07-28 16:24:42.631 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:24:42.631 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 0.238ms
+2026-07-28 16:24:42.688 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=124&width=150&height=150 - null null
+2026-07-28 16:24:42.689 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=101&width=150&height=150 - null null
+2026-07-28 16:24:42.690 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.690 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=10&width=150&height=150 - null null
+2026-07-28 16:24:42.690 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.690 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.690 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.690 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.690 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.690 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=44&width=150&height=150 - null null
+2026-07-28 16:24:42.690 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=12&width=150&height=150 - null null
+2026-07-28 16:24:42.690 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=6&width=150&height=150 - null null
+2026-07-28 16:24:42.691 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.691 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.691 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.691 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.692 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.693 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.694 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.694 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.695 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.695 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 4.4645ms
+2026-07-28 16:24:42.696 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.696 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 5.4509 ms
+2026-07-28 16:24:42.696 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=6&width=150&height=150 - 200 15761 image/jpeg 5.7302ms
+2026-07-28 16:24:42.703 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.703 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=99&width=150&height=150 - null null
+2026-07-28 16:24:42.703 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 13.3072ms
+2026-07-28 16:24:42.703 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.704 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 14.8139 ms
+2026-07-28 16:24:42.704 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=124&width=150&height=150 - 200 4629 image/jpeg 15.5337ms
+2026-07-28 16:24:42.704 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.704 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.708 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=45&width=150&height=150 - null null
+2026-07-28 16:24:42.709 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.710 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.716 +05:30 [INF] Executed DbCommand (2ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.719 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.719 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 15.0096ms
+2026-07-28 16:24:42.719 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.719 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 15.8335 ms
+2026-07-28 16:24:42.719 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=99&width=150&height=150 - 200 5987 image/jpeg 16.3464ms
+2026-07-28 16:24:42.723 +05:30 [INF] Executed DbCommand (29ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.723 +05:30 [INF] Executed DbCommand (31ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.724 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=2&width=150&height=150 - null null
+2026-07-28 16:24:42.724 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.725 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.728 +05:30 [INF] Executed DbCommand (9ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.729 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.729 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 19.5005ms
+2026-07-28 16:24:42.730 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.730 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 21.5931 ms
+2026-07-28 16:24:42.730 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=45&width=150&height=150 - 200 3721 image/jpeg 22.1579ms
+2026-07-28 16:24:42.731 +05:30 [INF] Executed DbCommand (38ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.733 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=202&width=150&height=150 - null null
+2026-07-28 16:24:42.734 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.734 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.743 +05:30 [INF] Executed DbCommand (49ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.759 +05:30 [INF] Executed DbCommand (22ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.764 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.767 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.767 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 76.5359ms
+2026-07-28 16:24:42.767 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.767 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 77.2490 ms
+2026-07-28 16:24:42.767 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 77.252ms
+2026-07-28 16:24:42.767 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.767 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 78.6600 ms
+2026-07-28 16:24:42.767 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=10&width=150&height=150 - 200 47040 image/jpeg 77.8827ms
+2026-07-28 16:24:42.767 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=101&width=150&height=150 - 200 4862 image/jpeg 78.7657ms
+2026-07-28 16:24:42.779 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.780 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 88.9185ms
+2026-07-28 16:24:42.780 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.780 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 89.4166 ms
+2026-07-28 16:24:42.780 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=103&width=150&height=150 - null null
+2026-07-28 16:24:42.781 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.781 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.781 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=133&width=150&height=150 - null null
+2026-07-28 16:24:42.782 +05:30 [INF] Executing endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.782 +05:30 [INF] Route matched with {action = "GetThumbnail", controller = "Thumbnail", page = "", area = ""}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] GetThumbnail(System.Nullable`1[System.Int32], Int32, Int32) on controller HRDesk.Web.Controllers.ThumbnailController (HRDesk.Web).
+2026-07-28 16:24:42.781 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=12&width=150&height=150 - 200 49846 image/jpeg 90.1088ms
+2026-07-28 16:24:42.797 +05:30 [INF] Executed DbCommand (56ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.811 +05:30 [INF] Executed DbCommand (11ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.812 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.813 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 87.6825ms
+2026-07-28 16:24:42.813 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.813 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 88.8721 ms
+2026-07-28 16:24:42.813 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=2&width=150&height=150 - 200 46931 image/jpeg 89.166ms
+2026-07-28 16:24:42.824 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.825 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.825 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 43.5323ms
+2026-07-28 16:24:42.825 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.825 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 44.4538 ms
+2026-07-28 16:24:42.825 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=103&width=150&height=150 - 200 7260 image/jpeg 44.7534ms
+2026-07-28 16:24:42.828 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 134.7368ms
+2026-07-28 16:24:42.828 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.828 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 137.5690 ms
+2026-07-28 16:24:42.828 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=44&width=150&height=150 - 200 46110 image/jpeg 137.7913ms
+2026-07-28 16:24:42.840 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.840 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 106.2766ms
+2026-07-28 16:24:42.841 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.841 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 107.2598 ms
+2026-07-28 16:24:42.841 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=202&width=150&height=150 - 200 48500 image/jpeg 107.832ms
+2026-07-28 16:24:42.856 +05:30 [INF] Executed DbCommand (42ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__employeeId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`PhotoData`, `e`.`PhotoContentType`
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` = @__employeeId_0)
+LIMIT 1
+2026-07-28 16:24:42.879 +05:30 [INF] Executing FileContentResult, sending file with download name '' ...
+2026-07-28 16:24:42.879 +05:30 [INF] Executed action HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web) in 97.1314ms
+2026-07-28 16:24:42.879 +05:30 [INF] Executed endpoint 'HRDesk.Web.Controllers.ThumbnailController.GetThumbnail (HRDesk.Web)'
+2026-07-28 16:24:42.880 +05:30 [INF] HTTP GET /api/Thumbnail responded 200 in 98.3101 ms
+2026-07-28 16:24:42.880 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/api/Thumbnail?employeeId=133&width=150&height=150 - 200 48704 image/jpeg 98.543ms
+2026-07-28 16:24:43.352 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/Departments - null null
+2026-07-28 16:24:43.352 +05:30 [INF] Executing endpoint '/Departments/Index'
+2026-07-28 16:24:43.353 +05:30 [INF] Route matched with {page = "/Departments/Index", action = "", controller = "", area = ""}. Executing page /Departments/Index
+2026-07-28 16:24:43.353 +05:30 [INF] Executing handler method HRDesk.Web.Pages.Departments.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:24:43.360 +05:30 [INF] Executed DbCommand (6ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `d`.`id`, `d`.`department_name`, `d`.`organization_id`, `d`.`status`
+FROM `departments` AS `d`
+WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+ORDER BY `d`.`department_name`
+2026-07-28 16:24:43.645 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:24:43.645 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:24:43.645 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:24:43.649 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:24:43.650 +05:30 [INF] Executed page /Departments/Index in 297.3075ms
+2026-07-28 16:24:43.650 +05:30 [INF] Executed endpoint '/Departments/Index'
+2026-07-28 16:24:43.650 +05:30 [INF] HTTP GET /Departments responded 200 in 298.3986 ms
+2026-07-28 16:24:43.650 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/Departments - 200 null text/html; charset=utf-8 298.8418ms
+2026-07-28 16:24:43.660 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:24:43.663 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 3.5831ms
+2026-07-28 16:24:53.735 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/Payroll/EmployeeSalary - null null
+2026-07-28 16:24:53.939 +05:30 [INF] Executing endpoint '/Payroll/EmployeeSalary/Index'
+2026-07-28 16:24:53.942 +05:30 [INF] Route matched with {page = "/Payroll/EmployeeSalary/Index", action = "", controller = "", area = ""}. Executing page /Payroll/EmployeeSalary/Index
+2026-07-28 16:24:53.944 +05:30 [INF] Executing handler method HRDesk.Web.Pages.Payroll.EmployeeSalary.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:24:53.957 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT COUNT(*)
+FROM `employees` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`status` = 'Active')
+2026-07-28 16:24:57.403 +05:30 [INF] Executed DbCommand (3,439ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `t`.`organization_id`, `t`.`employee_id`, `t`.`date_of_birth`, `t`.`department_id`, `t`.`designation_id`, `t`.`device_sync_error`, `t`.`device_synced`, `t`.`employee_name`, `t`.`joining_date`, `t`.`LastWorkingDate`, `t`.`phone`, `t`.`PhotoContentType`, `t`.`PhotoData`, `t`.`PhotoPath`, `t`.`probation_end`, `t`.`probation_start`, `t`.`resignation_date`, `t`.`status`, `t`.`weekoff`, `t0`.`id`, `t0`.`department_name`, `t0`.`organization_id`, `t0`.`status`
+FROM (
+    SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`date_of_birth`, `e`.`department_id`, `e`.`designation_id`, `e`.`device_sync_error`, `e`.`device_synced`, `e`.`employee_name`, `e`.`joining_date`, `e`.`LastWorkingDate`, `e`.`phone`, `e`.`PhotoContentType`, `e`.`PhotoData`, `e`.`PhotoPath`, `e`.`probation_end`, `e`.`probation_start`, `e`.`resignation_date`, `e`.`status`, `e`.`weekoff`
+    FROM `employees` AS `e`
+    WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`status` = 'Active')
+    ORDER BY `e`.`employee_name`
+    LIMIT @__p_1 OFFSET @__p_0
+) AS `t`
+LEFT JOIN (
+    SELECT `d`.`id`, `d`.`department_name`, `d`.`organization_id`, `d`.`status`
+    FROM `departments` AS `d`
+    WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t0` ON `t`.`department_id` = `t0`.`id`
+ORDER BY `t`.`employee_name`
+2026-07-28 16:24:59.780 +05:30 [INF] Executed DbCommand (60ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `s`.`id`, `s`.`component_code`, `s`.`component_name`, `s`.`component_type`, `s`.`created_at`, `s`.`display_order`, `s`.`is_active`, `s`.`organization_id`
+FROM `salary_components` AS `s`
+WHERE (`s`.`organization_id` = @__ef_filter__TenantId_0) AND `s`.`is_active`
+2026-07-28 16:25:01.488 +05:30 [INF] Executed DbCommand (875ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`id`, `e`.`amount`, `e`.`component_id`, `e`.`created_at`, `e`.`effective_from`, `e`.`effective_to`, `e`.`employee_id`, `e`.`is_active`, `e`.`organization_id`
+FROM `employee_salary_structure` AS `e`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`employee_id` IN (999, 124, 101, 10, 44, 12, 6, 99, 45, 2, 202, 134, 126, 103, 133, 22, 115, 99999, 7, 188, 39, 8, 5, 11, 32, 121, 132, 104, 16, 3, 38, 123, 4, 131, 1001, 127, 43, 19, 9999) AND `e`.`is_active`)
+2026-07-28 16:25:01.645 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:25:01.645 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:25:01.645 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:25:01.656 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:25:01.664 +05:30 [INF] Executed page /Payroll/EmployeeSalary/Index in 7722.1878ms
+2026-07-28 16:25:01.664 +05:30 [INF] Executed endpoint '/Payroll/EmployeeSalary/Index'
+2026-07-28 16:25:01.664 +05:30 [INF] HTTP GET /Payroll/EmployeeSalary responded 200 in 7928.1941 ms
+2026-07-28 16:25:01.664 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/Payroll/EmployeeSalary - 200 null text/html; charset=utf-8 7929.2136ms
+2026-07-28 16:25:01.680 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:25:01.681 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 0.5891ms
+2026-07-28 16:25:11.086 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/Leaves/Allocations - null null
+2026-07-28 16:25:11.391 +05:30 [INF] Executing endpoint '/Leaves/Allocations/Index'
+2026-07-28 16:25:11.420 +05:30 [INF] Route matched with {page = "/Leaves/Allocations/Index", action = "", controller = "", area = ""}. Executing page /Leaves/Allocations/Index
+2026-07-28 16:25:11.425 +05:30 [INF] Executing handler method HRDesk.Web.Pages.Leaves.Allocations.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:25:11.440 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `l`.`id`, `l`.`allow_carry_forward`, `l`.`applicable_after_probation`, `l`.`background_color`, `l`.`code`, `l`.`created_at`, `l`.`default_yearly_quota`, `l`.`is_paid`, `l`.`name`, `l`.`organization_id`, `l`.`status`, `l`.`text_color`
+FROM `leave_types` AS `l`
+WHERE (`l`.`organization_id` = @__ef_filter__TenantId_0) AND (`l`.`status` = 'Active')
+ORDER BY `l`.`name`
+2026-07-28 16:25:11.460 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`date_of_birth`, `e`.`department_id`, `e`.`designation_id`, `e`.`device_sync_error`, `e`.`device_synced`, `e`.`employee_name`, `e`.`joining_date`, `e`.`LastWorkingDate`, `e`.`phone`, `e`.`PhotoContentType`, `e`.`PhotoData`, `e`.`PhotoPath`, `e`.`probation_end`, `e`.`probation_start`, `e`.`resignation_date`, `e`.`status`, `e`.`weekoff`, `t`.`id`, `t`.`department_name`, `t`.`organization_id`, `t`.`status`
+FROM `employees` AS `e`
+LEFT JOIN (
+    SELECT `d`.`id`, `d`.`department_name`, `d`.`organization_id`, `d`.`status`
+    FROM `departments` AS `d`
+    WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t` ON `e`.`department_id` = `t`.`id`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`status` = 'active')
+ORDER BY `e`.`employee_name`
+2026-07-28 16:25:12.600 +05:30 [INF] Executed DbCommand (24ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__Year_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT COUNT(*)
+FROM `leave_allocations` AS `l`
+INNER JOIN (
+    SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`status`
+    FROM `employees` AS `e`
+    WHERE `e`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t` ON (`l`.`organization_id` = `t`.`organization_id`) AND (`l`.`employee_id` = `t`.`employee_id`)
+INNER JOIN (
+    SELECT `l0`.`id`
+    FROM `leave_types` AS `l0`
+    WHERE `l0`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t0` ON `l`.`leave_type_id` = `t0`.`id`
+WHERE ((`l`.`organization_id` = @__ef_filter__TenantId_0) AND ((`l`.`year` = @__Year_0) AND (`t`.`status` = 'active'))) AND (NOT EXISTS (
+    SELECT 1
+    FROM `leave_type_eligibility` AS `l1`
+    WHERE (`l1`.`organization_id` = @__ef_filter__TenantId_0) AND (`t0`.`id` = `l1`.`leave_type_id`)) OR EXISTS (
+    SELECT 1
+    FROM `leave_type_eligibility` AS `l2`
+    WHERE ((`l2`.`organization_id` = @__ef_filter__TenantId_0) AND (`t0`.`id` = `l2`.`leave_type_id`)) AND (`l2`.`employee_id` = `l`.`employee_id`)))
+2026-07-28 16:25:12.610 +05:30 [INF] Executed DbCommand (2ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__Year_0='?' (DbType = Int32), @__p_2='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `l`.`id`
+FROM `leave_allocations` AS `l`
+INNER JOIN (
+    SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`employee_name`, `e`.`status`
+    FROM `employees` AS `e`
+    WHERE `e`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t` ON (`l`.`organization_id` = `t`.`organization_id`) AND (`l`.`employee_id` = `t`.`employee_id`)
+INNER JOIN (
+    SELECT `l0`.`id`
+    FROM `leave_types` AS `l0`
+    WHERE `l0`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t0` ON `l`.`leave_type_id` = `t0`.`id`
+WHERE ((`l`.`organization_id` = @__ef_filter__TenantId_0) AND ((`l`.`year` = @__Year_0) AND (`t`.`status` = 'active'))) AND (NOT EXISTS (
+    SELECT 1
+    FROM `leave_type_eligibility` AS `l1`
+    WHERE (`l1`.`organization_id` = @__ef_filter__TenantId_0) AND (`t0`.`id` = `l1`.`leave_type_id`)) OR EXISTS (
+    SELECT 1
+    FROM `leave_type_eligibility` AS `l2`
+    WHERE ((`l2`.`organization_id` = @__ef_filter__TenantId_0) AND (`t0`.`id` = `l2`.`leave_type_id`)) AND (`l2`.`employee_id` = `l`.`employee_id`)))
+ORDER BY `t`.`employee_name`
+LIMIT @__p_2 OFFSET @__p_1
+2026-07-28 16:25:15.941 +05:30 [INF] Executed DbCommand (3,321ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `l`.`id`, `l`.`employee_id`, `l`.`leave_type_id`, `l`.`opening_balance`, `l`.`organization_id`, `l`.`total_allocated`, `l`.`updated_at`, `l`.`used_count`, `l`.`year`, `t`.`organization_id`, `t`.`employee_id`, `t`.`date_of_birth`, `t`.`department_id`, `t`.`designation_id`, `t`.`device_sync_error`, `t`.`device_synced`, `t`.`employee_name`, `t`.`joining_date`, `t`.`LastWorkingDate`, `t`.`phone`, `t`.`PhotoContentType`, `t`.`PhotoData`, `t`.`PhotoPath`, `t`.`probation_end`, `t`.`probation_start`, `t`.`resignation_date`, `t`.`status`, `t`.`weekoff`, `t0`.`id`, `t0`.`allow_carry_forward`, `t0`.`applicable_after_probation`, `t0`.`background_color`, `t0`.`code`, `t0`.`created_at`, `t0`.`default_yearly_quota`, `t0`.`is_paid`, `t0`.`name`, `t0`.`organization_id`, `t0`.`status`, `t0`.`text_color`
+FROM `leave_allocations` AS `l`
+INNER JOIN (
+    SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`date_of_birth`, `e`.`department_id`, `e`.`designation_id`, `e`.`device_sync_error`, `e`.`device_synced`, `e`.`employee_name`, `e`.`joining_date`, `e`.`LastWorkingDate`, `e`.`phone`, `e`.`PhotoContentType`, `e`.`PhotoData`, `e`.`PhotoPath`, `e`.`probation_end`, `e`.`probation_start`, `e`.`resignation_date`, `e`.`status`, `e`.`weekoff`
+    FROM `employees` AS `e`
+    WHERE `e`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t` ON (`l`.`organization_id` = `t`.`organization_id`) AND (`l`.`employee_id` = `t`.`employee_id`)
+INNER JOIN (
+    SELECT `l0`.`id`, `l0`.`allow_carry_forward`, `l0`.`applicable_after_probation`, `l0`.`background_color`, `l0`.`code`, `l0`.`created_at`, `l0`.`default_yearly_quota`, `l0`.`is_paid`, `l0`.`name`, `l0`.`organization_id`, `l0`.`status`, `l0`.`text_color`
+    FROM `leave_types` AS `l0`
+    WHERE `l0`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t0` ON `l`.`leave_type_id` = `t0`.`id`
+WHERE (`l`.`organization_id` = @__ef_filter__TenantId_0) AND `l`.`id` IN (1017, 1018, 1019, 1020, 1021, 998, 999, 1000, 1001, 1002, 1042, 965, 966, 967, 968, 969, 879, 880, 881, 882, 883, 951, 952, 953, 954, 955, 1038, 889, 890, 864, 865, 866, 867, 868, 960, 961, 962, 963, 964, 1046, 1047, 1048, 1044, 1049, 1045, 844, 845, 846, 847, 848)
+ORDER BY `t`.`employee_name`
+2026-07-28 16:25:16.776 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:25:16.776 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:25:16.776 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:25:18.071 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:25:18.262 +05:30 [INF] Executed page /Leaves/Allocations/Index in 6842.4327ms
+2026-07-28 16:25:18.263 +05:30 [INF] Executed endpoint '/Leaves/Allocations/Index'
+2026-07-28 16:25:18.263 +05:30 [INF] HTTP GET /Leaves/Allocations responded 200 in 7176.9210 ms
+2026-07-28 16:25:18.264 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/Leaves/Allocations - 200 null text/html; charset=utf-8 7177.8517ms
+2026-07-28 16:25:18.598 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:25:18.598 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 0.4399ms
+2026-07-28 16:25:21.085 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/Departments - null null
+2026-07-28 16:25:21.086 +05:30 [INF] Executing endpoint '/Departments/Index'
+2026-07-28 16:25:21.086 +05:30 [INF] Route matched with {page = "/Departments/Index", action = "", controller = "", area = ""}. Executing page /Departments/Index
+2026-07-28 16:25:21.086 +05:30 [INF] Executing handler method HRDesk.Web.Pages.Departments.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:25:21.088 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `d`.`id`, `d`.`department_name`, `d`.`organization_id`, `d`.`status`
+FROM `departments` AS `d`
+WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+ORDER BY `d`.`department_name`
+2026-07-28 16:25:21.088 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:25:21.088 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:25:21.088 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:25:21.091 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:25:21.092 +05:30 [INF] Executed page /Departments/Index in 5.5032ms
+2026-07-28 16:25:21.092 +05:30 [INF] Executed endpoint '/Departments/Index'
+2026-07-28 16:25:21.092 +05:30 [INF] HTTP GET /Departments responded 200 in 6.2181 ms
+2026-07-28 16:25:21.092 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/Departments - 200 null text/html; charset=utf-8 6.602ms
+2026-07-28 16:25:21.100 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:25:21.101 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 0.3277ms
+2026-07-28 16:25:25.707 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/Leaves/Allocations - null null
+2026-07-28 16:25:25.708 +05:30 [INF] Executing endpoint '/Leaves/Allocations/Index'
+2026-07-28 16:25:25.708 +05:30 [INF] Route matched with {page = "/Leaves/Allocations/Index", action = "", controller = "", area = ""}. Executing page /Leaves/Allocations/Index
+2026-07-28 16:25:25.709 +05:30 [INF] Executing handler method HRDesk.Web.Pages.Leaves.Allocations.IndexModel.OnGetAsync - ModelState is "Valid"
+2026-07-28 16:25:25.711 +05:30 [INF] Executed DbCommand (2ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`date_of_birth`, `e`.`department_id`, `e`.`designation_id`, `e`.`device_sync_error`, `e`.`device_synced`, `e`.`employee_name`, `e`.`joining_date`, `e`.`LastWorkingDate`, `e`.`phone`, `e`.`PhotoContentType`, `e`.`PhotoData`, `e`.`PhotoPath`, `e`.`probation_end`, `e`.`probation_start`, `e`.`resignation_date`, `e`.`status`, `e`.`weekoff`, `t`.`id`, `t`.`department_name`, `t`.`organization_id`, `t`.`status`
+FROM `employees` AS `e`
+LEFT JOIN (
+    SELECT `d`.`id`, `d`.`department_name`, `d`.`organization_id`, `d`.`status`
+    FROM `departments` AS `d`
+    WHERE `d`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t` ON `e`.`department_id` = `t`.`id`
+WHERE (`e`.`organization_id` = @__ef_filter__TenantId_0) AND (`e`.`status` = 'active')
+ORDER BY `e`.`employee_name`
+2026-07-28 16:25:26.719 +05:30 [INF] Executed DbCommand (6ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__Year_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT COUNT(*)
+FROM `leave_allocations` AS `l`
+INNER JOIN (
+    SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`status`
+    FROM `employees` AS `e`
+    WHERE `e`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t` ON (`l`.`organization_id` = `t`.`organization_id`) AND (`l`.`employee_id` = `t`.`employee_id`)
+INNER JOIN (
+    SELECT `l0`.`id`
+    FROM `leave_types` AS `l0`
+    WHERE `l0`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t0` ON `l`.`leave_type_id` = `t0`.`id`
+WHERE ((`l`.`organization_id` = @__ef_filter__TenantId_0) AND ((`l`.`year` = @__Year_0) AND (`t`.`status` = 'active'))) AND (NOT EXISTS (
+    SELECT 1
+    FROM `leave_type_eligibility` AS `l1`
+    WHERE (`l1`.`organization_id` = @__ef_filter__TenantId_0) AND (`t0`.`id` = `l1`.`leave_type_id`)) OR EXISTS (
+    SELECT 1
+    FROM `leave_type_eligibility` AS `l2`
+    WHERE ((`l2`.`organization_id` = @__ef_filter__TenantId_0) AND (`t0`.`id` = `l2`.`leave_type_id`)) AND (`l2`.`employee_id` = `l`.`employee_id`)))
+2026-07-28 16:25:26.722 +05:30 [INF] Executed DbCommand (1ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32), @__Year_0='?' (DbType = Int32), @__p_2='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `l`.`id`
+FROM `leave_allocations` AS `l`
+INNER JOIN (
+    SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`employee_name`, `e`.`status`
+    FROM `employees` AS `e`
+    WHERE `e`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t` ON (`l`.`organization_id` = `t`.`organization_id`) AND (`l`.`employee_id` = `t`.`employee_id`)
+INNER JOIN (
+    SELECT `l0`.`id`
+    FROM `leave_types` AS `l0`
+    WHERE `l0`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t0` ON `l`.`leave_type_id` = `t0`.`id`
+WHERE ((`l`.`organization_id` = @__ef_filter__TenantId_0) AND ((`l`.`year` = @__Year_0) AND (`t`.`status` = 'active'))) AND (NOT EXISTS (
+    SELECT 1
+    FROM `leave_type_eligibility` AS `l1`
+    WHERE (`l1`.`organization_id` = @__ef_filter__TenantId_0) AND (`t0`.`id` = `l1`.`leave_type_id`)) OR EXISTS (
+    SELECT 1
+    FROM `leave_type_eligibility` AS `l2`
+    WHERE ((`l2`.`organization_id` = @__ef_filter__TenantId_0) AND (`t0`.`id` = `l2`.`leave_type_id`)) AND (`l2`.`employee_id` = `l`.`employee_id`)))
+ORDER BY `t`.`employee_name`
+LIMIT @__p_2 OFFSET @__p_1
+2026-07-28 16:25:28.318 +05:30 [INF] Executed DbCommand (1,595ms) [Parameters=[@__ef_filter__TenantId_0='?' (DbType = Int32)], CommandType='"Text"', CommandTimeout='30']
+SELECT `l`.`id`, `l`.`employee_id`, `l`.`leave_type_id`, `l`.`opening_balance`, `l`.`organization_id`, `l`.`total_allocated`, `l`.`updated_at`, `l`.`used_count`, `l`.`year`, `t`.`organization_id`, `t`.`employee_id`, `t`.`date_of_birth`, `t`.`department_id`, `t`.`designation_id`, `t`.`device_sync_error`, `t`.`device_synced`, `t`.`employee_name`, `t`.`joining_date`, `t`.`LastWorkingDate`, `t`.`phone`, `t`.`PhotoContentType`, `t`.`PhotoData`, `t`.`PhotoPath`, `t`.`probation_end`, `t`.`probation_start`, `t`.`resignation_date`, `t`.`status`, `t`.`weekoff`, `t0`.`id`, `t0`.`allow_carry_forward`, `t0`.`applicable_after_probation`, `t0`.`background_color`, `t0`.`code`, `t0`.`created_at`, `t0`.`default_yearly_quota`, `t0`.`is_paid`, `t0`.`name`, `t0`.`organization_id`, `t0`.`status`, `t0`.`text_color`
+FROM `leave_allocations` AS `l`
+INNER JOIN (
+    SELECT `e`.`organization_id`, `e`.`employee_id`, `e`.`date_of_birth`, `e`.`department_id`, `e`.`designation_id`, `e`.`device_sync_error`, `e`.`device_synced`, `e`.`employee_name`, `e`.`joining_date`, `e`.`LastWorkingDate`, `e`.`phone`, `e`.`PhotoContentType`, `e`.`PhotoData`, `e`.`PhotoPath`, `e`.`probation_end`, `e`.`probation_start`, `e`.`resignation_date`, `e`.`status`, `e`.`weekoff`
+    FROM `employees` AS `e`
+    WHERE `e`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t` ON (`l`.`organization_id` = `t`.`organization_id`) AND (`l`.`employee_id` = `t`.`employee_id`)
+INNER JOIN (
+    SELECT `l0`.`id`, `l0`.`allow_carry_forward`, `l0`.`applicable_after_probation`, `l0`.`background_color`, `l0`.`code`, `l0`.`created_at`, `l0`.`default_yearly_quota`, `l0`.`is_paid`, `l0`.`name`, `l0`.`organization_id`, `l0`.`status`, `l0`.`text_color`
+    FROM `leave_types` AS `l0`
+    WHERE `l0`.`organization_id` = @__ef_filter__TenantId_0
+) AS `t0` ON `l`.`leave_type_id` = `t0`.`id`
+WHERE (`l`.`organization_id` = @__ef_filter__TenantId_0) AND `l`.`id` IN (1017, 1018, 1019, 1020, 1021, 998, 999, 1000, 1001, 1002, 1042, 965, 966, 967, 968, 969, 879, 880, 881, 882, 883, 951, 952, 953, 954, 955, 1038, 889, 890, 864, 865, 866, 867, 868, 960, 961, 962, 963, 964, 1046, 1047, 1048, 1044, 1049, 1045, 844, 845, 846, 847, 848)
+ORDER BY `t`.`employee_name`
+2026-07-28 16:25:28.870 +05:30 [INF] Executed handler method OnGetAsync, returned result .
+2026-07-28 16:25:28.870 +05:30 [INF] Executing an implicit handler method - ModelState is "Valid"
+2026-07-28 16:25:28.870 +05:30 [INF] Executed an implicit handler method, returned result Microsoft.AspNetCore.Mvc.RazorPages.PageResult.
+2026-07-28 16:25:28.878 +05:30 [INF] Executed DbCommand (0ms) [Parameters=[], CommandType='"Text"', CommandTimeout='30']
+SELECT `o`.`id`, `o`.`address`, `o`.`created_at`, `o`.`is_active`, `o`.`latitude`, `o`.`longitude`, `o`.`name`, `o`.`whatsapp_group_id`
+FROM `Organizations` AS `o`
+WHERE `o`.`is_active`
+2026-07-28 16:25:28.881 +05:30 [INF] Executed page /Leaves/Allocations/Index in 3172.5956ms
+2026-07-28 16:25:28.882 +05:30 [INF] Executed endpoint '/Leaves/Allocations/Index'
+2026-07-28 16:25:28.882 +05:30 [INF] HTTP GET /Leaves/Allocations responded 200 in 3174.8192 ms
+2026-07-28 16:25:28.883 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/Leaves/Allocations - 200 null text/html; charset=utf-8 3175.4218ms
+2026-07-28 16:25:28.894 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - null null
+2026-07-28 16:25:28.894 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5283/_framework/aspnetcore-browser-refresh.js - 200 16547 application/javascript; charset=utf-8 0.2342ms

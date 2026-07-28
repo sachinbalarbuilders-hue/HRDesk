@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -70,25 +70,16 @@ namespace HRDesk.Web.Pages.Payroll
 
             try
             {
-                int successCount = 0;
+                var allAdjustments = new Dictionary<int, List<ManualAdjustment>>();
                 foreach (var employeeId in EmployeeIdsToProcess)
                 {
-                    try
+                    if (AdjustmentData.ContainsKey(employeeId) && !string.IsNullOrWhiteSpace(AdjustmentData[employeeId]))
                     {
-                        var adjustments = new List<ManualAdjustment>();
-                        if (AdjustmentData.ContainsKey(employeeId) && !string.IsNullOrWhiteSpace(AdjustmentData[employeeId]))
-                        {
-                            adjustments = System.Text.Json.JsonSerializer.Deserialize<List<ManualAdjustment>>(AdjustmentData[employeeId]) ?? new();
-                        }
-
-                        await _payrollService.ProcessEmployeePayrollAsync(employeeId, TargetProcessMonth, adjustments, !IncludeLoans);
-                        successCount++;
-                    }
-                    catch (Exception)
-                    {
-                        continue;
+                        allAdjustments[employeeId] = System.Text.Json.JsonSerializer.Deserialize<List<ManualAdjustment>>(AdjustmentData[employeeId]) ?? new();
                     }
                 }
+
+                int successCount = await _payrollService.ProcessBulkEmployeePayrollAsync(EmployeeIdsToProcess, TargetProcessMonth, allAdjustments, !IncludeLoans);
                 Message = $"Successfully processed payroll for {successCount} employee(s)";
             }
             catch (Exception ex)

@@ -111,6 +111,7 @@ public class IndexModel : PageModel
         var prevYear = Year - 1;
         var prevAllocations = await _db.LeaveAllocations
             .Include(la => la.LeaveType)
+                .ThenInclude(lt => lt!.EligibleEmployees)
             .Where(la => la.Year == prevYear)
             .ToListAsync();
 

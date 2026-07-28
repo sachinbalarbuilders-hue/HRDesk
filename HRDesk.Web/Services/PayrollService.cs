@@ -349,34 +349,270 @@ public class PayrollService : IPayrollService
         return payroll;
     }
 
+    public async Task<int> ProcessBulkEmployeePayrollAsync(System.Collections.Generic.List<int> employeeIds, string month, System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<ManualAdjustment>> adjustments, bool skipLoans = false)
+    {
+        if (!employeeIds.Any()) return 0;
+        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", out var monthStart))
+            throw new ArgumentException($"Invalid month format: '{month}'");
+            
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+        // 1. Bulk read existing records
+        var existingMasters = await _db.PayrollMasters
+            .Where(p => employeeIds.Contains(p.EmployeeId) && p.Month == month)
+            .ToDictionaryAsync(p => p.EmployeeId);
+            
+        var masterIds = existingMasters.Values.Select(m => m.Id).ToList();
+
+        var existingDetails = new System.Collections.Generic.List<PayrollDetail>();
+        var linkedInstallments = new System.Collections.Generic.List<LoanInstallment>();
+
+        if (masterIds.Any())
+        {
+            existingDetails = await _db.PayrollDetails
+                .Where(d => masterIds.Contains(d.PayrollId))
+                .ToListAsync();
+                
+            linkedInstallments = await _db.LoanInstallments
+                .Where(i => i.PayrollId.HasValue && masterIds.Contains(i.PayrollId.Value))
+                .ToListAsync();
+        }
+
+        // Revert linked installments
+        foreach (var inst in linkedInstallments)
+        {
+            inst.Status = "Pending";
+            inst.PaidAmount = 0;
+            inst.PaidDate = null;
+            inst.PayrollId = null;
+            inst.Remarks = "Reverted for re-processing";
+        }
+        _db.PayrollDetails.RemoveRange(existingDetails);
+
+        // 2. Bulk read attendance and leave
+        var allLogs = await _db.DailyAttendance
+            .Where(a => employeeIds.Contains(a.EmployeeId) && a.RecordDate >= monthStart && a.RecordDate <= monthEnd)
+            .ToListAsync();
+            
+        var allLeaveApps = await _db.LeaveApplications
+            .Include(la => la.LeaveType)
+            .Where(la => employeeIds.Contains(la.EmployeeId) && (la.Status == "Approved" || la.Status == "Adjusted") && la.StartDate <= monthEnd && la.EndDate >= monthStart)
+            .ToListAsync();
+
+        // 3. Bulk read salary structures
+        var allSalaryStructures = await _db.EmployeeSalaryStructures
+            .Include(s => s.SalaryComponent)
+            .Where(s => employeeIds.Contains(s.EmployeeId) && s.EffectiveFrom <= monthEnd && (s.EffectiveTo == null || s.EffectiveTo >= monthEnd))
+            .ToListAsync();
+
+        // 4. Bulk read pending loan installments
+        var allPendingInstallments = new System.Collections.Generic.List<LoanInstallment>();
+        if (!skipLoans)
+        {
+            allPendingInstallments = await _db.LoanInstallments
+                .Include(i => i.Loan).ThenInclude(l => l.LoanType)
+                .Where(i => i.Status == "Pending" && employeeIds.Contains(i.Loan!.EmployeeId) && i.InstallmentDate <= monthEnd)
+                .ToListAsync();
+        }
+        
+        var newDetails = new System.Collections.Generic.List<PayrollDetail>();
+        int processedCount = 0;
+
+        foreach (var employeeId in employeeIds)
+        {
+            try
+            {
+                var empLogs = allLogs.Where(l => l.EmployeeId == employeeId).ToList();
+                var empLeaves = allLeaveApps.Where(l => l.EmployeeId == employeeId).ToList();
+                
+                var attendance = _attendanceSummaryService.ComputeSummary(employeeId, monthStart.Year, monthStart.Month, empLogs, empLeaves);
+                var salaryStructure = allSalaryStructures.Where(s => s.EmployeeId == employeeId).ToList();
+                var grossSalary = salaryStructure.Where(s => s.SalaryComponent!.ComponentType == "Earning").Sum(s => s.Amount);
+
+                if (grossSalary == 0)
+                {
+                    _logger.LogWarning("Employee {Id} has no salary structure defined", employeeId);
+                    continue;
+                }
+
+                var payableDays = attendance.PresentCount + attendance.LeaveCount + attendance.WeekoffCount + attendance.HolidayCount;
+                payableDays = Math.Min(payableDays, attendance.TotalDays);
+
+                decimal totalEarnings = 0;
+                var earningComponents = salaryStructure.Where(s => s.SalaryComponent != null && s.SalaryComponent.ComponentType == "Earning").ToList();
+                var currentEarningDetails = new System.Collections.Generic.List<PayrollDetail>();
+
+                foreach (var component in earningComponents)
+                {
+                    totalEarnings += component.Amount;
+                    currentEarningDetails.Add(new PayrollDetail
+                    {
+                        ComponentId = component.ComponentId,
+                        ComponentType = "Earning",
+                        ComponentName = component.SalaryComponent!.ComponentName,
+                        Amount = component.Amount,
+                        Remarks = "Full earning component"
+                    });
+                }
+
+                var empAdjustments = adjustments != null && adjustments.ContainsKey(employeeId) ? adjustments[employeeId] : null;
+                if (empAdjustments != null)
+                {
+                    foreach (var adj in empAdjustments.Where(a => a.Type == "Allowance"))
+                    {
+                        totalEarnings += adj.Amount;
+                        currentEarningDetails.Add(new PayrollDetail
+                        {
+                            ComponentType = "Earning",
+                            ComponentName = !string.IsNullOrWhiteSpace(adj.Name) ? adj.Name : "Ad-hoc Allowance",
+                            Amount = adj.Amount,
+                            Remarks = "Manual adjustment"
+                        });
+                    }
+                }
+
+                decimal totalDeductions = 0;
+                var currentDeductionDetails = new System.Collections.Generic.List<PayrollDetail>();
+
+                var lopDays = (decimal)attendance.TotalDays - payableDays;
+                if (lopDays > 0)
+                {
+                    var lopAmount = (grossSalary / attendance.TotalDays) * lopDays;
+                    totalDeductions += lopAmount;
+                    var lopRemark = $"Loss Without Pay: {lopDays:0.0} days";
+                    var lopList = attendance.LopBreakdown.OrderBy(kvp => kvp.Key).Select(kvp => $"{kvp.Key:dd-MMM}{(kvp.Value == 0.5m ? " (0.5)" : "")}").ToList();
+                    if (lopList.Any()) lopRemark += $" ({string.Join(", ", lopList)})";
+
+                    currentDeductionDetails.Add(new PayrollDetail
+                    {
+                        ComponentType = "Deduction",
+                        ComponentName = "Loss Without Pay",
+                        Amount = lopAmount,
+                        Remarks = lopRemark
+                    });
+                }
+
+                var deductionComponents = salaryStructure.Where(s => s.SalaryComponent != null && s.SalaryComponent.ComponentType == "Deduction").ToList();
+                foreach (var component in deductionComponents)
+                {
+                    totalDeductions += component.Amount;
+                    currentDeductionDetails.Add(new PayrollDetail
+                    {
+                        ComponentId = component.ComponentId,
+                        ComponentType = "Deduction",
+                        ComponentName = component.SalaryComponent!.ComponentName,
+                        Amount = component.Amount,
+                        Remarks = "Fixed deduction"
+                    });
+                }
+
+                decimal loanDeduction = 0;
+                var empPendingInstallments = allPendingInstallments.Where(i => i.Loan!.EmployeeId == employeeId).OrderBy(i => i.InstallmentDate).ToList();
+                
+                var loansProcessed = new System.Collections.Generic.List<LoanInstallment>();
+
+                foreach (var inst in empPendingInstallments)
+                {
+                    loanDeduction += inst.Amount;
+                    totalDeductions += inst.Amount;
+                    currentDeductionDetails.Add(new PayrollDetail
+                    {
+                        ComponentType = "Deduction",
+                        ComponentName = inst.Loan!.LoanType?.Name ?? "Advance",
+                        Amount = inst.Amount,
+                        Remarks = $"Monthly {(inst.Loan.LoanType?.Name ?? "advance").ToLower()} installment"
+                    });
+                    
+                    loansProcessed.Add(inst);
+                }
+
+                if (empAdjustments != null)
+                {
+                    foreach (var adj in empAdjustments.Where(a => a.Type == "Deduction"))
+                    {
+                        totalDeductions += adj.Amount;
+                        currentDeductionDetails.Add(new PayrollDetail
+                        {
+                            ComponentType = "Deduction",
+                            ComponentName = !string.IsNullOrWhiteSpace(adj.Name) ? adj.Name : "Ad-hoc Deduction",
+                            Amount = adj.Amount,
+                            Remarks = "Manual adjustment"
+                        });
+                    }
+                }
+
+                totalEarnings = currentEarningDetails.Sum(e => e.Amount);
+                totalDeductions = currentDeductionDetails.Sum(d => d.Amount);
+
+                existingMasters.TryGetValue(employeeId, out var payroll);
+                bool isNew = payroll == null;
+                
+                if (isNew)
+                {
+                    payroll = new PayrollMaster
+                    {
+                        EmployeeId = employeeId,
+                        Month = month
+                    };
+                }
+
+                payroll!.TotalDays = attendance.TotalDays;
+                payroll.PresentDays = attendance.PresentCount;
+                payroll.AbsentDays = attendance.AbsentCount;
+                payroll.PaidLeaves = attendance.LeaveCount;
+                payroll.UnpaidLeaves = attendance.UnpaidLeaveCount;
+                payroll.HalfDays = attendance.HalfDayCount;
+                payroll.Weekoffs = attendance.WeekoffCount;
+                payroll.Holidays = attendance.HolidayCount;
+                payroll.PayableDays = payableDays;
+                payroll.GrossSalary = grossSalary;
+                payroll.TotalEarnings = totalEarnings;
+                payroll.TotalDeductions = totalDeductions;
+                payroll.NetSalary = totalEarnings - totalDeductions;
+                payroll.Status = "Processed";
+                payroll.ProcessedDate = DateTime.Now;
+                payroll.LeaveBreakdown = attendance.LeaveTypeCounts.Any() ? System.Text.Json.JsonSerializer.Serialize(attendance.LeaveTypeCounts) : null;
+
+                if (isNew)
+                {
+                    _db.PayrollMasters.Add(payroll);
+                }
+                
+                // Keep details in memory to link after SaveChanges
+                payroll.PayrollDetails = currentEarningDetails.Concat(currentDeductionDetails).ToList();
+
+                foreach (var inst in loansProcessed)
+                {
+                    inst.Status = "Paid";
+                    inst.PaidAmount = inst.Amount;
+                    inst.PaidDate = DateTime.Now;
+                    inst.PayrollMaster = payroll; 
+                    inst.Remarks = $"Deducted in {month} payroll";
+                }
+
+                processedCount++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process payroll for Employee {Id} in bulk run", employeeId);
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        return processedCount;
+    }
+
     /// <summary>
     /// Process payroll for all employees for a specific month
     /// </summary>
     public async Task<int> ProcessMonthlyPayrollAsync(string month, bool includeLoans = true)
     {
-        var employees = await _db.Employees
+        var employeeIds = await _db.Employees
             .Where(e => e.Status == "Active")
+            .Select(e => e.EmployeeId)
             .ToListAsync();
 
-        int processedCount = 0;
-
-        foreach (var employee in employees)
-        {
-            try
-            {
-                await ProcessEmployeePayrollAsync(employee.EmployeeId, month, null, !includeLoans);
-                processedCount++;
-            }
-            catch (Exception ex)
-            {
-                // Point 3 Fix: Log the error so it's not swallowed silently
-                _logger.LogError(ex, "Failed to process payroll for Employee {Name} (ID: {Id}) for month {Month}", 
-                    employee.EmployeeName, employee.EmployeeId, month);
-                continue;
-            }
-        }
-
-        return processedCount;
+        return await ProcessBulkEmployeePayrollAsync(employeeIds, month, new System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<ManualAdjustment>>(), !includeLoans);
     }
 }
 
