@@ -2,8 +2,17 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/hrdesk-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30)
+    .CreateLogger();
+
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+    builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddRazorPages(options =>
@@ -110,8 +119,7 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
-
+app.UseSerilogRequestLogging();
 
 
 app.UseRouting();
@@ -201,3 +209,12 @@ app.MapControllers();
 app.MapRazorPages();
 
 app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
