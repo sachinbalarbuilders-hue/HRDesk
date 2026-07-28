@@ -47,11 +47,15 @@ namespace HRDesk.Web.Pages.Payroll.EmployeeSalary
 
             Employees = new List<EmployeeSalaryViewModel>();
 
+            var empIds = employees.Select(e => e.EmployeeId).ToList();
+            var allStructures = await _context.EmployeeSalaryStructures
+                .Where(s => empIds.Contains(s.EmployeeId) && s.IsActive)
+                .ToListAsync();
+            var structuresByEmp = allStructures.GroupBy(s => s.EmployeeId).ToDictionary(g => g.Key, g => g.ToList());
+
             foreach (var emp in employees)
             {
-                var salaryStructure = await _context.EmployeeSalaryStructures
-                    .Where(s => s.EmployeeId == emp.EmployeeId && s.IsActive)
-                    .ToListAsync();
+                var salaryStructure = structuresByEmp.GetValueOrDefault(emp.EmployeeId, new List<EmployeeSalaryStructure>());
 
                 var basic = salaryStructure.FirstOrDefault(s => s.ComponentId == basicComponent?.Id)?.Amount ?? 0;
                 var special = salaryStructure.FirstOrDefault(s => s.ComponentId == specialComponent?.Id)?.Amount ?? 0;

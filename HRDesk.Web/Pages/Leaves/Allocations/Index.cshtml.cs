@@ -108,13 +108,16 @@ public class IndexModel : PageModel
         }
 
         int count = 0;
+        var currentYearAllocations = await _db.LeaveAllocations
+            .Where(la => la.Year == Year)
+            .ToListAsync();
+        var currentYearDict = currentYearAllocations
+            .ToDictionary(la => $"{la.EmployeeId}_{la.LeaveTypeId}");
+
         foreach (var prev in prevAllocations)
         {
             // Find or Create allocation for current year
-            var current = await _db.LeaveAllocations
-                .FirstOrDefaultAsync(la => la.EmployeeId == prev.EmployeeId && 
-                                           la.LeaveTypeId == prev.LeaveTypeId && 
-                                           la.Year == Year);
+            var current = currentYearDict.GetValueOrDefault($"{prev.EmployeeId}_{prev.LeaveTypeId}");
             
             // Eligibility Check for Carry Forward
             var hasAssignments = prev.LeaveType?.EligibleEmployees.Any() ?? false;
@@ -186,6 +189,12 @@ public class IndexModel : PageModel
             .Where(lt => lt.Status == "Active").ToListAsync();
         int addedCount = 0;
 
+        var existingAllocations = await _db.LeaveAllocations
+            .Where(la => la.Year == Year)
+            .Select(la => new { la.EmployeeId, la.LeaveTypeId })
+            .ToListAsync();
+        var existingSet = existingAllocations.Select(a => $"{a.EmployeeId}_{a.LeaveTypeId}").ToHashSet();
+
         foreach (var emp in employees)
         {
             foreach (var lt in leaveTypes)
@@ -196,7 +205,7 @@ public class IndexModel : PageModel
                 
                 if (!isEligible) continue;
 
-                var existing = await _db.LeaveAllocations.AnyAsync(la => la.EmployeeId == emp.EmployeeId && la.LeaveTypeId == lt.Id && la.Year == Year);
+                var existing = existingSet.Contains($"{emp.EmployeeId}_{lt.Id}");
                 if (!existing)
                 {
                     decimal quota = lt.DefaultYearlyQuota;

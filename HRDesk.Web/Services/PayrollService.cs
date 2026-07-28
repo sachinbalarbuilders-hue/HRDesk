@@ -65,6 +65,36 @@ public class PayrollService
     }
 
     /// <summary>
+    /// Calculate gross salaries for a batch of employees (fixes N+1 queries)
+    /// </summary>
+    public async Task<System.Collections.Generic.Dictionary<int, decimal>> GetGrossSalariesBatchAsync(System.Collections.Generic.List<int> employeeIds, string month)
+    {
+        var result = new System.Collections.Generic.Dictionary<int, decimal>();
+        if (!employeeIds.Any()) return result;
+
+        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", out var monthStart))
+            return result;
+            
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+        var salaryStructures = await _db.EmployeeSalaryStructures
+            .Include(s => s.SalaryComponent)
+            .Where(s => employeeIds.Contains(s.EmployeeId) &&
+                       s.EffectiveFrom <= monthEnd && 
+                       (s.EffectiveTo == null || s.EffectiveTo >= monthEnd) &&
+                       s.SalaryComponent!.ComponentType == "Earning")
+            .ToListAsync();
+
+        var grouped = salaryStructures.GroupBy(s => s.EmployeeId);
+        foreach (var group in grouped)
+        {
+            result[group.Key] = group.Sum(s => s.Amount);
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Process payroll for a single employee for a specific month
     /// </summary>
     public async Task<PayrollMaster> ProcessEmployeePayrollAsync(int employeeId, string month, 

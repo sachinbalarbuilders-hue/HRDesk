@@ -8,9 +8,6 @@ namespace HRDesk.Web.Controllers;
 
 [ApiController]
 [Route("api/device")]
-// Temporarily allow anonymous for local testing. When you finish testing,
-// remove this attribute to require authentication again.
-[Microsoft.AspNetCore.Authorization.AllowAnonymous]
 public sealed class DeviceController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;

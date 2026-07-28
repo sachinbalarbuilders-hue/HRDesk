@@ -16,6 +16,14 @@ builder.Services.AddRazorPages(options =>
 }).AddRazorRuntimeCompilation();
 builder.Services.AddControllers();
 
+// Require authentication by default for all endpoints (Controllers & Pages)
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 // Add HttpContextAccessor and Tenant Provider
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
@@ -39,7 +47,11 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    var jwtKey = builder.Configuration["Jwt:Key"] ?? "dev-secret-key-please-change";
+    var jwtKey = builder.Configuration["Jwt:Key"];
+    if (string.IsNullOrEmpty(jwtKey) && !builder.Environment.IsDevelopment())
+        throw new InvalidOperationException("Jwt:Key must be configured in production environment.");
+    jwtKey ??= "dev-secret-key-please-change";
+
     var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "HRDesk.Web";
     options.RequireHttpsMetadata = false;
     options.SaveToken = true;
@@ -86,10 +98,13 @@ builder.Services.AddScoped<HRDesk.Web.Services.Notifications.WhatsAppNotificatio
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-app.UseDeveloperExceptionPage();
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    // app.UseExceptionHandler("/Error");
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
@@ -143,10 +158,15 @@ using (var scope = app.Services.CreateScope())
 
     if (!db.Users.Any())
     {
+        var randomPassword = Guid.NewGuid().ToString("N").Substring(0, 10);
+        Console.WriteLine("\n========================================================");
+        Console.WriteLine($"[SECURITY] Seeded default admin 'admin' with password: {randomPassword}");
+        Console.WriteLine("========================================================\n");
+
         db.Users.Add(new HRDesk.Web.Models.User
         {
             Username = "admin",
-            PasswordHash = "password", // In production, use hashed passwords
+            PasswordHash = randomPassword, // Seeded with secure random string
             FullName = "Administrator",
             Role = "SuperAdmin",
             IsActive = true,

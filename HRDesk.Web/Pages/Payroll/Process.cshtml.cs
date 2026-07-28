@@ -157,18 +157,20 @@ namespace HRDesk.Web.Pages.Payroll
                 .ToListAsync();
 
             AvailableEmployees = new List<EmployeeListItem>();
+            
+            var employeeIds = employees.Select(e => e.EmployeeId).ToList();
+            var grossSalaries = await _payrollService.GetGrossSalariesBatchAsync(employeeIds, TargetProcessMonth);
+            var manualDetailsByPayrollId = allManualDetails.GroupBy(d => d.PayrollId).ToDictionary(g => g.Key, g => g.ToList());
 
             foreach (var emp in employees)
             {
-                var grossSalary = await _payrollService.GetGrossSalaryAsync(emp.EmployeeId, TargetProcessMonth);
+                var grossSalary = grossSalaries.GetValueOrDefault(emp.EmployeeId, 0m);
 
                 var alreadyProcessed = PayrollRecords.FirstOrDefault(p => p.EmployeeId == emp.EmployeeId);
                 var adjustments = new List<ManualAdjustment>();
                 if (alreadyProcessed != null)
                 {
-                    var details = await _context.PayrollDetails
-                        .Where(d => d.PayrollId == alreadyProcessed.Id && d.Remarks == "Manual adjustment")
-                        .ToListAsync();
+                    var details = manualDetailsByPayrollId.GetValueOrDefault(alreadyProcessed.Id, new List<PayrollDetail>());
 
                     foreach (var detail in details)
                     {
