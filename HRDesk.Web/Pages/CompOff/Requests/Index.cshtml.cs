@@ -21,10 +21,10 @@ namespace HRDesk.Web.Pages.CompOff.Requests
             _compOffService = compOffService;
         }
 
-        public IList<CompOffRequest> DraftRequests { get; set; } = default!;
-        public IList<CompOffRequest> PendingRequests { get; set; } = default!;
-        public IList<CompOffRequest> ProcessedRequests { get; set; } = default!;
-        public IList<Employee> Employees { get; set; } = default!;
+        public IList<CompOffRequest> DraftRequests { get; set; } = new List<CompOffRequest>();
+        public IList<CompOffRequest> PendingRequests { get; set; } = new List<CompOffRequest>();
+        public IList<CompOffRequest> ProcessedRequests { get; set; } = new List<CompOffRequest>();
+        public IList<Employee> Employees { get; set; } = new List<Employee>();
 
         public string? Message { get; set; }
 

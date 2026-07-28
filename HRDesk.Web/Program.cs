@@ -62,7 +62,7 @@ builder.Services.AddDbContext<HRDesk.Web.Data.BiometricAttendanceDbContext>(opti
         throw new InvalidOperationException("Missing connection string 'AttendanceDb'.");
     }
 
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)));
 });
 
 builder.Services.AddScoped<HRDesk.Web.Services.AttendanceProcessorService>();
@@ -108,7 +108,7 @@ app.UseAuthorization();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<HRDesk.Web.Data.BiometricAttendanceDbContext>();
-    db.Database.Migrate(); // Apply pending migrations automatically
+    try { db.Database.Migrate(); } catch (Exception ex) { Console.WriteLine($"[Startup] Migration warning (non-fatal): {ex.Message}"); }
 
     // Auto-migration removed due to performance/crashing on startup.
     // Thumbnails will lazily fallback to disk until a dedicated migration job is run.

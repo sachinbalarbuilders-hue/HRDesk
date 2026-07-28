@@ -11,19 +11,53 @@ namespace HRDesk.Web.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.Sql("SET FOREIGN_KEY_CHECKS=0;");
+            // Create a helper stored procedure to safely drop FKs only if they exist.
+            // This is needed because error 1553 ("Cannot drop index: needed in a foreign key constraint")
+            // cannot be bypassed by FOREIGN_KEY_CHECKS=0. Explicit FK drops are required first.
+            migrationBuilder.Sql(@"
+                DROP PROCEDURE IF EXISTS `_TempDropFK`;
+                CREATE PROCEDURE `_TempDropFK`(IN tbl VARCHAR(255), IN fk VARCHAR(255))
+                BEGIN
+                    IF EXISTS (SELECT NULL FROM information_schema.TABLE_CONSTRAINTS
+                               WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = tbl
+                               AND CONSTRAINT_NAME = fk AND CONSTRAINT_TYPE = 'FOREIGN KEY') THEN
+                        SET @_sql = CONCAT('ALTER TABLE `', tbl, '` DROP FOREIGN KEY `', fk, '`');
+                        PREPARE _stmt FROM @_sql;
+                        EXECUTE _stmt;
+                        DEALLOCATE PREPARE _stmt;
+                    END IF;
+                END;
+            ");
+
+            // Drop FKs that block dropping PK of leave_type_eligibility
+            migrationBuilder.Sql("CALL `_TempDropFK`('leave_type_eligibility', 'FK_leave_type_eligibility_employees_employee_id');");
+            migrationBuilder.Sql("CALL `_TempDropFK`('leave_type_eligibility', 'FK_leave_type_eligibility_leave_type_id');");
+            migrationBuilder.Sql("CALL `_TempDropFK`('leave_type_eligibility', 'fk_lte_emp_rel_v1');");
+            migrationBuilder.Sql("CALL `_TempDropFK`('leave_type_eligibility', 'fk_lte_type_rel_v1');");
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_leave_type_eligibility",
                 table: "leave_type_eligibility");
 
+            // Drop FKs that block dropping PK of holiday_employees
+            migrationBuilder.Sql("CALL `_TempDropFK`('holiday_employees', 'fk_employee_holiday');");
+            migrationBuilder.Sql("CALL `_TempDropFK`('holiday_employees', 'FK_holiday_employees_employees_employee_id');");
+            migrationBuilder.Sql("CALL `_TempDropFK`('holiday_employees', 'FK_holiday_employees_holidays_holiday_id');");
+
             migrationBuilder.DropPrimaryKey(
                 name: "PK_holiday_employees",
                 table: "holiday_employees");
 
+            // Disable FK checks for employees PK drop — many child tables reference employees.employee_id
+            migrationBuilder.Sql("SET FOREIGN_KEY_CHECKS=0;");
+
             migrationBuilder.DropPrimaryKey(
                 name: "PK_employees",
                 table: "employees");
+
+            migrationBuilder.Sql("SET FOREIGN_KEY_CHECKS=1;");
+
+            migrationBuilder.Sql("DROP PROCEDURE IF EXISTS `_TempDropFK`;");
 
             migrationBuilder.AlterColumn<int>(
                 name: "employee_id",
@@ -190,6 +224,10 @@ namespace HRDesk.Web.Migrations
                 principalTable: "employees",
                 principalColumns: new[] { "organization_id", "employee_id" },
                 onDelete: ReferentialAction.Cascade);
+
+            // Re-add the FK that was dropped to allow dropping the primary key
+            migrationBuilder.Sql("ALTER TABLE `holiday_employees` ADD CONSTRAINT `FK_holiday_employees_holidays_holiday_id` FOREIGN KEY (`holiday_id`) REFERENCES `holidays` (`id`) ON DELETE CASCADE;");
+
 
             migrationBuilder.AddForeignKey(
                 name: "FK_leave_allocations_employees_organization_id_employee_id",
