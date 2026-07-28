@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -14,19 +14,22 @@ public class IndexModel : PageModel
     private readonly BiometricAttendanceDbContext _db;
     private readonly ISequenceService _sequenceService;
     private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
+    private readonly IReferenceDataCacheService _cache;
 
     public IndexModel(
         BiometricAttendanceDbContext db, 
         ISequenceService sequenceService, 
-        AttendanceProcessorService processor, 
-        CompOffService compOffService,
-        LeaveAdjustmentService adjustmentService)
+        HRDesk.Web.Services.IAttendanceProcessorService processor, 
+        ICompOffService compOffService,
+        ILeaveAdjustmentService adjustmentService,
+        IReferenceDataCacheService cache)
     {
         _db = db;
         _sequenceService = sequenceService;
         _processor = processor;
         _compOffService = compOffService;
         _adjustmentService = adjustmentService;
+        _cache = cache;
     }
 
     public PaginatedList<LeaveApplication> LeaveApplications { get; set; } = default!;
@@ -39,7 +42,7 @@ public class IndexModel : PageModel
     public async Task OnGetAsync(int pageNum = 1)
     {
         Employees = await _db.Employees.Where(e => e.Status == "active").OrderBy(e => e.EmployeeName).ToListAsync();
-        LeaveTypes = await _db.LeaveTypes.Where(lt => lt.Status == "Active").ToListAsync();
+        LeaveTypes = await _cache.GetLeaveTypesAsync();
  
         // Default to today to avoid 0001-01-01 error
         NewApplication.StartDate = DateOnly.FromDateTime(DateTime.Today);

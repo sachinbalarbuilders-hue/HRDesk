@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -93,6 +93,7 @@ builder.Services.AddScoped<HRDesk.Web.Services.IAttendanceSummaryService, HRDesk
 builder.Services.AddScoped<HRDesk.Web.Services.IPayrollService, HRDesk.Web.Services.PayrollService>();
 builder.Services.AddScoped<HRDesk.Web.Services.ICompOffService, HRDesk.Web.Services.CompOffService>();
 builder.Services.AddScoped<HRDesk.Web.Services.ILeaveAdjustmentService, HRDesk.Web.Services.LeaveAdjustmentService>();
+builder.Services.AddSingleton<HRDesk.Web.Services.IReferenceDataCacheService, HRDesk.Web.Services.ReferenceDataCacheService>();
 builder.Services.AddScoped<HRDesk.Web.Services.ImageGenerationService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.CelebrationNotificationService>();
 

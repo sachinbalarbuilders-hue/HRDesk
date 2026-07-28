@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using HRDesk.Web.Data;
@@ -17,8 +17,8 @@ public class PayrollService : IPayrollService
 
     public PayrollService(
         BiometricAttendanceDbContext db, 
-        LoanService loanService, 
-        AttendanceSummaryService attendanceSummaryService,
+        ILoanService loanService, 
+        IAttendanceSummaryService attendanceSummaryService,
         ILogger<PayrollService> logger)
     {
         _db = db;

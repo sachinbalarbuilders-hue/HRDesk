@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -9,10 +9,12 @@ namespace HRDesk.Web.Pages.Shifts;
 public sealed class IndexModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly HRDesk.Web.Services.IReferenceDataCacheService _cache;
 
-    public IndexModel(BiometricAttendanceDbContext db)
+    public IndexModel(BiometricAttendanceDbContext db, HRDesk.Web.Services.IReferenceDataCacheService cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     public IReadOnlyList<Shift> Shifts { get; private set; } = Array.Empty<Shift>();
@@ -39,6 +41,7 @@ public sealed class IndexModel : PageModel
             : "active";
 
         await _db.SaveChangesAsync();
+        _cache.EvictShiftsCache();
         return RedirectToPage();
     }
 }

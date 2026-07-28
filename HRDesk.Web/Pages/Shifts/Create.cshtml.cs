@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
@@ -11,10 +11,12 @@ namespace HRDesk.Web.Pages.Shifts;
 public sealed class CreateModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly HRDesk.Web.Services.IReferenceDataCacheService _cache;
 
-    public CreateModel(BiometricAttendanceDbContext db)
+    public CreateModel(BiometricAttendanceDbContext db, HRDesk.Web.Services.IReferenceDataCacheService cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     [BindProperty]
@@ -73,6 +75,7 @@ public sealed class CreateModel : PageModel
 
         _db.Shifts.Add(shift);
         await _db.SaveChangesAsync();
+        _cache.EvictShiftsCache();
         return RedirectToPage("./Index");
     }
 

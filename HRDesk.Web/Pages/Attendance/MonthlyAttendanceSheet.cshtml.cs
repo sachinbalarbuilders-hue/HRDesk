@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -11,11 +11,13 @@ public class MonthlyAttendanceSheetModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly IAttendanceSummaryService _attendanceSummaryService;
+    private readonly IReferenceDataCacheService _cache;
 
-    public MonthlyAttendanceSheetModel(BiometricAttendanceDbContext db, IAttendanceSummaryService attendanceSummaryService)
+    public MonthlyAttendanceSheetModel(BiometricAttendanceDbContext db, IAttendanceSummaryService attendanceSummaryService, IReferenceDataCacheService cache)
     {
         _db = db;
         _attendanceSummaryService = attendanceSummaryService;
+        _cache = cache;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -76,7 +78,7 @@ public class MonthlyAttendanceSheetModel : PageModel
             .ToListAsync();
 
         // Optimization: Pre-load all leave types once to avoid DB queries inside loops
-        var allLeaveTypes = await _db.LeaveTypes.ToListAsync();
+        var allLeaveTypes = await _cache.GetLeaveTypesAsync();
 
         // 2c. Fetch all Missed Punch regularizations for the month
         var regularizations = await _db.AttendanceRegularizations

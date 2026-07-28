@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -16,9 +16,9 @@ namespace HRDesk.Web.Services
 
         public LeaveAdjustmentService(
             BiometricAttendanceDbContext db, 
-            AttendanceProcessorService processor, 
-            PayrollService payrollService,
-            CompOffService compOffService)
+            HRDesk.Web.Services.IAttendanceProcessorService processor, 
+            IPayrollService payrollService,
+            ICompOffService compOffService)
         {
             _db = db;
             _processor = processor;

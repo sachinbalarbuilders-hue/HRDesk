@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -10,10 +10,12 @@ namespace HRDesk.Web.Pages.Departments;
 public sealed class EditModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly HRDesk.Web.Services.IReferenceDataCacheService _cache;
 
-    public EditModel(BiometricAttendanceDbContext db)
+    public EditModel(BiometricAttendanceDbContext db, HRDesk.Web.Services.IReferenceDataCacheService cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -64,6 +66,7 @@ public sealed class EditModel : PageModel
         dept.Status = Input.Status;
 
         await _db.SaveChangesAsync();
+        _cache.EvictDepartmentsCache();
         return RedirectToPage("./Index");
     }
 

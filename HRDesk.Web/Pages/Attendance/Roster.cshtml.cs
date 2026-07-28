@@ -1,19 +1,22 @@
-﻿using System;
+using System;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using HRDesk.Web.Services;
 
 namespace HRDesk.Web.Pages.Attendance;
 
 public class RosterModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly IReferenceDataCacheService _cache;
 
-    public RosterModel(BiometricAttendanceDbContext db)
+    public RosterModel(BiometricAttendanceDbContext db, IReferenceDataCacheService cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     public PaginatedList<Employee> Employees { get; set; } = default!;
@@ -51,8 +54,8 @@ public class RosterModel : PageModel
             StartDate = today.AddDays(-1 * diff);
         }
 
-        Shifts = await _db.Shifts.Where(s => s.Status == "active").ToListAsync();
-        Departments = await _db.Departments.Where(d => d.Status == "active").OrderBy(d => d.DepartmentName).ToListAsync();
+        Shifts = await _cache.GetShiftsAsync();
+        Departments = await _cache.GetDepartmentsAsync();
 
         var query = _db.Employees
             .Include(e => e.Department)

@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -10,10 +10,12 @@ namespace HRDesk.Web.Pages.Leaves.Allocations;
 public class IndexModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly IReferenceDataCacheService _cache;
 
-    public IndexModel(BiometricAttendanceDbContext db)
+    public IndexModel(BiometricAttendanceDbContext db, IReferenceDataCacheService cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     public List<Employee> Employees { get; set; } = new();
@@ -31,7 +33,7 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync(int pageNum = 1)
     {
-        LeaveTypes = await _db.LeaveTypes.AsNoTracking().Include(lt => lt.EligibleEmployees).Where(lt => lt.Status == "Active").ToListAsync();
+        LeaveTypes = await _cache.GetLeaveTypesAsync();
         Employees = await _db.Employees.AsNoTracking().Where(e => e.Status == "active").Include(e => e.Department).OrderBy(e => e.EmployeeName).ToListAsync();
         
         var query = _db.LeaveAllocations

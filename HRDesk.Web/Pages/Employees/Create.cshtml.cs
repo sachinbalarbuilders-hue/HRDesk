@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting;
+using HRDesk.Web.Services;
 
 namespace HRDesk.Web.Pages.Employees;
 
@@ -15,11 +17,13 @@ public sealed class CreateModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly IConfiguration _configuration;
+    private readonly IReferenceDataCacheService _cache;
 
-    public CreateModel(BiometricAttendanceDbContext db, IConfiguration configuration)
+    public CreateModel(BiometricAttendanceDbContext db, IConfiguration configuration, IReferenceDataCacheService cache)
     {
         _db = db;
         _configuration = configuration;
+        _cache = cache;
     }
 
     [BindProperty]
@@ -113,15 +117,8 @@ public sealed class CreateModel : PageModel
 
     private async Task LoadOptionsAsync()
     {
-        var departments = await _db.Departments
-            .AsNoTracking()
-            .OrderBy(d => d.DepartmentName)
-            .ToListAsync();
-
-        var designations = await _db.Designations
-            .AsNoTracking()
-            .OrderBy(d => d.DesignationName)
-            .ToListAsync();
+        var departments = await _cache.GetDepartmentsAsync();
+        var designations = await _cache.GetDesignationsAsync();
 
         DepartmentOptions = new SelectList(departments, nameof(Department.Id), nameof(Department.DepartmentName));
         DesignationOptions = new SelectList(designations, nameof(Designation.Id), nameof(Designation.DesignationName));
