@@ -128,21 +128,6 @@ using (var scope = app.Services.CreateScope())
     // Auto-migration removed due to performance/crashing on startup.
     // Thumbnails will lazily fallback to disk until a dedicated migration job is run.
 
-    // Create eligibility table if missing (Split to avoid atomicity issues with InnoDB on failure)
-    try {
-        db.Database.ExecuteSqlRaw(@"
-            CREATE TABLE IF NOT EXISTS `leave_type_eligibility` (
-                `employee_id` INT NOT NULL,
-                `leave_type_id` INT NOT NULL,
-                PRIMARY KEY (`employee_id`, `leave_type_id`),
-                INDEX `idx_lte_type` (`leave_type_id`)
-            ) ENGINE=InnoDB;
-        ");
-        
-        // Try to add constraints with unique names to avoid conflicts
-        try { db.Database.ExecuteSqlRaw("ALTER TABLE `leave_type_eligibility` ADD CONSTRAINT `fk_lte_emp_rel_v1` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`employee_id`) ON DELETE CASCADE;"); } catch { }
-        try { db.Database.ExecuteSqlRaw("ALTER TABLE `leave_type_eligibility` ADD CONSTRAINT `fk_lte_type_rel_v1` FOREIGN KEY (`leave_type_id`) REFERENCES `leave_types` (`id`) ON DELETE CASCADE;"); } catch { }
-    } catch { }
     
     if (!db.Organizations.Any())
     {
