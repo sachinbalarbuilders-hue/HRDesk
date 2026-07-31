@@ -410,8 +410,8 @@ public class PayrollService : IPayrollService
         if (!skipLoans)
         {
             allPendingInstallments = await _db.LoanInstallments
-                .Include(i => i.Loan).ThenInclude(l => l.LoanType)
-                .Where(i => i.Status == "Pending" && employeeIds.Contains(i.Loan!.EmployeeId) && i.InstallmentDate <= monthEnd)
+                .Include(i => i.EmployeeLoan).ThenInclude(l => l!.LoanType)
+                .Where(i => i.Status == "Pending" && employeeIds.Contains(i.EmployeeLoan!.EmployeeId) && i.DueMonth == month)
                 .ToListAsync();
         }
         
@@ -507,7 +507,7 @@ public class PayrollService : IPayrollService
                 }
 
                 decimal loanDeduction = 0;
-                var empPendingInstallments = allPendingInstallments.Where(i => i.Loan!.EmployeeId == employeeId).OrderBy(i => i.InstallmentDate).ToList();
+                var empPendingInstallments = allPendingInstallments.Where(i => i.EmployeeLoan!.EmployeeId == employeeId).OrderBy(i => i.DueMonth).ToList();
                 
                 var loansProcessed = new System.Collections.Generic.List<LoanInstallment>();
 
@@ -518,9 +518,9 @@ public class PayrollService : IPayrollService
                     currentDeductionDetails.Add(new PayrollDetail
                     {
                         ComponentType = "Deduction",
-                        ComponentName = inst.Loan!.LoanType?.Name ?? "Advance",
+                        ComponentName = inst.EmployeeLoan!.LoanType?.TypeName ?? "Advance",
                         Amount = inst.Amount,
-                        Remarks = $"Monthly {(inst.Loan.LoanType?.Name ?? "advance").ToLower()} installment"
+                        Remarks = $"Monthly {(inst.EmployeeLoan.LoanType?.TypeName ?? "advance").ToLower()} installment"
                     });
                     
                     loansProcessed.Add(inst);
@@ -585,8 +585,8 @@ public class PayrollService : IPayrollService
                 {
                     inst.Status = "Paid";
                     inst.PaidAmount = inst.Amount;
-                    inst.PaidDate = DateTime.Now;
-                    inst.PayrollMaster = payroll; 
+                    inst.PaidDate = DateOnly.FromDateTime(DateTime.Now);
+                    inst.PayrollId = payroll.Id; 
                     inst.Remarks = $"Deducted in {month} payroll";
                 }
 
