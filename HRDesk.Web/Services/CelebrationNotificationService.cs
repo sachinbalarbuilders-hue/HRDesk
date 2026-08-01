@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,43 +29,56 @@ namespace HRDesk.Web.Services
             _configuration = configuration;
         }
 
-        private DateTime _lastProcessedDate = DateTime.MinValue;
-
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Celebration Notification Service is starting.");
 
-            // Run check every minute to catch the exact time
             while (!stoppingToken.IsCancellationRequested)
             {
                 var now = DateTime.Now;
                 
-                // Trigger any time after 9:30 AM if it hasn't run today
+                // Trigger any time after 9:30 AM
                 bool shouldTrigger = (now.Hour == 9 && now.Minute >= 30) || (now.Hour >= 10);
 
-                if (shouldTrigger && _lastProcessedDate.Date != now.Date)
+                if (shouldTrigger)
+                {
+                    try
                     {
-                        try
+                        bool allSent = await ProcessCelebrationsAsync(now.Date);
+
+                        if (allSent)
                         {
-                            await ProcessCelebrationsAsync(now.Date);
-                            _lastProcessedDate = now.Date; // Mark as processed for today
-                            
-                            // Wait for a minute to ensure we don't trigger multiple times in the same minute
-                            await Task.Delay(TimeSpan.FromMinutes(1.5), stoppingToken);
+                            // All messages sent — sleep until tomorrow 9:30 AM
+                            var tomorrow930 = now.Date.AddDays(1).AddHours(9).AddMinutes(30);
+                            var sleepDuration = tomorrow930 - DateTime.Now;
+                            _logger.LogInformation("All celebrations processed. Sleeping until {Time}.", tomorrow930);
+                            await Task.Delay(sleepDuration, stoppingToken);
                             continue;
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            _logger.LogError(ex, "Error processing celebrations.");
+                            // Some failed (WhatsApp disconnected) — retry in 5 minutes
+                            _logger.LogWarning("Some celebration messages failed. Retrying in 5 minutes.");
+                            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+                            continue;
                         }
                     }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing celebrations. Retrying in 5 minutes.");
+                        await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+                        continue;
+                    }
+                }
 
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                // Before 9:30 AM — check every 5 minutes
+                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
             }
         }
 
-        private async Task ProcessCelebrationsAsync(DateTime today)
+        private async Task<bool> ProcessCelebrationsAsync(DateTime today)
         {
+            bool allSent = true;
             using var scope = _serviceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<BiometricAttendanceDbContext>();
             var whatsappProvider = scope.ServiceProvider.GetRequiredService<IWhatsAppProvider>();
@@ -127,16 +140,25 @@ namespace HRDesk.Web.Services
 
 The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes you a day filled with joy, good health, and happiness. Thank you for your dedication and hard work. Wishing you continued success and a wonderful year ahead!";
                     // Send to Node.js microservice to generate HTML/Puppeteer poster
-                    await whatsappProvider.SendCelebrationAsync(groupId, employee.EmployeeName, "Birthday", photoBase64, caption);
+                    bool birthdaySent = await whatsappProvider.SendCelebrationAsync(groupId, employee.EmployeeName, "Birthday", photoBase64, caption);
                     
-                    db.CelebrationLogs.Add(new CelebrationLog 
+                    // Only log to DB if message was actually delivered
+                    if (birthdaySent)
                     {
-                        OrganizationId = employee.OrganizationId,
-                        EmployeeId = employee.EmployeeId,
-                        EventType = "Birthday",
-                        SentDate = today,
-                        CreatedAt = DateTime.Now
-                    });
+                        db.CelebrationLogs.Add(new CelebrationLog 
+                        {
+                            OrganizationId = employee.OrganizationId,
+                            EmployeeId = employee.EmployeeId,
+                            EventType = "Birthday",
+                            SentDate = today,
+                            CreatedAt = DateTime.Now
+                        });
+                    }
+                    else
+                    {
+                        allSent = false;
+                        _logger.LogWarning("Birthday message for {Name} failed to send (WhatsApp may be disconnected). Will retry on next check.", employee.EmployeeName);
+                    }
                 }
 
                 // Check Work Anniversary
@@ -174,23 +196,30 @@ The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes yo
                     var caption = $"Congratulations, {employee.EmployeeName}, on your work anniversary! It's a special day to celebrate your great work and dedication to your job over the past year. We appreciate all that you have done and wish you all the best for many more successful years to come!";
                     
                     // Send to Node.js microservice to generate HTML/Puppeteer poster
-                    await whatsappProvider.SendCelebrationAsync(groupId, employee.EmployeeName, "Anniversary", photoBase64, caption, years);
+                    bool anniversarySent = await whatsappProvider.SendCelebrationAsync(groupId, employee.EmployeeName, "Anniversary", photoBase64, caption, years);
                     
-                    db.CelebrationLogs.Add(new CelebrationLog 
+                    // Only log to DB if message was actually delivered
+                    if (anniversarySent)
                     {
-                        OrganizationId = employee.OrganizationId,
-                        EmployeeId = employee.EmployeeId,
-                        EventType = "Anniversary",
-                        SentDate = today,
-                        CreatedAt = DateTime.Now
-                    });
+                        db.CelebrationLogs.Add(new CelebrationLog 
+                        {
+                            OrganizationId = employee.OrganizationId,
+                            EmployeeId = employee.EmployeeId,
+                            EventType = "Anniversary",
+                            SentDate = today,
+                            CreatedAt = DateTime.Now
+                        });
+                    }
+                    else
+                    {
+                        allSent = false;
+                        _logger.LogWarning("Anniversary message for {Name} failed to send (WhatsApp may be disconnected). Will retry on next check.", employee.EmployeeName);
+                    }
                 }
             }
             
             await db.SaveChangesAsync();
-            
-            // Note: In a production app, we now log that we processed today's celebrations in the database
-            // so we don't send duplicates if the service restarts during the 9 AM hour.
+            return allSent;
         }
     }
 }
