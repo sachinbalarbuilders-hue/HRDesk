@@ -91,7 +91,15 @@
                                         }
                                     </td>
                                     <td>@app.Details</td>
-                                    <td>@app.Reason</td>
+                                    <td>
+                                        @app.Reason
+                                        @if (app.ChildItems != null && app.ChildItems.Any())
+                                        {
+                                            <button type="button" class="btn btn-sm btn-link text-info p-0 ms-2" data-bs-toggle="modal" data-bs-target="#modal-@app.Id">
+                                                (View Details)
+                                            </button>
+                                        }
+                                    </td>
                                     <td class="text-end pe-3">
                                         @if (app.Category == "Attendance Record")
                                         {
@@ -144,3 +152,88 @@
         </div>
     </div>
 </div>
+
+<!-- Modals for Grouped Tracking Requests -->
+@if (Model.Applications != null && Model.Applications.Any())
+{
+    foreach (var app in Model.Applications.Where(a => a.ChildItems != null && a.ChildItems.Any()))
+    {
+        var count = app.ChildItems!.Count;
+        var approvedCount = app.ChildItems.Count(x => x.Status == "Approved");
+        var rejectedCount = app.ChildItems.Count(x => x.Status == "Rejected");
+        var pendingCount = app.ChildItems.Count(x => x.Status == "Pending");
+
+        <div class="modal fade" id="modal-@app.Id" tabindex="-1" aria-labelledby="modalLabel-@app.Id" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-light border-bottom-0">
+                        <div>
+                            <h5 class="modal-title mb-1" id="modalLabel-@app.Id">
+                                <i class="bi bi-stack me-2 text-primary"></i>Batch Request Details
+                            </h5>
+                            <p class="text-muted small mb-0">
+                                App #: <strong>@(app.ApplicationNumber ?? "N/A")</strong> | 
+                                Employee: <strong>@app.EmployeeName</strong>
+                            </p>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    
+                    <div class="modal-body p-0">
+                        <div id="carousel-@app.Id" class="carousel slide" data-bs-interval="false">
+                            <div class="carousel-inner p-4">
+                                @{ var index = 0; }
+                                @foreach (var item in app.ChildItems)
+                                {
+                                    <div class="carousel-item @(index == 0 ? "active" : "")">
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <h6 class="fw-bold text-primary">Day @(index + 1) of @count</h6>
+                                            <span class="badge @(item.Status == "Approved" ? "bg-success" : (item.Status == "Rejected" ? "bg-danger" : "bg-warning text-dark"))">
+                                                @item.Status.ToUpper()
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="bg-light p-3 rounded-3 border mb-3">
+                                            <div class="row g-3">
+                                                <div class="col-sm-6">
+                                                    <label class="small text-muted mb-1">Date</label>
+                                                    <div class="fw-medium">@item.Date.ToString("dd MMM yyyy")</div>
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <label class="small text-muted mb-1">Type</label>
+                                                    <div>@item.Details</div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <label class="small text-muted mb-1">Reason</label>
+                                                    <div class="text-dark">@item.Reason</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    index++;
+                                }
+                            </div>
+                            
+                            @if (count > 1)
+                            {
+                                <div class="d-flex justify-content-between align-items-center bg-light p-3 border-top">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-target="#carousel-@app.Id" data-bs-slide="prev">
+                                        <i class="bi bi-chevron-left"></i> Previous
+                                    </button>
+                                    <div class="small text-muted text-center flex-grow-1">
+                                        <span class="fw-medium text-success">@approvedCount Approved</span> &middot; 
+                                        <span class="fw-medium text-danger">@rejectedCount Rejected</span> &middot; 
+                                        <span class="fw-medium text-warning">@pendingCount Pending</span>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-target="#carousel-@app.Id" data-bs-slide="next">
+                                        Next <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}

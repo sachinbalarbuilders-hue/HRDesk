@@ -57,8 +57,7 @@
                         .GroupBy(r => new {
                             r.ApplicationNumber,
                             r.EmployeeId,
-                            r.Reason,
-                            r.CreatedAt,
+                            CreatedAt = new DateTime(r.CreatedAt.Year, r.CreatedAt.Month, r.CreatedAt.Day, r.CreatedAt.Hour, r.CreatedAt.Minute, 0),
                             EmployeeName = r.Employee?.EmployeeName ?? "Unknown"
                         })
                         .OrderByDescending(g => g.Key.CreatedAt)
@@ -126,15 +125,34 @@
                                     else { <text>@minDate.ToString("dd MMM") – @maxDate.ToString("dd MMM yyyy")</text> }
                                 </small>
                             </td>
-                            <td class="text-muted small" style="max-width:200px;">@group.Key.Reason</td>
+                            <td>
+                                @if (count > 1)
+                                {
+                                    <span class="text-muted fst-italic">Multiple reasons (view details)</span>
+                                }
+                                else
+                                {
+                                    <div class="text-truncate" style="max-width: 200px;" title="@first.Reason">
+                                        @(string.IsNullOrEmpty(first.Reason) ? "-" : first.Reason)
+                                    </div>
+                                }
+                            </td>
                             <td><span class="badge @statusClass">@status.ToUpper()</span></td>
-                            <td class="small text-muted">@group.Key.CreatedAt.ToString("dd MMM HH:mm")</td>
+                            <td class="small text-muted">@group.Key.CreatedAt.ToString("dd MMM")</td>
                             <td class="text-end pe-4">
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
+                                        @if (count > 1)
+                                        {
+                                            <li>
+                                                <button type="button" class="dropdown-item text-info" data-bs-toggle="modal" data-bs-target="#modal-@first.Id">
+                                                    <i class="bi bi-eye me-2"></i>View Details
+                                                </button>
+                                            </li>
+                                        }
                                         @if (count == 1)
                                         {
                                             <li>
@@ -142,26 +160,26 @@
                                                     <i class="bi bi-pencil me-2"></i>Edit
                                                 </a>
                                             </li>
-                                        }
-                                        @if (status == "Pending")
-                                        {
-                                            <li>
-                                                <form method="post" asp-page-handler="Approve" asp-route-ids="@ids">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="dropdown-item text-success">
-                                                        <i class="bi bi-check-lg me-2"></i>Approve
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <li>
-                                                <form method="post" asp-page-handler="Reject" asp-route-ids="@ids">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="dropdown-item text-warning">
-                                                        <i class="bi bi-x-lg me-2"></i>Reject
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
+                                            @if (status == "Pending")
+                                            {
+                                                <li>
+                                                    <form method="post" asp-page-handler="Approve" asp-route-ids="@ids">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="dropdown-item text-success">
+                                                            <i class="bi bi-check-lg me-2"></i>Approve
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <form method="post" asp-page-handler="Reject" asp-route-ids="@ids">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="dropdown-item text-warning">
+                                                            <i class="bi bi-x-lg me-2"></i>Reject
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                            }
                                         }
                                         <li>
                                             <form method="post" asp-page-handler="Delete" asp-route-ids="@ids"
@@ -191,3 +209,125 @@
         })" />
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function confirmDelete() {
+            return confirm("Are you sure you want to delete this regularization request?");
+        }
+    </script>
+}
+
+<!-- Modals for Grouped Requests -->
+@foreach (var group in Model.RegularizationRequests
+    .GroupBy(r => new { r.ApplicationNumber, r.EmployeeId, CreatedAt = new DateTime(r.CreatedAt.Year, r.CreatedAt.Month, r.CreatedAt.Day, r.CreatedAt.Hour, r.CreatedAt.Minute, 0) })
+    .Where(g => g.Count() > 1))
+{
+    var first = group.First();
+    var count = group.Count();
+    var approvedCount = group.Count(x => x.Status == "Approved");
+    var rejectedCount = group.Count(x => x.Status == "Rejected");
+    var pendingCount = group.Count(x => x.Status == "Pending");
+
+    <div class="modal fade" id="modal-@first.Id" tabindex="-1" aria-labelledby="modalLabel-@first.Id" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light border-bottom-0">
+                    <div>
+                        <h5 class="modal-title mb-1" id="modalLabel-@first.Id">
+                            <i class="bi bi-stack me-2 text-primary"></i>Batch Request Details
+                        </h5>
+                        <p class="text-muted small mb-0">
+                            App #: <strong>@(first.ApplicationNumber ?? "N/A")</strong> | 
+                            Employee: <strong>@first.Employee?.EmployeeName</strong>
+                        </p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body p-0">
+                    <div id="carousel-@first.Id" class="carousel slide" data-bs-interval="false">
+                        <div class="carousel-inner p-4">
+                            @{ var index = 0; }
+                            @foreach (var item in group.OrderBy(x => x.RequestDate))
+                            {
+                                <div class="carousel-item @(index == 0 ? "active" : "")">
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <h6 class="fw-bold text-primary">Day @(index + 1) of @count</h6>
+                                        <span class="badge @(item.Status == "Approved" ? "bg-success" : (item.Status == "Rejected" ? "bg-danger" : "bg-warning text-dark"))">
+                                            @item.Status.ToUpper()
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="bg-light p-3 rounded-3 border mb-3">
+                                        <div class="row g-3">
+                                            <div class="col-sm-6">
+                                                <label class="small text-muted mb-1">Date</label>
+                                                <div class="fw-medium">@item.RequestDate.ToString("dd MMM yyyy")</div>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <label class="small text-muted mb-1">Type</label>
+                                                <div>@item.RequestType</div>
+                                            </div>
+                                            @if (item.PunchTimeIn.HasValue)
+                                            {
+                                                <div class="col-sm-6">
+                                                    <label class="small text-muted mb-1">Punch In Requested</label>
+                                                    <div class="fw-bold text-dark">@item.PunchTimeIn.Value.ToString("HH:mm")</div>
+                                                </div>
+                                            }
+                                            @if (item.PunchTimeOut.HasValue)
+                                            {
+                                                <div class="col-sm-6">
+                                                    <label class="small text-muted mb-1">Punch Out Requested</label>
+                                                    <div class="fw-bold text-dark">@item.PunchTimeOut.Value.ToString("HH:mm")</div>
+                                                </div>
+                                            }
+                                            <div class="col-12">
+                                                <label class="small text-muted mb-1">Reason</label>
+                                                <div class="text-dark">@item.Reason</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <a asp-page="./Edit" asp-route-id="@item.Id" class="btn btn-outline-primary w-100">Edit</a>
+                                        @if (item.Status == "Pending")
+                                        {
+                                            <form method="post" asp-page-handler="Reject" asp-route-ids="@item.Id" class="w-100">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-outline-danger w-100">Reject</button>
+                                            </form>
+                                            <form method="post" asp-page-handler="Approve" asp-route-ids="@item.Id" class="w-100">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-success w-100">Approve</button>
+                                            </form>
+                                        }
+                                    </div>
+                                </div>
+                                index++;
+                            }
+                        </div>
+                        
+                        @if (count > 1)
+                        {
+                            <div class="d-flex justify-content-between align-items-center bg-light p-3 border-top">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-target="#carousel-@first.Id" data-bs-slide="prev">
+                                    <i class="bi bi-chevron-left"></i> Previous
+                                </button>
+                                <div class="small text-muted text-center flex-grow-1">
+                                    <span class="fw-medium text-success">@approvedCount Approved</span> &middot; 
+                                    <span class="fw-medium text-danger">@rejectedCount Rejected</span> &middot; 
+                                    <span class="fw-medium text-warning">@pendingCount Pending</span>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-target="#carousel-@first.Id" data-bs-slide="next">
+                                    Next <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

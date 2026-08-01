@@ -200,6 +200,11 @@
                     <input name="Requests[{index}].PunchTimeOut" class="form-control punch-out-time" type="datetime-local" />
                 </div>
             </div>
+
+            <div class="col-12 mt-1">
+                <label class="form-label fw-medium small text-muted"><i class="bi bi-chat-left-text me-1"></i> Day-Specific Reason (Optional)</label>
+                <input name="Requests[{index}].Reason" class="form-control form-control-sm" type="text" placeholder="Overrides the main reason above for this date..." />
+            </div>
         </div>
     </div>
 </template>

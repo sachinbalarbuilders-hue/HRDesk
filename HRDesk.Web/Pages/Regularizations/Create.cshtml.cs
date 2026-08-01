@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -17,6 +17,7 @@ namespace HRDesk.Web.Pages.Regularizations
         public string? PunchTarget { get; set; } // "in", "out", "both"
         public DateTime? PunchTimeIn { get; set; }
         public DateTime? PunchTimeOut { get; set; }
+        public string? Reason { get; set; }
     }
 
     public class CreateModel : PageModel
@@ -94,6 +95,7 @@ namespace HRDesk.Web.Pages.Regularizations
             }
 
             var requestDates = new List<DateOnly>();
+            var now = DateTime.Now;
 
             for (int i = 0; i < Requests.Count; i++)
             {
@@ -103,12 +105,12 @@ namespace HRDesk.Web.Pages.Regularizations
                     EmployeeId = Regularization.EmployeeId,
                     RequestType = Regularization.RequestType,
                     WaivePenalty = Regularization.WaivePenalty,
-                    Reason = Regularization.Reason,
+                    Reason = !string.IsNullOrWhiteSpace(reqItem.Reason) ? reqItem.Reason : Regularization.Reason,
                     RequestDate = reqItem.RequestDate,
-                    CreatedAt = DateTime.Now,
+                    CreatedAt = now,
                     Status = "Approved",
                     ApprovedBy = User.Identity?.Name ?? "Auto-Approved",
-                    ApproveDate = DateTime.Now
+                    ApproveDate = now
                 };
 
                 if (AutoGenerate)

@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +40,7 @@ namespace HRDesk.Web.Pages.Reports
             public string Details { get; set; } = "";
             public string? Reason { get; set; }
             public string Status { get; set; } = "";
+            public List<ApplicationTrackItem>? ChildItems { get; set; }
         }
 
         public async Task OnGetAsync(int pageNum = 1)
@@ -48,21 +49,45 @@ namespace HRDesk.Web.Pages.Reports
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
             // 1. Get Regularizations overlapping this month
-            var regularizations = await _db.AttendanceRegularizations
+            var regEntities = await _db.AttendanceRegularizations
                 .Include(r => r.Employee)
                 .Where(r => r.RequestDate <= monthEnd && r.RequestDate >= monthStart)
-                .Select(r => new ApplicationTrackItem
-                {
-                    Id = r.Id,
-                    ApplicationNumber = r.ApplicationNumber,
-                    Date = r.RequestDate,
-                    EmployeeName = r.Employee != null ? r.Employee.EmployeeName : "Unknown",
-                    Category = "Regularization",
-                    Details = r.RequestType ?? "Regularization",
-                    Reason = r.Reason,
-                    Status = r.Status ?? "Pending"
-                })
                 .ToListAsync();
+
+            var regularizations = regEntities
+                .GroupBy(r => new { 
+                    r.ApplicationNumber, 
+                    r.EmployeeId, 
+                    CreatedAt = new DateTime(r.CreatedAt.Year, r.CreatedAt.Month, r.CreatedAt.Day, r.CreatedAt.Hour, r.CreatedAt.Minute, 0)
+                })
+                .Select(g => {
+                    var first = g.First();
+                    var minDate = g.Min(x => x.RequestDate);
+                    var maxDate = g.Max(x => x.RequestDate);
+                    
+                    var isGroup = g.Count() > 1;
+                    
+                    return new ApplicationTrackItem
+                    {
+                        Id = first.Id,
+                        ApplicationNumber = first.ApplicationNumber,
+                        Date = minDate,
+                        EndDate = maxDate != minDate ? maxDate : null,
+                        EmployeeName = first.Employee != null ? first.Employee.EmployeeName : "Unknown",
+                        Category = "Regularization",
+                        Details = isGroup ? "Batch Request" : (first.RequestType ?? "Regularization"),
+                        Reason = isGroup ? "Multiple reasons" : first.Reason,
+                        Status = first.Status ?? "Pending",
+                        ChildItems = isGroup ? g.OrderBy(x => x.RequestDate).Select(c => new ApplicationTrackItem {
+                            Id = c.Id,
+                            Date = c.RequestDate,
+                            Details = c.RequestType ?? "Regularization",
+                            Reason = c.Reason,
+                            Status = c.Status ?? "Pending"
+                        }).ToList() : null
+                    };
+                })
+                .ToList();
 
             // 2. Get Leaves overlapping this month
             var leaves = await _db.LeaveApplications
