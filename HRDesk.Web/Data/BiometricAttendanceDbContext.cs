@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Models;
+using HRDesk.Web.Models;
 using HRDesk.Web.Areas.Recruitment.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -462,6 +462,8 @@ public sealed class BiometricAttendanceDbContext : DbContext
         base.OnModelCreating(modelBuilder);
     }
 
+    public bool BypassTenantId { get; set; } = false;
+
     private void SetGlobalQueryFilter<T>(ModelBuilder builder) where T : class, IMustHaveTenant
     {
         builder.Entity<T>().HasQueryFilter(e => e.OrganizationId == _tenantProvider.TenantId);
@@ -481,7 +483,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     private void ApplyTenantId()
     {
-        if (_tenantProvider == null) return;
+        if (BypassTenantId || _tenantProvider == null) return;
         
         foreach (var entry in ChangeTracker.Entries<IMustHaveTenant>().ToList())
         {

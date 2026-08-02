@@ -13,6 +13,7 @@ app.use(cors());
 let qrCodeData = null;
 let clientReady = false;
 let isAuthenticated = false;
+let isResetting = false;
 
 const { execSync } = require('child_process');
 

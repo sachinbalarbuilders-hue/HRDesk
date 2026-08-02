@@ -87,7 +87,7 @@ namespace HRDesk.Web.Services
             var todaysLogs = await db.CelebrationLogs
                 .IgnoreQueryFilters()
                 .Where(l => l.SentDate.Date == today.Date)
-                .Select(l => new { l.EmployeeId, l.EventType })
+                .Select(l => new { l.OrganizationId, l.EmployeeId, l.EventType })
                 .ToListAsync();
 
             // Get all active employees across all organizations, bypassing tenant filters for the background service
@@ -114,7 +114,7 @@ namespace HRDesk.Web.Services
                     employee.DateOfBirth.Value.Month == today.Month && 
                     employee.DateOfBirth.Value.Day == today.Day)
                 {
-                    if (todaysLogs.Any(l => l.EmployeeId == employee.EmployeeId && l.EventType == "Birthday"))
+                    if (todaysLogs.Any(l => l.OrganizationId == employee.OrganizationId && l.EmployeeId == employee.EmployeeId && l.EventType == "Birthday"))
                     {
                         continue;
                     }
@@ -168,7 +168,7 @@ The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes yo
                     employee.JoiningDate.Value.Day == today.Day &&
                     employee.JoiningDate.Value.Year < today.Year)
                 {
-                    if (todaysLogs.Any(l => l.EmployeeId == employee.EmployeeId && l.EventType == "Anniversary"))
+                    if (todaysLogs.Any(l => l.OrganizationId == employee.OrganizationId && l.EmployeeId == employee.EmployeeId && l.EventType == "Anniversary"))
                     {
                         continue;
                     }
@@ -218,6 +218,7 @@ The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes yo
                 }
             }
             
+            db.BypassTenantId = true;
             await db.SaveChangesAsync();
             return allSent;
         }
