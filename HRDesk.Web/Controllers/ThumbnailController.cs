@@ -15,16 +15,19 @@ public class ThumbnailController : ControllerBase
     private readonly HRDesk.Web.Data.BiometricAttendanceDbContext _db;
     private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
     private readonly HRDesk.Web.Services.ICurrentTenantProvider _tenantProvider;
+    private readonly ILogger<ThumbnailController> _logger;
 
     public ThumbnailController(IConfiguration configuration, 
         HRDesk.Web.Data.BiometricAttendanceDbContext db, 
         Microsoft.Extensions.Caching.Memory.IMemoryCache cache,
-        HRDesk.Web.Services.ICurrentTenantProvider tenantProvider)
+        HRDesk.Web.Services.ICurrentTenantProvider tenantProvider,
+        ILogger<ThumbnailController> logger)
     {
         _configuration = configuration;
         _db = db;
         _cache = cache;
         _tenantProvider = tenantProvider;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -78,8 +81,9 @@ public class ThumbnailController : ControllerBase
                 return File(finalBytes, "image/jpeg");
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Failed to generate thumbnail for employee {EmployeeId}, serving original image.", employeeId);
             // If anything goes wrong with resizing, safely fallback to serving the original bytes
             return File(photoBytes, photo.PhotoContentType ?? "image/jpeg");
         }

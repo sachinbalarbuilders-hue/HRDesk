@@ -23,7 +23,8 @@ builder.Services.AddRazorPages(options =>
     // Only allow anonymous access to the Account folder (Login, AccessDenied)
     options.Conventions.AllowAnonymousToFolder("/Account");
 }).AddRazorRuntimeCompilation();
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
+builder.Services.AddHealthChecks();
 
 // Require authentication by default for all endpoints (Controllers & Pages)
 builder.Services.AddAuthorization(options =>
@@ -195,19 +196,24 @@ using (var scope = app.Services.CreateScope())
             // and we don't want to block the entire startup if the service is unreachable.
             _ = Task.Run(async () => 
             {
-                await HRDesk.Web.Services.WindowsServiceClient.UpdateDeviceConfigAsync(
+                var result = await HRDesk.Web.Services.WindowsServiceClient.UpdateDeviceConfigAsync(
                     config.IpAddress, config.Port, config.MachineNumber, config.CommKey);
+                if (!result.Success)
+                {
+                    Log.Warning("Background device config sync failed: {Error}", result.ErrorMessage);
+                }
             });
         }
     }
-    catch (Exception)
+    catch (Exception ex)
     {
-        // Fail silently on startup to avoid crashing the web app if the device service is down
+        Log.Error(ex, "Failed to push device configuration at startup");
     }
 }
 
 app.MapControllers();
 app.MapRazorPages();
+app.MapHealthChecks("/health");
 
 app.Run();
 }
