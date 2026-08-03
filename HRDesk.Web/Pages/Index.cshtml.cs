@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using HRDesk.Web.Data;
@@ -14,10 +14,12 @@ namespace HRDesk.Web.Pages;
 public class IndexModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _context;
+    private readonly IDeviceCommunicationService _deviceService;
 
-    public IndexModel(BiometricAttendanceDbContext context)
+    public IndexModel(BiometricAttendanceDbContext context, IDeviceCommunicationService deviceService)
     {
         _context = context;
+        _deviceService = deviceService;
     }
 
     public int TotalEmployees { get; set; }
@@ -182,7 +184,7 @@ public class IndexModel : PageModel
         var device = await _context.DeviceConfigurations.FindAsync(id);
         if (device == null) return new JsonResult(new { success = false, message = "Device not found" });
 
-        var (success, message) = await WindowsServiceClient.UpdateDeviceConfigAsync(device.IpAddress, device.Port, device.MachineNumber, device.CommKey);
+        var (success, message) = await _deviceService.UpdateDeviceConfigAsync(device.IpAddress, device.Port, device.MachineNumber, device.CommKey);
         return new JsonResult(new { success, message });
     }
 

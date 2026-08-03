@@ -1,14 +1,21 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 
 namespace HRDesk.Web.Services;
 
 public sealed class DatabaseService
 {
+    private readonly IDeviceCommunicationService _deviceService;
+
+    public DatabaseService(IDeviceCommunicationService deviceService)
+    {
+        _deviceService = deviceService;
+    }
+
     // Synchronous wrapper that calls the Windows service client and throws on failure.
     public void SetUserInMachine(int employeeId, string employeeName)
     {
-        var task = WindowsServiceClient.SetNameInMachineAsync(employeeId, employeeName);
+        var task = _deviceService.SetNameInMachineAsync(employeeId, employeeName);
         var result = task.GetAwaiter().GetResult();
         if (!result.Success)
         {

@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -9,10 +9,12 @@ namespace HRDesk.Web.Pages.Masters;
 public class DeviceSettingsModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly HRDesk.Web.Services.IDeviceCommunicationService _deviceService;
 
-    public DeviceSettingsModel(BiometricAttendanceDbContext db)
+    public DeviceSettingsModel(BiometricAttendanceDbContext db, HRDesk.Web.Services.IDeviceCommunicationService deviceService)
     {
         _db = db;
+        _deviceService = deviceService;
     }
 
     [BindProperty]
@@ -90,7 +92,7 @@ public class DeviceSettingsModel : PageModel
             await _db.SaveChangesAsync();
 
             // Notify device service about the change (pick this machine to update)
-            await Services.WindowsServiceClient.UpdateDeviceConfigAsync(ip, port, machine, commKey);
+            await _deviceService.UpdateDeviceConfigAsync(ip, port, machine, commKey);
             
             Message = "Device settings updated.";
             IsError = false;
@@ -103,7 +105,7 @@ public class DeviceSettingsModel : PageModel
         var device = await _db.DeviceConfigurations.FindAsync(id);
         if (device == null) return RedirectToPage();
 
-        var (success, errorMessage) = await Services.WindowsServiceClient.UpdateDeviceConfigAsync(device.IpAddress, device.Port, device.MachineNumber, device.CommKey);
+        var (success, errorMessage) = await _deviceService.UpdateDeviceConfigAsync(device.IpAddress, device.Port, device.MachineNumber, device.CommKey);
         
         bool isConnectionFailure = !success || (!string.IsNullOrEmpty(errorMessage) && errorMessage.Contains("connection failed", StringComparison.OrdinalIgnoreCase));
 
@@ -142,7 +144,7 @@ public class DeviceSettingsModel : PageModel
         await _db.SaveChangesAsync();
  
         // Notify Service
-        var (success, response) = await Services.WindowsServiceClient.UpdateSyncIntervalAsync(SyncIntervalMinutes);
+        var (success, response) = await _deviceService.UpdateSyncIntervalAsync(SyncIntervalMinutes);
         
         if (success)
         {

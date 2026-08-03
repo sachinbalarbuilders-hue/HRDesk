@@ -20,6 +20,9 @@ namespace Z903AttendanceService
         private NamedPipeServer _pipeServer;
         private int _syncInProgress;
         private DatabaseService _databaseService;
+        private ApiClient _apiClient;
+        private bool _isCloudMode;
+        private DeviceConfigDto _cloudConfig;
 
         // Retry configuration
         private const int MaxConnectionRetries = 3;
@@ -40,36 +43,45 @@ namespace Z903AttendanceService
             {
                 LogMessage($"Service starting ({(Environment.Is64BitProcess ? "x64" : "x86")})...");
 
-                // Initialize database service with logger
-                try
+                _isCloudMode = System.Configuration.ConfigurationManager.AppSettings["OperationMode"]?.Equals("Cloud", StringComparison.OrdinalIgnoreCase) == true;
+                LogMessage($"Operation Mode: {(_isCloudMode ? "Cloud" : "Offline")}");
+
+                if (_isCloudMode)
                 {
-                    _databaseService = new DatabaseService(LogMessage);
+                    _apiClient = new ApiClient(LogMessage);
+                    try
+                    {
+                        _cloudConfig = _apiClient.GetConfigAsync().GetAwaiter().GetResult();
+                        _syncInterval = TimeSpan.FromMinutes(_cloudConfig?.Port > 0 ? 5 : 5); // Default to 5
+                        LogMessage($"Cloud Config loaded. Machine: {_cloudConfig?.MachineNumber}, IP: {_cloudConfig?.IpAddress}");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogMessage($"WARNING: Failed to load cloud config on start: {ex.Message}");
+                        _syncInterval = TimeSpan.FromMinutes(5);
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        _databaseService = new DatabaseService(LogMessage);
+                        var connectionResult = _databaseService.TestConnectionDetailed();
+                        if (connectionResult.Success)
+                        {
+                            LogMessage($"Database connection successful. Server: {connectionResult.ServerVersion}");
+                            InitializeDatabaseTables();
+                            LoadDeviceConfiguration();
+                        }
+                        else
+                        {
+                            LogMessage($"WARNING: Database connection failed: {connectionResult.Message}");
+                        }
+                    }
+                    catch (Exception dbEx) { LogMessage($"Database initialization error: {dbEx.Message}"); }
                     
-                    // Test connection with detailed result
-                    var connectionResult = _databaseService.TestConnectionDetailed();
-                    if (connectionResult.Success)
-                    {
-                        LogMessage($"Database connection successful. Server: {connectionResult.ServerVersion}");
-                        
-                        // Initialize tables silently
-                        InitializeDatabaseTables();
-
-                        // Load initial device configuration
-                        LoadDeviceConfiguration();
-                    }
-                    else
-                    {
-                        LogMessage($"WARNING: Database connection failed: {connectionResult.Message}");
-                        LogMessage("Service will continue but data won't be saved.");
-                    }
+                    try { _syncInterval = TimeSpan.FromMinutes(_databaseService.GetSyncIntervalMinutes()); } catch { }
                 }
-                catch (Exception dbEx)
-                {
-                    LogMessage($"Database initialization error: {dbEx.Message}");
-                    LogMessage("WARNING: Service will continue without database functionality.");
-                }
-
-                _syncInterval = TimeSpan.FromMinutes(_databaseService.GetSyncIntervalMinutes());
                 LogMessage($"Sync interval set to {_syncInterval.TotalMinutes} minutes.");
 
                 _syncTimer = new System.Timers.Timer(_syncInterval.TotalMilliseconds)
@@ -80,16 +92,15 @@ namespace Z903AttendanceService
                 _syncTimer.Elapsed += OnSyncTimerElapsed;
                 _syncTimer.Start();
 
-                // Start named pipe server for internal IPC (UI/backend -> this service)
-                try
+                if (!_isCloudMode)
                 {
-                    _pipeServer = new NamedPipeServer(PipeConstants.PipeName, LogMessage, _databaseService, this);
-                    _pipeServer.Start();
-                    LogMessage("Named pipe server active.");
-                }
-                catch (Exception ex)
-                {
-                    LogMessage($"Failed to start named pipe server: {ex.Message}");
+                    try
+                    {
+                        _pipeServer = new NamedPipeServer(PipeConstants.PipeName, LogMessage, _databaseService, this);
+                        _pipeServer.Start();
+                        LogMessage("Named pipe server active.");
+                    }
+                    catch (Exception ex) { LogMessage($"Failed to start named pipe server: {ex.Message}"); }
                 }
 
             }
@@ -200,26 +211,45 @@ namespace Z903AttendanceService
 
             try
             {
-                var configs = _databaseService.GetDeviceConfigurations();
-                if (configs == null || configs.Count == 0)
+                if (_isCloudMode)
                 {
-                    LogMessage("No devices configured for sync.");
-                    return;
-                }
-
-                LogMessage($"[SYNC] Multi-device sync started for {configs.Count} devices.");
-                foreach (var config in configs)
-                {
+                    // Refresh config and process commands
                     try
                     {
-                        SyncDevice(config);
+                        _cloudConfig = _apiClient.GetConfigAsync().GetAwaiter().GetResult();
+                        var pendingCommands = _apiClient.GetPendingCommandsAsync().GetAwaiter().GetResult();
+                        if (pendingCommands != null && pendingCommands.Count > 0)
+                        {
+                            LogMessage($"Found {pendingCommands.Count} pending cloud commands.");
+                            var deviceService = new BiometricDeviceService(LogMessage);
+                            foreach(var cmd in pendingCommands)
+                            {
+                                bool success = false;
+                                string err = null;
+                                try {
+                                    if (cmd.Action == "SetName") deviceService.SetUserInMachine(cmd.EmployeeId.Value, cmd.EmployeeName);
+                                    else if (cmd.Action == "EnableUser") deviceService.SetUserEnabled(cmd.EmployeeId.Value, cmd.Enabled.Value);
+                                    else if (cmd.Action == "DeleteUser") deviceService.DeleteUser(cmd.EmployeeId.Value);
+                                    success = true;
+                                } catch(Exception cmdEx) { err = cmdEx.Message; }
+                                
+                                _apiClient.UpdateCommandResultAsync(cmd.Id, success, err).GetAwaiter().GetResult();
+                            }
+                        }
+                        
+                        if (_cloudConfig != null) SyncDevice(_cloudConfig);
                     }
                     catch (Exception ex)
                     {
-                        LogMessage($"ERROR syncing device {config.IpAddress} (ID={config.Id}): {ex.Message}");
+                        LogMessage($"Cloud Sync Cycle Error: {ex.Message}");
                     }
                 }
-                LogMessage("[SYNC] Multi-device sync cycle completed.");
+                else
+                {
+                    var configs = _databaseService?.GetDeviceConfigurations();
+                    if (configs == null || configs.Count == 0) return;
+                    foreach (var config in configs) SyncDevice(config);
+                }
             }
             catch (Exception ex)
             {
@@ -292,22 +322,37 @@ namespace Z903AttendanceService
                             records = GetRecordsFromDevice(machineNumber, syncedAt, lastSyncedTime, out recordsRetrieved, out recordsFiltered, out latestRecordTime);
 
                         // Database Save
-                        if (_databaseService != null && records.Count > 0)
+                        if (_isCloudMode)
                         {
-                            try
+                            if (records.Count > 0)
                             {
-                                int inserted = _databaseService.InsertBulkAttendanceRecords(records.ToArray());
-                                recordsInserted = inserted;
-                                recordsSkipped = records.Count - inserted;
-                                
-                                if (latestRecordTime > DateTime.MinValue)
-                                    _databaseService.UpdateLastSyncedTime(config.Id, deviceIp, latestRecordTime, "success", recordsInserted);
+                                try
+                                {
+                                    bool pushed = _apiClient.PushLogsAsync(records).GetAwaiter().GetResult();
+                                    if (pushed) recordsInserted = records.Count;
+                                }
+                                catch (Exception cloudEx) { syncStatus = "failed"; errorMessage = cloudEx.Message; }
                             }
-                            catch (Exception dbEx) { syncStatus = "failed"; errorMessage = dbEx.Message; }
                         }
-                        else if (records.Count == 0 && recordsRetrieved > 0 && latestRecordTime > DateTime.MinValue)
+                        else
                         {
-                            _databaseService?.UpdateLastSyncedTime(config.Id, deviceIp, latestRecordTime, "success", 0);
+                            if (_databaseService != null && records.Count > 0)
+                            {
+                                try
+                                {
+                                    int inserted = _databaseService.InsertBulkAttendanceRecords(records.ToArray());
+                                    recordsInserted = inserted;
+                                    recordsSkipped = records.Count - inserted;
+                                    
+                                    if (latestRecordTime > DateTime.MinValue)
+                                        _databaseService.UpdateLastSyncedTime(config.Id, deviceIp, latestRecordTime, "success", recordsInserted);
+                                }
+                                catch (Exception dbEx) { syncStatus = "failed"; errorMessage = dbEx.Message; }
+                            }
+                            else if (records.Count == 0 && recordsRetrieved > 0 && latestRecordTime > DateTime.MinValue)
+                            {
+                                _databaseService?.UpdateLastSyncedTime(config.Id, deviceIp, latestRecordTime, "success", 0);
+                            }
                         }
 
                         LogMessage($"[STATS] Found: {recordsRetrieved}, Filtered: {recordsFiltered}, Saved: {recordsInserted}");

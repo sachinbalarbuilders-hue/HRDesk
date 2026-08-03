@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using HRDesk.Web.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +11,12 @@ namespace HRDesk.Web.Controllers;
 public sealed class DeviceController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly HRDesk.Web.Services.IDeviceCommunicationService _deviceService;
 
-    public DeviceController(BiometricAttendanceDbContext db)
+    public DeviceController(BiometricAttendanceDbContext db, HRDesk.Web.Services.IDeviceCommunicationService deviceService)
     {
         _db = db;
+        _deviceService = deviceService;
     }
 
     // POST /api/device/set-user/{employeeId}
@@ -28,8 +30,8 @@ public sealed class DeviceController : ControllerBase
             return NotFound("Employee not found");
         }
 
-        // Call Windows service via WindowsServiceClient which uses named pipe IPC.
-        var (success, errorMessage) = await Services.WindowsServiceClient.SetNameInMachineAsync(employee.EmployeeId, employee.EmployeeName ?? string.Empty);
+        // Call Windows service via device service (either IPC or Cloud Queue).
+        var (success, errorMessage) = await _deviceService.SetNameInMachineAsync(employee.EmployeeId, employee.EmployeeName ?? string.Empty);
 
         if (success)
         {

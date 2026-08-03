@@ -18,6 +18,8 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     public DbSet<Organization> Organizations => Set<Organization>();
 
+    public DbSet<DeviceCommand> DeviceCommands => Set<DeviceCommand>();
+
     public DbSet<AttendanceLog> AttendanceLogs => Set<AttendanceLog>();
 
     public DbSet<DailyAttendance> DailyAttendance => Set<DailyAttendance>();
@@ -466,7 +468,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     private void SetGlobalQueryFilter<T>(ModelBuilder builder) where T : class, IMustHaveTenant
     {
-        builder.Entity<T>().HasQueryFilter(e => e.OrganizationId == _tenantProvider.TenantId);
+        builder.Entity<T>().HasQueryFilter(e => BypassTenantId || e.OrganizationId == _tenantProvider.TenantId);
     }
 
     public override int SaveChanges()

@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -9,11 +9,13 @@ namespace HRDesk.Web.Pages.Employees;
 public sealed class IndexModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
+    private readonly HRDesk.Web.Services.IDeviceCommunicationService _deviceService;
     private const int DefaultPageSize = 15;
 
-    public IndexModel(BiometricAttendanceDbContext db)
+    public IndexModel(BiometricAttendanceDbContext db, HRDesk.Web.Services.IDeviceCommunicationService deviceService)
     {
         _db = db;
+        _deviceService = deviceService;
     }
 
     public PaginatedList<Employee> Employees { get; private set; } = default!;
@@ -84,7 +86,7 @@ public sealed class IndexModel : PageModel
         {
             try
             {
-                var (s, errorMessage) = await Services.WindowsServiceClient.EnableUserAsync(employee.EmployeeId, willBeActive);
+                var (s, errorMessage) = await _deviceService.EnableUserAsync(employee.EmployeeId, willBeActive);
                 if (!s)
                 {
                     message = $"Status updated but device sync failed: {errorMessage}";
@@ -116,7 +118,7 @@ public sealed class IndexModel : PageModel
         try
         {
             // Use DatabaseService to keep device logic behind a service boundary.
-            var dbService = new Services.DatabaseService();
+            var dbService = new Services.DatabaseService(_deviceService);
             dbService.SetUserInMachine(employee.EmployeeId, employee.EmployeeName);
             employee.DeviceSynced = 1;
             employee.DeviceSyncError = null;
@@ -144,7 +146,7 @@ public sealed class IndexModel : PageModel
 
         try
         {
-            var dbService = new Services.DatabaseService();
+            var dbService = new Services.DatabaseService(_deviceService);
             dbService.SetUserInMachine(employee.EmployeeId, employee.EmployeeName);
             employee.DeviceSynced = 1;
             employee.DeviceSyncError = null;
@@ -176,7 +178,7 @@ public sealed class IndexModel : PageModel
         {
             try
             {
-                var (success, errorMessage) = await Services.WindowsServiceClient.DeleteUserAsync(employee.EmployeeId);
+                var (success, errorMessage) = await _deviceService.DeleteUserAsync(employee.EmployeeId);
                 if (!success)
                 {
                     deviceError = errorMessage;

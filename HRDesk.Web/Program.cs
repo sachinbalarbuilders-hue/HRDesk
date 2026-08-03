@@ -38,7 +38,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<HRDesk.Web.Services.ICurrentTenantProvider, HRDesk.Web.Services.CurrentTenantProvider>();
-
+builder.Services.AddScoped<HRDesk.Web.Services.IDeviceCommunicationService, HRDesk.Web.Services.DeviceCommunicationService>();
 // Configure Authentication: Primary is Cookies for the Web Portal
 builder.Services.AddAuthentication(options =>
 {
@@ -196,7 +196,10 @@ using (var scope = app.Services.CreateScope())
             // and we don't want to block the entire startup if the service is unreachable.
             _ = Task.Run(async () => 
             {
-                var result = await HRDesk.Web.Services.WindowsServiceClient.UpdateDeviceConfigAsync(
+                using var scope = app.Services.CreateScope();
+                var deviceService = scope.ServiceProvider.GetRequiredService<HRDesk.Web.Services.IDeviceCommunicationService>();
+                
+                var result = await deviceService.UpdateDeviceConfigAsync(
                     config.IpAddress, config.Port, config.MachineNumber, config.CommKey);
                 if (!result.Success)
                 {
