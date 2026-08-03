@@ -54,6 +54,10 @@ namespace Z903AttendanceService
                         _cloudConfig = _apiClient.GetConfigAsync().GetAwaiter().GetResult();
                         _syncInterval = TimeSpan.FromMinutes(_cloudConfig?.Port > 0 ? 5 : 5); // Default to 5
                         LogMessage($"Cloud Config loaded. Machine: {_cloudConfig?.MachineNumber}, IP: {_cloudConfig?.IpAddress}");
+                        if (_cloudConfig != null)
+                        {
+                            BiometricDeviceService.DeviceConfig.Update(_cloudConfig.IpAddress, _cloudConfig.Port, _cloudConfig.MachineNumber, _cloudConfig.CommKey);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -92,16 +96,13 @@ namespace Z903AttendanceService
                 _syncTimer.Elapsed += OnSyncTimerElapsed;
                 _syncTimer.Start();
 
-                if (!_isCloudMode)
-                {
                     try
                     {
                         _pipeServer = new NamedPipeServer(PipeConstants.PipeName, LogMessage, _databaseService, this);
                         _pipeServer.Start();
-                        LogMessage("Named pipe server active.");
+                        LogMessage("Named pipe server active (Hybrid local mode).");
                     }
                     catch (Exception ex) { LogMessage($"Failed to start named pipe server: {ex.Message}"); }
-                }
 
             }
             catch (Exception ex)

@@ -6,6 +6,7 @@ using HRDesk.Web.Attributes;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,7 @@ namespace HRDesk.Web.Controllers;
 
 [ApiController]
 [Route("api/device-api")]
+[AllowAnonymous] // Bypasses the Global Fallback Policy
 [ApiKeyAuth] // Secures these endpoints using the X-Api-Key header
 public class DeviceApiController : ControllerBase
 {
