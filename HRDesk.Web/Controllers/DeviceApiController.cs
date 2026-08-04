@@ -103,21 +103,58 @@ public class DeviceApiController : ControllerBase
     {
         if (logs == null || !logs.Any()) return BadRequest("No logs provided.");
 
-        var newLogs = logs.Select(l => new AttendanceLog
+        var connection = _db.Database.GetDbConnection();
+        bool openedHere = false;
+        if (connection.State != System.Data.ConnectionState.Open)
         {
-            OrganizationId = _tenantProvider.TenantId,
-            EmployeeId = l.EmployeeId,
-            MachineNumber = l.MachineNumber,
-            PunchTime = l.PunchTime,
-            VerifyMode = l.VerifyMode,
-            VerifyType = l.VerifyType,
-            SyncedAt = DateTime.Now,
-            CreatedAt = DateTime.Now
-        }).ToList();
+            await connection.OpenAsync();
+            openedHere = true;
+        }
 
-        _db.AttendanceLogs.AddRange(newLogs);
-        await _db.SaveChangesAsync();
+        int insertedCount = 0;
+        int orgId = _tenantProvider.TenantId;
+        DateTime now = DateTime.Now;
 
-        return Ok(new { inserted = newLogs.Count });
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            const string sql = @"
+                INSERT INTO attendance_logs (organization_id, employee_id, machine_number, punch_time, verify_mode, verify_type, synced_at, created_at)
+                VALUES (@org, @emp, @mach, @time, @vmode, @vtype, @sync, @create)
+                ON DUPLICATE KEY UPDATE synced_at = VALUES(synced_at)";
+
+            foreach (var log in logs)
+            {
+                using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText = sql;
+                
+                var pOrg = command.CreateParameter(); pOrg.ParameterName = "@org"; pOrg.Value = orgId; command.Parameters.Add(pOrg);
+                var pEmp = command.CreateParameter(); pEmp.ParameterName = "@emp"; pEmp.Value = log.EmployeeId; command.Parameters.Add(pEmp);
+                var pMach = command.CreateParameter(); pMach.ParameterName = "@mach"; pMach.Value = log.MachineNumber; command.Parameters.Add(pMach);
+                var pTime = command.CreateParameter(); pTime.ParameterName = "@time"; pTime.Value = log.PunchTime; command.Parameters.Add(pTime);
+                var pMode = command.CreateParameter(); pMode.ParameterName = "@vmode"; pMode.Value = log.VerifyMode; command.Parameters.Add(pMode);
+                var pType = command.CreateParameter(); pType.ParameterName = "@vtype"; pType.Value = log.VerifyType ?? (object)DBNull.Value; command.Parameters.Add(pType);
+                var pSync = command.CreateParameter(); pSync.ParameterName = "@sync"; pSync.Value = now; command.Parameters.Add(pSync);
+                var pCreate = command.CreateParameter(); pCreate.ParameterName = "@create"; pCreate.Value = now; command.Parameters.Add(pCreate);
+                
+                var result = await command.ExecuteNonQueryAsync();
+                if (result == 1) // MySQL returns 1 for insert, 2 for update
+                    insertedCount++;
+            }
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+        finally
+        {
+            if (openedHere)
+                await connection.CloseAsync();
+        }
+
+        return Ok(new { inserted = insertedCount });
     }
 }

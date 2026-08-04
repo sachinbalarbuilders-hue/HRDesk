@@ -386,8 +386,9 @@ namespace Z903AttendanceService
                                 command.Parameters.AddWithValue("@VerifyMode", record.VerifyMode);
                                 command.Parameters.AddWithValue("@VerifyType", record.VerifyType);
                                 command.Parameters.AddWithValue("@SyncedAt", record.SyncedAt);
-
-                                if (command.ExecuteNonQuery() > 0)
+                                // MySQL returns 1 for true insert, 2 for ON DUPLICATE KEY update. 
+                                // We only want to count actual new inserts in the logs.
+                                if (command.ExecuteNonQuery() == 1)
                                     insertedCount++;
                             }
                         }

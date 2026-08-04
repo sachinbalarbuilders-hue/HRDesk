@@ -46,6 +46,28 @@ namespace Z903AttendanceService
                 _isCloudMode = System.Configuration.ConfigurationManager.AppSettings["OperationMode"]?.Equals("Cloud", StringComparison.OrdinalIgnoreCase) == true;
                 LogMessage($"Operation Mode: {(_isCloudMode ? "Cloud" : "Offline")}");
 
+                // Always try to initialize the local database for Hybrid Dual-Write
+                try
+                {
+                    _databaseService = new DatabaseService(LogMessage);
+                    var connectionResult = _databaseService.TestConnectionDetailed();
+                    if (connectionResult.Success)
+                    {
+                        LogMessage($"Database connection successful. Server: {connectionResult.ServerVersion}");
+                        InitializeDatabaseTables();
+                        if (!_isCloudMode)
+                        {
+                            LoadDeviceConfiguration();
+                            try { _syncInterval = TimeSpan.FromMinutes(_databaseService.GetSyncIntervalMinutes()); } catch { }
+                        }
+                    }
+                    else
+                    {
+                        LogMessage($"WARNING: Database connection failed: {connectionResult.Message}");
+                    }
+                }
+                catch (Exception dbEx) { LogMessage($"Database initialization error: {dbEx.Message}"); }
+
                 if (_isCloudMode)
                 {
                     _apiClient = new ApiClient(LogMessage);
@@ -65,27 +87,7 @@ namespace Z903AttendanceService
                         _syncInterval = TimeSpan.FromMinutes(5);
                     }
                 }
-                else
-                {
-                    try
-                    {
-                        _databaseService = new DatabaseService(LogMessage);
-                        var connectionResult = _databaseService.TestConnectionDetailed();
-                        if (connectionResult.Success)
-                        {
-                            LogMessage($"Database connection successful. Server: {connectionResult.ServerVersion}");
-                            InitializeDatabaseTables();
-                            LoadDeviceConfiguration();
-                        }
-                        else
-                        {
-                            LogMessage($"WARNING: Database connection failed: {connectionResult.Message}");
-                        }
-                    }
-                    catch (Exception dbEx) { LogMessage($"Database initialization error: {dbEx.Message}"); }
-                    
-                    try { _syncInterval = TimeSpan.FromMinutes(_databaseService.GetSyncIntervalMinutes()); } catch { }
-                }
+
                 LogMessage($"Sync interval set to {_syncInterval.TotalMinutes} minutes.");
 
                 _syncTimer = new System.Timers.Timer(_syncInterval.TotalMilliseconds)
@@ -322,38 +324,38 @@ namespace Z903AttendanceService
                         if (recordsRetrieved == 0 && SBXPCDLL.ReadGeneralLogData(machineNumber, 0))
                             records = GetRecordsFromDevice(machineNumber, syncedAt, lastSyncedTime, out recordsRetrieved, out recordsFiltered, out latestRecordTime);
 
-                        // Database Save
-                        if (_isCloudMode)
+                        // Local Database Save (Hybrid Dual-Write)
+                        if (_databaseService != null && records.Count > 0)
                         {
-                            if (records.Count > 0)
+                            try
                             {
-                                try
-                                {
-                                    bool pushed = _apiClient.PushLogsAsync(records).GetAwaiter().GetResult();
-                                    if (pushed) recordsInserted = records.Count;
-                                }
-                                catch (Exception cloudEx) { syncStatus = "failed"; errorMessage = cloudEx.Message; }
+                                int inserted = _databaseService.InsertBulkAttendanceRecords(records.ToArray());
+                                recordsInserted = inserted;
+                                recordsSkipped = records.Count - inserted;
+                                
+                                if (latestRecordTime > DateTime.MinValue)
+                                    _databaseService.UpdateLastSyncedTime(config.Id, deviceIp, latestRecordTime, "success", recordsInserted);
                             }
+                            catch (Exception dbEx) { syncStatus = "failed"; errorMessage = dbEx.Message; }
                         }
-                        else
+                        else if (records.Count == 0 && recordsRetrieved > 0 && latestRecordTime > DateTime.MinValue)
                         {
-                            if (_databaseService != null && records.Count > 0)
+                            _databaseService?.UpdateLastSyncedTime(config.Id, deviceIp, latestRecordTime, "success", 0);
+                        }
+
+                        // Cloud Push Save
+                        if (_isCloudMode && records.Count > 0)
+                        {
+                            try
                             {
-                                try
+                                bool pushed = _apiClient.PushLogsAsync(records).GetAwaiter().GetResult();
+                                if (pushed && recordsInserted == 0) 
                                 {
-                                    int inserted = _databaseService.InsertBulkAttendanceRecords(records.ToArray());
-                                    recordsInserted = inserted;
-                                    recordsSkipped = records.Count - inserted;
-                                    
-                                    if (latestRecordTime > DateTime.MinValue)
-                                        _databaseService.UpdateLastSyncedTime(config.Id, deviceIp, latestRecordTime, "success", recordsInserted);
+                                    // If local db is offline, at least cloud push stats should reflect
+                                    recordsInserted = records.Count; 
                                 }
-                                catch (Exception dbEx) { syncStatus = "failed"; errorMessage = dbEx.Message; }
                             }
-                            else if (records.Count == 0 && recordsRetrieved > 0 && latestRecordTime > DateTime.MinValue)
-                            {
-                                _databaseService?.UpdateLastSyncedTime(config.Id, deviceIp, latestRecordTime, "success", 0);
-                            }
+                            catch (Exception cloudEx) { syncStatus = "failed"; errorMessage = cloudEx.Message; }
                         }
 
                         LogMessage($"[STATS] Found: {recordsRetrieved}, Filtered: {recordsFiltered}, Saved: {recordsInserted}");
