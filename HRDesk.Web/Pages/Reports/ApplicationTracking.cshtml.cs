@@ -50,6 +50,7 @@ namespace HRDesk.Web.Pages.Reports
 
             // 1. Get Regularizations overlapping this month
             var regEntities = await _db.AttendanceRegularizations
+                .AsNoTracking()
                 .Include(r => r.Employee)
                 .Where(r => r.RequestDate <= monthEnd && r.RequestDate >= monthStart)
                 .ToListAsync();
@@ -91,6 +92,7 @@ namespace HRDesk.Web.Pages.Reports
 
             // 2. Get Leaves overlapping this month
             var leaves = await _db.LeaveApplications
+                .AsNoTracking()
                 .Include(l => l.Employee)
                 .Include(l => l.LeaveType)
                 .Where(l => l.StartDate <= monthEnd && l.EndDate >= monthStart)
@@ -115,6 +117,7 @@ namespace HRDesk.Web.Pages.Reports
                 .ToHashSet();
 
             var manualOverrides = await _db.DailyAttendance
+                .AsNoTracking()
                 .Include(d => d.Employee)
                 .Where(d => d.RecordDate >= monthStart && d.RecordDate <= monthEnd && d.ApplicationNumber != null)
                 .OrderBy(d => d.RecordDate)

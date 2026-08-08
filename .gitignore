@@ -28,6 +28,12 @@ build_output*.txt
 appsettings.json
 appsettings.Development.json
 appsettings.Production.json
+appsettings.SmarterAsp.json
 *.sql
 *.db
 *.sqlite
+
+# Deployment artifacts
+cloud-publish/
+HRDesk.Web/HRDesk_SmarterASP_Deployment.zip
+HRDesk.Web/Controllers/*.txt

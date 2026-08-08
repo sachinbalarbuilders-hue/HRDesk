@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.Drawing;
 
 namespace HRDesk.Web.Services
 {
-    public class ImageGenerationService
+    public class ImageGenerationService : IImageGenerationService
     {
         private readonly IConfiguration _configuration;
 

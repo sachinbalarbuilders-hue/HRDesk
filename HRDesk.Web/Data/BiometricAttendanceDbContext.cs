@@ -79,6 +79,14 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+            
+        // Disable cascade delete globally to prevent SQL Server cyclic foreign key errors
+        foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+        {
+            relationship.DeleteBehavior = DeleteBehavior.Restrict;
+        }
+
         if (_tenantProvider != null)
         {
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())

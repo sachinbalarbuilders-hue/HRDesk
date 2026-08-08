@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using HRDesk.Web.Data;
@@ -73,7 +73,6 @@ public sealed class DetailsModel : PageModel
                 EmployeeId = e.EmployeeId,
                 EmployeeName = e.EmployeeName,
                 PhotoPath = e.PhotoPath,
-                PhotoData = e.PhotoData,
                 DesignationName = e.Designation != null ? e.Designation.DesignationName : ""
             })
             .AsNoTracking()
@@ -88,6 +87,5 @@ public class EmployeeSidebarDto
     public int EmployeeId { get; set; }
     public string EmployeeName { get; set; } = "";
     public string? PhotoPath { get; set; }
-    public byte[]? PhotoData { get; set; }
     public string? DesignationName { get; set; }
 }

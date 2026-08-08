@@ -74,7 +74,19 @@ public class IndexModel : PageModel
         // 5. Team Celebrations (Birthdays & Work Anniversaries next 30 days)
         var allActiveEmployees = await _context.Employees
             .Where(e => e.Status == "active")
+            .Select(e => new {
+                e.EmployeeId,
+                e.EmployeeName,
+                e.DateOfBirth,
+                e.JoiningDate,
+                e.PhotoPath
+            })
             .ToListAsync();
+
+        var employeesWithPhotos = new HashSet<int>(
+            await _context.Database.SqlQuery<int>($"SELECT employee_id AS Value FROM employees WHERE PhotoData IS NOT NULL")
+            .ToListAsync()
+        );
 
         var todayDt = DateTime.Today;
         foreach (var emp in allActiveEmployees)
@@ -91,7 +103,7 @@ public class IndexModel : PageModel
                     EmployeeName = emp.EmployeeName,
                     Initials = GetInitials(emp.EmployeeName),
                     PhotoPath = emp.PhotoPath,
-                    HasPhotoData = emp.PhotoData != null,
+                    HasPhotoData = employeesWithPhotos.Contains(emp.EmployeeId),
                     Type = "Birthday",
                     CelebrationDate = nextBday,
                     DaysLeft = daysLeft
@@ -113,7 +125,7 @@ public class IndexModel : PageModel
                         EmployeeName = emp.EmployeeName,
                         Initials = GetInitials(emp.EmployeeName),
                         PhotoPath = emp.PhotoPath,
-                        HasPhotoData = emp.PhotoData != null,
+                        HasPhotoData = employeesWithPhotos.Contains(emp.EmployeeId),
                         Type = $"{years}{GetOrdinalSuffix(years)} Work Anniversary",
                         CelebrationDate = nextAnniversary,
                         DaysLeft = daysLeft

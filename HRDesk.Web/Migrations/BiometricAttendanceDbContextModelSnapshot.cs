@@ -3,6 +3,7 @@ using System;
 using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -17,7 +18,9 @@ namespace HRDesk.Web.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "8.0.0")
-                .HasAnnotation("Relational:MaxIdentifierLength", 64);
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("HRDesk.Web.Areas.Recruitment.Models.Candidate", b =>
                 {
@@ -25,28 +28,30 @@ namespace HRDesk.Web.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CandidateId"));
+
                     b.Property<DateOnly>("ApplicationDate")
                         .HasColumnType("date");
 
                     b.Property<string>("AppliedFor")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("CandidateName")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal?>("CurrentSalary")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<decimal?>("ExpectedSalary")
                         .HasColumnType("decimal(18,2)");
@@ -55,7 +60,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("OrganizationId")
                         .HasColumnType("int")
@@ -63,30 +68,30 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("ResumeContentType")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<byte[]>("ResumeData")
-                        .HasColumnType("longblob");
+                        .HasColumnType("varbinary(max)");
 
                     b.Property<string>("ResumeFileName")
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("Source")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime2");
 
                     b.HasKey("CandidateId");
 
@@ -101,59 +106,61 @@ namespace HRDesk.Web.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<int>("CandidateId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Feedback")
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("InterviewDateTime")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("InterviewType")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("InterviewerName")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("InterviewerPhone")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Location")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("OrganizationId")
                         .HasColumnType("int")
                         .HasColumnName("organization_id");
 
                     b.Property<bool>("ReminderSent")
-                        .HasColumnType("tinyint(1)");
+                        .HasColumnType("bit");
 
                     b.Property<string>("Result")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Round")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -183,7 +190,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Year", "Month");
@@ -200,8 +207,10 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
                     b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int>("EmployeeId")
@@ -217,11 +226,11 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<DateTime>("PunchTime")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("punch_time");
 
                     b.Property<DateTime>("SyncedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("synced_at");
 
                     b.Property<int>("VerifyMode")
@@ -229,7 +238,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("verify_mode");
 
                     b.Property<string>("VerifyType")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("verify_type");
 
                     b.HasKey("Id");
@@ -255,22 +264,24 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("ApplicationNumber")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("application_number");
 
                     b.Property<DateTime?>("ApproveDate")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("approved_date");
 
                     b.Property<string>("ApprovedBy")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("approved_by");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int>("EmployeeId")
@@ -282,15 +293,15 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<DateTime?>("PunchTimeIn")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("punch_time_in");
 
                     b.Property<DateTime?>("PunchTimeOut")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("punch_time_out");
 
                     b.Property<string>("Reason")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("reason");
 
                     b.Property<DateOnly>("RequestDate")
@@ -300,16 +311,16 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("RequestType")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnName("request_type");
 
                     b.Property<string>("Status")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("status");
 
                     b.Property<bool>("WaivePenalty")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("waive_penalty");
 
                     b.HasKey("Id");
@@ -326,8 +337,10 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int>("EmployeeId")
@@ -337,7 +350,7 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("EventType")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnName("event_type");
 
                     b.Property<int>("OrganizationId")
@@ -345,7 +358,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<DateTime>("SentDate")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("sent_date");
 
                     b.HasKey("Id");
@@ -361,12 +374,14 @@ namespace HRDesk.Web.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<decimal>("CreditedDays")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("credited_days");
 
                     b.Property<int>("EmployeeId")
@@ -378,7 +393,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<string>("Reason")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("reason");
 
                     b.Property<DateOnly>("WorkDate")
@@ -399,21 +414,23 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("ApprovedBy")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("approved_by");
 
                     b.Property<DateTime?>("ApprovedDate")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("approved_date");
 
                     b.Property<decimal?>("CompOffDays")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("comp_off_days");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int>("EmployeeId")
@@ -421,7 +438,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("employee_id");
 
                     b.Property<TimeOnly?>("InTime")
-                        .HasColumnType("time(6)")
+                        .HasColumnType("time")
                         .HasColumnName("in_time");
 
                     b.Property<int>("OrganizationId")
@@ -429,16 +446,16 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<TimeOnly?>("OutTime")
-                        .HasColumnType("time(6)")
+                        .HasColumnType("time")
                         .HasColumnName("out_time");
 
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
+                        .HasColumnType("nvarchar(255)")
                         .HasColumnName("rejection_reason");
 
                     b.Property<DateTime>("RequestDate")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("request_date");
 
                     b.Property<int?>("ShiftId")
@@ -448,11 +465,11 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("status");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at");
 
                     b.Property<int?>("WorkMinutes")
@@ -479,9 +496,11 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
                     b.Property<string>("ApplicationNumber")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("application_number");
 
                     b.Property<int>("BreakMinutes")
@@ -489,7 +508,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("break_minutes");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int>("EarlyMinutes")
@@ -501,23 +520,23 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("employee_id");
 
                     b.Property<TimeOnly?>("InTime")
-                        .HasColumnType("time(6)")
+                        .HasColumnType("time")
                         .HasColumnName("in_time");
 
                     b.Property<bool>("IsActualBreak")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_actual_break");
 
                     b.Property<bool>("IsEarly")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_early");
 
                     b.Property<bool>("IsHalfDay")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_half_day");
 
                     b.Property<bool>("IsLate")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_late");
 
                     b.Property<int>("LateMinutes")
@@ -529,7 +548,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<TimeOnly?>("OutTime")
-                        .HasColumnType("time(6)")
+                        .HasColumnType("time")
                         .HasColumnName("out_time");
 
                     b.Property<DateOnly>("RecordDate")
@@ -538,7 +557,7 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("Remarks")
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
+                        .HasColumnType("nvarchar(255)")
                         .HasColumnName("remarks");
 
                     b.Property<int?>("ShiftId")
@@ -547,11 +566,11 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("Status")
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnName("status");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at");
 
                     b.Property<int>("WorkMinutes")
@@ -584,9 +603,11 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("DepartmentName")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("department_name");
 
                     b.Property<int>("OrganizationId")
@@ -594,7 +615,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<string>("Status")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
 
                     b.HasKey("Id");
@@ -611,9 +632,11 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("DesignationName")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("designation_name");
 
                     b.Property<int>("OrganizationId")
@@ -621,7 +644,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<string>("Status")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
 
                     b.HasKey("Id");
@@ -638,18 +661,20 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("Action")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnName("action");
 
                     b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("completed_at");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int?>("EmployeeId")
@@ -658,15 +683,15 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("EmployeeName")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("employee_name");
 
                     b.Property<bool?>("Enabled")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("enabled");
 
                     b.Property<string>("ErrorMessage")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("error_message");
 
                     b.Property<int>("OrganizationId")
@@ -676,7 +701,7 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("status");
 
                     b.HasKey("Id");
@@ -692,13 +717,15 @@ namespace HRDesk.Web.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<int?>("CommKey")
                         .HasColumnType("int");
 
                     b.Property<string>("IpAddress")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("MachineNumber")
                         .HasColumnType("int");
@@ -706,7 +733,7 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("OrganizationId")
                         .HasColumnType("int")
@@ -729,18 +756,20 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("device_id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DeviceId"));
+
                     b.Property<string>("DeviceIp")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("device_ip");
 
                     b.Property<string>("LastSyncStatus")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("last_sync_status");
 
                     b.Property<DateTime>("LastSyncedTime")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("last_synced_time");
 
                     b.Property<int>("OrganizationId")
@@ -752,7 +781,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("records_synced");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at");
 
                     b.HasKey("DeviceId");
@@ -788,15 +817,15 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("varchar(255)")
                         .HasColumnName("device_sync_error");
 
-                    b.Property<sbyte>("DeviceSynced")
+                    b.Property<byte>("DeviceSynced")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint")
-                        .HasDefaultValue((sbyte)0)
+                        .HasDefaultValue((byte)0)
                         .HasColumnName("device_synced");
 
                     b.Property<string>("EmployeeName")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("employee_name");
 
                     b.Property<DateOnly?>("JoiningDate")
@@ -808,18 +837,18 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("LastWorkingDate");
 
                     b.Property<string>("Phone")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("phone");
 
                     b.Property<string>("PhotoContentType")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<byte[]>("PhotoData")
-                        .HasColumnType("longblob");
+                        .HasColumnType("varbinary(max)");
 
                     b.Property<string>("PhotoPath")
-                        .HasColumnType("longtext");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateOnly?>("ProbationEnd")
                         .HasColumnType("date")
@@ -834,11 +863,11 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("resignation_date");
 
                     b.Property<string>("Status")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
 
                     b.Property<string>("Weekoff")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("weekoff");
 
                     b.HasKey("OrganizationId", "EmployeeId");
@@ -857,26 +886,28 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<DateOnly>("ApplicationDate")
                         .HasColumnType("date")
                         .HasColumnName("application_date");
 
                     b.Property<string>("ApplicationNumber")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("application_number");
 
                     b.Property<string>("ApprovedBy")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("approved_by");
 
                     b.Property<DateTime?>("ApprovedDate")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("approved_date");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int>("EmployeeId")
@@ -885,11 +916,11 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("ForeclosureRemark")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)")
+                        .HasColumnType("nvarchar(500)")
                         .HasColumnName("foreclosure_remark");
 
                     b.Property<decimal>("InstallmentAmount")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("installment_amount");
 
                     b.Property<int>("Installments")
@@ -897,7 +928,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("installments");
 
                     b.Property<decimal>("LoanAmount")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("loan_amount");
 
                     b.Property<int>("LoanTypeId")
@@ -909,11 +940,11 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<string>("Reason")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("reason");
 
                     b.Property<decimal>("RemainingAmount")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("remaining_amount");
 
                     b.Property<int>("RemainingInstallments")
@@ -931,7 +962,7 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("status");
 
                     b.HasKey("Id");
@@ -950,8 +981,10 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("amount");
 
                     b.Property<int>("ComponentId")
@@ -959,7 +992,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("component_id");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<DateOnly>("EffectiveFrom")
@@ -975,7 +1008,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("employee_id");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_active");
 
                     b.Property<int>("OrganizationId")
@@ -998,8 +1031,10 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int>("EmployeeId")
@@ -1038,8 +1073,10 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("Description")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("description");
 
                     b.Property<DateOnly>("EndDate")
@@ -1048,12 +1085,12 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("HolidayName")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("holiday_name");
 
                     b.Property<bool>("IsGlobal")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasDefaultValue(true)
                         .HasColumnName("is_global");
 
@@ -1102,6 +1139,8 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int")
                         .HasColumnName("employee_id");
@@ -1111,7 +1150,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("leave_type_id");
 
                     b.Property<decimal>("OpeningBalance")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("opening_balance");
 
                     b.Property<int>("OrganizationId")
@@ -1119,15 +1158,15 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<decimal>("TotalAllocated")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("total_allocated");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at");
 
                     b.Property<decimal>("UsedCount")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("used_count");
 
                     b.Property<int>("Year")
@@ -1150,22 +1189,24 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("ApplicationNumber")
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("application_number");
 
                     b.Property<string>("ApprovedBy")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("approved_by");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<string>("DayType")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("day_type");
 
                     b.Property<int>("EmployeeId")
@@ -1177,7 +1218,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("end_date");
 
                     b.Property<bool>("IgnoreSandwichRule")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("ignore_sandwich_rule");
 
                     b.Property<int>("LeaveTypeId")
@@ -1189,7 +1230,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<string>("Reason")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("reason");
 
                     b.Property<DateOnly>("StartDate")
@@ -1198,11 +1239,11 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
 
                     b.Property<decimal>("TotalDays")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("total_days");
 
                     b.HasKey("Id");
@@ -1221,41 +1262,43 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<bool>("AllowCarryForward")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("allow_carry_forward");
 
                     b.Property<bool>("ApplicableAfterProbation")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("applicable_after_probation");
 
                     b.Property<string>("BackgroundColor")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("background_color");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("varchar(10)")
+                        .HasColumnType("nvarchar(10)")
                         .HasColumnName("code");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<decimal>("DefaultYearlyQuota")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("default_yearly_quota");
 
                     b.Property<bool>("IsPaid")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_paid");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnName("name");
 
                     b.Property<int>("OrganizationId")
@@ -1264,12 +1307,12 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
 
                     b.Property<string>("TextColor")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("text_color");
 
                     b.HasKey("Id");
@@ -1307,14 +1350,16 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("amount");
 
                     b.Property<string>("DueMonth")
                         .IsRequired()
                         .HasMaxLength(7)
-                        .HasColumnType("varchar(7)")
+                        .HasColumnType("nvarchar(7)")
                         .HasColumnName("due_month");
 
                     b.Property<int>("InstallmentNumber")
@@ -1330,7 +1375,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<decimal>("PaidAmount")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("paid_amount");
 
                     b.Property<DateOnly?>("PaidDate")
@@ -1342,13 +1387,13 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("payroll_id");
 
                     b.Property<string>("Remarks")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("remarks");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("status");
 
                     b.HasKey("Id");
@@ -1367,16 +1412,18 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_active");
 
                     b.Property<decimal?>("MaxAmount")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("max_amount");
 
                     b.Property<int?>("MaxInstallments")
@@ -1390,7 +1437,7 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("TypeName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("type_name");
 
                     b.HasKey("Id");
@@ -1407,36 +1454,38 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("Address")
                         .HasMaxLength(500)
-                        .HasColumnType("varchar(500)")
+                        .HasColumnType("nvarchar(500)")
                         .HasColumnName("address");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_active");
 
                     b.Property<double?>("Latitude")
-                        .HasColumnType("double")
+                        .HasColumnType("float")
                         .HasColumnName("latitude");
 
                     b.Property<double?>("Longitude")
-                        .HasColumnType("double")
+                        .HasColumnType("float")
                         .HasColumnName("longitude");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("name");
 
                     b.Property<string>("WhatsAppGroupId")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("whatsapp_group_id");
 
                     b.HasKey("Id");
@@ -1451,8 +1500,10 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("amount");
 
                     b.Property<int?>("ComponentId")
@@ -1462,13 +1513,13 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("ComponentName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("component_name");
 
                     b.Property<string>("ComponentType")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("component_type");
 
                     b.Property<int>("OrganizationId")
@@ -1480,7 +1531,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("payroll_id");
 
                     b.Property<string>("Remarks")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("remarks");
 
                     b.HasKey("Id");
@@ -1501,21 +1552,23 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<decimal>("AbsentDays")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("absent_days");
 
                     b.Property<string>("ApprovedBy")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("approved_by");
 
                     b.Property<DateTime?>("ApprovedDate")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("approved_date");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int>("EmployeeId")
@@ -1523,29 +1576,29 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("employee_id");
 
                     b.Property<decimal>("GrossSalary")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("gross_salary");
 
                     b.Property<decimal>("HalfDays")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("half_days");
 
                     b.Property<decimal>("Holidays")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("holidays");
 
                     b.Property<string>("LeaveBreakdown")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("leave_breakdown");
 
                     b.Property<string>("Month")
                         .IsRequired()
                         .HasMaxLength(7)
-                        .HasColumnType("varchar(7)")
+                        .HasColumnType("nvarchar(7)")
                         .HasColumnName("month");
 
                     b.Property<decimal>("NetSalary")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("net_salary");
 
                     b.Property<int>("OrganizationId")
@@ -1553,11 +1606,11 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<decimal>("PaidLeaves")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("paid_leaves");
 
                     b.Property<decimal>("PayableDays")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("payable_days");
 
                     b.Property<DateOnly?>("PaymentDate")
@@ -1565,21 +1618,21 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("payment_date");
 
                     b.Property<decimal>("PresentDays")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("present_days");
 
                     b.Property<DateTime?>("ProcessedDate")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("processed_date");
 
                     b.Property<string>("Remarks")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("remarks");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("status");
 
                     b.Property<int>("TotalDays")
@@ -1587,19 +1640,19 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("total_days");
 
                     b.Property<decimal>("TotalDeductions")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("total_deductions");
 
                     b.Property<decimal>("TotalEarnings")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("total_earnings");
 
                     b.Property<decimal>("UnpaidLeaves")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("unpaid_leaves");
 
                     b.Property<decimal>("Weekoffs")
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("weekoffs");
 
                     b.HasKey("Id");
@@ -1616,26 +1669,28 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("ComponentCode")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("component_code");
 
                     b.Property<string>("ComponentName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("component_name");
 
                     b.Property<string>("ComponentType")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("component_type");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int>("DisplayOrder")
@@ -1643,7 +1698,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("display_order");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_active");
 
                     b.Property<int>("OrganizationId")
@@ -1664,12 +1719,14 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("ColorCode")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("color_code");
 
                     b.Property<TimeOnly?>("EarlyGoAllowedTime")
-                        .HasColumnType("time(6)")
+                        .HasColumnType("time")
                         .HasColumnName("early_go_allowed_time");
 
                     b.Property<int?>("EarlyGoFrequencyPerMonth")
@@ -1681,11 +1738,11 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("early_leave_grace_minutes");
 
                     b.Property<TimeOnly>("EndTime")
-                        .HasColumnType("time(6)")
+                        .HasColumnType("time")
                         .HasColumnName("end_time");
 
                     b.Property<TimeOnly?>("HalfTime")
-                        .HasColumnType("time(6)")
+                        .HasColumnType("time")
                         .HasColumnName("half_time");
 
                     b.Property<int?>("LateComingAllowedCountPerMonth")
@@ -1697,7 +1754,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("late_coming_grace_minutes");
 
                     b.Property<bool?>("LateComingHalfDayOnExceed")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("late_coming_half_day_on_exceed");
 
                     b.Property<int>("LunchBreakDuration")
@@ -1706,11 +1763,11 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("lunch_break_duration");
 
                     b.Property<TimeOnly?>("LunchBreakEnd")
-                        .HasColumnType("time(6)")
+                        .HasColumnType("time")
                         .HasColumnName("lunch_break_end");
 
                     b.Property<TimeOnly?>("LunchBreakStart")
-                        .HasColumnType("time(6)")
+                        .HasColumnType("time")
                         .HasColumnName("lunch_break_start");
 
                     b.Property<int>("OrganizationId")
@@ -1719,25 +1776,25 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("ShiftCode")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("shift_code");
 
                     b.Property<string>("ShiftName")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("shift_name");
 
                     b.Property<TimeOnly>("StartTime")
-                        .HasColumnType("time(6)")
+                        .HasColumnType("time")
                         .HasColumnName("start_time");
 
                     b.Property<string>("Status")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
 
                     b.Property<decimal>("WorkingHours")
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("decimal(65,30)")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("working_hours");
 
                     b.HasKey("Id");
@@ -1754,8 +1811,10 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<int>("EmployeeId")
@@ -1763,7 +1822,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("employee_id");
 
                     b.Property<bool>("IsWeekOff")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_week_off");
 
                     b.Property<int>("OrganizationId")
@@ -1771,7 +1830,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("organization_id");
 
                     b.Property<string>("Remarks")
-                        .HasColumnType("longtext")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("remarks");
 
                     b.Property<DateOnly>("RosterDate")
@@ -1797,9 +1856,11 @@ namespace HRDesk.Web.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<string>("Description")
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
+                        .HasColumnType("nvarchar(255)")
                         .HasColumnName("description");
 
                     b.Property<int>("OrganizationId")
@@ -1809,16 +1870,16 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("SettingKey")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnName("setting_key");
 
                     b.Property<string>("SettingValue")
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
+                        .HasColumnType("nvarchar(255)")
                         .HasColumnName("setting_value");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id");
@@ -1835,21 +1896,23 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id");
 
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
                     b.Property<string>("FullName")
                         .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("full_name");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("bit")
                         .HasColumnName("is_active");
 
                     b.Property<DateTime?>("LastLogin")
-                        .HasColumnType("datetime(6)")
+                        .HasColumnType("datetime2")
                         .HasColumnName("last_login");
 
                     b.Property<int>("OrganizationId")
@@ -1859,19 +1922,19 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
+                        .HasColumnType("nvarchar(255)")
                         .HasColumnName("password_hash");
 
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("role");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnName("username");
 
                     b.HasKey("Id");
@@ -1889,12 +1952,13 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "HiredEmployee")
                         .WithMany()
-                        .HasForeignKey("OrganizationId", "HiredEmployeeId");
+                        .HasForeignKey("OrganizationId", "HiredEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("HiredEmployee");
 
@@ -1906,13 +1970,13 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Areas.Recruitment.Models.Candidate", "Candidate")
                         .WithMany()
                         .HasForeignKey("CandidateId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Candidate");
@@ -1925,7 +1989,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -1936,7 +2000,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
@@ -1955,13 +2019,13 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -1974,13 +2038,13 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -1993,13 +2057,13 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -2012,17 +2076,18 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Shift", "Shift")
                         .WithMany()
-                        .HasForeignKey("ShiftId");
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -2037,7 +2102,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Shift", "Shift")
@@ -2063,7 +2128,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2074,7 +2139,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2085,7 +2150,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2096,7 +2161,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2107,7 +2172,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2128,7 +2193,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Department");
@@ -2143,13 +2208,13 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.LoanType", "LoanType")
                         .WithMany()
                         .HasForeignKey("LoanTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
@@ -2170,13 +2235,13 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.SalaryComponent", "SalaryComponent")
                         .WithMany()
                         .HasForeignKey("ComponentId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
@@ -2197,19 +2262,19 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Shift", "Shift")
                         .WithMany()
                         .HasForeignKey("ShiftId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -2224,7 +2289,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2241,7 +2306,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
@@ -2262,19 +2327,19 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.LeaveType", "LeaveType")
                         .WithMany()
                         .HasForeignKey("LeaveTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -2289,19 +2354,19 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.LeaveType", "LeaveType")
                         .WithMany()
                         .HasForeignKey("LeaveTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -2316,7 +2381,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2327,19 +2392,19 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.LeaveType", "LeaveType")
                         .WithMany("EligibleEmployees")
                         .HasForeignKey("LeaveTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -2360,7 +2425,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("EmployeeLoan");
@@ -2373,7 +2438,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2389,7 +2454,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.PayrollMaster", "PayrollMaster")
@@ -2410,7 +2475,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
@@ -2429,7 +2494,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2440,7 +2505,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2451,17 +2516,18 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HRDesk.Web.Models.Shift", "Shift")
                         .WithMany()
-                        .HasForeignKey("ShiftId");
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -2476,7 +2542,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");
@@ -2487,7 +2553,7 @@ namespace HRDesk.Web.Migrations
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Organization");

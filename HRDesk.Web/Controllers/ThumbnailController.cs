@@ -38,18 +38,47 @@ public class ThumbnailController : ControllerBase
             return BadRequest("Employee ID is required.");
         }
 
-        // Use a projection to avoid loading the full Employee entity (composite key issue with FindAsync)
-        var photo = await _db.Employees
-            .Where(e => e.EmployeeId == employeeId)
-            .Select(e => new { e.PhotoData, e.PhotoContentType })
-            .FirstOrDefaultAsync();
+        byte[]? photoBytes = null;
+        string? contentType = null;
 
-        if (photo == null)
+        // Fetch using ADO.NET since PhotoData is [NotMapped] in EF Core to prevent global hang issues
+        var connection = _db.Database.GetDbConnection();
+        bool wasClosed = connection.State == System.Data.ConnectionState.Closed;
+        if (wasClosed) await connection.OpenAsync();
+
+        try
         {
-            return NotFound("Employee not found.");
-        }
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "SELECT PhotoData, PhotoContentType FROM employees WHERE employee_id = @id AND organization_id = @org";
+            
+            var idParam = cmd.CreateParameter();
+            idParam.ParameterName = "@id";
+            idParam.Value = employeeId.Value;
+            cmd.Parameters.Add(idParam);
+            
+            var orgParam = cmd.CreateParameter();
+            orgParam.ParameterName = "@org";
+            orgParam.Value = _tenantProvider.TenantId;
+            cmd.Parameters.Add(orgParam);
 
-        byte[]? photoBytes = photo.PhotoData;
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                if (!reader.IsDBNull(0))
+                {
+                    photoBytes = (byte[])reader["PhotoData"];
+                    contentType = reader.IsDBNull(1) ? "image/jpeg" : (string)reader["PhotoContentType"];
+                }
+            }
+            else
+            {
+                return NotFound("Employee not found.");
+            }
+        }
+        finally
+        {
+            if (wasClosed) await connection.CloseAsync();
+        }
 
         if (photoBytes == null)
         {
@@ -85,7 +114,7 @@ public class ThumbnailController : ControllerBase
         {
             _logger.LogWarning(ex, "Failed to generate thumbnail for employee {EmployeeId}, serving original image.", employeeId);
             // If anything goes wrong with resizing, safely fallback to serving the original bytes
-            return File(photoBytes, photo.PhotoContentType ?? "image/jpeg");
+            return File(photoBytes, contentType ?? "image/jpeg");
         }
     }
 

@@ -32,6 +32,7 @@ namespace HRDesk.Web.Pages.Reports
             var endDate = startDate.AddMonths(1);
 
             var query = _db.DailyAttendance
+                .AsNoTracking()
                 .Include(d => d.Employee)
                 .Include(d => d.Shift)
                 .Where(d => d.RecordDate >= startDate && d.RecordDate < endDate && d.Remarks != null)

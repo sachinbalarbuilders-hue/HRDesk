@@ -21,6 +21,7 @@ public class IndexModel : PageModel
     public async Task OnGetAsync()
     {
         LeaveTypes = await _db.LeaveTypes
+            .AsNoTracking()
             .Include(lt => lt.EligibleEmployees)
             .OrderBy(lt => lt.Name)
             .ToListAsync();
@@ -75,7 +76,7 @@ public class IndexModel : PageModel
             return Page();
         }
 
-        var type = await _db.LeaveTypes.Include(lt => lt.EligibleEmployees).FirstOrDefaultAsync(lt => lt.Id == EditLeaveType.Id);
+        var type = await _db.LeaveTypes.AsNoTracking().Include(lt => lt.EligibleEmployees).FirstOrDefaultAsync(lt => lt.Id == EditLeaveType.Id);
         if (type != null)
         {
             type.Code = EditLeaveType.Code;

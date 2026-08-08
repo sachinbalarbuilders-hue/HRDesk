@@ -1,7 +1,7 @@
 using System;
 using System.Configuration;
 using System.Data;
-using MySql.Data.MySqlClient;
+using System.Data.SqlClient;
 using System.Collections.Generic;
 
 namespace Z903AttendanceService
@@ -52,7 +52,7 @@ namespace Z903AttendanceService
         private readonly Action<string> _logger;
 
         // Timeout settings (in seconds)
-        private const int ConnectionTimeout = 15;
+        private const int ConnectTimeout = 15;
         private const int CommandTimeout = 30;
 
         public DatabaseService() : this(null)
@@ -70,9 +70,9 @@ namespace Z903AttendanceService
             }
 
             // Ensure connection timeout is set in connection string
-            var builder = new MySqlConnectionStringBuilder(baseConnectionString)
+            var builder = new SqlConnectionStringBuilder(baseConnectionString)
             {
-                ConnectionTimeout = ConnectionTimeout
+                ConnectTimeout = ConnectTimeout
             };
             _connectionString = builder.ConnectionString;
         }
@@ -96,7 +96,7 @@ namespace Z903AttendanceService
             try
             {
 
-                using (MySqlConnection connection = new MySqlConnection(_connectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
                     connection.Open();
 
@@ -107,7 +107,7 @@ namespace Z903AttendanceService
                         result.Message = $"Connected successfully in {(DateTime.Now - startTime).TotalMilliseconds:F0}ms. Server: {connection.ServerVersion}";
                         
                         // Test with a simple query to verify full connectivity
-                        using (MySqlCommand cmd = new MySqlCommand("SELECT 1", connection))
+                        using (SqlCommand cmd = new SqlCommand("SELECT 1", connection))
                         {
                             cmd.CommandTimeout = CommandTimeout;
                             cmd.ExecuteScalar();
@@ -123,26 +123,23 @@ namespace Z903AttendanceService
                     }
                 }
             }
-            catch (MySqlException ex)
+            catch (SqlException ex)
             {
                 result.Success = false;
                 result.Error = ex;
-                result.Message = $"MySQL Error ({ex.Number}): {ex.Message}";
+                result.Message = $"SQL Server Error ({ex.Number}): {ex.Message}";
 
                 // Provide helpful messages for common errors
                 switch (ex.Number)
                 {
-                    case 0:
-                        result.Message += " - Cannot connect to server. Check if MySQL is running and the host/port are correct.";
+                    case -1:
+                        result.Message += " - Cannot connect to server. Check if SQL Server is running and the host/instance are correct.";
                         break;
-                    case 1042:
-                        result.Message += " - Unable to connect to any of the specified MySQL hosts.";
+                    case 18456:
+                        result.Message += " - Login failed. Check username and password.";
                         break;
-                    case 1045:
-                        result.Message += " - Access denied. Check username and password.";
-                        break;
-                    case 1049:
-                        result.Message += " - Unknown database. The database does not exist.";
+                    case 4060:
+                        result.Message += " - Cannot open database. The database does not exist or access is denied.";
                         break;
                 }
 
@@ -152,7 +149,7 @@ namespace Z903AttendanceService
             {
                 result.Success = false;
                 result.Error = ex;
-                result.Message = $"Connection timeout after {ConnectionTimeout}s. Server may be slow or unreachable.";
+                result.Message = $"Connection timeout after {ConnectTimeout}s. Server may be slow or unreachable.";
                 Log($"ERROR: {result.Message}");
             }
             catch (Exception ex)
@@ -166,9 +163,9 @@ namespace Z903AttendanceService
             return result;
         }
 
-        private MySqlCommand CreateCommand(MySqlConnection connection, string sql, MySqlTransaction transaction = null)
+        private SqlCommand CreateCommand(SqlConnection connection, string sql, SqlTransaction transaction = null)
         {
-            var command = new MySqlCommand(sql, connection, transaction)
+            var command = new SqlCommand(sql, connection, transaction)
             {
                 CommandTimeout = CommandTimeout
             };
@@ -182,27 +179,28 @@ namespace Z903AttendanceService
         public void CreateAttendanceLogsTable()
         {
             const string sql = @"
-                CREATE TABLE IF NOT EXISTS attendance_logs (
-                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[attendance_logs]') AND type in (N'U'))
+                BEGIN
+                CREATE TABLE attendance_logs (
+                    id BIGINT IDENTITY(1,1) PRIMARY KEY,
                     employee_id INT NOT NULL,
                     machine_number INT NOT NULL,
                     punch_time DATETIME NOT NULL,
                     verify_mode INT,
                     verify_type VARCHAR(50),
                     synced_at DATETIME NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY uk_employee_punch (employee_id, machine_number, punch_time),
-                    INDEX idx_punch_time (punch_time),
-                    INDEX idx_employee_id (employee_id),
-                    INDEX idx_synced_at (synced_at)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                    organization_id INT NOT NULL DEFAULT 1,
+                    created_at DATETIME DEFAULT GETDATE(),
+                    CONSTRAINT uk_employee_punch UNIQUE (employee_id, machine_number, punch_time)
+                )
+                END";
 
             try
             {
-                using (MySqlConnection connection = new MySqlConnection(_connectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
                     connection.Open();
-                    using (MySqlCommand command = CreateCommand(connection, sql))
+                    using (SqlCommand command = CreateCommand(connection, sql))
                     {
                         command.ExecuteNonQuery();
                     }
@@ -221,21 +219,24 @@ namespace Z903AttendanceService
         public void CreateDeviceSyncStateTable()
         {
             const string sql = @"
-                CREATE TABLE IF NOT EXISTS device_sync_state (
+                IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[device_sync_state]') AND type in (N'U'))
+                BEGIN
+                CREATE TABLE device_sync_state (
                     device_id INT PRIMARY KEY,
                     device_ip VARCHAR(50) NOT NULL,
                     last_synced_time DATETIME NULL,
                     last_sync_status VARCHAR(20),
                     records_synced INT DEFAULT 0,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                    updated_at DATETIME DEFAULT GETDATE()
+                )
+                END";
 
             try
             {
-                using (MySqlConnection connection = new MySqlConnection(_connectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
                     connection.Open();
-                    using (MySqlCommand command = CreateCommand(connection, sql))
+                    using (SqlCommand command = CreateCommand(connection, sql))
                     {
                         command.ExecuteNonQuery();
                     }
@@ -256,10 +257,10 @@ namespace Z903AttendanceService
 
             try
             {
-                using (MySqlConnection connection = new MySqlConnection(_connectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
                     connection.Open();
-                    using (MySqlCommand command = CreateCommand(connection, sql))
+                    using (SqlCommand command = CreateCommand(connection, sql))
                     {
                         command.Parameters.AddWithValue("@DeviceId", deviceId);
                         var result = command.ExecuteScalar();
@@ -290,21 +291,28 @@ namespace Z903AttendanceService
         public void UpdateLastSyncedTime(int deviceId, string deviceIp, DateTime syncTime, string status, int recordsSynced)
         {
             const string sql = @"
-                INSERT INTO device_sync_state (device_id, device_ip, last_synced_time, last_sync_status, records_synced)
-                VALUES (@DeviceId, @DeviceIp, @SyncTime, @Status, @RecordsSynced)
-                ON DUPLICATE KEY UPDATE 
-                    device_ip = @DeviceIp,
-                    last_synced_time = @SyncTime,
-                    last_sync_status = @Status,
-                    records_synced = @RecordsSynced,
-                    updated_at = NOW()";
+                IF NOT EXISTS (SELECT 1 FROM device_sync_state WHERE device_id = @DeviceId)
+                BEGIN
+                    INSERT INTO device_sync_state (device_id, device_ip, last_synced_time, last_sync_status, records_synced)
+                    VALUES (@DeviceId, @DeviceIp, @SyncTime, @Status, @RecordsSynced)
+                END
+                ELSE
+                BEGIN
+                    UPDATE device_sync_state SET 
+                        device_ip = @DeviceIp,
+                        last_synced_time = @SyncTime,
+                        last_sync_status = @Status,
+                        records_synced = @RecordsSynced,
+                        updated_at = GETDATE()
+                    WHERE device_id = @DeviceId
+                END";
 
             try
             {
-                using (MySqlConnection connection = new MySqlConnection(_connectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
                     connection.Open();
-                    using (MySqlCommand command = CreateCommand(connection, sql))
+                    using (SqlCommand command = CreateCommand(connection, sql))
                     {
                         command.Parameters.AddWithValue("@DeviceId", deviceId);
                         command.Parameters.AddWithValue("@DeviceIp", deviceIp);
@@ -325,17 +333,25 @@ namespace Z903AttendanceService
 
         public bool InsertAttendanceRecord(AttendanceRecord record)
         {
-            const string sql = @"
-                INSERT INTO attendance_logs (employee_id, machine_number, punch_time, verify_mode, verify_type, synced_at)
-                VALUES (@EmployeeId, @MachineNumber, @PunchTime, @VerifyMode, @VerifyType, @SyncedAt)
-                ON DUPLICATE KEY UPDATE synced_at = VALUES(synced_at)";
+            string sql = @"
+                IF NOT EXISTS (SELECT 1 FROM attendance_logs WHERE employee_id = @EmployeeId AND punch_time = @PunchTime)
+                BEGIN
+                    INSERT INTO attendance_logs 
+                    (employee_id, machine_number, punch_time, verify_mode, verify_type, synced_at) 
+                    VALUES 
+                    (@EmployeeId, @MachineNumber, @PunchTime, @VerifyMode, @VerifyType, @SyncedAt)
+                END
+                ELSE
+                BEGIN
+                    UPDATE attendance_logs SET synced_at = @SyncedAt WHERE employee_id = @EmployeeId AND punch_time = @PunchTime
+                END";
 
             try
             {
-                using (MySqlConnection connection = new MySqlConnection(_connectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
                     connection.Open();
-                    using (MySqlCommand command = CreateCommand(connection, sql))
+                    using (SqlCommand command = CreateCommand(connection, sql))
                     {
                         command.Parameters.AddWithValue("@EmployeeId", record.EmployeeId);
                         command.Parameters.AddWithValue("@MachineNumber", record.MachineNumber);
@@ -362,23 +378,30 @@ namespace Z903AttendanceService
                 return 0;
 
             const string sql = @"
-                INSERT INTO attendance_logs (employee_id, machine_number, punch_time, verify_mode, verify_type, synced_at)
-                VALUES (@EmployeeId, @MachineNumber, @PunchTime, @VerifyMode, @VerifyType, @SyncedAt)
-                ON DUPLICATE KEY UPDATE synced_at = VALUES(synced_at)";
+                IF NOT EXISTS (SELECT 1 FROM attendance_logs WHERE employee_id = @EmployeeId AND machine_number = @MachineNumber AND punch_time = @PunchTime)
+                BEGIN
+                    INSERT INTO attendance_logs (employee_id, machine_number, punch_time, verify_mode, verify_type, synced_at, organization_id)
+                    VALUES (@EmployeeId, @MachineNumber, @PunchTime, @VerifyMode, @VerifyType, @SyncedAt, 1)
+                END
+                ELSE
+                BEGIN
+                    UPDATE attendance_logs SET synced_at = @SyncedAt
+                    WHERE employee_id = @EmployeeId AND machine_number = @MachineNumber AND punch_time = @PunchTime
+                END";
 
             int insertedCount = 0;
             Log($"Starting bulk insert of {records.Length} records...");
 
-            using (MySqlConnection connection = new MySqlConnection(_connectionString))
+            using (SqlConnection connection = new SqlConnection(_connectionString))
             {
                 connection.Open();
-                using (MySqlTransaction transaction = connection.BeginTransaction())
+                using (SqlTransaction transaction = connection.BeginTransaction())
                 {
                     try
                     {
                         foreach (AttendanceRecord record in records)
                         {
-                            using (MySqlCommand command = CreateCommand(connection, sql, transaction))
+                            using (SqlCommand command = CreateCommand(connection, sql, transaction))
                             {
                                 command.Parameters.AddWithValue("@EmployeeId", record.EmployeeId);
                                 command.Parameters.AddWithValue("@MachineNumber", record.MachineNumber);
@@ -386,15 +409,14 @@ namespace Z903AttendanceService
                                 command.Parameters.AddWithValue("@VerifyMode", record.VerifyMode);
                                 command.Parameters.AddWithValue("@VerifyType", record.VerifyType);
                                 command.Parameters.AddWithValue("@SyncedAt", record.SyncedAt);
-                                // MySQL returns 1 for true insert, 2 for ON DUPLICATE KEY update. 
-                                // We only want to count actual new inserts in the logs.
-                                if (command.ExecuteNonQuery() == 1)
+                                
+                                if (command.ExecuteNonQuery() > 0)
                                     insertedCount++;
                             }
                         }
 
                         transaction.Commit();
-                        Log($"Bulk insert completed: {insertedCount}/{records.Length} records inserted.");
+                        Log($"Bulk insert completed: {insertedCount}/{records.Length} records processed.");
                         return insertedCount;
                     }
                     catch (Exception ex)
@@ -418,10 +440,10 @@ namespace Z903AttendanceService
 
             try
             {
-                using (MySqlConnection connection = new MySqlConnection(_connectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
                     connection.Open();
-                    using (MySqlCommand command = CreateCommand(connection, sql))
+                    using (SqlCommand command = CreateCommand(connection, sql))
                     {
                         command.Parameters.AddWithValue("@SyncStarted", syncStarted);
                         command.Parameters.AddWithValue("@SyncCompleted", syncCompleted);
@@ -449,10 +471,10 @@ namespace Z903AttendanceService
             const string sql = "SELECT Id, IpAddress, Port, MachineNumber, CommKey FROM DeviceConfigurations";
             try
             {
-                using (MySqlConnection connection = new MySqlConnection(_connectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
                     connection.Open();
-                    using (MySqlCommand command = CreateCommand(connection, sql))
+                    using (SqlCommand command = CreateCommand(connection, sql))
                     {
                         using (var reader = command.ExecuteReader())
                         {
@@ -489,10 +511,10 @@ namespace Z903AttendanceService
             try
             {
                 const string sql = "SELECT setting_value FROM system_settings WHERE setting_key = 'SyncIntervalMinutes'";
-                using (MySqlConnection connection = new MySqlConnection(_connectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
                     connection.Open();
-                    using (MySqlCommand command = CreateCommand(connection, sql))
+                    using (SqlCommand command = CreateCommand(connection, sql))
                     {
                         var result = command.ExecuteScalar();
                         if (result != null && result != DBNull.Value && int.TryParse(result.ToString(), out int minutes))

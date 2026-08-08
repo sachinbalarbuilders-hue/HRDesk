@@ -51,7 +51,7 @@ public class IndexModel : PageModel
         NewApplication.ApplicationNumber = await _sequenceService.PeekNextApplicationNumberAsync(NewApplication.StartDate);
  
         // Pagination & Search logic
-        var query = _db.LeaveApplications
+        var query = _db.LeaveApplications.AsNoTracking()
             .Include(la => la.Employee)
             .Include(la => la.LeaveType)
             .OrderByDescending(la => la.CreatedAt)
@@ -580,6 +580,7 @@ public class IndexModel : PageModel
         // 6. Apply to new allocation & VALIDATE
         var newLeaveYear = AttendanceProcessorService.GetLeaveYear(application.StartDate);
         var newAllocation = await _db.LeaveAllocations
+            .AsNoTracking()
             .Include(la => la.LeaveType)
             .FirstOrDefaultAsync(la => la.EmployeeId == application.EmployeeId && 
                                        la.LeaveTypeId == application.LeaveTypeId && 

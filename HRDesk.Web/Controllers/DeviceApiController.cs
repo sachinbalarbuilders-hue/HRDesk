@@ -114,9 +114,15 @@ public class DeviceApiController : ControllerBase
         DateTime now = DateTime.Now;
 
         const string sql = @"
-            INSERT INTO attendance_logs (organization_id, employee_id, machine_number, punch_time, verify_mode, verify_type, synced_at, created_at)
-            VALUES (@org, @emp, @mach, @time, @vmode, @vtype, @sync, @create)
-            ON DUPLICATE KEY UPDATE synced_at = VALUES(synced_at)";
+            IF NOT EXISTS (SELECT 1 FROM attendance_logs WHERE employee_id = @emp AND punch_time = @time)
+            BEGIN
+                INSERT INTO attendance_logs (organization_id, employee_id, machine_number, punch_time, verify_mode, verify_type, synced_at, created_at)
+                VALUES (@org, @emp, @mach, @time, @vmode, @vtype, @sync, @create)
+            END
+            ELSE
+            BEGIN
+                UPDATE attendance_logs SET synced_at = @sync WHERE employee_id = @emp AND punch_time = @time
+            END";
 
         foreach (var log in logs)
         {
@@ -135,13 +141,13 @@ public class DeviceApiController : ControllerBase
             try
             {
                 var result = await command.ExecuteNonQueryAsync();
-                if (result == 1) // MySQL returns 1 for insert, 2 for update
+                if (result > 0) // rows affected > 0 means insert or update succeeded
                     insertedCount++;
             }
-            catch (MySqlConnector.MySqlException ex)
+            catch (Microsoft.Data.SqlClient.SqlException ex)
             {
-                // Ignore foreign key constraint errors (1452)
-                if (ex.Number != 1452)
+                // Ignore foreign key constraint errors (547 in SQL Server)
+                if (ex.Number != 547)
                 {
                     throw;
                 }

@@ -95,13 +95,16 @@
                                         @{
                                             // PhotoData is not loaded in list queries to avoid loading BLOBs.
                                             // We check PhotoPath as a proxy: migrated employees keep their PhotoPath set.
-                                            // For employees uploaded after migration, PhotoData exists but PhotoPath may be null,
-                                            // so we call the API unconditionally and let it return 404 gracefully.
-                                            bool hasPhoto = !string.IsNullOrEmpty(e.PhotoPath) || e.PhotoData != null;
+                                            // For employees uploaded after migration, PhotoData is checked via ADO.NET in other places, 
+                                            // but for the list view, we just try to load the Thumbnail endpoint which handles 404s gracefully.
+                                            bool hasPhoto = true; // Let the img onerror handler take care of fallback
                                         }
                                         @if (hasPhoto)
                                         {
-                                            <img src="/api/Thumbnail?employeeId=@e.EmployeeId&width=150&height=150" alt="@e.EmployeeName" style="width: 100%; height: 100%; object-fit: cover; object-position: top center;" loading="lazy" />
+                                            <img src="/api/Thumbnail?employeeId=@e.EmployeeId&width=150&height=150" alt="@e.EmployeeName" style="width: 100%; height: 100%; object-fit: cover; object-position: top center;" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                            <div class="initials-fallback" style="display:none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 1.2rem;">
+                                                @(string.IsNullOrEmpty(e.EmployeeName) ? "?" : e.EmployeeName[0].ToString().ToUpper())
+                                            </div>
                                         }
                                         else
                                         {

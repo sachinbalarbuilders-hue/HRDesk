@@ -1,7 +1,7 @@
 $DatabaseName = "biometric_attendance"
 $BackupDirectory = "D:\HRDesk_Backups"
 $DateSuffix = Get-Date -Format "yyyyMMdd_HHmmss"
-$BackupFileName = "$BackupDirectory\${DatabaseName}_${DateSuffix}.sql"
+$BackupFileName = "$BackupDirectory\${DatabaseName}_${DateSuffix}.bak"
 $MySqlUser = "root"
 
 Write-Host "Starting backup for database: $DatabaseName"
@@ -12,10 +12,17 @@ if (!(Test-Path -Path $BackupDirectory)) {
     Write-Host "Created backup directory at $BackupDirectory"
 }
 
-# Run mysqldump
+# Run SQL Server Backup
 try {
-    # Using absolute path to mysqldump to ensure it works reliably in Task Scheduler
-    cmd.exe /c "C:\xampp\mysql\bin\mysqldump.exe -u $MySqlUser $DatabaseName > $BackupFileName"
+    # Ensure SQL Server has permission to write to this directory. 
+    # Using sqlcmd to execute the BACKUP DATABASE command.
+    $SqlCmd = "BACKUP DATABASE [$DatabaseName] TO DISK = N'$BackupFileName' WITH NOFORMAT, NOINIT, NAME = N'$DatabaseName-Full Database Backup', SKIP, NOREWIND, NOUNLOAD, STATS = 10"
+    sqlcmd -S ".\SQLEXPRESS" -E -Q $SqlCmd
+    
+    if ($LASTEXITCODE -ne 0) {
+        throw "sqlcmd exited with code $LASTEXITCODE"
+    }
+    
     Write-Host "Backup successfully created: $BackupFileName"
 }
 catch {
@@ -25,7 +32,7 @@ catch {
 
 # Delete backups older than 30 days to save disk space
 $LimitDate = (Get-Date).AddDays(-30)
-$OldBackups = Get-ChildItem -Path $BackupDirectory -Filter "*.sql" | Where-Object { $_.CreationTime -lt $LimitDate }
+$OldBackups = Get-ChildItem -Path $BackupDirectory -Filter "*.bak" | Where-Object { $_.CreationTime -lt $LimitDate }
 
 if ($OldBackups) {
     Write-Host "Removing old backups..."

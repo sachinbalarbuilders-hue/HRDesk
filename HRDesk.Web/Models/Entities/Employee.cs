@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
 
@@ -38,8 +38,10 @@ public sealed class Employee : IMustHaveTenant
 
     public string? PhotoPath { get; set; }
 
+    [NotMapped]
     public byte[]? PhotoData { get; set; }
     
+    [NotMapped]
     [System.ComponentModel.DataAnnotations.StringLength(100)]
     public string? PhotoContentType { get; set; }
 

@@ -90,11 +90,14 @@ namespace HRDesk.Web.Services
                 .Select(l => new { l.OrganizationId, l.EmployeeId, l.EventType })
                 .ToListAsync();
 
-            // Get all active employees across all organizations, bypassing tenant filters for the background service
+            // Get ONLY employees who have a birthday or anniversary today, bypassing tenant filters
             var employees = await db.Employees
                 .IgnoreQueryFilters()
                 .Include(e => e.Organization)
-                .Where(e => e.Status == "active")
+                .Where(e => e.Status == "active" && (
+                    (e.DateOfBirth != null && e.DateOfBirth.Value.Month == today.Month && e.DateOfBirth.Value.Day == today.Day) ||
+                    (e.JoiningDate != null && e.JoiningDate.Value.Month == today.Month && e.JoiningDate.Value.Day == today.Day)
+                ))
                 .ToListAsync();
 
             foreach (var employee in employees)
@@ -122,9 +125,26 @@ namespace HRDesk.Web.Services
                     _logger.LogInformation("Queuing Birthday HTML generation for {Name} in Org {Org}", employee.EmployeeName, employee.Organization?.Name);
                     
                     string photoBase64 = "";
-                    if (employee.PhotoData != null && employee.PhotoData.Length > 0)
+                    byte[]? dbPhotoBytes = null;
+                    using (var cmd = db.Database.GetDbConnection().CreateCommand())
                     {
-                        photoBase64 = Convert.ToBase64String(employee.PhotoData);
+                        cmd.CommandText = "SELECT PhotoData FROM employees WHERE employee_id = @id AND organization_id = @org";
+                        var p1 = cmd.CreateParameter(); p1.ParameterName = "@id"; p1.Value = employee.EmployeeId; cmd.Parameters.Add(p1);
+                        var p2 = cmd.CreateParameter(); p2.ParameterName = "@org"; p2.Value = employee.OrganizationId; cmd.Parameters.Add(p2);
+                        
+                        bool wasClosed = cmd.Connection.State == System.Data.ConnectionState.Closed;
+                        if (wasClosed) await cmd.Connection.OpenAsync();
+                        try 
+                        {
+                            var res = await cmd.ExecuteScalarAsync();
+                            if (res != null && res != DBNull.Value) dbPhotoBytes = (byte[])res;
+                        }
+                        finally { if (wasClosed) await cmd.Connection.CloseAsync(); }
+                    }
+
+                    if (dbPhotoBytes != null && dbPhotoBytes.Length > 0)
+                    {
+                        photoBase64 = Convert.ToBase64String(dbPhotoBytes);
                     }
                     else if (!string.IsNullOrEmpty(employee.PhotoPath))
                     {
@@ -178,9 +198,26 @@ The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes yo
                     _logger.LogInformation("Queuing Work Anniversary HTML generation for {Name} ({Years} years) in Org {Org}", employee.EmployeeName, years, employee.Organization?.Name);
                     
                     string photoBase64 = "";
-                    if (employee.PhotoData != null && employee.PhotoData.Length > 0)
+                    byte[]? dbPhotoBytes = null;
+                    using (var cmd = db.Database.GetDbConnection().CreateCommand())
                     {
-                        photoBase64 = Convert.ToBase64String(employee.PhotoData);
+                        cmd.CommandText = "SELECT PhotoData FROM employees WHERE employee_id = @id AND organization_id = @org";
+                        var p1 = cmd.CreateParameter(); p1.ParameterName = "@id"; p1.Value = employee.EmployeeId; cmd.Parameters.Add(p1);
+                        var p2 = cmd.CreateParameter(); p2.ParameterName = "@org"; p2.Value = employee.OrganizationId; cmd.Parameters.Add(p2);
+                        
+                        bool wasClosed = cmd.Connection.State == System.Data.ConnectionState.Closed;
+                        if (wasClosed) await cmd.Connection.OpenAsync();
+                        try 
+                        {
+                            var res = await cmd.ExecuteScalarAsync();
+                            if (res != null && res != DBNull.Value) dbPhotoBytes = (byte[])res;
+                        }
+                        finally { if (wasClosed) await cmd.Connection.CloseAsync(); }
+                    }
+
+                    if (dbPhotoBytes != null && dbPhotoBytes.Length > 0)
+                    {
+                        photoBase64 = Convert.ToBase64String(dbPhotoBytes);
                     }
                     else if (!string.IsNullOrEmpty(employee.PhotoPath))
                     {

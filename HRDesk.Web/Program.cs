@@ -57,10 +57,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    var jwtKey = builder.Configuration["Jwt:Key"];
-    if (string.IsNullOrEmpty(jwtKey) && !builder.Environment.IsDevelopment())
-        throw new InvalidOperationException("Jwt:Key must be configured in production environment.");
-    jwtKey ??= "dev-secret-key-please-change";
+    var jwtKey = builder.Configuration["Jwt:Key"]
+        ?? throw new InvalidOperationException("Jwt:Key must be configured via environment variable.");
 
     var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "HRDesk.Web";
     options.RequireHttpsMetadata = false;
@@ -84,7 +82,7 @@ builder.Services.AddDbContext<HRDesk.Web.Data.BiometricAttendanceDbContext>(opti
         throw new InvalidOperationException("Missing connection string 'AttendanceDb'.");
     }
 
-    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 0)));
+    options.UseSqlServer(connectionString);
 });
 
 builder.Services.AddScoped<HRDesk.Web.Services.IAttendanceProcessorService, HRDesk.Web.Services.AttendanceProcessorService>();
@@ -95,18 +93,42 @@ builder.Services.AddScoped<HRDesk.Web.Services.IPayrollService, HRDesk.Web.Servi
 builder.Services.AddScoped<HRDesk.Web.Services.ICompOffService, HRDesk.Web.Services.CompOffService>();
 builder.Services.AddScoped<HRDesk.Web.Services.ILeaveAdjustmentService, HRDesk.Web.Services.LeaveAdjustmentService>();
 builder.Services.AddSingleton<HRDesk.Web.Services.IReferenceDataCacheService, HRDesk.Web.Services.ReferenceDataCacheService>();
-builder.Services.AddScoped<HRDesk.Web.Services.ImageGenerationService>();
+builder.Services.AddScoped<HRDesk.Web.Services.IImageGenerationService, HRDesk.Web.Services.ImageGenerationService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.CelebrationNotificationService>();
+
+builder.Services.AddCors(options => {
+    options.AddPolicy("LocalDevices", policy => {
+        policy.WithOrigins("http://localhost", "http://192.168.1.*")
+              .AllowAnyHeader()
+              .WithMethods("GET", "POST");
+    });
+});
 
 // Register WhatsApp Services
 builder.Services.AddHttpClient<HRDesk.Web.Services.Notifications.IWhatsAppProvider, HRDesk.Web.Services.Notifications.NodeJsWhatsAppProvider>(client => 
 {
-    // Point this to the local Node.js microservice
-    client.BaseAddress = new Uri("http://localhost:3000");
+    var url = builder.Configuration["WhatsApp:ServiceUrl"] ?? "http://localhost:3000";
+    client.BaseAddress = new Uri(url);
 });
 builder.Services.AddScoped<HRDesk.Web.Services.Notifications.WhatsAppNotificationService>();
 
 var app = builder.Build();
+
+// Global Exception Middleware for API routes
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex) when (context.Request.Path.StartsWithSegments("/api"))
+    {
+        Log.Error(ex, "Unhandled API exception");
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { error = "Internal server error." });
+    }
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -126,6 +148,8 @@ app.UseSerilogRequestLogging();
 
 app.UseRouting();
 
+app.UseCors("LocalDevices");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -139,51 +163,58 @@ using (var scope = app.Services.CreateScope())
     // Thumbnails will lazily fallback to disk until a dedicated migration job is run.
 
     
-    if (!db.Organizations.Any())
+    try
     {
-        db.Organizations.Add(new HRDesk.Web.Models.Organization
+        if (!db.Organizations.Any())
         {
-            Id = 1,
-            Name = "Default Organization",
-            IsActive = true,
-            CreatedAt = DateTime.Now
-        });
-        db.SaveChanges();
+            db.Organizations.Add(new HRDesk.Web.Models.Organization
+            {
+                Id = 1,
+                Name = "Default Organization",
+                IsActive = true,
+                CreatedAt = DateTime.Now
+            });
+            db.SaveChanges();
+        }
+
+        if (!db.Users.Any())
+        {
+            var randomPassword = Guid.NewGuid().ToString("N").Substring(0, 10);
+            Console.WriteLine("\n========================================================");
+            Console.WriteLine($"[SECURITY] Seeded default admin 'admin' with password: {randomPassword}");
+            Console.WriteLine("========================================================\n");
+
+            db.Users.Add(new HRDesk.Web.Models.User
+            {
+                Username = "admin",
+                PasswordHash = randomPassword, // Seeded with secure random string
+                FullName = "Administrator",
+                Role = "SuperAdmin",
+                IsActive = true,
+                CreatedAt = DateTime.Now,
+                OrganizationId = 1
+            });
+            db.SaveChanges();
+        }
+
+        // Seed PF Salary Component if not exists
+        if (!db.SalaryComponents.Any(sc => sc.ComponentCode == "PF"))
+        {
+            db.SalaryComponents.Add(new HRDesk.Web.Models.SalaryComponent
+            {
+                ComponentName = "Provident Fund",
+                ComponentCode = "PF",
+                ComponentType = "Deduction",
+                IsActive = true,
+                DisplayOrder = 3,
+                CreatedAt = DateTime.Now
+            });
+            db.SaveChanges();
+        }
     }
-
-    if (!db.Users.Any())
+    catch (Exception ex)
     {
-        var randomPassword = Guid.NewGuid().ToString("N").Substring(0, 10);
-        Console.WriteLine("\n========================================================");
-        Console.WriteLine($"[SECURITY] Seeded default admin 'admin' with password: {randomPassword}");
-        Console.WriteLine("========================================================\n");
-
-        db.Users.Add(new HRDesk.Web.Models.User
-        {
-            Username = "admin",
-            PasswordHash = randomPassword, // Seeded with secure random string
-            FullName = "Administrator",
-            Role = "SuperAdmin",
-            IsActive = true,
-            CreatedAt = DateTime.Now,
-            OrganizationId = 1
-        });
-        db.SaveChanges();
-    }
-
-    // Seed PF Salary Component if not exists
-    if (!db.SalaryComponents.Any(sc => sc.ComponentCode == "PF"))
-    {
-        db.SalaryComponents.Add(new HRDesk.Web.Models.SalaryComponent
-        {
-            ComponentName = "Provident Fund",
-            ComponentCode = "PF",
-            ComponentType = "Deduction",
-            IsActive = true,
-            DisplayOrder = 3,
-            CreatedAt = DateTime.Now
-        });
-        db.SaveChanges();
+        Console.WriteLine($"[Startup] Seeding warning (non-fatal): {ex.Message}");
     }
 
     // Push Device Configuration to Background Service
@@ -196,8 +227,8 @@ using (var scope = app.Services.CreateScope())
             // and we don't want to block the entire startup if the service is unreachable.
             _ = Task.Run(async () => 
             {
-                using var scope = app.Services.CreateScope();
-                var deviceService = scope.ServiceProvider.GetRequiredService<HRDesk.Web.Services.IDeviceCommunicationService>();
+                using var innerScope = app.Services.CreateScope();
+                var deviceService = innerScope.ServiceProvider.GetRequiredService<HRDesk.Web.Services.IDeviceCommunicationService>();
                 
                 var result = await deviceService.UpdateDeviceConfigAsync(
                     config.IpAddress, config.Port, config.MachineNumber, config.CommKey);

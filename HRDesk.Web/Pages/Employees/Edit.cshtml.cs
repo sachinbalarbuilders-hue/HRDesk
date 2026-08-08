@@ -121,24 +121,26 @@ public sealed class EditModel : PageModel
         employee.Phone = string.IsNullOrWhiteSpace(Input.Phone) ? null : Input.Phone.Trim();
         employee.Status = Input.Status;
 
+        byte[]? rawPhotoBytes = null;
+        string? rawPhotoContentType = null;
+
         if (!string.IsNullOrEmpty(Input.CroppedPhotoBase64))
         {
             var base64Data = Input.CroppedPhotoBase64.Contains(",") 
                 ? Input.CroppedPhotoBase64.Split(',')[1] 
                 : Input.CroppedPhotoBase64;
                 
-            var bytes = Convert.FromBase64String(base64Data);
-            employee.PhotoData = bytes;
-            employee.PhotoContentType = "image/jpeg";
+            rawPhotoBytes = Convert.FromBase64String(base64Data);
+            rawPhotoContentType = "image/jpeg";
         }
         else if (Input.PhotoUpload != null && Input.PhotoUpload.Length > 0)
         {
             using (var memoryStream = new System.IO.MemoryStream())
             {
                 await Input.PhotoUpload.CopyToAsync(memoryStream);
-                employee.PhotoData = memoryStream.ToArray();
+                rawPhotoBytes = memoryStream.ToArray();
             }
-            employee.PhotoContentType = Input.PhotoUpload.ContentType;
+            rawPhotoContentType = Input.PhotoUpload.ContentType;
         }
 
         if (oldWeekoff != Input.Weekoff)
@@ -156,6 +158,31 @@ public sealed class EditModel : PageModel
         }
 
         await _db.SaveChangesAsync();
+
+        if (rawPhotoBytes != null)
+        {
+            var connection = Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.GetDbConnection(_db.Database);
+            bool wasClosed = connection.State == System.Data.ConnectionState.Closed;
+            if (wasClosed) await connection.OpenAsync();
+
+            try
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "UPDATE employees SET PhotoData = @p, PhotoContentType = @c WHERE employee_id = @id AND organization_id = @org";
+                
+                var pParam = cmd.CreateParameter(); pParam.ParameterName = "@p"; pParam.Value = rawPhotoBytes; cmd.Parameters.Add(pParam);
+                var cParam = cmd.CreateParameter(); cParam.ParameterName = "@c"; cParam.Value = rawPhotoContentType; cmd.Parameters.Add(cParam);
+                var idParam = cmd.CreateParameter(); idParam.ParameterName = "@id"; idParam.Value = employee.EmployeeId; cmd.Parameters.Add(idParam);
+                var orgParam = cmd.CreateParameter(); orgParam.ParameterName = "@org"; orgParam.Value = employee.OrganizationId; cmd.Parameters.Add(orgParam);
+                
+                await cmd.ExecuteNonQueryAsync();
+            }
+            finally
+            {
+                if (wasClosed) await connection.CloseAsync();
+            }
+        }
+
         return RedirectToPage("./Index");
     }
 
