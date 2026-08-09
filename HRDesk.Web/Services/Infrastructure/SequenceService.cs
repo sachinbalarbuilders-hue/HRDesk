@@ -68,18 +68,21 @@ public class SequenceService : ISequenceService
     /// <summary>Scans all 3 tables separately to find the highest app number (avoids SQL UNION collation issues).</summary>
     private async Task<int> GetMaxAppNumberAsync(int year, int month)
     {
+        var startDate = new DateOnly(year, month, 1);
+        var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
+
         var regAppNos = await _db.AttendanceRegularizations
-            .Where(r => r.RequestDate.Year == year && r.RequestDate.Month == month && r.ApplicationNumber != null)
+            .Where(r => r.RequestDate >= startDate && r.RequestDate <= endDate && r.ApplicationNumber != null)
             .Select(r => r.ApplicationNumber)
             .ToListAsync();
 
         var leaveAppNos = await _db.LeaveApplications
-            .Where(l => l.StartDate.Year == year && l.StartDate.Month == month && l.ApplicationNumber != null)
+            .Where(l => l.StartDate >= startDate && l.StartDate <= endDate && l.ApplicationNumber != null)
             .Select(l => l.ApplicationNumber)
             .ToListAsync();
 
         var attendanceAppNos = await _db.DailyAttendance
-            .Where(d => d.RecordDate.Year == year && d.RecordDate.Month == month && d.ApplicationNumber != null)
+            .Where(d => d.RecordDate >= startDate && d.RecordDate <= endDate && d.ApplicationNumber != null)
             .Select(d => d.ApplicationNumber)
             .ToListAsync();
 
@@ -99,18 +102,21 @@ public class SequenceService : ISequenceService
     public async Task ResyncSequenceAsync(int year, int month)
     {
         // 1. Get all application numbers for this month/year from all 3 sources
+        var startDate = new DateOnly(year, month, 1);
+        var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
+
         var regAppNos = await _db.AttendanceRegularizations
-            .Where(r => r.RequestDate.Year == year && r.RequestDate.Month == month && r.ApplicationNumber != null)
+            .Where(r => r.RequestDate >= startDate && r.RequestDate <= endDate && r.ApplicationNumber != null)
             .Select(r => r.ApplicationNumber)
             .ToListAsync();
 
         var leaveAppNos = await _db.LeaveApplications
-            .Where(l => l.StartDate.Year == year && l.StartDate.Month == month && l.ApplicationNumber != null)
+            .Where(l => l.StartDate >= startDate && l.StartDate <= endDate && l.ApplicationNumber != null)
             .Select(l => l.ApplicationNumber)
             .ToListAsync();
 
         var attendanceAppNos = await _db.DailyAttendance
-            .Where(d => d.RecordDate.Year == year && d.RecordDate.Month == month && d.ApplicationNumber != null)
+            .Where(d => d.RecordDate >= startDate && d.RecordDate <= endDate && d.ApplicationNumber != null)
             .Select(d => d.ApplicationNumber)
             .ToListAsync();
 

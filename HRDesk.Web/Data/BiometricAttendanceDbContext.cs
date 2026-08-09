@@ -80,6 +80,24 @@ public sealed class BiometricAttendanceDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        
+        // Performance Indexes - Tier 1
+        modelBuilder.Entity<DailyAttendance>().HasIndex(d => d.RecordDate);
+        modelBuilder.Entity<AttendanceLog>().HasIndex(a => a.PunchTime);
+        
+        // Comprehensive Performance Indexes - Tier 2
+        modelBuilder.Entity<Employee>().HasIndex(e => e.Status);
+        modelBuilder.Entity<LeaveApplication>().HasIndex(l => new { l.StartDate, l.EndDate });
+        modelBuilder.Entity<LeaveApplication>().HasIndex(l => l.Status);
+        modelBuilder.Entity<PayrollMaster>().HasIndex(p => p.Month);
+        modelBuilder.Entity<PayrollMaster>().HasIndex(p => p.Status);
+        modelBuilder.Entity<AttendanceRegularization>().HasIndex(a => a.RequestDate);
+        modelBuilder.Entity<AttendanceRegularization>().HasIndex(a => a.Status);
+        modelBuilder.Entity<CompOffRequest>().HasIndex(c => c.WorkedDate);
+        modelBuilder.Entity<CompOffRequest>().HasIndex(c => c.Status);
+        modelBuilder.Entity<CompOffCredit>().HasIndex(c => c.WorkDate);
+        modelBuilder.Entity<ShiftRoster>().HasIndex(s => s.RosterDate);
+        modelBuilder.Entity<Holiday>().HasIndex(h => new { h.StartDate, h.EndDate });
             
         // Disable cascade delete globally to prevent SQL Server cyclic foreign key errors
         foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
@@ -138,6 +156,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
         {
             entity.ToTable("daily_attendance");
             entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.RecordDate);
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.EmployeeId).HasColumnName("employee_id");
@@ -161,6 +180,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
             entity.HasIndex(e => e.EmployeeId).HasDatabaseName("idx_daily_att_employee_id");
             entity.HasIndex(e => e.RecordDate).HasDatabaseName("idx_daily_att_record_date");
+            entity.HasIndex(e => new { e.OrganizationId, e.RecordDate });
             entity.HasIndex(e => new { e.EmployeeId, e.RecordDate }).IsUnique().HasDatabaseName("idx_daily_att_emp_date");
 
             entity.HasOne(e => e.Employee)
@@ -295,6 +315,11 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
             entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
             entity.HasOne(e => e.LeaveType).WithMany().HasForeignKey(e => e.LeaveTypeId);
+        });
+
+        modelBuilder.Entity<LeaveApplication>(entity =>
+        {
+            entity.HasIndex(e => new { e.OrganizationId, e.CreatedAt }).IsDescending(false, true);
         });
 
         modelBuilder.Entity<Employee>(entity =>

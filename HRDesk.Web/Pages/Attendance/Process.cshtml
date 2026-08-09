@@ -4,75 +4,278 @@
     ViewData["Title"] = "Process Attendance";
 }
 
-<h1 class="h3 mb-3">Process Attendance</h1>
-
-@if (!string.IsNullOrEmpty(Model.Message))
-{
-    var alertClass = Model.Message.StartsWith("Error:") ? "alert-danger" : "alert-success";
-    <div class="alert @alertClass alert-dismissible fade show" role="alert">
-        @Model.Message.Replace("Error: ", "").Replace("Success: ", "")
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="container-fluid pb-5">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 mt-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h4 class="mb-0 fw-bold">Process Attendance</h4>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 small">
+                    Calculation Engine
+                </span>
+            </div>
+            <p class="text-muted mb-0 small">Calculate attendance statuses, shift penalties, and work hours from biometric logs.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-page="/Attendance/MonthlyAttendanceSheet" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
+                <i class="bi bi-calendar3"></i>
+                <span>Monthly Sheet</span>
+            </a>
+            <a asp-page="/AttendanceLogs/Index" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+                <i class="bi bi-list-ul"></i>
+                <span>Attendance Logs</span>
+            </a>
+        </div>
     </div>
-}
 
-<div class="card">
-    <div class="card-header">
-        Process Daily Attendance Logic
-    </div>
-    <div class="card-body">
-        <p class="card-text text-muted">
-            This action will calculate attendance status (Present, Absent, Late, Early, Single Punch) based on raw logs and shift rules.
-            <br />
-            <strong>Note:</strong> Manual overrides will effectively lock a record from being re-processed.
-        </p>
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        var isError = Model.Message.StartsWith("Error:");
+        var alertClass = isError ? "alert-danger border-danger-subtle" : "alert-success border-success-subtle";
+        var iconClass = isError ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill";
+        var cleanMsg = Model.Message.Replace("Error: ", "").Replace("Success: ", "");
 
-        <form method="post" class="row g-3 align-items-end" onsubmit="showLoading('Processing Attendance...')">
-            <div class="col-md-3">
-                <label class="form-label">Employee</label>
-                <div class="dropdown" id="empDropdown">
-                    <button class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" id="empDropdownBtn">
-                        <span id="empDropdownLabel">All Employees</span>
-                        <i class="bi bi-chevron-down"></i>
-                    </button>
-                    <div class="dropdown-menu w-100 p-2" style="max-height: 280px; overflow-y: auto;">
-                        <input type="text" class="form-control form-control-sm mb-2" id="empSearch" placeholder="Search employee..." />
-                        <div class="form-check mb-1 border-bottom pb-1">
-                            <input class="form-check-input" type="checkbox" id="selectAllEmps" />
-                            <label class="form-check-label fw-bold" for="selectAllEmps">Select All</label>
-                        </div>
-                        @foreach (var emp in Model.Employees)
-                        {
-                            <div class="form-check mb-1 emp-item">
-                                <input class="form-check-input emp-check" type="checkbox" name="EmployeeIds" value="@emp.EmployeeId" id="emp_@emp.EmployeeId" />
-                                <label class="form-check-label" for="emp_@emp.EmployeeId">@emp.EmployeeName <small class="text-muted">(ID: @emp.EmployeeId)</small></label>
-                            </div>
-                        }
+        <div class="alert @alertClass alert-dismissible fade show shadow-sm d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="bi @iconClass fs-5"></i>
+            <div>@cleanMsg</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Quick Overview Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 p-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-people fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Active Staff</div>
+                        <div class="fs-4 fw-bold text-body-emphasis">@Model.Employees.Count Employees</div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-2">
-                <label asp-for="FromDate" class="form-label">From Date</label>
-                <input asp-for="FromDate" class="form-control" type="date" />
-            </div>
-            <div class="col-md-2">
-                <label asp-for="ToDate" class="form-label">To Date</label>
-                <input asp-for="ToDate" class="form-control" type="date" />
-            </div>
-            <div class="col-md-3">
-                <div class="form-check mt-4">
-                    <input asp-for="ClearFutureData" class="form-check-input" type="checkbox" />
-                    <label asp-for="ClearFutureData" class="form-check-label">
-                        Clear future data
-                    </label>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 p-3 bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-cpu fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Evaluation Mode</div>
+                        <div class="fs-4 fw-bold text-body-emphasis">Automated Shifts</div>
+                    </div>
                 </div>
-                <small class="text-muted">Delete all attendance after "To Date"</small>
             </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-gear-fill"></i> Process
-                </button>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 p-3 bg-info-subtle text-info d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-shield-lock fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Manual Overrides</div>
+                        <div class="fs-4 fw-bold text-body-emphasis">Protected</div>
+                    </div>
+                </div>
             </div>
-        </form>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3 d-flex align-items-center gap-3">
+                    <div class="rounded-3 p-3 bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-clock-history fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Punches Evaluation</div>
+                        <div class="fs-4 fw-bold text-body-emphasis">In / Out Window</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Form Column -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-sliders text-primary"></i>
+                        <h5 class="mb-0 fw-semibold fs-6">Processing Parameters</h5>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" id="attendanceProcessForm" onsubmit="showLoading('Processing Attendance Calculation...')">
+                        <!-- Employee Scope -->
+                        <div class="mb-4">
+                            <label class="form-label small text-muted text-uppercase fw-semibold mb-2">
+                                Employee Selection
+                            </label>
+                            <div class="dropdown" id="empDropdown">
+                                <button class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center py-2 px-3 bg-body" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" id="empDropdownBtn">
+                                    <span id="empDropdownLabel" class="fw-medium text-body-emphasis">
+                                        <i class="bi bi-people me-2 text-primary"></i>All Employees (Default)
+                                    </span>
+                                    <i class="bi bi-chevron-down text-muted"></i>
+                                </button>
+                                <div class="dropdown-menu w-100 p-3 shadow-lg border-0" style="max-height: 320px; overflow-y: auto;">
+                                    <div class="input-group input-group-sm mb-2">
+                                        <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-search"></i></span>
+                                        <input type="text" class="form-control border-start-0" id="empSearch" placeholder="Search employee name or ID..." />
+                                    </div>
+                                    <div class="form-check mb-2 pb-2 border-bottom">
+                                        <input class="form-check-input" type="checkbox" id="selectAllEmps" />
+                                        <label class="form-check-label fw-bold small text-body-emphasis" for="selectAllEmps">
+                                            Select All (@Model.Employees.Count staff)
+                                        </label>
+                                    </div>
+                                    <div class="d-flex flex-column gap-1">
+                                        @foreach (var emp in Model.Employees)
+                                        {
+                                            <div class="form-check emp-item py-1 px-2 rounded hover-bg">
+                                                <input class="form-check-input emp-check" type="checkbox" name="EmployeeIds" value="@emp.EmployeeId" id="emp_@emp.EmployeeId" />
+                                                <label class="form-check-label small text-body w-100 cursor-pointer" for="emp_@emp.EmployeeId">
+                                                    <span class="fw-semibold">@emp.EmployeeName</span>
+                                                    <span class="text-muted extra-small ms-1">(ID: @emp.EmployeeId)</span>
+                                                </label>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text extra-small text-muted mt-1">
+                                Leave unselected to process all active employees plus active month history for recent resignations.
+                            </div>
+                        </div>
+
+                        <!-- Date Range Selection -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="form-label small text-muted text-uppercase fw-semibold mb-0">Date Range</label>
+                                <!-- Quick Date Presets -->
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="text-muted extra-small me-1">Presets:</span>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 extra-small" onclick="setDatePreset('today')">Today</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 extra-small" onclick="setDatePreset('yesterday')">Yesterday</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 extra-small" onclick="setDatePreset('thisMonth')">This Month</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 extra-small" onclick="setDatePreset('lastMonth')">Last Month</button>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label asp-for="FromDate" class="form-label small text-muted">From Date</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-calendar-event text-muted"></i></span>
+                                        <input asp-for="FromDate" id="fromDateInput" class="form-control border-start-0" type="date" required />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ToDate" class="form-label small text-muted">To Date</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-calendar-check text-muted"></i></span>
+                                        <input asp-for="ToDate" id="toDateInput" class="form-control border-start-0" type="date" required />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Option: Clear Future Data -->
+                        <div class="p-3 bg-body-tertiary rounded-3 mb-4 border">
+                            <div class="form-check form-switch mb-0 d-flex align-items-start gap-2 ps-0">
+                                <input asp-for="ClearFutureData" class="form-check-input ms-0 me-2 mt-1" type="checkbox" id="clearFutureSwitch" />
+                                <div>
+                                    <label class="form-check-label fw-semibold small text-body-emphasis cursor-pointer" for="clearFutureSwitch">
+                                        Clean Future Attendance Data
+                                    </label>
+                                    <div class="text-muted extra-small">
+                                        Automatically purges any orphan daily attendance records stored after the selected "To Date".
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-flex align-items-center justify-content-end gap-3 pt-2 border-top">
+                            <button type="submit" class="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2 shadow-sm">
+                                <i class="bi bi-gear-fill"></i>
+                                <span>Calculate & Process Attendance</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Column -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-info-circle text-info"></i>
+                        <h5 class="mb-0 fw-semibold fs-6">Engine Rules & Workflow</h5>
+                    </div>
+                </div>
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <p class="text-muted small mb-3">
+                            The calculation engine matches raw biometric time-stamps against shift rules and policies:
+                        </p>
+
+                        <div class="d-flex flex-column gap-3 mb-3">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="badge bg-primary-subtle text-primary rounded-circle p-2 mt-1">1</div>
+                                <div>
+                                    <div class="fw-semibold small text-body-emphasis">Punch Pairing</div>
+                                    <div class="text-muted extra-small">Detects first In-Time and last Out-Time for each employee day.</div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="badge bg-primary-subtle text-primary rounded-circle p-2 mt-1">2</div>
+                                <div>
+                                    <div class="fw-semibold small text-body-emphasis">Shift & Grace Matching</div>
+                                    <div class="text-muted extra-small">Applies shift roster, late coming grace limits, and early go thresholds.</div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="badge bg-primary-subtle text-primary rounded-circle p-2 mt-1">3</div>
+                                <div>
+                                    <div class="fw-semibold small text-body-emphasis">Leave & Regularization</div>
+                                    <div class="text-muted extra-small">Integrates approved leaves, Comp Off credits (CO/COHF), and missed punch approvals.</div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="badge bg-primary-subtle text-primary rounded-circle p-2 mt-1">4</div>
+                                <div>
+                                    <div class="fw-semibold small text-body-emphasis">Override Protection</div>
+                                    <div class="text-muted extra-small">Manually adjusted records remain protected and will not be overwritten.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-primary-subtle rounded-3 border border-primary-subtle text-primary small">
+                        <i class="bi bi-lightning-charge-fill me-1"></i>
+                        <strong>Fast & Optimized:</strong> Database-indexed batch processor calculates over 30 days in seconds.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .extra-small { font-size: 0.775rem; }
+    .hover-bg:hover { background-color: var(--bs-tertiary-bg); }
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -84,16 +287,19 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateLabel() {
         const selected = document.querySelectorAll('.emp-check:checked');
         if (selected.length === 0) {
-            label.textContent = 'All Employees';
+            label.innerHTML = '<i class="bi bi-people me-2 text-primary"></i>All Employees (Default)';
         } else if (selected.length === 1) {
-            label.textContent = selected[0].parentElement.querySelector('label').textContent.trim();
+            const name = selected[0].parentElement.querySelector('label').textContent.trim();
+            label.innerHTML = '<i class="bi bi-person-check-fill me-2 text-primary"></i>' + name;
         } else {
-            label.textContent = selected.length + ' employees selected';
+            label.innerHTML = '<i class="bi bi-people-fill me-2 text-primary"></i>' + selected.length + ' Employees Selected';
         }
     }
 
     checks.forEach(c => c.addEventListener('change', function () {
-        selectAll.checked = document.querySelectorAll('.emp-check:checked').length === checks.length;
+        if (selectAll) {
+            selectAll.checked = document.querySelectorAll('.emp-check:checked').length === checks.length;
+        }
         updateLabel();
     }));
 
@@ -115,6 +321,42 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+
+function setDatePreset(type) {
+    const fromInput = document.getElementById('fromDateInput');
+    const toInput = document.getElementById('toDateInput');
+    const now = new Date();
+
+    const formatDate = (d) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    if (type === 'today') {
+        const todayStr = formatDate(now);
+        fromInput.value = todayStr;
+        toInput.value = todayStr;
+    } else if (type === 'yesterday') {
+        const yest = new Date(now);
+        yest.setDate(yest.getDate() - 1);
+        const yestStr = formatDate(yest);
+        fromInput.value = yestStr;
+        toInput.value = yestStr;
+    } else if (type === 'thisMonth') {
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        fromInput.value = formatDate(firstDay);
+        toInput.value = formatDate(now);
+    } else if (type === 'lastMonth') {
+        const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        fromInput.value = formatDate(firstDayLastMonth);
+        toInput.value = formatDate(lastDayLastMonth);
+    }
+}
 </script>
-    </div>
-</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

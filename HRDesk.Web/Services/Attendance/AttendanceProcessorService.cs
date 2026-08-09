@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,12 +17,34 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         _compOffService = compOffService;
     }
 
+    private class DayHistoryItem
+    {
+        public int EmployeeId { get; set; }
+        public DateOnly RecordDate { get; set; }
+        public bool IsLate { get; set; }
+        public bool IsEarly { get; set; }
+        public int LateMinutes { get; set; }
+    }
+
+    private class DailyProcessingContext
+    {
+        public DateOnly Date { get; set; }
+        public Dictionary<int, DailyAttendance> ExistingRecords { get; set; } = new();
+        public Dictionary<int, ShiftRoster> Rosters { get; set; } = new();
+        public List<Holiday> Holidays { get; set; } = new();
+        public Dictionary<int, List<AttendanceRegularization>> Regularizations { get; set; } = new();
+        public Dictionary<int, List<LeaveApplication>> Leaves { get; set; } = new();
+        public Dictionary<(int EmployeeId, int LeaveTypeId), LeaveAllocation> Allocations { get; set; } = new();
+        public Dictionary<int, List<DayHistoryItem>> MonthHistory { get; set; } = new();
+        public Dictionary<int, DateOnly?> InactiveLastPunches { get; set; } = new();
+        public List<AttendanceLog> AllLogs { get; set; } = new();
+    }
+
     public async Task ProcessDailyAttendanceAsync(DateOnly date, int? employeeId = null)
     {
         _logger.LogInformation("Processing attendance for Date: {Date}", date);
 
-        var query = _db.Employees
-            .AsQueryable();
+        var query = _db.Employees.AsQueryable();
 
         if (employeeId.HasValue)
         {
@@ -30,8 +52,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         }
         else
         {
-            // Only process employees who have already joined by this date
-            // AND are active OR those who have actual biometric logs for this month
             var startOfMonth = new DateTime(date.Year, date.Month, 1);
             var endOfMonth = startOfMonth.AddMonths(1);
             var startOfMonthDateOnly = new DateOnly(date.Year, date.Month, 1);
@@ -44,26 +64,30 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                                                                   l.PunchTime < endOfMonth)));
         }
 
-        var employees = await query.ToListAsync();
-        
-        // Fetch Biometric Logs
+        var employees = await query.AsNoTracking().ToListAsync();
+        var empIds = employees.Select(e => e.EmployeeId).ToList();
+
+        // 1. Fetch Biometric Logs for the day
         var biometricLogs = await _db.AttendanceLogs
+            .AsNoTracking()
             .Where(l => l.PunchTime >= date.ToDateTime(TimeOnly.MinValue) && 
-                         l.PunchTime < date.AddDays(1).ToDateTime(TimeOnly.MinValue))
+                        l.PunchTime < date.AddDays(1).ToDateTime(TimeOnly.MinValue) &&
+                        (employeeId == null || l.EmployeeId == employeeId.Value))
             .ToListAsync();
 
-        // Fetch Approved Regularization 'Manual Punches'
+        // 2. Fetch Approved Regularization 'Manual Punches'
         var approvedRegularizations = await _db.AttendanceRegularizations
+            .AsNoTracking()
             .Where(r => r.RequestType == "Missed Punch" && 
                         r.Status == "Approved" && 
                         (r.PunchTimeIn != null || r.PunchTimeOut != null) &&
-                        r.RequestDate == date)
+                        r.RequestDate == date &&
+                        (employeeId == null || r.EmployeeId == employeeId.Value))
             .ToListAsync();
 
         var regularizationLogs = new List<AttendanceLog>();
         foreach (var r in approvedRegularizations)
         {
-            // IN Punch
             if (r.PunchTimeIn.HasValue)
             {
                 regularizationLogs.Add(new AttendanceLog
@@ -78,14 +102,13 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 });
             }
 
-            // OUT Punch (for Full Day)
             if (r.PunchTimeOut.HasValue)
             {
                 regularizationLogs.Add(new AttendanceLog
                 {
                     Id = -r.Id - 200000, 
                     EmployeeId = r.EmployeeId,
-                    PunchTime = r.PunchTimeOut.Value, // Map to log PunchTime
+                    PunchTime = r.PunchTimeOut.Value,
                     MachineNumber = 0,
                     VerifyMode = 98, 
                     VerifyType = "Regularized-Punch-Out",
@@ -94,26 +117,103 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             }
         }
 
-        // Merge logs (Biometric + Regularization)
         var allLogs = biometricLogs.Concat(regularizationLogs).ToList();
 
+        // 3. BULK PRE-LOAD: Load all day context in bulk queries
+        var context = new DailyProcessingContext
+        {
+            Date = date,
+            AllLogs = allLogs
+        };
+
+        // Pre-load Existing Records (must be tracked for modifications/additions)
+        var existingList = await _db.DailyAttendance
+            .Where(d => d.RecordDate == date && (employeeId == null || d.EmployeeId == employeeId.Value))
+            .ToListAsync();
+        context.ExistingRecords = existingList.GroupBy(d => d.EmployeeId).ToDictionary(g => g.Key, g => g.First());
+
+        // Pre-load Daily Shift Rosters
+        var rostersList = await _db.ShiftRosters
+            .Include(r => r.Shift)
+            .AsNoTracking()
+            .Where(r => r.RosterDate == date && (employeeId == null || r.EmployeeId == employeeId.Value))
+            .ToListAsync();
+        context.Rosters = rostersList.GroupBy(r => r.EmployeeId).ToDictionary(g => g.Key, g => g.First());
+
+        // Pre-load Holidays
+        context.Holidays = await _db.Holidays
+            .Include(h => h.EligibleEmployees)
+            .AsNoTracking()
+            .Where(h => date >= h.StartDate && date <= h.EndDate)
+            .ToListAsync();
+
+        // Pre-load All Approved Regularizations for the date
+        var allApprovedRegs = await _db.AttendanceRegularizations
+            .AsNoTracking()
+            .Where(r => r.RequestDate == date && r.Status == "Approved" && (employeeId == null || r.EmployeeId == employeeId.Value))
+            .ToListAsync();
+        context.Regularizations = allApprovedRegs.GroupBy(r => r.EmployeeId).ToDictionary(g => g.Key, g => g.ToList());
+
+        // Pre-load Nearby Leaves (Approved & Adjusted) covering date ± 2 days
+        var leavesList = await _db.LeaveApplications
+            .Include(la => la.LeaveType)
+            .AsNoTracking()
+            .Where(la => (la.Status == "Approved" || la.Status == "Adjusted") &&
+                         la.StartDate <= date.AddDays(2) && 
+                         la.EndDate >= date.AddDays(-2) &&
+                         (employeeId == null || la.EmployeeId == employeeId.Value))
+            .ToListAsync();
+        context.Leaves = leavesList.GroupBy(l => l.EmployeeId).ToDictionary(g => g.Key, g => g.ToList());
+
+        // Pre-load Leave Allocations for Leave Year (tracked for UsedCount increment if cross-app sandwich)
+        var leaveYear = GetLeaveYear(date);
+        var allocList = await _db.LeaveAllocations
+            .Where(a => a.Year == leaveYear && (employeeId == null || a.EmployeeId == employeeId.Value))
+            .ToListAsync();
+        context.Allocations = allocList.GroupBy(a => (a.EmployeeId, a.LeaveTypeId)).ToDictionary(g => g.Key, g => g.First());
+
+        // Pre-load Month History for Lates/Early frequency counts (lightweight projection)
+        var startOfMonthDate = new DateOnly(date.Year, date.Month, 1);
+        var historyList = await _db.DailyAttendance
+            .Where(d => d.RecordDate >= startOfMonthDate && d.RecordDate < date && (employeeId == null || d.EmployeeId == employeeId.Value))
+            .Select(d => new DayHistoryItem
+            {
+                EmployeeId = d.EmployeeId,
+                RecordDate = d.RecordDate,
+                IsLate = d.IsLate,
+                IsEarly = d.IsEarly,
+                LateMinutes = d.LateMinutes
+            })
+            .AsNoTracking()
+            .ToListAsync();
+        context.MonthHistory = historyList.GroupBy(d => d.EmployeeId).ToDictionary(g => g.Key, g => g.ToList());
+
+        // Pre-load Inactive Employees Last Biometric Punch (in 1 query)
+        var inactiveWithoutLWD = employees
+            .Where(e => e.LastWorkingDate == null && e.Status != null && e.Status.ToLower() != "active")
+            .Select(e => e.EmployeeId)
+            .ToList();
+
+        if (inactiveWithoutLWD.Any())
+        {
+            var lastPunches = await _db.AttendanceLogs
+                .AsNoTracking()
+                .Where(l => inactiveWithoutLWD.Contains(l.EmployeeId))
+                .GroupBy(l => l.EmployeeId)
+                .Select(g => new { EmployeeId = g.Key, LastPunch = g.Max(l => l.PunchTime) })
+                .ToListAsync();
+
+            context.InactiveLastPunches = lastPunches.GroupBy(x => x.EmployeeId).ToDictionary(g => g.Key, g => (DateOnly?)DateOnly.FromDateTime(g.First().LastPunch));
+        }
+
+        // 4. Process each employee in-memory
         foreach (var emp in employees)
         {
-            // 1. Check Last Working Date Cutoff
-            // If the employee has a LastWorkingDate, skip processing for any date AFTER it.
-            // This prevents generating Weekoffs/Absents for employees who have left.
             DateOnly? lastWorkingDay = emp.LastWorkingDate;
 
             if (lastWorkingDay == null && emp.Status != null && emp.Status.ToLower() != "active")
             {
-                // For inactive employees without an explicit LastWorkingDate, fall back to last biometric punch
-                var latestPunch = await _db.AttendanceLogs
-                    .Where(l => l.EmployeeId == emp.EmployeeId)
-                    .OrderByDescending(l => l.PunchTime)
-                    .FirstOrDefaultAsync();
-
-                if (latestPunch != null)
-                    lastWorkingDay = DateOnly.FromDateTime(latestPunch.PunchTime);
+                context.InactiveLastPunches.TryGetValue(emp.EmployeeId, out lastWorkingDay);
             }
 
             if (lastWorkingDay.HasValue && date > lastWorkingDay.Value)
@@ -121,63 +221,39 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 continue; // Skip processing: no attendance records after last working day
             }
 
-            await ProcessEmployeeDayAsync(emp, date, allLogs.Where(l => l.EmployeeId == emp.EmployeeId).ToList());
+            var empLogs = allLogs.Where(l => l.EmployeeId == emp.EmployeeId).ToList();
+            await ProcessEmployeeDayInternalAsync(emp, date, empLogs, context);
         }
 
-        // CLEANUP: If batch processing (no specific employeeId), handle inactive employees
-        // If an employee became inactive, they might have existing "Absent" or "W/O" records 
-        // from a previous run. We should remove them if they have no logs for this day.
-        // IMPORTANT: Only clean up records for dates AFTER the employee's last working day.
-        // Weekoffs and other records BEFORE the last working day are legitimate and must be kept.
+        // 5. CLEANUP: If batch processing (no specific employeeId), handle inactive employees in-memory
         if (!employeeId.HasValue)
         {
-            var inactiveToCleanup = await _db.DailyAttendance
-                .Where(d => d.RecordDate == date)
-                .Where(d => _db.Employees.Any(e => e.EmployeeId == d.EmployeeId && (e.Status == null || e.Status.ToLower() != "active")))
-                .Where(d => !_db.AttendanceLogs.Any(l => l.EmployeeId == d.EmployeeId && 
-                                                         l.PunchTime >= date.ToDateTime(TimeOnly.MinValue) && 
-                                                         l.PunchTime < date.AddDays(1).ToDateTime(TimeOnly.MinValue)))
-                // Don't delete if they have approved leave/regularization (processed in DailyAttendance)
-                .Where(d => d.ApplicationNumber == null) 
-                .ToListAsync();
+            var empIdsWithLogsToday = allLogs.Select(l => l.EmployeeId).ToHashSet();
+            var inactiveEmpIds = employees
+                .Where(e => e.Status == null || e.Status.ToLower() != "active")
+                .Select(e => e.EmployeeId)
+                .ToHashSet();
 
-            // Filter out records that are ON OR BEFORE the employee's last working day.
-            // For inactive employees, weekoffs before their last working day are valid and must be preserved.
-            // Priority: 1) Employee.LastWorkingDate, 2) Last biometric punch.
             var recordsToRemove = new List<DailyAttendance>();
-            foreach (var record in inactiveToCleanup)
+            foreach (var record in context.ExistingRecords.Values)
             {
-                var empRecord = await _db.Employees
-                    .Where(e => e.EmployeeId == record.EmployeeId)
-                    .Select(e => new { e.LastWorkingDate })
-                    .FirstOrDefaultAsync();
-
-                DateOnly? lastWorkingDay = empRecord?.LastWorkingDate;
-
-                if (lastWorkingDay == null)
+                if (inactiveEmpIds.Contains(record.EmployeeId) && 
+                    !empIdsWithLogsToday.Contains(record.EmployeeId) && 
+                    record.ApplicationNumber == null)
                 {
-                    // Fall back to last biometric punch
-                    var lastPunch = await _db.AttendanceLogs
-                        .Where(l => l.EmployeeId == record.EmployeeId)
-                        .OrderByDescending(l => l.PunchTime)
-                        .Select(l => l.PunchTime)
-                        .FirstOrDefaultAsync();
+                    var emp = employees.FirstOrDefault(e => e.EmployeeId == record.EmployeeId);
+                    DateOnly? lastWorkingDay = emp?.LastWorkingDate;
 
-                    if (lastPunch != default)
-                        lastWorkingDay = DateOnly.FromDateTime(lastPunch);
-                }
+                    if (lastWorkingDay == null)
+                    {
+                        context.InactiveLastPunches.TryGetValue(record.EmployeeId, out lastWorkingDay);
+                    }
 
-                if (lastWorkingDay == null)
-                {
-                    // No punches and no LastWorkingDate â€” safe to remove
-                    recordsToRemove.Add(record);
+                    if (lastWorkingDay == null || date > lastWorkingDay.Value)
+                    {
+                        recordsToRemove.Add(record);
+                    }
                 }
-                else if (date > lastWorkingDay.Value)
-                {
-                    // Date is after last working day â€” safe to remove (no weekoffs after exit)
-                    recordsToRemove.Add(record);
-                }
-                // else: date is on or before last working day â€” keep the record (valid weekoff/absent)
             }
 
             if (recordsToRemove.Any())
@@ -187,16 +263,14 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         }
 
         await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
         _logger.LogInformation("Attendance processing completed for {Date}", date);
     }
 
-    private async Task ProcessEmployeeDayAsync(Employee emp, DateOnly date, List<AttendanceLog> dailyLogs)
+    private async Task ProcessEmployeeDayInternalAsync(Employee emp, DateOnly date, List<AttendanceLog> dailyLogs, DailyProcessingContext context)
     {
-        // 1. Check for Manual Override
-        var existingRecord = await _db.DailyAttendance
-            .FirstOrDefaultAsync(d => d.EmployeeId == emp.EmployeeId && d.RecordDate == date);
-
-        if (existingRecord == null)
+        // 1. Check for Existing Record
+        if (!context.ExistingRecords.TryGetValue(emp.EmployeeId, out var existingRecord))
         {
             existingRecord = new DailyAttendance
             {
@@ -204,46 +278,30 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 RecordDate = date
             };
             _db.DailyAttendance.Add(existingRecord);
+            context.ExistingRecords[emp.EmployeeId] = existingRecord;
         }
 
-        // 1. Manual Override Check
-        // If manually overridden, we DO NOT reset Status/Remarks/Penalties.
-        // We ONLY update the time-based fields (In/Out/WorkDuration) based on logs.
-
-
         // IDEMPOTENCY: Reverse previous cross-application sandwich deduction before reset
-        // Within-range sandwiches ("within application") don't modify UsedCount, so skip them
         if (!string.IsNullOrEmpty(existingRecord.Status) && 
             !string.IsNullOrEmpty(existingRecord.ApplicationNumber) &&
             existingRecord.Remarks != null && 
             existingRecord.Remarks.Contains("Sandwich Leave (covered by"))
         {
             _logger.LogInformation("IDEMPOTENCY: Found cross-app sandwich for {EmpId} on {Date}. Application: {AppNum}", emp.EmployeeId, date, existingRecord.ApplicationNumber);
-            var prevYear = GetLeaveYear(date);
+            
             var refApp = await _db.LeaveApplications
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(la => la.ApplicationNumber == existingRecord.ApplicationNumber);
             
-            if (refApp != null)
+            if (refApp != null && context.Allocations.TryGetValue((emp.EmployeeId, refApp.LeaveTypeId), out var allocation))
             {
-                var allocation = await _db.LeaveAllocations
-                    .FirstOrDefaultAsync(a => a.EmployeeId == emp.EmployeeId && 
-                                             a.LeaveTypeId == refApp.LeaveTypeId && 
-                                             a.Year == prevYear);
-                if (allocation != null)
-                {
-                    _logger.LogInformation("IDEMPOTENCY: Reversing -1 from {LeaveType} balance. Current: {UsedCount}", refApp.LeaveType?.Code ?? refApp.LeaveTypeId.ToString(), allocation.UsedCount);
-                    allocation.UsedCount -= 1;
-                }
+                _logger.LogInformation("IDEMPOTENCY: Reversing -1 from {LeaveType} balance. Current: {UsedCount}", refApp.LeaveType?.Code ?? refApp.LeaveTypeId.ToString(), allocation.UsedCount);
+                allocation.UsedCount -= 1;
             }
         }
 
         // 1. Resolve Shift from Daily Roster (Sole Source of Truth - No Fallback)
-        var roster = await _db.ShiftRosters
-            .Include(r => r.Shift)
-            .FirstOrDefaultAsync(r => r.EmployeeId == emp.EmployeeId && r.RosterDate == date);
-
-        if (roster == null)
+        if (!context.Rosters.TryGetValue(emp.EmployeeId, out var roster))
         {
             existingRecord.Status = "Roster Missing";
             existingRecord.Remarks = "No shift assigned in daily roster.";
@@ -251,7 +309,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             return;
         }
 
-        // Use the shift from the Roster
         int? effectiveShiftId = roster.ShiftId;
 
         // Reset calculated fields
@@ -268,42 +325,41 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         existingRecord.WorkMinutes = 0;
         existingRecord.BreakMinutes = 0;
         existingRecord.IsActualBreak = false;
-        existingRecord.Remarks = roster.Remarks; // Carry over roster remarks if any
+        existingRecord.Remarks = roster.Remarks;
         existingRecord.UpdatedAt = DateTime.Now;
 
-        // If it's a Weekoff in the Roster, set status but DO NOT return (allow punch check below)
         if (roster.IsWeekOff)
         {
             existingRecord.Status = "Weekoff";
         }
 
         // 2. Check Holiday (Always respected above all, never sandwiched)
-        var isHoliday = await _db.Holidays.AnyAsync(h => 
-            date >= h.StartDate && date <= h.EndDate &&
-            (h.IsGlobal || _db.HolidayEmployees.Any(he => he.HolidayId == h.Id && he.EmployeeId == emp.EmployeeId)));
-        if (isHoliday) { existingRecord.Status = "Holiday"; return; }
+        var isHoliday = context.Holidays.Any(h => 
+            (h.IsGlobal || (h.EligibleEmployees != null && h.EligibleEmployees.Any(he => he.EmployeeId == emp.EmployeeId))));
+        
+        if (isHoliday)
+        {
+            existingRecord.Status = "Holiday";
+            return;
+        }
 
-        // 3. Check for Approved Regularizations (Late/Early) â€” fetch ALL for this date
-        var approvedRegularizations = await _db.AttendanceRegularizations
-            .Where(r => r.EmployeeId == emp.EmployeeId && 
-                                      r.RequestDate == date && 
-                                      r.Status == "Approved")
-            .ToListAsync();
+        // 3. Check for Approved Regularizations
+        context.Regularizations.TryGetValue(emp.EmployeeId, out var empRegs);
+        empRegs ??= new List<AttendanceRegularization>();
 
-        var lateRegularization = approvedRegularizations.FirstOrDefault(r => r.RequestType == "Late Coming");
-        var earlyRegularization = approvedRegularizations.FirstOrDefault(r => r.RequestType == "Early Go");
-        var missedPunchRegularization = approvedRegularizations.FirstOrDefault(r => r.RequestType == "Missed Punch");
+        var lateRegularization = empRegs.FirstOrDefault(r => r.RequestType == "Late Coming");
+        var earlyRegularization = empRegs.FirstOrDefault(r => r.RequestType == "Early Go");
+        var missedPunchRegularization = empRegs.FirstOrDefault(r => r.RequestType == "Missed Punch");
 
         bool waiveLate = lateRegularization != null && lateRegularization.WaivePenalty;
         bool waiveEarly = earlyRegularization != null && earlyRegularization.WaivePenalty;
         
-        // If regularized, we might want to note it
-        if (approvedRegularizations.Any())
+        if (empRegs.Any())
         {
-            var firstReg = approvedRegularizations.First();
+            var firstReg = empRegs.First();
             existingRecord.ApplicationNumber = firstReg.ApplicationNumber;
             
-            foreach (var reg in approvedRegularizations)
+            foreach (var reg in empRegs)
             {
                 var appNumText = !string.IsNullOrWhiteSpace(reg.ApplicationNumber) ? $" ({reg.ApplicationNumber})" : "";
                 
@@ -321,49 +377,37 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         // 4. Check Weekoff & Sandwich Logic
         if (existingRecord.Status == "Weekoff")
         {
-            // If they punched on the weekoff, they actually worked. 
-            // This immediately breaks any sandwich rule and converts the day to a "worked weekoff"
             if (dailyLogs.Any()) 
             {
                 existingRecord.Status = "W/OP"; // Weekoff Present - worked on weekoff
                 
-                // Get first and last punch times
                 var orderedLogs = dailyLogs.OrderBy(l => l.PunchTime).ToList();
                 var compOffInTime = TimeOnly.FromDateTime(orderedLogs.First().PunchTime);
                 var compOffOutTime = orderedLogs.Count > 1 ? TimeOnly.FromDateTime(orderedLogs.Last().PunchTime) : (TimeOnly?)null;
                 
-                // Always create draft request first (will skip if already exists)
                 await _compOffService.CreateDraftRequestAsync(emp.EmployeeId, date, compOffInTime, existingRecord.ShiftId);
                 
-                // If OUT punch exists, update with hours worked
                 if (compOffOutTime.HasValue)
                 {
                     await _compOffService.UpdateWithOutPunchAsync(emp.EmployeeId, date, compOffOutTime.Value);
                 }
-                
-                // Continue processing to calculate In/Out times below (Return removed)
             }
             else 
             {
-                // No punches. Check if it's sandwiched by leaves.
-                var sandwichingLeave = await GetSandwichingLeaveAsync(emp.EmployeeId, date);
+                var sandwichingLeave = GetSandwichingLeaveFromContext(emp.EmployeeId, date, context.Leaves);
                 if (sandwichingLeave != null)
                 {
-                    // Treat like a leave day with no punches
                     existingRecord.InTime = null;
                     existingRecord.OutTime = null;
                     existingRecord.WorkMinutes = 0;
                     existingRecord.BreakMinutes = 0;
                     existingRecord.IsActualBreak = false;
 
-                    // Check if this weekoff is WITHIN the sandwiching leave's date range
-                    // If so, it's already counted in the application's TotalDays â€” don't deduct again
                     bool alreadyInTotalDays = date >= sandwichingLeave.StartDate && date <= sandwichingLeave.EndDate;
 
                     if (alreadyInTotalDays)
                     {
-                        // Already counted in TotalDays â€” just mark the status, no balance change
-                        _logger.LogInformation("SANDWICH (within-range): Marking {Date} for {EmpId} â€” no deduction (already in TotalDays)", date, emp.EmployeeId);
+                        _logger.LogInformation("SANDWICH (within-range): Marking {Date} for {EmpId} — no deduction (already in TotalDays)", date, emp.EmployeeId);
                         existingRecord.Status = sandwichingLeave.LeaveType?.Code ?? "Leave";
                         existingRecord.ApplicationNumber = sandwichingLeave.ApplicationNumber;
                         existingRecord.Remarks = AppendRemark(existingRecord.Remarks,
@@ -371,12 +415,7 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                     }
                     else
                     {
-                        // Cross-application sandwich â€” needs balance deduction
-                        int leaveYear = GetLeaveYear(date);
-                        var allocation = await _db.LeaveAllocations
-                            .FirstOrDefaultAsync(a => a.EmployeeId == emp.EmployeeId
-                                                   && a.LeaveTypeId == sandwichingLeave.LeaveTypeId
-                                                   && a.Year == leaveYear);
+                        context.Allocations.TryGetValue((emp.EmployeeId, sandwichingLeave.LeaveTypeId), out var allocation);
 
                         if (allocation != null && allocation.RemainingCount >= 1)
                         {
@@ -390,7 +429,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                         }
                         else
                         {
-                            // No balance available â€” fall back to LWP
                             existingRecord.Status = "LWP";
                             existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Sandwich Leave (LWP - No Balance)");
                         }
@@ -400,27 +438,17 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 else
                 {
                     existingRecord.Status = "W/O"; // Standard unworked Weekoff
-                    return; // No punches, just a standard Weekoff
+                    return;
                 }
             }
         }
 
         // 5. Check Leave (Explicitly applied by admin)
-        var approvedLeave = await _db.LeaveApplications
-            .Include(la => la.LeaveType)
-            .FirstOrDefaultAsync(la => la.EmployeeId == emp.EmployeeId && 
-                                       la.Status == "Approved" && 
-                                       date >= la.StartDate && 
-                                       date <= la.EndDate);
+        context.Leaves.TryGetValue(emp.EmployeeId, out var empLeaves);
+        empLeaves ??= new List<LeaveApplication>();
 
-        // Capture adjusted leaves for historical context in tooltips
-        var adjustedLeaves = await _db.LeaveApplications
-            .Include(la => la.LeaveType)
-            .Where(la => la.EmployeeId == emp.EmployeeId && 
-                         la.Status == "Adjusted" && 
-                         date >= la.StartDate && 
-                         date <= la.EndDate)
-            .ToListAsync();
+        var approvedLeave = empLeaves.FirstOrDefault(la => la.Status == "Approved" && date >= la.StartDate && date <= la.EndDate);
+        var adjustedLeaves = empLeaves.Where(la => la.Status == "Adjusted" && date >= la.StartDate && date <= la.EndDate).ToList();
 
         if (adjustedLeaves.Any())
         {
@@ -434,13 +462,11 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             
             if (isHalfDayLeave)
             {
-                // Half-day leave: employee is expected to work the other half
                 existingRecord.ApplicationNumber = approvedLeave.ApplicationNumber;
                 existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"Half Day Leave: {approvedLeave.LeaveType?.Code ?? approvedLeave.LeaveType?.Name} ({approvedLeave.DayType})");
             }
             else
             {
-                // Full day leave
                 existingRecord.Status = approvedLeave.LeaveType?.Code ?? "Leave";
                 existingRecord.ApplicationNumber = approvedLeave.ApplicationNumber;
                 existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"Leave: {approvedLeave.LeaveType?.Name} ({approvedLeave.ApplicationNumber})");
@@ -467,15 +493,12 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 }
             }
 
-            // Fix: If Half Day Leave is already approved, don't overwrite with "Absent"
             if (!hasHalfDay)
             {
                 existingRecord.Status = "Absent";
             }
             else
             {
-                // Must set a valid status if it's a Half Day leave with no punches
-                // Logic mirrored from lines 288+
                 var leaveCode = approvedLeave!.LeaveType?.Code ?? "L";
                 bool isPaid = approvedLeave.LeaveType?.IsPaid ?? false;
 
@@ -490,7 +513,7 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                     {
                         firstLetter = leaveCode.Substring(0, 1).ToUpper();
                     }
-                    existingRecord.Status = $"{firstLetter}HF"; // e.g., PHF, SHF
+                    existingRecord.Status = $"{firstLetter}HF";
                 }
                 existingRecord.IsHalfDay = true;
             }
@@ -516,14 +539,12 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         existingRecord.InTime = inTime;
         existingRecord.OutTime = outTime;
         
-        // Only set status to Present if it wasn't already set (e.g. to Present (WO))
         if (existingRecord.Status == null || existingRecord.Status == "Absent")
         {
             existingRecord.Status = "Present";
         }
 
         // Half-Day Leave Status Override
-        // If employee has a half-day leave, set PHF/SHF immediately
         if (approvedLeave != null)
         {
             bool isHalfDayLeave = approvedLeave.DayType == "First Half" || approvedLeave.DayType == "Second Half";
@@ -531,7 +552,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             if (isHalfDayLeave)
             {
                 var leaveCode = approvedLeave.LeaveType?.Code ?? "UNKNOWN";
-                var leaveTypeName = approvedLeave.LeaveType?.Name ?? "Unknown";
                 bool isPaid = approvedLeave.LeaveType?.IsPaid ?? false;
                 
                 if (!isPaid)
@@ -546,24 +566,18 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                     }
                     else
                     {
-                        // Get first letter for status
-                        string firstLetter = "L"; // Default
+                        string firstLetter = "L";
                         if (!string.IsNullOrWhiteSpace(leaveCode) && leaveCode.Length > 0)
                         {
                             firstLetter = leaveCode.Substring(0, 1).ToUpper();
                         }
-                        existingRecord.Status = $"{firstLetter}HF"; // PLâ†’PHF, SLâ†’SHF
+                        existingRecord.Status = $"{firstLetter}HF";
                     }
                 }
-                // Skip adding remark here as it's already added at line ~359 (Half Day Leave: PL (Second Half))
-                existingRecord.IsHalfDay = true; // Always mark half-day flag for all HF variants (HF, PHF, SHF, COHF)
+                existingRecord.IsHalfDay = true;
             }
         }
 
-        // PRE-CALCULATION: Calculate Late Minutes even for Single Punch scenarios so it shows in reports
-        // IMPORTANT: If the employee is on a First Half leave, they are expected to arrive at HalfTime,
-        // NOT at ShiftStart. Use HalfTime as the baseline so single-punch early-returns (line ~591)
-        // don't incorrectly stamp a Late count against a legitimately absent first half.
         if (roster.Shift != null)
         {
             TimeOnly preCalcBase = (approvedLeave != null &&
@@ -586,12 +600,9 @@ public class AttendanceProcessorService : IAttendanceProcessorService
 
         if (dailyLogs.Count == 1 || inTime == outTime)
         {
-            // Check if this is explicitly an OUT punch (Regularized as Out)
             bool isOutOnly = dailyLogs.Count == 1 && 
                              dailyLogs[0].VerifyType != null && 
                              dailyLogs[0].VerifyType!.EndsWith("-Out");
-
-            // Single Punch Rule
 
             bool isCurrentDay = date == DateOnly.FromDateTime(DateTime.Now);
 
@@ -599,9 +610,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             {
                 if (isCurrentDay && !isOutOnly)
                 {
-                    // Employee recently punched IN and is at work today.
-                    // DO NOT penalize for missing OUT punch yet.
-                    // BUT DO penalize if they arrived Major Late (> Half Time)!
                     bool isMajorLate = roster.Shift != null && 
                                        roster.Shift.HalfTime.HasValue && 
                                        inTime > roster.Shift.HalfTime.Value;
@@ -626,7 +634,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 }
                 else
                 {
-                    // Past day or explicitly missed the IN punch today
                     if (existingRecord.Status != null && !existingRecord.Status.EndsWith("HF"))
                     {
                         existingRecord.Status = "Half Day";
@@ -646,28 +653,19 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             }
             else
             {
-                // If also late, prioritize showing the Late Count
                 if (existingRecord.LateMinutes > 0)
-            {
-                var startOfMonth = new DateOnly(existingRecord.RecordDate.Year, existingRecord.RecordDate.Month, 1);
-                var previousLates = await _db.DailyAttendance
-                    .Where(d => d.EmployeeId == emp.EmployeeId && 
-                                d.RecordDate >= startOfMonth && 
-                                d.RecordDate < existingRecord.RecordDate && 
-                                d.LateMinutes > 0)
-                    .CountAsync();
-
-                int currentLateCount = previousLates + 1;
-                baseRemark = $"Late #{currentLateCount}";
-            }
+                {
+                    context.MonthHistory.TryGetValue(emp.EmployeeId, out var previousRecords);
+                    int previousLates = previousRecords?.Count(d => d.LateMinutes > 0) ?? 0;
+                    int currentLateCount = previousLates + 1;
+                    baseRemark = $"Late #{currentLateCount}";
+                }
             }
 
             existingRecord.Remarks = baseRemark;
             existingRecord.WorkMinutes = 0;
             existingRecord.BreakMinutes = 0;
 
-            // Weekoff + single punch (half day worked) â†’ W/OHF
-            // Unworked half stays as W/O credit â€” employee must never get LESS payable for showing up on weekoff
             if (roster.IsWeekOff && existingRecord.Status == "Half Day")
                 existingRecord.Status = "W/OHF";
 
@@ -678,27 +676,20 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         {
             var shift = roster.Shift;
             
-            // Check for actual lunch punches (Intermediate punches)
-            // Minimum 4 punches: IN, OUT (Lunch), IN (Lunch), OUT (End)
             if (sortedLogs.Count >= 4)
             {
-                // Simple logic: assume the largest gap between intermediate punches is the lunch break
-                // Or more safely: gap between 2nd and 3rd punch if 4 logs
                 var punch2 = sortedLogs[1].PunchTime;
                 var punch3 = sortedLogs[2].PunchTime;
                 var actualBreak = (int)(punch3 - punch2).TotalMinutes;
                 
-                // If the gap is between LunchStart/End range or simply > 15 mins, consider it lunch
                 breakMinutes = actualBreak;
                 existingRecord.IsActualBreak = true;
                 existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"Actual Lunch: {breakMinutes}m");
             }
             else
             {
-                // Fallback to standard shift break (generated column)
                 breakMinutes = shift.LunchBreakDuration;
                 existingRecord.IsActualBreak = false;
-                // Remarks = AppendRemark(existingRecord.Remarks, $"Standard Lunch: {breakMinutes}m"); // Removed as per request
             }
 
             existingRecord.BreakMinutes = breakMinutes;
@@ -712,23 +703,20 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "No Shift Assigned (No Break Deducted)");
         }
 
-        if (roster.Shift == null) return; // Already handled above but for safety
-        var currentShift = roster.Shift; // Variable rename for consistency below
+        if (roster.Shift == null) return;
+        var currentShift = roster.Shift;
 
-        // 6. Timing Rules (Dynamic based on Shift)
-        
+        // 6. Timing Rules
         bool isNoticePeriod = emp.ResignationDate.HasValue && date >= emp.ResignationDate.Value;
         bool isProbation = emp.ProbationEnd.HasValue && date < emp.ProbationEnd.Value;
 
-        // Adjust expected start time if the employee is on a First Half leave
         TimeOnly expectedStartTime = currentShift.StartTime;
         if (approvedLeave != null && approvedLeave.DayType == "First Half")
         {
-            // If they are on First Half leave, they are expected to arrive at HalfTime
             expectedStartTime = currentShift.HalfTime ?? currentShift.StartTime;
         }
 
-        // Late Coming Check (Ignore seconds)
+        // Late Coming Check
         var inTimeMinute = new TimeOnly(inTime.Hour, inTime.Minute);
         var expectedMinute = new TimeOnly(expectedStartTime.Hour, expectedStartTime.Minute);
 
@@ -739,15 +727,14 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             
             if (waiveLate)
             {
-                existingRecord.LateMinutes = 0; // Waived
+                existingRecord.LateMinutes = 0;
                 existingRecord.IsLate = false;
                 existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"Late Waived ({lateMins}m)");
             }
             else
             {
-                existingRecord.LateMinutes = lateMins; // Always store for reports
+                existingRecord.LateMinutes = lateMins;
                 
-                // MAJOR LATE: arriving after HalfTime boundary (only applies if expected start wasn't already HalfTime)
                 if (currentShift.HalfTime.HasValue && expectedStartTime != currentShift.HalfTime.Value && inTime > currentShift.HalfTime.Value)
                 {
                     if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
@@ -759,7 +746,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 }
                 else if ((isProbation || isNoticePeriod) && lateMins > 5)
                 {
-                    // Probation or Notice Period employees: immediate Half Day for lateness beyond 5 mins
                     if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
                     {
                         existingRecord.Status = "Half Day";
@@ -770,7 +756,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 }
                 else if (lateMins > graceLimit)
                 {
-                    // Regular employees: immediate Half Day if beyond grace period
                     if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
                     {
                         existingRecord.Status = "Half Day";
@@ -780,13 +765,12 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 }
                 else
                 {
-                     // Minor Late: Handle via frequency in ApplyMonthlyPenaltiesAsync
                      existingRecord.IsLate = true; 
                 }
             }
         }
 
-        // Early Exit Check (Ignore seconds)
+        // Early Exit Check
         var outTimeMinute = new TimeOnly(outTime.Hour, outTime.Minute);
         var expectedEndMinute = new TimeOnly(currentShift.EndTime.Hour, currentShift.EndTime.Minute);
 
@@ -795,18 +779,10 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             int earlyMins = (int)(expectedEndMinute - outTimeMinute).TotalMinutes;
             int graceMinutes = (isNoticePeriod || isProbation) ? 5 : (currentShift.EarlyLeaveGraceMinutes ?? 0);
             
-            // Early Exit Zone Separation
-            // SPECIAL CASE: Second Half Leave but left before HalfTime boundary
             if (approvedLeave != null && approvedLeave.DayType == "Second Half" && currentShift.HalfTime.HasValue && outTime < currentShift.HalfTime.Value.AddMinutes(-graceMinutes))
             {
-                if (waiveEarly)
+                if (!waiveEarly)
                 {
-                    // Remarks already handled by the regularization block at line ~229
-                    // No penalty to WorkMinutes!
-                }
-                else
-                {
-                    // Not regularized -> First half is absent
                     existingRecord.WorkMinutes = 0;
                     existingRecord.BreakMinutes = 0;
                     existingRecord.IsActualBreak = false;
@@ -817,7 +793,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             }
             else if (currentShift.EarlyGoAllowedTime.HasValue && outTime < currentShift.EarlyGoAllowedTime.Value.AddMinutes(-graceMinutes))
             {
-                // MAJOR EARLY EXIT: Before the allowed time (e.g., leaving at 14:32 when allowed time is 17:00)
                 if (waiveEarly)
                 {
                     existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Early Waived (Half Day Granted)");
@@ -834,7 +809,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             }
             else
             {
-                // MINOR EARLY EXIT: After allowed time but before EndTime
                 if (waiveEarly)
                 {
                     existingRecord.EarlyMinutes = 0;
@@ -847,12 +821,10 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                     
                     if (earlyMins > graceMinutes || isProbation || isNoticePeriod)
                     {
-                        // Mark as Early so Monthly Frequency penalty can apply in ApplyMonthlyPenaltiesAsync
                         existingRecord.IsEarly = true;
                         
                         if ((isNoticePeriod || isProbation) && earlyMins > 5)
                         {
-                            // Stricter rule for Notice/Probation: any early exit is a Half Day if beyond 5 mins
                             if (existingRecord.Status != "Present (Leave)" && (existingRecord.Status == null || !existingRecord.Status.EndsWith("HF")))
                             {
                                 existingRecord.Status = "Half Day";
@@ -866,74 +838,48 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             }
         }
 
-        // 7. Monthly Penalties (Dynamic based on Shift limits)
-        await ApplyMonthlyPenaltiesAsync(emp, existingRecord, currentShift);
+        // 7. Monthly Penalties
+        ApplyMonthlyPenaltiesFromContext(emp, existingRecord, currentShift, context.MonthHistory);
 
-        // Weekoff + early exit / major late (half day) â†’ W/OHF
-        // Unworked half stays as W/O credit â€” employee must never get LESS payable for showing up on weekoff
         if (roster.IsWeekOff && existingRecord.IsHalfDay && existingRecord.Status == "Half Day")
         {
             existingRecord.Status = "W/OHF";
         }
     }
 
-    private async Task ApplyMonthlyPenaltiesAsync(Employee emp, DailyAttendance currentRecord, Shift shift)
+    private void ApplyMonthlyPenaltiesFromContext(Employee emp, DailyAttendance currentRecord, Shift shift, Dictionary<int, List<DayHistoryItem>> monthHistory)
     {
         var startOfMonth = new DateOnly(currentRecord.RecordDate.Year, currentRecord.RecordDate.Month, 1);
         
-        // Late Coming Policy
-        // Late Coming Policy: Count ALL minor late arrivals (even within grace) for frequency penalties
         if (currentRecord.IsLate)
         {
-            // Count all previous instances where employee had a minor late (IsLate == true)
-            // Note: We don't count LateMinutes > 0 because major lates (already penalised with Half Day) shouldn't drain the allowed minor lates pool.
-            // FIX: We must also check _db.DailyAttendance.Local because during bulk-processing (Process.cshtml.cs),
-            // previous days might not be saved to the database yet.
-            var dbLatesCount = await _db.DailyAttendance
-                .Where(d => d.EmployeeId == emp.EmployeeId && 
-                            d.RecordDate >= startOfMonth && 
-                            d.RecordDate < currentRecord.RecordDate && 
-                            d.IsLate)
-                .CountAsync();
+            monthHistory.TryGetValue(emp.EmployeeId, out var dbRecords);
+            dbRecords ??= new List<DayHistoryItem>();
 
-            var localLatesCount = _db.DailyAttendance.Local
-                .Where(d => d.EmployeeId == emp.EmployeeId && 
-                            d.RecordDate >= startOfMonth && 
-                            d.RecordDate < currentRecord.RecordDate && 
-                            d.IsLate)
-                .Count();
-
-            // The local set contains newly added/modified records not yet in the DB.
-            // We shouldn't double count if a record is in both (modified state), but it's safer
-            // to just evaluate the local first, then fallback to DB if not found in local.
-            
-            // Better approach: Get all distinct records from Local + DB for this employee/month/before today
             var localRecords = _db.DailyAttendance.Local
                 .Where(d => d.EmployeeId == emp.EmployeeId && 
                             d.RecordDate >= startOfMonth && 
                             d.RecordDate < currentRecord.RecordDate)
+                .Select(d => new DayHistoryItem
+                {
+                    EmployeeId = d.EmployeeId,
+                    RecordDate = d.RecordDate,
+                    IsLate = d.IsLate,
+                    IsEarly = d.IsEarly,
+                    LateMinutes = d.LateMinutes
+                })
                 .ToList();
-
-            var dbRecords = await _db.DailyAttendance
-                .Where(d => d.EmployeeId == emp.EmployeeId && 
-                            d.RecordDate >= startOfMonth && 
-                            d.RecordDate < currentRecord.RecordDate)
-                .AsNoTracking()
-                .ToListAsync();
 
             var allRecords = localRecords.Concat(dbRecords)
                 .GroupBy(x => x.RecordDate)
-                .Select(g => g.First()) // Prefer local if duplicate
+                .Select(g => g.First())
                 .ToList();
 
             int previousLatesCount = allRecords.Count(d => d.IsLate);
-
             int currentLateCount = previousLatesCount + 1;
             
-            // Append "Late #X" to remarks for report visibility
             currentRecord.Remarks = AppendRemark(currentRecord.Remarks, $"Late #{currentLateCount}");
 
-            // Now apply PENALTY if allowed count is exceeded, regardless of IsLate flag
             var isProbation = emp.ProbationEnd.HasValue && currentRecord.RecordDate < emp.ProbationEnd.Value;
             
             if (isProbation)
@@ -947,7 +893,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 int allowedLates = shift.LateComingAllowedCountPerMonth ?? 3;
                 bool halfDayOnExceed = shift.LateComingHalfDayOnExceed ?? true;
 
-                // STRICT INTERPRETATION: If we are counting ALL lates towards the limit
                 if (currentLateCount > allowedLates && halfDayOnExceed)
                 {
                     currentRecord.Status = "Half Day";
@@ -957,11 +902,8 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             }
         }
 
-
-        // Early Go Policy
         if (currentRecord.IsEarly && currentRecord.Status != "Half Day")
         {
-            // Probation check remains (strict rule usually)
             var isProbation = emp.ProbationEnd.HasValue && currentRecord.RecordDate < emp.ProbationEnd.Value;
             
             if (isProbation)
@@ -972,14 +914,29 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             }
             else
             {
-                // Check against shift policy
-                var previousEarly = await _db.DailyAttendance
+                monthHistory.TryGetValue(emp.EmployeeId, out var dbRecords);
+                dbRecords ??= new List<DayHistoryItem>();
+
+                var localRecords = _db.DailyAttendance.Local
                     .Where(d => d.EmployeeId == emp.EmployeeId && 
                                 d.RecordDate >= startOfMonth && 
-                                d.RecordDate < currentRecord.RecordDate && 
-                                d.IsEarly)
-                    .CountAsync();
+                                d.RecordDate < currentRecord.RecordDate)
+                    .Select(d => new DayHistoryItem
+                    {
+                        EmployeeId = d.EmployeeId,
+                        RecordDate = d.RecordDate,
+                        IsLate = d.IsLate,
+                        IsEarly = d.IsEarly,
+                        LateMinutes = d.LateMinutes
+                    })
+                    .ToList();
 
+                var allRecords = localRecords.Concat(dbRecords)
+                    .GroupBy(x => x.RecordDate)
+                    .Select(g => g.First())
+                    .ToList();
+
+                int previousEarly = allRecords.Count(d => d.IsEarly);
                 int allowedEarly = shift.EarlyGoFrequencyPerMonth ?? 1;
 
                 if (previousEarly >= allowedEarly)
@@ -997,7 +954,6 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         if (string.IsNullOrWhiteSpace(newRemark)) return existing ?? "";
         if (string.IsNullOrEmpty(existing)) return newRemark;
 
-        // Split existing remarks and check if newRemark is already present (case-insensitive)
         var parts = existing.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Any(p => p.Trim().Equals(newRemark.Trim(), StringComparison.OrdinalIgnoreCase)))
         {
@@ -1009,29 +965,20 @@ public class AttendanceProcessorService : IAttendanceProcessorService
 
     public static int GetLeaveYear(DateOnly date)
     {
-        // Custom cycle: November to October
-        // November 2025 belongs to Leave Year 2025
-        // October 2026 belongs to Leave Year 2025
         return date.Month >= 11 ? date.Year : date.Year - 1;
     }
 
     public static decimal CalculateProRataQuota(decimal yearlyQuota, DateOnly probationEnd, int leaveYear)
     {
-        // Cycle Start: Nov 1st of leaveYear
-        // Cycle End: Oct 31st of leaveYear + 1
         var cycleStart = new DateOnly(leaveYear, 11, 1);
         var cycleEnd = new DateOnly(leaveYear + 1, 10, 31);
 
-        // If probation ends before cycle starts, full quota
         if (probationEnd <= cycleStart) return yearlyQuota;
-        
-        // If probation ends after cycle ends, 0 quota
         if (probationEnd > cycleEnd) return 0;
 
-        // Calculate months eligible (from probationEnd to cycleEnd)
         int eligibleMonths = 0;
         var current = new DateOnly(probationEnd.Year, probationEnd.Month, 1);
-        if (probationEnd.Day > 15) // If they join after 15th, count from next month
+        if (probationEnd.Day > 15)
         {
             current = current.AddMonths(1);
         }
@@ -1042,39 +989,26 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             current = current.AddMonths(1);
         }
 
-        // Return pro-rata (Quota / 12 * eligibleMonths) rounded to nearest 0.5
         var rawProRata = (yearlyQuota / 12m) * eligibleMonths;
         return Math.Round(rawProRata * 2, MidpointRounding.AwayFromZero) / 2;
     }
 
-    private async Task<LeaveApplication?> GetSandwichingLeaveAsync(int employeeId, DateOnly weekoffDate)
+    private LeaveApplication? GetSandwichingLeaveFromContext(int employeeId, DateOnly weekoffDate, Dictionary<int, List<LeaveApplication>> leavesByEmp)
     {
-        // Optimization: Fetch all potentially relevant leaves in the Â±2 day range in ONE query
-        var fromDate = weekoffDate.AddDays(-2);
-        var toDate = weekoffDate.AddDays(2);
+        if (!leavesByEmp.TryGetValue(employeeId, out var nearbyLeaves)) return null;
 
-        var nearbyLeaves = await _db.LeaveApplications
-            .Include(la => la.LeaveType)
-            .Where(la => la.EmployeeId == employeeId
-                         && la.Status == "Approved"
-                         && !la.IgnoreSandwichRule
-                         && la.DayType == "Full Day"
-                         && la.StartDate <= toDate 
-                         && la.EndDate >= fromDate)
-            .ToListAsync();
+        var validLeaves = nearbyLeaves.Where(la => la.Status == "Approved" && !la.IgnoreSandwichRule && la.DayType == "Full Day").ToList();
 
-        var prevDay1 = nearbyLeaves.FirstOrDefault(la => weekoffDate.AddDays(-1) >= la.StartDate && weekoffDate.AddDays(-1) <= la.EndDate);
-        var prevDay2 = prevDay1 != null ? nearbyLeaves.FirstOrDefault(la => weekoffDate.AddDays(-2) >= la.StartDate && weekoffDate.AddDays(-2) <= la.EndDate) : null;
+        var prevDay1 = validLeaves.FirstOrDefault(la => weekoffDate.AddDays(-1) >= la.StartDate && weekoffDate.AddDays(-1) <= la.EndDate);
+        var prevDay2 = prevDay1 != null ? validLeaves.FirstOrDefault(la => weekoffDate.AddDays(-2) >= la.StartDate && weekoffDate.AddDays(-2) <= la.EndDate) : null;
 
-        var nextDay1 = nearbyLeaves.FirstOrDefault(la => weekoffDate.AddDays(1) >= la.StartDate && weekoffDate.AddDays(1) <= la.EndDate);
-        var nextDay2 = nextDay1 != null ? nearbyLeaves.FirstOrDefault(la => weekoffDate.AddDays(2) >= la.StartDate && weekoffDate.AddDays(2) <= la.EndDate) : null;
+        var nextDay1 = validLeaves.FirstOrDefault(la => weekoffDate.AddDays(1) >= la.StartDate && weekoffDate.AddDays(1) <= la.EndDate);
+        var nextDay2 = nextDay1 != null ? validLeaves.FirstOrDefault(la => weekoffDate.AddDays(2) >= la.StartDate && weekoffDate.AddDays(2) <= la.EndDate) : null;
 
-        // A sandwich occurs if >= 2 consecutive leave days touch either side, or leave is on both sides.
         bool isSandwich = prevDay2 != null || nextDay2 != null || (prevDay1 != null && nextDay1 != null);
 
         if (!isSandwich) return null;
 
-        // Return an adjacent leave application so caller can use its leave type/allocation
         return prevDay1 ?? nextDay1;
     }
 }

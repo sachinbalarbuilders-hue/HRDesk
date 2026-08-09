@@ -115,6 +115,7 @@ namespace HRDesk.Web.Pages.Payroll
         {
             // Calculate High Level Summaries
             var summaryStats = await _context.PayrollMasters
+                .AsNoTracking()
                 .Where(p => p.Month == TargetProcessMonth)
                 .GroupBy(p => 1)
                 .Select(g => new { TotalNetPayout = g.Sum(x => x.NetSalary), Count = g.Count() })
@@ -125,6 +126,7 @@ namespace HRDesk.Web.Pages.Payroll
             
             // Total manual adjustments (Earnings - Deductions) for the whole month
             var manualAdjStats = await _context.PayrollDetails
+                .AsNoTracking()
                 .Where(d => d.PayrollMaster != null && d.PayrollMaster.Month == TargetProcessMonth && d.Remarks == "Manual adjustment")
                 .GroupBy(d => d.ComponentType)
                 .Select(g => new { Type = g.Key, Total = g.Sum(x => x.Amount) })
@@ -133,15 +135,23 @@ namespace HRDesk.Web.Pages.Payroll
             TotalManualAdjustments = manualAdjStats.Where(x => x.Type == "Earning").Sum(x => x.Total);
             TotalManualDeductions = manualAdjStats.Where(x => x.Type == "Deduction").Sum(x => x.Total);
 
+            if (string.IsNullOrWhiteSpace(TargetProcessMonth) || TargetProcessMonth.Length < 7)
+            {
+                TargetProcessMonth = DateTime.Now.ToString("yyyy-MM");
+            }
+
             // Load available employees: Active staff OR anyone who has records (Attendance or Payroll) for this month
             int targetYear = int.Parse(TargetProcessMonth.Substring(0, 4));
             int targetMonth = int.Parse(TargetProcessMonth.Substring(5, 2));
+            var startOfMonth = new DateOnly(targetYear, targetMonth, 1);
             var lastDayOfMonth = new DateOnly(targetYear, targetMonth, DateTime.DaysInMonth(targetYear, targetMonth));
 
             var employeesQuery = _context.Employees
+                .AsNoTracking()
                 .Include(e => e.Department)
                 .Where(e => ((e.Status == "Active" || e.Status == "active") && (e.JoiningDate == null || e.JoiningDate <= lastDayOfMonth)) || 
-                            (_context.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate.Year == targetYear && a.RecordDate.Month == targetMonth && a.Status != "Absent") && (e.LastWorkingDate != null && e.LastWorkingDate >= new DateOnly(targetYear, targetMonth, 1))))
+                            ((e.LastWorkingDate != null && e.LastWorkingDate >= startOfMonth) &&
+                             _context.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate >= startOfMonth && a.RecordDate <= lastDayOfMonth && a.Status != "Absent")))
                 .OrderBy(e => e.EmployeeName);
 
             var paginatedEmployees = await PaginatedList<Employee>.CreateAsync(employeesQuery, pageNum, 50);
@@ -149,10 +159,12 @@ namespace HRDesk.Web.Pages.Payroll
             var employeeIds = paginatedEmployees.Select(e => e.EmployeeId).ToList();
             
             var currentPayrollRecords = await _context.PayrollMasters
+                .AsNoTracking()
                 .Where(p => p.Month == TargetProcessMonth && employeeIds.Contains(p.EmployeeId))
                 .ToListAsync();
                 
             var payrollQuery = _context.PayrollMasters
+                .AsNoTracking()
                 .Include(p => p.Employee)
                 .Where(p => p.Month == TargetProcessMonth)
                 .OrderBy(p => p.Employee!.EmployeeName);
@@ -161,6 +173,7 @@ namespace HRDesk.Web.Pages.Payroll
             
             var payrollIds = currentPayrollRecords.Select(p => p.Id).ToList();
             var allManualDetails = await _context.PayrollDetails
+                .AsNoTracking()
                 .Where(d => payrollIds.Contains(d.PayrollId) && d.Remarks == "Manual adjustment")
                 .ToListAsync();
 

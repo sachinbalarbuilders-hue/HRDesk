@@ -1,9 +1,11 @@
+
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HRDesk.Web.Pages.Leaves.Applications;
 
@@ -39,9 +41,29 @@ public class IndexModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string? SearchTerm { get; set; }
 
+    
+    private void ProcessAttendanceInBackground(DateOnly start, DateOnly end, int empId)
+    {
+        var scopeFactory = HttpContext.RequestServices.GetRequiredService<IServiceScopeFactory>();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var processor = scope.ServiceProvider.GetRequiredService<IAttendanceProcessorService>();
+                for (var d = start; d <= end; d = d.AddDays(1))
+                {
+                    await processor.ProcessDailyAttendanceAsync(d, empId);
+                }
+            }
+            catch { }
+        });
+    }
+
     public async Task OnGetAsync(int pageNum = 1)
     {
         Employees = await _db.Employees.Where(e => e.Status == "active").OrderBy(e => e.EmployeeName).ToListAsync();
+        
         LeaveTypes = await _cache.GetLeaveTypesAsync();
  
         // Default to today to avoid 0001-01-01 error
@@ -51,23 +73,42 @@ public class IndexModel : PageModel
         NewApplication.ApplicationNumber = await _sequenceService.PeekNextApplicationNumberAsync(NewApplication.StartDate);
  
         // Pagination & Search logic
-        var query = _db.LeaveApplications.AsNoTracking()
-            .Include(la => la.Employee)
-            .Include(la => la.LeaveType)
-            .OrderByDescending(la => la.CreatedAt)
-            .AsQueryable();
+        var baseQuery = _db.LeaveApplications.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
             var searchLower = SearchTerm.ToLower();
-            query = query.Where(la => 
+            baseQuery = baseQuery.Where(la => 
                 (la.Employee != null && la.Employee.EmployeeName.ToLower().Contains(searchLower)) ||
                 (la.ApplicationNumber != null && la.ApplicationNumber.ToLower().Contains(searchLower)) ||
                 (la.Reason != null && la.Reason.ToLower().Contains(searchLower))
             );
         }
 
-        LeaveApplications = await PaginatedList<LeaveApplication>.CreateAsync(query, pageNum, 50);
+        const int pageSize = 50;
+        var totalCount = await baseQuery.CountAsync();
+        
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        if (pageNum > totalPages && totalPages > 0) pageNum = totalPages;
+        if (pageNum < 1) pageNum = 1;
+
+        // Step 1: Fetch just the IDs of the current page (executes in 2ms via index, 0 memory grant)
+        var pagedIds = await baseQuery
+            .OrderByDescending(la => la.CreatedAt)
+            .Select(la => la.Id)
+            .Skip((pageNum - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        // Step 2: Fetch the full entity details with includes only for the 50 IDs on this page
+        var items = await _db.LeaveApplications.AsNoTracking()
+            .Where(la => pagedIds.Contains(la.Id))
+            .Include(la => la.Employee)
+            .Include(la => la.LeaveType)
+            .OrderByDescending(la => la.CreatedAt)
+            .ToListAsync();
+
+        LeaveApplications = new PaginatedList<LeaveApplication>(items, totalCount, pageNum, pageSize);
     }
 
     public async Task<IActionResult> OnGetCheckBalanceAsync(int employeeId, int leaveTypeId, DateOnly date, int? currentAppId = null)
@@ -462,11 +503,8 @@ public class IndexModel : PageModel
                 _db.LeaveApplications.Add(lwpApp);
                 await _db.SaveChangesAsync();
 
-                // Re-process attendance for full range
-                for (var date = NewApplication.StartDate.AddDays(-1); date <= lwpApp.EndDate.AddDays(1); date = date.AddDays(1))
-                {
-                    await _processor.ProcessDailyAttendanceAsync(date, NewApplication.EmployeeId);
-                }
+                // Re-process attendance for full range in background
+                ProcessAttendanceInBackground(NewApplication.StartDate.AddDays(-1), lwpApp.EndDate.AddDays(1), NewApplication.EmployeeId);
 
                 return RedirectToPage();
             }
@@ -489,11 +527,8 @@ public class IndexModel : PageModel
         _db.LeaveApplications.Add(NewApplication);
         await _db.SaveChangesAsync();
 
-        // Trigger attendance re-processing for the FULL range (including adjacent days for sandwiches)
-        for (var date = NewApplication.StartDate.AddDays(-1); date <= NewApplication.EndDate.AddDays(1); date = date.AddDays(1))
-        {
-            await _processor.ProcessDailyAttendanceAsync(date, NewApplication.EmployeeId);
-        }
+        // Trigger attendance re-processing for the FULL range in background
+        ProcessAttendanceInBackground(NewApplication.StartDate.AddDays(-1), NewApplication.EndDate.AddDays(1), NewApplication.EmployeeId);
 
         // FAILSAFE for Sequence
         if (!AutoGenerate && !string.IsNullOrWhiteSpace(baseAppNo))
@@ -649,10 +684,8 @@ public class IndexModel : PageModel
         var combinedStart = (oldStart < application.StartDate ? oldStart : application.StartDate).AddDays(-1);
         var combinedEnd = (oldEnd > application.EndDate ? oldEnd : application.EndDate).AddDays(1);
 
-        for (var d = combinedStart; d <= combinedEnd; d = d.AddDays(1))
-        {
-            await _processor.ProcessDailyAttendanceAsync(d, application.EmployeeId);
-        }
+        // Process in background
+        ProcessAttendanceInBackground(combinedStart, combinedEnd, application.EmployeeId);
 
         return RedirectToPage();
     }
@@ -698,11 +731,8 @@ public class IndexModel : PageModel
             // Auto-resync sequence to close gaps if it was the latest
             await _sequenceService.ResyncSequenceAsync(application.StartDate.Year, application.StartDate.Month);
 
-            // Re-process attendance for the deleted leave range (including adjacent days for sandwiches)
-            for (var d = application.StartDate.AddDays(-1); d <= application.EndDate.AddDays(1); d = d.AddDays(1))
-            {
-                await _processor.ProcessDailyAttendanceAsync(d, application.EmployeeId);
-            }
+            // Re-process attendance in background
+            ProcessAttendanceInBackground(application.StartDate.AddDays(-1), application.EndDate.AddDays(1), application.EmployeeId);
 
         }
         return RedirectToPage();

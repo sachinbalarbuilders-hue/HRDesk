@@ -4,6 +4,7 @@ using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRDesk.Web.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260808123927_AddPerformanceIndexes")]
+    partial class AddPerformanceIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -325,10 +328,6 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RequestDate");
-
-                    b.HasIndex("Status");
-
                     b.HasIndex("OrganizationId", "EmployeeId");
 
                     b.ToTable("attendance_regularizations");
@@ -405,8 +404,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("work_date");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("WorkDate");
 
                     b.HasIndex("OrganizationId", "EmployeeId");
 
@@ -489,10 +486,6 @@ namespace HRDesk.Web.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ShiftId");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("WorkedDate");
 
                     b.HasIndex("OrganizationId", "EmployeeId");
 
@@ -866,7 +859,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("resignation_date");
 
                     b.Property<string>("Status")
-                        .HasColumnType("nvarchar(450)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
 
                     b.Property<string>("Weekoff")
@@ -878,8 +871,6 @@ namespace HRDesk.Web.Migrations
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("DesignationId");
-
-                    b.HasIndex("Status");
 
                     b.ToTable("employees", (string)null);
                 });
@@ -1111,8 +1102,6 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.HasIndex("StartDate", "EndDate");
-
                     b.ToTable("holidays", (string)null);
                 });
 
@@ -1246,7 +1235,7 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
 
                     b.Property<decimal>("TotalDays")
@@ -1257,11 +1246,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("LeaveTypeId");
 
-                    b.HasIndex("Status");
-
                     b.HasIndex("OrganizationId", "EmployeeId");
-
-                    b.HasIndex("StartDate", "EndDate");
 
                     b.ToTable("leave_applications", (string)null);
                 });
@@ -1668,10 +1653,6 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Month");
-
-                    b.HasIndex("Status");
-
                     b.HasIndex("OrganizationId", "EmployeeId");
 
                     b.ToTable("payroll_master", (string)null);
@@ -1857,8 +1838,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("shift_id");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("RosterDate");
 
                     b.HasIndex("ShiftId");
 

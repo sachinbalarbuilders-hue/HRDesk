@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
@@ -150,20 +151,46 @@ namespace HRDesk.Web.Pages.Regularizations
             
             await _context.SaveChangesAsync();
 
-            // PROCESS IMMEDIATELY (Until end of month to update frequencies)
+            // FAILSAFE for Sequence
             foreach (var rDate in requestDates.Distinct())
             {
-                var endOfMonth = new DateOnly(rDate.Year, rDate.Month, DateTime.DaysInMonth(rDate.Year, rDate.Month));
-                for (var d = rDate; d <= endOfMonth; d = d.AddDays(1))
-                {
-                    await _processor.ProcessDailyAttendanceAsync(d, Regularization.EmployeeId);
-                }
-                
                 if (!AutoGenerate && !string.IsNullOrWhiteSpace(Regularization.ApplicationNumber))
                 {
                     await _sequenceService.EnsureSequenceCatchUpAsync(rDate, Regularization.ApplicationNumber);
                 }
             }
+
+            // PROCESS IMMEDIATELY IN BACKGROUND (Until end of month to update frequencies)
+            var empId = Regularization.EmployeeId;
+            var scopeFactory = HttpContext.RequestServices.GetRequiredService<IServiceScopeFactory>();
+            
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var processor = scope.ServiceProvider.GetRequiredService<IAttendanceProcessorService>();
+                    
+                    var datesToProcess = new HashSet<DateOnly>();
+                    foreach (var rDate in requestDates.Distinct())
+                    {
+                        var endOfMonth = new DateOnly(rDate.Year, rDate.Month, DateTime.DaysInMonth(rDate.Year, rDate.Month));
+                        for (var d = rDate; d <= endOfMonth; d = d.AddDays(1))
+                        {
+                            datesToProcess.Add(d);
+                        }
+                    }
+
+                    foreach (var d in datesToProcess.OrderBy(x => x))
+                    {
+                        await processor.ProcessDailyAttendanceAsync(d, empId);
+                    }
+                }
+                catch
+                {
+                    // Ignore background processing errors
+                }
+            });
 
             return RedirectToPage("./Index");
         }

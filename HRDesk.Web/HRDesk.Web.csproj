@@ -32,9 +32,16 @@
   <ItemGroup>
     <Compile Remove="dbcheck\**\*.cs" />
     <None Remove="dbcheck\**\*" />
-    <!-- Exclude publish folder to prevent recursive build issues -->
+    <!-- Exclude publish and logs folder to prevent watch/build issues -->
     <Compile Remove="publish\**\*" />
     <Content Remove="publish\**\*" />
     <None Remove="publish\**\*" />
+    <Watch Remove="logs\**\*" />
+    <Watch Remove="publish\**\*" />
+    <Watch Remove="wwwroot\uploads\**\*" />
+    <Watch Remove="**\*.log" />
+    <Watch Remove="**\*.txt" />
+    <None Remove="logs\**\*" />
+    <Content Remove="logs\**\*" />
   </ItemGroup>
 </Project>

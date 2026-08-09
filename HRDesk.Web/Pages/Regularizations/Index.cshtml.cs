@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -35,14 +35,12 @@ namespace HRDesk.Web.Pages.Regularizations
         {
             if (_context.AttendanceRegularizations != null)
             {
-                var query = _context.AttendanceRegularizations
-                    .Include(a => a.Employee)
-                    .AsQueryable();
+                var baseQuery = _context.AttendanceRegularizations.AsNoTracking();
 
                 if (!string.IsNullOrWhiteSpace(SearchTerm))
                 {
                     var searchLower = SearchTerm.ToLower();
-                    query = query.Where(r => 
+                    baseQuery = baseQuery.Where(r => 
                         (r.Employee != null && r.Employee.EmployeeName.ToLower().Contains(searchLower)) ||
                         (r.ApplicationNumber != null && r.ApplicationNumber.ToLower().Contains(searchLower)) ||
                         (r.Reason != null && r.Reason.ToLower().Contains(searchLower))
@@ -51,12 +49,19 @@ namespace HRDesk.Web.Pages.Regularizations
 
                 if (pageNum < 1) pageNum = 1;
 
-                var totalCount = await query.CountAsync();
+                var totalCount = await baseQuery.CountAsync();
 
-                var items = await query
+                var pagedIds = await baseQuery
                     .OrderByDescending(r => r.CreatedAt)
+                    .Select(r => r.Id)
                     .Skip((pageNum - 1) * PageSize)
                     .Take(PageSize)
+                    .ToListAsync();
+
+                var items = await _context.AttendanceRegularizations.AsNoTracking()
+                    .Where(r => pagedIds.Contains(r.Id))
+                    .Include(a => a.Employee)
+                    .OrderByDescending(r => r.CreatedAt)
                     .ToListAsync();
                     
                 RegularizationRequests = new PaginatedList<AttendanceRegularization>(items, totalCount, pageNum, PageSize);

@@ -38,6 +38,7 @@ public class MonthlyAttendanceSheetModel : PageModel
 
         // 1. Fetch employees: Active OR those who were working during this month
         var empQuery = _db.Employees
+            .AsNoTracking()
             .Include(e => e.Department)
             .Where(e => 
                 (e.JoiningDate == null || e.JoiningDate < endDate) 
@@ -59,36 +60,42 @@ public class MonthlyAttendanceSheetModel : PageModel
             .Take(50)
             .ToListAsync();
 
-        // 2. Fetch all attendance logs for the month
+        var pagedEmpIds = employees.Select(e => e.EmployeeId).ToList();
+
+        // 2. Fetch all attendance logs for the month for the current 50 paged employees
         var logs = await _db.DailyAttendance
+            .AsNoTracking()
             .Include(a => a.Shift)
-            .Where(a => a.RecordDate >= startDate && a.RecordDate < endDate)
+            .Where(a => a.RecordDate >= startDate && a.RecordDate < endDate && pagedEmpIds.Contains(a.EmployeeId))
             .ToListAsync();
 
-        // 2b. Fetch all leave applications for the month (both Approved and Adjusted for tooltip context)
+        // 2b. Fetch all leave applications for the month for the current paged employees
         var leaveApps = await _db.LeaveApplications
+            .AsNoTracking()
             .Include(la => la.LeaveType)
             .Where(la => (la.Status == "Approved" || la.Status == "Adjusted") && 
                          la.StartDate < endDate && 
-                         la.EndDate >= startDate)
+                         la.EndDate >= startDate &&
+                         pagedEmpIds.Contains(la.EmployeeId))
             .ToListAsync();
 
         var holidays = await _db.Holidays
+            .AsNoTracking()
             .Where(h => h.StartDate < endDate && h.EndDate >= startDate)
             .ToListAsync();
 
         // Optimization: Pre-load all leave types once to avoid DB queries inside loops
         var allLeaveTypes = await _cache.GetLeaveTypesAsync();
 
-        // 2c. Fetch all Missed Punch regularizations for the month
+        // 2c. Fetch all Missed Punch regularizations for the month for paged employees
         var regularizations = await _db.AttendanceRegularizations
             .AsNoTracking()
-            .Where(r => r.RequestType == "Missed Punch" && r.Status == "Approved" && r.RequestDate >= startDate && r.RequestDate <= endDate)
+            .Where(r => r.RequestType == "Missed Punch" && r.Status == "Approved" && r.RequestDate >= startDate && r.RequestDate <= endDate && pagedEmpIds.Contains(r.EmployeeId))
             .ToListAsync();
 
         var monthRosters = await _db.ShiftRosters
             .AsNoTracking()
-            .Where(r => r.RosterDate >= startDate && r.RosterDate <= endDate)
+            .Where(r => r.RosterDate >= startDate && r.RosterDate <= endDate && pagedEmpIds.Contains(r.EmployeeId))
             .ToListAsync();
 
         var items = new List<EmployeeSummaryDto>();

@@ -82,7 +82,10 @@ builder.Services.AddDbContext<HRDesk.Web.Data.BiometricAttendanceDbContext>(opti
         throw new InvalidOperationException("Missing connection string 'AttendanceDb'.");
     }
 
-    options.UseSqlServer(connectionString);
+    options.UseSqlServer(connectionString, sqlOptions => 
+    {
+        sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+    });
 });
 
 builder.Services.AddScoped<HRDesk.Web.Services.IAttendanceProcessorService, HRDesk.Web.Services.AttendanceProcessorService>();
