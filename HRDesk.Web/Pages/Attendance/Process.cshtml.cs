@@ -1,23 +1,35 @@
-﻿using HRDesk.Web.Data;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
+using HRDesk.Web.Services.Attendance;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace HRDesk.Web.Pages.Attendance;
 
 public class ProcessModel : PageModel
 {
-    private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
+    private readonly IAttendanceProcessorService _processor;
     private readonly ILogger<ProcessModel> _logger;
     private readonly BiometricAttendanceDbContext _db;
+    private readonly ITeamOfficeSyncService _teamOfficeService;
 
-    public ProcessModel(HRDesk.Web.Services.IAttendanceProcessorService processor, ILogger<ProcessModel> logger, BiometricAttendanceDbContext db)
+    public ProcessModel(
+        IAttendanceProcessorService processor,
+        ILogger<ProcessModel> logger,
+        BiometricAttendanceDbContext db,
+        ITeamOfficeSyncService teamOfficeService)
     {
         _processor = processor;
         _logger = logger;
         _db = db;
+        _teamOfficeService = teamOfficeService;
     }
 
     [BindProperty]
@@ -34,6 +46,7 @@ public class ProcessModel : PageModel
 
     public List<Employee> Employees { get; set; } = new();
 
+    [TempData]
     public string Message { get; set; } = "";
 
     public async Task OnGetAsync()
@@ -42,6 +55,13 @@ public class ProcessModel : PageModel
             .Where(e => e.Status == "active" || e.Status == "Active")
             .OrderBy(e => e.EmployeeName)
             .ToListAsync();
+    }
+
+    public async Task<IActionResult> OnPostSyncCloudLogsAsync()
+    {
+        var (newLogs, message, success) = await _teamOfficeService.SyncLatestPunchesAsync();
+        Message = success ? $"Success: {message}" : $"Error: {message}";
+        return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -71,7 +91,7 @@ public class ProcessModel : PageModel
                 {
                     _db.DailyAttendance.RemoveRange(futureRecords);
                     await _db.SaveChangesAsync();
-                    _logger.LogInformation($"Cleared {futureRecords.Count} attendance records after {ToDate}");
+                    _logger.LogInformation("Cleared {Count} attendance records after {ToDate}", futureRecords.Count, ToDate);
                 }
             }
 
@@ -89,7 +109,6 @@ public class ProcessModel : PageModel
             else
             {
                 // Process all employees using the processor's native batch mode
-                // This ensures Inactive employees with valid LastWorkingDates are also processed
                 for (var d = FromDate; d <= ToDate; d = d.AddDays(1))
                 {
                     await _processor.ProcessDailyAttendanceAsync(d, null);

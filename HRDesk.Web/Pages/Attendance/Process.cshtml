@@ -17,6 +17,12 @@
             <p class="text-muted mb-0 small">Calculate attendance statuses, shift penalties, and work hours from biometric logs.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
+            <form method="post" asp-page-handler="SyncCloudLogs" class="d-inline" onsubmit="showLoading('Fetching Latest Punches from TeamOffice Cloud...')">
+                <button type="submit" class="btn btn-success d-inline-flex align-items-center gap-2 shadow-sm" title="Pull latest punch logs from TeamOffice Cloud">
+                    <i class="bi bi-cloud-arrow-down-fill"></i>
+                    <span>Fetch Cloud Logs</span>
+                </button>
+            </form>
             <a asp-page="/Attendance/MonthlyAttendanceSheet" class="btn btn-outline-primary d-inline-flex align-items-center gap-2">
                 <i class="bi bi-calendar3"></i>
                 <span>Monthly Sheet</span>

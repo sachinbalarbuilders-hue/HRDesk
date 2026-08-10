@@ -114,6 +114,21 @@ public sealed class CreateModel : PageModel
         _db.Employees.Add(employee);
         await _db.SaveChangesAsync();
 
+        if (!string.IsNullOrWhiteSpace(Input.BiometricCode))
+        {
+            string bCode = Input.BiometricCode.Trim().ToUpperInvariant();
+            _db.BiometricEmployeeMappings.Add(new BiometricEmployeeMapping
+            {
+                OrganizationId = 1,
+                EmployeeId = employee.EmployeeId,
+                BiometricCode = bCode,
+                Notes = $"HiveStaff: {employee.EmployeeName}",
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            });
+            await _db.SaveChangesAsync();
+        }
+
         if (rawPhotoBytes != null)
         {
             var connection = Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.GetDbConnection(_db.Database);
@@ -164,6 +179,9 @@ public sealed class CreateModel : PageModel
         [Required]
         [Display(Name = "Employee ID")]
         public int EmployeeId { get; set; }
+
+        [Display(Name = "HiveStaff Code (with prefix)")]
+        public string? BiometricCode { get; set; }
 
         [Required]
         [StringLength(255)]

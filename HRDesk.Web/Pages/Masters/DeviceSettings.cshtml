@@ -1,7 +1,7 @@
 @page
 @model HRDesk.Web.Pages.Masters.DeviceSettingsModel
 @{
-    ViewData["Title"] = "Device Settings";
+    ViewData["Title"] = "Biometric & Device Settings";
 }
 
 <div class="container-fluid pb-5">
@@ -9,17 +9,31 @@
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 mt-2">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <h4 class="mb-0 fw-bold">Biometric Devices</h4>
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 small">
-                    @Model.Devices.Count @(Model.Devices.Count == 1 ? "Device" : "Devices")
+                <h4 class="mb-0 fw-bold">Biometric Terminals & Cloud Integrations</h4>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 small">
+                    @Model.SyncMode Mode
                 </span>
             </div>
-            <p class="text-muted mb-0 small">Manage biometric hardware terminals and automated attendance synchronization.</p>
+            <p class="text-muted mb-0 small">Manage cloud REST API synchronization, hardware biometric terminals, and attendance polling.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
+            <!-- Manual Sync Button -->
+            <form method="post" asp-page-handler="SyncNow" class="d-inline" onsubmit="showLoading('Fetching Latest Punches from TeamOffice Cloud...')">
+                <button type="submit" class="btn btn-success d-inline-flex align-items-center gap-2 shadow-sm">
+                    <i class="bi bi-cloud-arrow-down-fill"></i>
+                    <span>Sync Punches Now</span>
+                </button>
+            </form>
+
+            <button type="button" class="btn btn-outline-primary d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#syncRangeModal">
+                <i class="bi bi-calendar-range"></i>
+                <span>Sync Date Range</span>
+            </button>
+
+            <!-- Add Terminal / Integration Modal Trigger -->
+            <button type="button" class="btn btn-primary d-inline-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addModal">
                 <i class="bi bi-plus-lg"></i>
-                <span>Add Device</span>
+                <span>Add New Terminal</span>
             </button>
         </div>
     </div>
@@ -39,11 +53,20 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-3 d-flex align-items-center gap-3">
                     <div class="rounded-3 p-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-hdd-network fs-4"></i>
+                        <i class="bi bi-cpu fs-4"></i>
                     </div>
                     <div>
-                        <div class="text-muted small text-uppercase fw-semibold">Configured Terminals</div>
-                        <div class="fs-4 fw-bold text-body-emphasis">@Model.Devices.Count</div>
+                        <div class="text-muted small text-uppercase fw-semibold">Active Sync Mode</div>
+                        <div class="fs-5 fw-bold text-body-emphasis">
+                            @if (Model.SyncMode == "Local")
+                            {
+                                <span class="text-primary"><i class="bi bi-ethernet me-1"></i>Local Only (LAN)</span>
+                            }
+                            else
+                            {
+                                <span class="text-success"><i class="bi bi-cloud-arrow-down-fill me-1"></i>Cloud Only (API)</span>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -52,11 +75,11 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-3 d-flex align-items-center gap-3">
                     <div class="rounded-3 p-3 bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-stopwatch fs-4"></i>
+                        <i class="bi bi-cloud-check fs-4"></i>
                     </div>
                     <div>
-                        <div class="text-muted small text-uppercase fw-semibold">Sync Frequency</div>
-                        <div class="fs-4 fw-bold text-body-emphasis">Every @Model.SyncIntervalMinutes min</div>
+                        <div class="text-muted small text-uppercase fw-semibold">TeamOffice Cloud API</div>
+                        <div class="fs-5 fw-bold text-success">Connected</div>
                     </div>
                 </div>
             </div>
@@ -65,11 +88,11 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-3 d-flex align-items-center gap-3">
                     <div class="rounded-3 p-3 bg-info-subtle text-info d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-ethernet fs-4"></i>
+                        <i class="bi bi-clock-history fs-4"></i>
                     </div>
                     <div>
-                        <div class="text-muted small text-uppercase fw-semibold">Protocol</div>
-                        <div class="fs-4 fw-bold text-body-emphasis">TCP / IP</div>
+                        <div class="text-muted small text-uppercase fw-semibold">Last Cloud Sync</div>
+                        <div class="small fw-semibold text-body-emphasis">@Model.LastSyncTime</div>
                     </div>
                 </div>
             </div>
@@ -78,48 +101,99 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body p-3 d-flex align-items-center gap-3">
                     <div class="rounded-3 p-3 bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-shield-check fs-4"></i>
+                        <i class="bi bi-fingerprint fs-4"></i>
                     </div>
                     <div>
-                        <div class="text-muted small text-uppercase fw-semibold">Service Status</div>
-                        <div class="fs-4 fw-bold text-body-emphasis">Active Polling</div>
+                        <div class="text-muted small text-uppercase fw-semibold">Cloud Logs Imported</div>
+                        <div class="fs-5 fw-bold text-body-emphasis">@Model.TotalCloudLogsCount Logs</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Devices Table Card -->
+    <!-- Unified Configured Terminals & Cloud Integrations Table -->
     <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-transparent border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
-            <h5 class="mb-0 fw-semibold fs-6">Registered Devices</h5>
-            <span class="text-muted small">Real-time attendance capture</span>
+        <div class="card-header bg-transparent border-bottom py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-diagram-3 text-primary"></i>
+                <h5 class="mb-0 fw-semibold fs-6">Configured Terminals & Integrations</h5>
+            </div>
+            <span class="text-muted extra-small font-monospace">Cursor: @Model.LastSyncedRecord</span>
         </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light text-uppercase small text-muted">
                     <tr>
-                        <th class="ps-4 py-3" style="min-width: 200px;">Device Name</th>
-                        <th style="min-width: 160px;">IP Address</th>
-                        <th style="min-width: 100px;">Port</th>
-                        <th style="min-width: 120px;">Machine #</th>
-                        <th style="min-width: 110px;">Comm Key</th>
-                        <th class="text-end pe-4" style="min-width: 140px;">Actions</th>
+                        <th class="ps-4 py-3" style="min-width: 220px;">Terminal / Provider</th>
+                        <th style="min-width: 130px;">Type</th>
+                        <th style="min-width: 180px;">Connection / Endpoint</th>
+                        <th style="min-width: 140px;">Identifier / Unit</th>
+                        <th style="min-width: 110px;">Frequency</th>
+                        <th class="text-end pe-4" style="min-width: 180px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
+                    <!-- Row 1: TeamOffice Cloud API Integration -->
+                    <tr class="table-success-subtle">
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle p-2 bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                    <i class="bi bi-cloud-arrow-down-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-body-emphasis">TeamOffice Cloud API</div>
+                                    <div class="text-muted extra-small">Automated HTTPS Background Sync</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-success text-white px-2 py-1">Cloud REST API</span>
+                        </td>
+                        <td>
+                            <span class="badge font-monospace bg-body-tertiary text-body border px-2 py-1">
+                                <i class="bi bi-globe me-1 text-success"></i>@Model.BaseUrl
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-muted extra-small">Corp:</span> <span class="fw-bold font-monospace small">@Model.CorporateId</span>
+                            <span class="text-muted extra-small ms-1">(@Model.Username)</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-body-secondary text-body font-monospace px-2 py-1">
+                                @Model.CloudSyncInterval min
+                            </span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <!-- Test Cloud API -->
+                                <form method="post" asp-page-handler="TestCloudApi" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-success border-0 p-1 px-2" title="Test Cloud API Connection">
+                                        <i class="bi bi-broadcast me-1"></i>Test
+                                    </button>
+                                </form>
+
+                                <!-- Edit Cloud Config Modal Button -->
+                                <button type="button" class="btn btn-sm btn-outline-primary border-0 p-1 px-2" data-bs-toggle="modal" data-bs-target="#editCloudModal" title="Edit Cloud API Settings">
+                                    <i class="bi bi-pencil-square me-1"></i>Edit
+                                </button>
+
+                                <!-- Delete Cloud Integration Button -->
+                                <form method="post" asp-page-handler="DeleteCloudSettings" class="d-inline" onsubmit="return confirm('Are you sure you want to remove TeamOffice Cloud integration and reset credentials?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0 p-1 px-2" title="Remove Cloud Integration">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Local Terminals Rows -->
                     @if (!Model.Devices.Any())
                     {
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <div class="mb-3">
-                                    <i class="bi bi-hdd-network fs-1 text-secondary opacity-50"></i>
-                                </div>
-                                <h6 class="fw-semibold mb-1">No Biometric Devices Configured</h6>
-                                <p class="small text-muted mb-3">Add your first biometric attendance terminal to enable automatic synchronization.</p>
-                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
-                                    <i class="bi bi-plus-lg me-1"></i> Add Device
-                                </button>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <div class="small">No local hardware terminals configured. You can click <strong>Add New Terminal</strong> to add local LAN devices.</div>
                             </td>
                         </tr>
                     }
@@ -128,54 +202,57 @@
                         <tr>
                             <td class="ps-4">
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="rounded-circle p-2 bg-body-tertiary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                        <i class="bi bi-fingerprint text-primary"></i>
+                                    <div class="rounded-circle p-2 bg-body-tertiary d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                        <i class="bi bi-fingerprint text-primary fs-5"></i>
                                     </div>
                                     <div>
                                         <div class="fw-semibold text-body-emphasis">@device.Name</div>
-                                        <div class="text-muted extra-small">ID: @device.Id</div>
+                                        <div class="text-muted extra-small">Local LAN Terminal</div>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <span class="badge font-monospace bg-body-tertiary text-body border px-2 py-1">
-                                    <i class="bi bi-globe2 me-1 text-muted"></i>@device.IpAddress
-                                </span>
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">TCP Socket</span>
                             </td>
                             <td>
-                                <span class="fw-medium text-body-secondary">@device.Port</span>
+                                <span class="badge font-monospace bg-body-tertiary text-body border px-2 py-1">
+                                    <i class="bi bi-ethernet me-1 text-primary"></i>@device.IpAddress:@device.Port
+                                </span>
                             </td>
                             <td>
                                 <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
                                     Unit #@device.MachineNumber
                                 </span>
+                                <span class="text-muted font-monospace extra-small ms-1">Key: @(device.CommKey ?? 0)</span>
                             </td>
                             <td>
-                                <span class="text-muted font-monospace small">@device.CommKey</span>
+                                <span class="badge bg-body-secondary text-body font-monospace px-2 py-1">
+                                    @Model.SyncIntervalMinutes min
+                                </span>
                             </td>
                             <td class="text-end pe-4">
                                 <div class="d-inline-flex align-items-center gap-1">
-                                    <!-- Test Connection -->
+                                    <!-- Test LAN Connection -->
                                     <form method="post" asp-page-handler="TestConnection" asp-route-id="@device.Id" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning border-0 p-1 px-2" title="Test Connection">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning border-0 p-1 px-2" title="Test LAN Connection">
                                             <i class="bi bi-broadcast me-1"></i>Test
                                         </button>
                                     </form>
 
                                     <!-- Edit Button -->
-                                    <button type="button" class="btn btn-sm btn-outline-primary border-0 p-1 px-2" data-bs-toggle="modal" data-bs-target="#editModal@(device.Id)" title="Edit Configuration">
+                                    <button type="button" class="btn btn-sm btn-outline-primary border-0 p-1 px-2" data-bs-toggle="modal" data-bs-target="#editModal@(device.Id)" title="Edit Terminal">
                                         <i class="bi bi-pencil-square me-1"></i>Edit
                                     </button>
 
                                     <!-- Delete Button -->
-                                    <form method="post" asp-page-handler="DeleteDevice" asp-route-id="@device.Id" class="d-inline" onsubmit="return confirm('Are you sure you want to remove device \'@device.Name\'?')">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 p-1 px-2" title="Remove Device">
+                                    <form method="post" asp-page-handler="DeleteDevice" asp-route-id="@device.Id" class="d-inline" onsubmit="return confirm('Are you sure you want to remove terminal \'@device.Name\'?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 p-1 px-2" title="Remove Terminal">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
                                 </div>
 
-                                <!-- Edit Modal -->
+                                <!-- Edit Local Terminal Modal -->
                                 <div class="modal fade text-start" id="editModal@(device.Id)" tabindex="-1" aria-labelledby="editModalLabel@(device.Id)" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content border-0 shadow">
@@ -186,7 +263,7 @@
                                                         <div class="rounded-circle p-2 bg-primary-subtle text-primary">
                                                             <i class="bi bi-sliders"></i>
                                                         </div>
-                                                        <h5 class="modal-title fw-bold fs-6" id="editModalLabel@(device.Id)">Edit Device Configuration</h5>
+                                                        <h5 class="modal-title fw-bold fs-6" id="editModalLabel@(device.Id)">Edit Terminal: @device.Name</h5>
                                                     </div>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                 </div>
@@ -209,10 +286,15 @@
                                                             <input type="number" name="machine" value="@device.MachineNumber" class="form-control" required />
                                                         </div>
                                                     </div>
-                                                    <div class="mb-2">
-                                                        <label class="form-label small text-muted text-uppercase fw-semibold">Communication Password (Comm Key)</label>
-                                                        <input type="number" name="commKey" value="@device.CommKey" class="form-control" required />
-                                                        <div class="form-text extra-small">Default is 0 if no password was configured on device.</div>
+                                                    <div class="row g-3 mb-3">
+                                                        <div class="col-md-6">
+                                                            <label class="form-label small text-muted text-uppercase fw-semibold">Comm Password (Key)</label>
+                                                            <input type="number" name="commKey" value="@(device.CommKey ?? 0)" class="form-control" required />
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label small text-muted text-uppercase fw-semibold">LAN Polling (Mins)</label>
+                                                            <input type="number" name="syncInterval" value="@Model.SyncIntervalMinutes" class="form-control" min="1" max="1440" required />
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer border-top bg-light-subtle px-4 py-3">
@@ -231,83 +313,118 @@
         </div>
     </div>
 
-    <!-- Global Settings Row -->
-    <div class="row g-4">
-        <!-- Frequency Configuration -->
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-transparent border-bottom py-3 px-4">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-clock-history text-primary"></i>
-                        <h5 class="mb-0 fw-semibold fs-6">Synchronization Settings</h5>
-                    </div>
-                </div>
-                <div class="card-body p-4">
-                    <form method="post" asp-page-handler="UpdateSyncInterval">
-                        <label asp-for="SyncIntervalMinutes" class="form-label small text-muted text-uppercase fw-semibold">
-                            Sync Interval (Minutes)
-                        </label>
-                        <div class="input-group mb-3">
-                            <span class="input-group-text bg-body-tertiary border-end-0">
-                                <i class="bi bi-stopwatch text-muted"></i>
-                            </span>
-                            <input asp-for="SyncIntervalMinutes" id="syncInput" type="number" class="form-control border-start-0" min="1" max="1440" required />
-                            <button type="submit" class="btn btn-primary px-4">
-                                <i class="bi bi-check2 me-1"></i> Update
-                            </button>
-                        </div>
-
-                        <!-- Preset Interval Buttons -->
-                        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                            <span class="text-muted extra-small me-1">Quick presets:</span>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 extra-small" onclick="setPreset(2)">2m</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 extra-small" onclick="setPreset(5)">5m</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 extra-small" onclick="setPreset(10)">10m</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 extra-small" onclick="setPreset(15)">15m</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 extra-small" onclick="setPreset(30)">30m</button>
-                        </div>
-
-                        <div class="p-3 bg-body-tertiary rounded-3 text-muted small">
-                            <i class="bi bi-info-circle me-1 text-primary"></i>
-                            <strong>Recommended:</strong> 5–10 minutes. The Windows background service will immediately adapt to this schedule for real-time punch downloads.
-                        </div>
-                    </form>
-                </div>
+    <!-- HiveStaff & Biometric Code Mappings Card -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-bottom py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-person-badge text-primary"></i>
+                <h5 class="mb-0 fw-semibold fs-6">HiveStaff & Biometric Code Mappings</h5>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0 extra-small">
+                    @Model.CodeMappings.Count Mapped
+                </span>
             </div>
+            <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#mapCodeModal">
+                <i class="bi bi-plus-lg"></i>
+                <span>Map Employee Code</span>
+            </button>
         </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase small text-muted">
+                    <tr>
+                        <th class="ps-4 py-3" style="min-width: 180px;">HiveStaff / Machine Code</th>
+                        <th style="min-width: 250px;">HRDesk Employee</th>
+                        <th style="min-width: 200px;">Notes / Role</th>
+                        <th class="text-end pe-4" style="min-width: 100px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.CodeMappings.Any())
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">
+                                <div class="small">No custom biometric code mappings configured. System falls back to matching numerical IDs directly.</div>
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var mapping in Model.CodeMappings)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <span class="badge bg-primary text-white font-monospace fs-6 px-3 py-1">
+                                    <i class="bi bi-tag-fill me-1"></i>@mapping.BiometricCode
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle p-1 bg-body-tertiary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                        <i class="bi bi-person text-secondary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-body-emphasis">@mapping.EmployeeName</div>
+                                        <div class="text-muted extra-small font-monospace">HRDesk ID: #@mapping.EmployeeId</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-muted small">@(string.IsNullOrEmpty(mapping.Notes) ? "—" : mapping.Notes)</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <form method="post" asp-page-handler="DeleteCodeMapping" asp-route-id="@mapping.Id" class="d-inline" onsubmit="return confirm('Remove code mapping for \'@mapping.BiometricCode\'?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0 p-1 px-2" title="Delete Mapping">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-        <!-- Service Information -->
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-transparent border-bottom py-3 px-4">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-info-circle text-info"></i>
-                        <h5 class="mb-0 fw-semibold fs-6">How Synchronization Operates</h5>
+    <!-- Fail-Safe Architecture Card -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-shield-check text-success fs-5"></i>
+                <h5 class="mb-0 fw-semibold fs-6">Fail-Safe Dual-Sync Redundancy</h5>
+            </div>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">Protected Architecture</span>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-4 align-items-center">
+                <div class="col-md-4">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle p-2 bg-success-subtle text-success mt-1">
+                            <i class="bi bi-cloud-arrow-down-fill"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-body-emphasis small">Cloud-to-Cloud Automation</div>
+                            <div class="text-muted extra-small">Pulls biometric logs from TeamOffice Cloud every 5 minutes without needing an office PC.</div>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body p-4 d-flex flex-column justify-content-between">
-                    <p class="text-muted small mb-3">
-                        The background Windows service continuously monitors all registered biometric hardware over your local network:
-                    </p>
-
-                    <div class="d-flex flex-column gap-2 mb-3">
-                        <div class="d-flex align-items-start gap-2 text-muted small">
-                            <i class="bi bi-check-circle-fill text-success mt-1"></i>
-                            <div><strong>Automatic Retrieval:</strong> Connects to each terminal and downloads new biometric punches into <code>attendance_logs</code>.</div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle p-2 bg-primary-subtle text-primary mt-1">
+                            <i class="bi bi-ethernet"></i>
                         </div>
-                        <div class="d-flex align-items-start gap-2 text-muted small">
-                            <i class="bi bi-check-circle-fill text-success mt-1"></i>
-                            <div><strong>Network Resilient:</strong> Automatically retries if any device goes offline temporarily without halting others.</div>
-                        </div>
-                        <div class="d-flex align-items-start gap-2 text-muted small">
-                            <i class="bi bi-check-circle-fill text-success mt-1"></i>
-                            <div><strong>Optimized Polling:</strong> Lower intervals provide instant punch visibility while higher intervals conserve device battery and network bandwidth.</div>
+                        <div>
+                            <div class="fw-bold text-body-emphasis small">Local LAN Redundancy</div>
+                            <div class="text-muted extra-small">If cloud internet drops, local service continues polling terminals over the office network.</div>
                         </div>
                     </div>
-
-                    <div class="border-top pt-3 d-flex align-items-center justify-content-between">
-                        <span class="text-muted extra-small">Automated Attendance Engine</span>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Operational</span>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle p-2 bg-warning-subtle text-warning mt-1">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-body-emphasis small">Zero Duplicate Guarantee</div>
+                            <div class="text-muted extra-small">Unique constraints on employee ID and punch time prevent duplicate log insertions.</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -315,59 +432,303 @@
     </div>
 </div>
 
-<!-- Add Device Modal -->
-<div class="modal fade" id="addDeviceModal" tabindex="-1" aria-labelledby="addDeviceModalLabel" aria-hidden="true">
+<!-- ================= MODALS ================= -->
+
+<!-- 1. Unified Add Modal (Local & Cloud Options) -->
+<div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle p-2 bg-primary-subtle text-primary">
+                        <i class="bi bi-plus-circle-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold fs-6" id="addModalLabel">Add Terminal or Cloud Integration</h5>
+                        <div class="text-muted extra-small">Choose whether to configure a local network device or cloud API provider.</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Nav Tabs -->
+            <ul class="nav nav-tabs nav-fill px-4 pt-3 border-bottom bg-light-subtle" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-semibold d-flex align-items-center justify-content-center gap-2 py-2" id="tab-local" data-bs-toggle="tab" data-bs-target="#pane-local" type="button" role="tab">
+                        <i class="bi bi-hdd-network text-primary"></i>
+                        <span>Local Hardware Terminal</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold d-flex align-items-center justify-content-center gap-2 py-2" id="tab-cloud" data-bs-toggle="tab" data-bs-target="#pane-cloud" type="button" role="tab">
+                        <i class="bi bi-cloud-arrow-down-fill text-success"></i>
+                        <span>TeamOffice Cloud API</span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- Tab Pane 1: Local Terminal -->
+                <div class="tab-pane fade show active" id="pane-local" role="tabpanel">
+                    <form method="post" asp-page-handler="AddDevice">
+                        <div class="modal-body p-4">
+                            <div class="mb-3">
+                                <label asp-for="NewDevice.Name" class="form-label small text-muted text-uppercase fw-semibold">Device Name</label>
+                                <input asp-for="NewDevice.Name" class="form-control" placeholder="e.g. Main Gate Terminal" required />
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="NewDevice.IpAddress" class="form-label small text-muted text-uppercase fw-semibold">IP Address</label>
+                                <input asp-for="NewDevice.IpAddress" class="form-control font-monospace" placeholder="e.g. 192.168.1.201" required />
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="NewDevice.Port" class="form-label small text-muted text-uppercase fw-semibold">Port</label>
+                                    <input asp-for="NewDevice.Port" class="form-control" value="5005" required />
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="NewDevice.MachineNumber" class="form-label small text-muted text-uppercase fw-semibold">Machine #</label>
+                                    <input asp-for="NewDevice.MachineNumber" class="form-control" value="1" required />
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="NewDevice.CommKey" class="form-label small text-muted text-uppercase fw-semibold">Comm Password (Key)</label>
+                                    <input asp-for="NewDevice.CommKey" class="form-control" value="0" required />
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="SyncIntervalMinutes" class="form-label small text-muted text-uppercase fw-semibold">LAN Polling (Mins)</label>
+                                    <input asp-for="SyncIntervalMinutes" class="form-control" value="10" min="1" max="1440" required />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top bg-light-subtle px-4 py-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-sm btn-primary px-4">Add Local Terminal</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tab Pane 2: Cloud API Setup -->
+                <div class="tab-pane fade" id="pane-cloud" role="tabpanel">
+                    <form method="post" asp-page-handler="SaveCloudSettings">
+                        <div class="modal-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted text-uppercase fw-semibold mb-2">Sync Operation Mode</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="card border p-2 text-center cursor-pointer @(Model.SyncMode == "Cloud" ? "border-success bg-success-subtle" : "")" for="mCloud">
+                                            <input class="form-check-input mb-1" type="radio" asp-for="SyncMode" value="Cloud" id="mCloud" checked="@(Model.SyncMode == "Cloud")" />
+                                            <span class="small fw-bold d-block"><i class="bi bi-cloud-arrow-down-fill text-success me-1"></i>Cloud Only (API)</span>
+                                        </label>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="card border p-2 text-center cursor-pointer @(Model.SyncMode == "Local" ? "border-primary bg-primary-subtle" : "")" for="mLocal">
+                                            <input class="form-check-input mb-1" type="radio" asp-for="SyncMode" value="Local" id="mLocal" checked="@(Model.SyncMode == "Local")" />
+                                            <span class="small fw-bold d-block"><i class="bi bi-ethernet text-primary me-1"></i>Local Only (LAN)</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="CorporateId" class="form-label small text-muted text-uppercase fw-semibold">Corporate ID</label>
+                                    <input asp-for="CorporateId" class="form-control font-monospace" placeholder="e.g. Tbalar1121" required />
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Username" class="form-label small text-muted text-uppercase fw-semibold">API Username</label>
+                                    <input asp-for="Username" class="form-control font-monospace" placeholder="e.g. Tbalar1121" required />
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="Password" class="form-label small text-muted text-uppercase fw-semibold">API Password</label>
+                                    <input asp-for="Password" type="password" class="form-control font-monospace" placeholder="•••••••• (Leave blank to keep existing)" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="CloudSyncInterval" class="form-label small text-muted text-uppercase fw-semibold">Sync Interval (Mins)</label>
+                                    <input asp-for="CloudSyncInterval" type="number" class="form-control" min="1" max="1440" required />
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <label asp-for="BaseUrl" class="form-label small text-muted text-uppercase fw-semibold">API Base URL</label>
+                                <input asp-for="BaseUrl" class="form-control font-monospace" placeholder="https://api.etimeoffice.com/api" required />
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top bg-light-subtle px-4 py-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-sm btn-success px-4">Save Cloud Configuration</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Edit Cloud API Modal -->
+<div class="modal fade" id="editCloudModal" tabindex="-1" aria-labelledby="editCloudModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
-            <form method="post" asp-page-handler="AddDevice">
+            <form method="post" asp-page-handler="SaveCloudSettings">
                 <div class="modal-header border-bottom">
                     <div class="d-flex align-items-center gap-2">
-                        <div class="rounded-circle p-2 bg-primary-subtle text-primary">
-                            <i class="bi bi-plus-circle"></i>
+                        <div class="rounded-circle p-2 bg-success-subtle text-success">
+                            <i class="bi bi-cloud-arrow-down-fill fs-5"></i>
                         </div>
-                        <h5 class="modal-title fw-bold fs-6" id="addDeviceModalLabel">Add New Biometric Device</h5>
+                        <h5 class="modal-title fw-bold fs-6" id="editCloudModalLabel">Edit TeamOffice Cloud API Settings</h5>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
+                    <!-- Operation Mode Selection -->
                     <div class="mb-3">
-                        <label asp-for="NewDevice.Name" class="form-label small text-muted text-uppercase fw-semibold">Device Name</label>
-                        <input asp-for="NewDevice.Name" class="form-control" placeholder="e.g. Main Gate Terminal" required />
+                        <label class="form-label small text-muted text-uppercase fw-semibold mb-2">Sync Operation Mode</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="card border p-2 text-center cursor-pointer @(Model.SyncMode == "Cloud" ? "border-success bg-success-subtle" : "")" for="editModeCloud">
+                                    <input class="form-check-input mb-1" type="radio" asp-for="SyncMode" value="Cloud" id="editModeCloud" checked="@(Model.SyncMode == "Cloud")" />
+                                    <span class="small fw-bold d-block"><i class="bi bi-cloud-arrow-down-fill text-success me-1"></i>Cloud Only (API)</span>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <label class="card border p-2 text-center cursor-pointer @(Model.SyncMode == "Local" ? "border-primary bg-primary-subtle" : "")" for="editModeLocal">
+                                    <input class="form-check-input mb-1" type="radio" asp-for="SyncMode" value="Local" id="editModeLocal" checked="@(Model.SyncMode == "Local")" />
+                                    <span class="small fw-bold d-block"><i class="bi bi-ethernet text-primary me-1"></i>Local Only (LAN)</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label asp-for="NewDevice.IpAddress" class="form-label small text-muted text-uppercase fw-semibold">IP Address</label>
-                        <input asp-for="NewDevice.IpAddress" class="form-control font-monospace" placeholder="e.g. 192.168.1.201" required />
-                    </div>
+
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label asp-for="NewDevice.Port" class="form-label small text-muted text-uppercase fw-semibold">Port</label>
-                            <input asp-for="NewDevice.Port" class="form-control" value="4370" required />
+                            <label asp-for="CorporateId" class="form-label small text-muted text-uppercase fw-semibold">Corporate ID</label>
+                            <input asp-for="CorporateId" class="form-control font-monospace" placeholder="e.g. Tbalar1121" required />
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="NewDevice.MachineNumber" class="form-label small text-muted text-uppercase fw-semibold">Machine #</label>
-                            <input asp-for="NewDevice.MachineNumber" class="form-control" value="1" required />
+                            <label asp-for="Username" class="form-label small text-muted text-uppercase fw-semibold">API Username</label>
+                            <input asp-for="Username" class="form-control font-monospace" placeholder="e.g. Tbalar1121" required />
                         </div>
                     </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label small text-muted text-uppercase fw-semibold">API Password</label>
+                            <input asp-for="Password" type="password" class="form-control font-monospace" placeholder="•••••••• (Leave blank to keep existing)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="CloudSyncInterval" class="form-label small text-muted text-uppercase fw-semibold">Sync Interval (Mins)</label>
+                            <input asp-for="CloudSyncInterval" type="number" class="form-control" min="1" max="1440" required />
+                        </div>
+                    </div>
+
                     <div class="mb-2">
-                        <label asp-for="NewDevice.CommKey" class="form-label small text-muted text-uppercase fw-semibold">Communication Password (Comm Key)</label>
-                        <input asp-for="NewDevice.CommKey" class="form-control" value="0" required />
-                        <div class="form-text extra-small">Default is 0 if no password was configured on device.</div>
+                        <label asp-for="BaseUrl" class="form-label small text-muted text-uppercase fw-semibold">API Base URL</label>
+                        <input asp-for="BaseUrl" class="form-control font-monospace" placeholder="https://api.etimeoffice.com/api" required />
                     </div>
                 </div>
                 <div class="modal-footer border-top bg-light-subtle px-4 py-3">
                     <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-sm btn-primary px-4">Add Device</button>
+                    <button type="submit" class="btn btn-sm btn-success px-4">Update Cloud Settings</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<script>
-    function setPreset(mins) {
-        document.getElementById('syncInput').value = mins;
-    }
-</script>
+<!-- 3. Sync Date Range Modal -->
+<div class="modal fade" id="syncRangeModal" tabindex="-1" aria-labelledby="syncRangeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="SyncRange" onsubmit="showLoading('Fetching Date Range Punches from TeamOffice Cloud...')">
+                <div class="modal-header border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle p-2 bg-primary-subtle text-primary">
+                            <i class="bi bi-calendar-range"></i>
+                        </div>
+                        <h5 class="modal-title fw-bold fs-6" id="syncRangeModalLabel">Sync Punches by Date Range</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        Download all biometric punch records for a specific historical date range directly from TeamOffice Cloud:
+                    </p>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-semibold">From Date</label>
+                            <input type="date" name="fromDate" value="@DateTime.Today.AddDays(-7).ToString("yyyy-MM-dd")" class="form-control" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted text-uppercase fw-semibold">To Date</label>
+                            <input type="date" name="toDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" class="form-control" required />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light-subtle px-4 py-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary px-4">Download & Sync</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 4. Map Biometric / HiveStaff Code Modal -->
+<div class="modal fade" id="mapCodeModal" tabindex="-1" aria-labelledby="mapCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="AddCodeMapping">
+                <div class="modal-header border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle p-2 bg-primary-subtle text-primary">
+                            <i class="bi bi-person-badge-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold fs-6" id="mapCodeModalLabel">Map HiveStaff / Biometric Code</h5>
+                            <div class="text-muted extra-small">Connect a TeamOffice/HiveStaff code to an HRDesk employee.</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label asp-for="NewBiometricCode" class="form-label small text-muted text-uppercase fw-semibold">HiveStaff / Biometric Code</label>
+                        <input asp-for="NewBiometricCode" class="form-control font-monospace" placeholder="e.g. EMP#001 or EMP#040" required />
+                        <div class="form-text extra-small">Exact code as it appears in TeamOffice / HiveStaff API (e.g. EMP#001).</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewMappingEmployeeId" class="form-label small text-muted text-uppercase fw-semibold">HRDesk Employee</label>
+                        <select asp-for="NewMappingEmployeeId" class="form-select" required>
+                            <option value="">-- Select Active Employee --</option>
+                            @foreach (var emp in Model.ActiveEmployees)
+                            {
+                                <option value="@emp.EmployeeId">@emp.EmployeeName (#@emp.EmployeeId)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label asp-for="NewMappingNotes" class="form-label small text-muted text-uppercase fw-semibold">Notes / Reference (Optional)</label>
+                        <input asp-for="NewMappingNotes" class="form-control" placeholder="e.g. HiveStaff code for Sachin Mandal" />
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light-subtle px-4 py-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary px-4">Save Code Mapping</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .extra-small { font-size: 0.775rem; }
+</style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

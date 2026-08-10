@@ -62,6 +62,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     public DbSet<CompOffCredit> CompOffCredits { get; set; }
     public DbSet<SystemSetting> SystemSettings { get; set; }
+    public DbSet<BiometricEmployeeMapping> BiometricEmployeeMappings { get; set; }
 
     public DbSet<CompOffRequest> CompOffRequests => Set<CompOffRequest>();
 
@@ -520,13 +521,18 @@ public sealed class BiometricAttendanceDbContext : DbContext
     {
         if (BypassTenantId || _tenantProvider == null) return;
         
+        int targetTenantId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+
         foreach (var entry in ChangeTracker.Entries<IMustHaveTenant>().ToList())
         {
             switch (entry.State)
             {
                 case EntityState.Added:
                 case EntityState.Modified:
-                    entry.Entity.OrganizationId = _tenantProvider.TenantId;
+                    if (entry.Entity.OrganizationId <= 0 || _tenantProvider.TenantId > 0)
+                    {
+                        entry.Entity.OrganizationId = targetTenantId;
+                    }
                     break;
             }
         }

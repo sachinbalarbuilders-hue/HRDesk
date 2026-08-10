@@ -44,10 +44,15 @@
 
             <div class="row g-4">
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Employee ID</label>
-                    <input class="form-control" value="@Model.Id" readonly />
+                    <label class="form-label fw-semibold">Machine / Employee ID</label>
+                    <input class="form-control font-monospace" value="@Model.Id" readonly />
                 </div>
-                <div class="col-md-9">
+                <div class="col-md-3">
+                    <label asp-for="Input.BiometricCode" class="form-label fw-semibold">HiveStaff Code (with Prefix)</label>
+                    <input asp-for="Input.BiometricCode" class="form-control font-monospace" placeholder="e.g. EMP#001" />
+                    <span class="text-muted extra-small">Leave blank if identical to Machine ID</span>
+                </div>
+                <div class="col-md-6">
                     <label asp-for="Input.EmployeeName" class="form-label fw-semibold"></label>
                     <input asp-for="Input.EmployeeName" class="form-control" />
                     <span asp-validation-for="Input.EmployeeName" class="text-danger small"></span>

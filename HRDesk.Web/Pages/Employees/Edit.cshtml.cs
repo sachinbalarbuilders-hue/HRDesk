@@ -70,6 +70,16 @@ public sealed class EditModel : PageModel
                 ? employee.ProbationEnd.Value.DayNumber - employee.ProbationStart.Value.DayNumber 
                 : null
         };
+
+        var mapping = await _db.BiometricEmployeeMappings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.OrganizationId == 1 && m.EmployeeId == Id);
+
+        if (mapping != null)
+        {
+            Input.BiometricCode = mapping.BiometricCode;
+        }
+
         CurrentPhotoPath = employee.PhotoPath;
 
         return Page();
@@ -156,8 +166,39 @@ public sealed class EditModel : PageModel
                     roster.RosterDate.DayOfWeek.ToString().Equals(Input.Weekoff, StringComparison.OrdinalIgnoreCase);
             }
         }
-
         await _db.SaveChangesAsync();
+
+        // Save or update HiveStaff/Biometric mapping
+        var existingMapping = await _db.BiometricEmployeeMappings
+            .FirstOrDefaultAsync(m => m.OrganizationId == 1 && m.EmployeeId == employee.EmployeeId);
+
+        if (!string.IsNullOrWhiteSpace(Input.BiometricCode))
+        {
+            string bCode = Input.BiometricCode.Trim().ToUpperInvariant();
+            if (existingMapping != null)
+            {
+                existingMapping.BiometricCode = bCode;
+                existingMapping.UpdatedAt = DateTime.Now;
+            }
+            else
+            {
+                _db.BiometricEmployeeMappings.Add(new BiometricEmployeeMapping
+                {
+                    OrganizationId = 1,
+                    EmployeeId = employee.EmployeeId,
+                    BiometricCode = bCode,
+                    Notes = $"HiveStaff: {employee.EmployeeName}",
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                });
+            }
+            await _db.SaveChangesAsync();
+        }
+        else if (existingMapping != null)
+        {
+            _db.BiometricEmployeeMappings.Remove(existingMapping);
+            await _db.SaveChangesAsync();
+        }
 
         if (rawPhotoBytes != null)
         {
@@ -227,6 +268,9 @@ public sealed class EditModel : PageModel
 
     public sealed class EmployeeForm
     {
+        [Display(Name = "HiveStaff Code (with prefix)")]
+        public string? BiometricCode { get; set; }
+
         [Required]
         [StringLength(255)]
         [Display(Name = "Employee Name")]
