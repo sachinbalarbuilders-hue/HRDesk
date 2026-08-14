@@ -1,0 +1,452 @@
+@page "{id:int}"
+@model HRDesk.Web.Pages.Roles.EditModel
+@using HRDesk.Web.Constants
+@{
+    ViewData["Title"] = $"Edit Role: {Model.Input.Name}";
+}
+
+<form id="ajaxTokenForm" style="display:none">@Html.AntiForgeryToken()</form>
+
+<div class="container-fluid px-0 pb-5">
+    <form method="post" id="roleEditForm">
+        <input type="hidden" asp-for="Input.Id" id="Input_Id" />
+        <input type="hidden" asp-for="Input.IsSystemRole" />
+
+        <!-- Header -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 mt-2">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <a asp-page="/Roles/Index" class="btn btn-sm btn-outline-secondary rounded-circle" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-arrow-left"></i>
+                    </a>
+                    <h4 class="mb-0 fw-bold">Configure Role: @Model.Input.Name</h4>
+                    @if (Model.Input.IsSystemRole)
+                    {
+                        <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-3 py-1 small">
+                            <i class="bi bi-shield-lock me-1"></i>System Role
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 small">
+                            Custom Role
+                        </span>
+                    }
+                </div>
+                <p class="text-muted mb-0 small">Customize access permissions and data visibility scopes. Changes are auto-saved in real-time.</p>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div id="liveStatusBadge" class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2 shadow-sm d-none">
+                    <i class="bi bi-check2-circle me-1"></i> <span id="liveStatusText">Auto-saved live</span>
+                </div>
+                <a asp-page="/Roles/Index" class="btn btn-outline-secondary d-inline-flex align-items-center gap-1 shadow-sm px-3">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Roles
+                </a>
+            </div>
+        </div>
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm border-0 mb-4" role="alert"></div>
+
+        <!-- Role Basic Info Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header py-3 bg-transparent border-bottom">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-info-circle text-primary me-2"></i>Role Details</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="Input.Name" class="form-label fw-bold small text-muted">Role Name <span class="text-danger">*</span></label>
+                        <input asp-for="Input.Name" id="Input_Name" class="form-control shadow-sm" readonly="@(Model.Input.IsSystemRole ? "readonly" : null)" required onchange="saveRoleDetailsLive()" />
+                        @if (Model.Input.IsSystemRole)
+                        {
+                            <div class="form-text small text-muted">System default role names cannot be renamed.</div>
+                        }
+                        <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Input.Description" class="form-label fw-bold small text-muted">Description</label>
+                        <input asp-for="Input.Description" id="Input_Description" class="form-control shadow-sm" placeholder="Brief description of this role's purpose..." onchange="saveRoleDetailsLive()" />
+                        <span asp-validation-for="Input.Description" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Global Actions Toolbar -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 p-3 bg-body-tertiary rounded-3 border shadow-sm">
+            <div class="d-flex align-items-center gap-2">
+                <span class="small fw-bold text-muted text-uppercase"><i class="bi bi-layers-half me-1"></i> View:</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" onclick="expandAllAccordion(true)">
+                    <i class="bi bi-arrows-expand me-1"></i>Expand All
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" onclick="expandAllAccordion(false)">
+                    <i class="bi bi-arrows-collapse me-1"></i>Collapse All
+                </button>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" onclick="toggleAllPermissions(true)">
+                    <i class="bi bi-check2-all me-1"></i>Enable All Privileges
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" onclick="toggleAllPermissions(false)">
+                    <i class="bi bi-slash-circle me-1"></i>Clear All Privileges
+                </button>
+            </div>
+        </div>
+
+        <!-- Collapsible Module Accordion -->
+        <div class="accordion d-flex flex-column gap-3" id="permissionsAccordion">
+            @{
+                bool isFirst = true;
+            }
+            @foreach (var (moduleName, permissions) in Model.GroupedPermissions)
+            {
+                var collapseId = "collapse_" + moduleName.Replace(" ", "_").Replace("&", "").Replace("(", "").Replace(")", "").Replace("-", "_");
+                var headingId = "heading_" + moduleName.Replace(" ", "_").Replace("&", "").Replace("(", "").Replace(")", "").Replace("-", "_");
+                var classModuleId = "mod_" + moduleName.Replace(" ", "_").Replace("&", "").Replace("(", "").Replace(")", "").Replace("-", "_");
+                
+                string iconClass = moduleName switch
+                {
+                    "Employees" => "bi-people-fill text-primary",
+                    "Attendance" => "bi-clock-history text-info",
+                    "Leaves & Comp-Off" => "bi-calendar2-check-fill text-success",
+                    "Payroll & Loans" => "bi-cash-coin text-warning",
+                    "Masters" => "bi-buildings text-secondary",
+                    "Shifts & Schedule" => "bi-calendar3-range text-info",
+                    "Recruitment" => "bi-person-badge text-primary",
+                    "System" => "bi-gear-wide-connected text-danger",
+                    "Employee Self-Service (ESS)" => "bi-person-circle text-primary",
+                    _ => "bi-folder2-open text-primary"
+                };
+
+                int selectedCount = permissions.Count(p => Model.Input.Permissions.GetValueOrDefault(p.Key));
+
+                <div class="accordion-item border rounded-3 shadow-sm overflow-hidden" id="item_@classModuleId">
+                    <h2 class="accordion-header" id="@headingId">
+                        <button class="accordion-button @(isFirst ? "" : "collapsed") bg-body-tertiary py-3 px-4" 
+                                type="button" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#@collapseId" 
+                                aria-expanded="@(isFirst ? "true" : "false")" 
+                                aria-controls="@collapseId">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between w-100 me-3 gap-2">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="p-2 rounded-3 bg-body-surface border shadow-sm flex-shrink-0">
+                                        <i class="bi @iconClass fs-5"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-bold text-body-emphasis">@moduleName</h6>
+                                        <small class="text-muted" style="font-size: 0.78rem;">@permissions.Count privileges available</small>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 small" id="badge_@classModuleId">
+                                        @selectedCount / @permissions.Count Active
+                                    </span>
+                                </div>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="@collapseId" 
+                         class="accordion-collapse collapse @(isFirst ? "show" : "")" 
+                         aria-labelledby="@headingId">
+                        <div class="accordion-body p-4 bg-body-surface border-top">
+                            <!-- Module Actions Bar -->
+                            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                <small class="text-muted">Manage access rights and data scopes for @moduleName.</small>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" onclick="toggleModuleCheckboxes('@classModuleId', true)">
+                                        <i class="bi bi-check2-all me-1"></i>Select All
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm" onclick="toggleModuleCheckboxes('@classModuleId', false)">
+                                        <i class="bi bi-slash-circle me-1"></i>Clear
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Permission Tiles Grid -->
+                            <div class="row g-3 @classModuleId">
+                                @foreach (var perm in permissions)
+                                {
+                                    bool isChecked = Model.Input.Permissions.GetValueOrDefault(perm.Key);
+                                    <div class="col-lg-6">
+                                        <div class="p-3 rounded-3 border bg-body-tertiary h-100 d-flex flex-wrap align-items-center justify-content-between gap-3 permission-row shadow-sm" id="row_@perm.Key">
+                                            <div class="form-check d-flex align-items-start gap-3 mb-0 flex-grow-1" style="min-width: 240px;">
+                                                <input class="form-check-input permission-checkbox mt-1" 
+                                                       type="checkbox" 
+                                                       name="Input.Permissions[@perm.Key]" 
+                                                       id="perm_@perm.Key" 
+                                                       data-key="@perm.Key"
+                                                       data-module="@classModuleId"
+                                                       value="true" 
+                                                       @(isChecked ? "checked" : "")
+                                                       onchange="onPermissionChange(this, '@perm.Key')">
+                                                <label class="form-check-label cursor-pointer mb-0" for="perm_@perm.Key">
+                                                    <div class="fw-bold text-body-emphasis mb-1" style="font-size: 0.92rem;">@perm.DisplayName</div>
+                                                    <div class="text-muted" style="font-size: 0.78rem; line-height: 1.3;">@perm.Description</div>
+                                                </label>
+                                            </div>
+
+                                            @if (perm.SupportsScope)
+                                            {
+                                                <div class="d-flex align-items-center gap-2 scope-container flex-shrink-0" id="scope_container_@perm.Key">
+                                                    <span class="badge bg-body-surface text-muted border px-2 py-1 small fw-semibold">Scope</span>
+                                                    <select name="Input.Scopes[@perm.Key]" 
+                                                            class="form-select form-select-sm shadow-sm scope-select" 
+                                                            data-key="@perm.Key"
+                                                            style="width: 175px; font-size: 0.82rem;" 
+                                                            @(isChecked ? "" : "disabled")
+                                                            onchange="onScopeChange(this, '@perm.Key')">
+                                                        <option value="@AppPermissions.Scopes.All" selected="@(Model.Input.Scopes.GetValueOrDefault(perm.Key) == AppPermissions.Scopes.All)">🌐 All (Org)</option>
+                                                        <option value="@AppPermissions.Scopes.Reporting" selected="@(Model.Input.Scopes.GetValueOrDefault(perm.Key) == AppPermissions.Scopes.Reporting)">👥 Reporting Team</option>
+                                                        <option value="@AppPermissions.Scopes.Department" selected="@(Model.Input.Scopes.GetValueOrDefault(perm.Key) == AppPermissions.Scopes.Department)">🏢 Department</option>
+                                                        <option value="@AppPermissions.Scopes.Own" selected="@(Model.Input.Scopes.GetValueOrDefault(perm.Key) == AppPermissions.Scopes.Own)">👤 Own (Self)</option>
+                                                    </select>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <input type="hidden" name="Input.Scopes[@perm.Key]" value="@AppPermissions.Scopes.All" />
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                isFirst = false;
+            }
+        </div>
+    </form>
+</div>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .permission-row { transition: all 0.25s ease; }
+    .permission-row:hover { background-color: var(--bs-tertiary-bg); }
+    .permission-row.saved-flash {
+        border-color: #198754 !important;
+        box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.25);
+    }
+</style>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let saveTimeout = null;
+
+        function showSaving() {
+            const badge = document.getElementById('liveStatusBadge');
+            const text = document.getElementById('liveStatusText');
+            badge.className = 'badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 shadow-sm d-inline-flex align-items-center';
+            text.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Saving...';
+        }
+
+        function showSaved(msg = 'Auto-saved live') {
+            const badge = document.getElementById('liveStatusBadge');
+            const text = document.getElementById('liveStatusText');
+            badge.className = 'badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2 shadow-sm d-inline-flex align-items-center';
+            text.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' + msg;
+            
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                badge.classList.add('d-none');
+            }, 3000);
+        }
+
+        function showError(msg) {
+            const badge = document.getElementById('liveStatusBadge');
+            const text = document.getElementById('liveStatusText');
+            badge.className = 'badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 shadow-sm d-inline-flex align-items-center';
+            text.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> ' + msg;
+        }
+
+        function toggleScopeSelect(checkbox, permKey) {
+            const container = document.getElementById('scope_container_' + permKey);
+            if (container) {
+                const select = container.querySelector('select');
+                if (select) select.disabled = !checkbox.checked;
+            }
+        }
+
+        async function saveRoleDetailsLive() {
+            const roleId = document.getElementById('Input_Id').value;
+            const name = document.getElementById('Input_Name')?.value || '';
+            const desc = document.getElementById('Input_Description')?.value || '';
+
+            showSaving();
+            try {
+                const token = document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]')?.value;
+                const res = await fetch('?handler=UpdateRoleDetailsAjax', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        roleId: parseInt(roleId),
+                        name: name,
+                        description: desc
+                    })
+                });
+
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (data.success) {
+                    showSaved('Role details saved ✓');
+                } else {
+                    showError(data.message || 'Save failed');
+                }
+            } catch (err) {
+                console.error(err);
+                showError('Error saving role details');
+            }
+        }
+
+        function expandAllAccordion(expand) {
+            document.querySelectorAll('#permissionsAccordion .accordion-collapse').forEach(el => {
+                const bsCollapse = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+                if (expand) {
+                    bsCollapse.show();
+                } else {
+                    bsCollapse.hide();
+                }
+            });
+        }
+
+        function updateModuleCounts() {
+            document.querySelectorAll('#permissionsAccordion .accordion-item').forEach(item => {
+                const checkboxes = item.querySelectorAll('.permission-checkbox');
+                const checked = item.querySelectorAll('.permission-checkbox:checked');
+                const badge = item.querySelector('[id^="badge_"]');
+                if (badge) {
+                    badge.textContent = `${checked.length} / ${checkboxes.length} Active`;
+                }
+            });
+        }
+
+        async function onPermissionChange(checkbox, permKey) {
+            toggleScopeSelect(checkbox, permKey);
+            updateModuleCounts();
+            await saveSinglePermissionLive(permKey);
+        }
+
+        async function onScopeChange(select, permKey) {
+            await saveSinglePermissionLive(permKey);
+        }
+
+        async function saveSinglePermissionLive(permKey) {
+            const roleId = document.getElementById('Input_Id').value;
+            const checkbox = document.getElementById('perm_' + permKey);
+            const isChecked = checkbox ? checkbox.checked : false;
+            const container = document.getElementById('scope_container_' + permKey);
+            const scopeSelect = container ? container.querySelector('select') : null;
+            const scopeVal = scopeSelect ? scopeSelect.value : 'All';
+
+            const row = document.getElementById('row_' + permKey);
+            showSaving();
+
+            try {
+                const token = document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]')?.value;
+                const res = await fetch('?handler=UpdatePermissionAjax', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        roleId: parseInt(roleId),
+                        permissionKey: permKey,
+                        enabled: isChecked,
+                        scope: scopeVal
+                    })
+                });
+
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (data.success) {
+                    showSaved(isChecked ? 'Permission granted ✓' : 'Permission removed ✓');
+                    if (row) {
+                        row.classList.add('saved-flash');
+                        setTimeout(() => row.classList.remove('saved-flash'), 800);
+                    }
+                } else {
+                    showError(data.message || 'Save failed');
+                }
+            } catch (err) {
+                console.error(err);
+                showError('Error saving changes');
+            }
+        }
+
+        async function toggleAllPermissions(checked) {
+            const perms = {};
+            const scopes = {};
+            document.querySelectorAll('.permission-checkbox').forEach(cb => {
+                cb.checked = checked;
+                const permKey = cb.dataset.key;
+                toggleScopeSelect(cb, permKey);
+                perms[permKey] = checked;
+                
+                const container = document.getElementById('scope_container_' + permKey);
+                const select = container ? container.querySelector('select') : null;
+                scopes[permKey] = select ? select.value : 'All';
+            });
+
+            updateModuleCounts();
+            await saveBulkPermissionsLive(perms, scopes, checked ? 'All permissions enabled ✓' : 'All permissions cleared ✓');
+        }
+
+        async function toggleModuleCheckboxes(moduleId, checked) {
+            const perms = {};
+            const scopes = {};
+            document.querySelectorAll('.' + moduleId + ' .permission-checkbox').forEach(cb => {
+                cb.checked = checked;
+                const permKey = cb.dataset.key;
+                toggleScopeSelect(cb, permKey);
+                perms[permKey] = checked;
+
+                const container = document.getElementById('scope_container_' + permKey);
+                const select = container ? container.querySelector('select') : null;
+                scopes[permKey] = select ? select.value : 'All';
+            });
+
+            updateModuleCounts();
+            await saveBulkPermissionsLive(perms, scopes, checked ? 'Module permissions enabled ✓' : 'Module permissions cleared ✓');
+        }
+
+        async function saveBulkPermissionsLive(perms, scopes, successMsg) {
+            const roleId = document.getElementById('Input_Id').value;
+            showSaving();
+
+            try {
+                const token = document.querySelector('#ajaxTokenForm input[name="__RequestVerificationToken"]')?.value;
+                const res = await fetch('?handler=UpdateBulkPermissionsAjax', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        roleId: parseInt(roleId),
+                        permissions: perms,
+                        scopes: scopes
+                    })
+                });
+
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                if (data.success) {
+                    showSaved(successMsg);
+                } else {
+                    showError(data.message || 'Bulk save failed');
+                }
+            } catch (err) {
+                console.error(err);
+                showError('Error updating in bulk');
+            }
+        }
+    </script>
+}
+

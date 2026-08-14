@@ -54,6 +54,13 @@
                     <span asp-validation-for="Input.DesignationId" class="text-danger small"></span>
                 </div>
 
+                <div class="col-md-4">
+                    <label asp-for="Input.ReportingManagerId" class="form-label fw-semibold"></label>
+                    <select asp-for="Input.ReportingManagerId" class="form-select" asp-items="Model.ManagerOptions">
+                        <option value="">(None)</option>
+                    </select>
+                    <span asp-validation-for="Input.ReportingManagerId" class="text-danger small"></span>
+                </div>
 
                 <div class="col-md-4">
                     <label asp-for="Input.Weekoff" class="form-label fw-semibold"></label>

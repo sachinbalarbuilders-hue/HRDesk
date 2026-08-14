@@ -11,6 +11,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using HRDesk.Web.Services;
 
+using HRDesk.Web.Constants;
+using HRDesk.Web.Services.Infrastructure;
+
 namespace HRDesk.Web.Pages.Employees;
 
 public sealed class CreateModel : PageModel
@@ -18,12 +21,14 @@ public sealed class CreateModel : PageModel
     private readonly BiometricAttendanceDbContext _db;
     private readonly IConfiguration _configuration;
     private readonly IReferenceDataCacheService _cache;
+    private readonly IPermissionService _permissionService;
 
-    public CreateModel(BiometricAttendanceDbContext db, IConfiguration configuration, IReferenceDataCacheService cache)
+    public CreateModel(BiometricAttendanceDbContext db, IConfiguration configuration, IReferenceDataCacheService cache, IPermissionService permissionService)
     {
         _db = db;
         _configuration = configuration;
         _cache = cache;
+        _permissionService = permissionService;
     }
 
     [BindProperty]
@@ -33,17 +38,33 @@ public sealed class CreateModel : PageModel
 
     public SelectList DesignationOptions { get; private set; } = default!;
 
-
+    public SelectList ManagerOptions { get; private set; } = default!;
 
     public SelectList WeekoffOptions { get; private set; } = default!;
 
     public SelectList StatusOptions { get; private set; } = default!;
 
-    public async Task OnGetAsync()
+    public async Task<IActionResult> OnGetAsync()
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesCreate))
+        {
+            return Forbid();
+        }
+
         await LoadOptionsAsync();
         Input.Status = "active";
         
+        var createScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesCreate);
+        var currentEmp = await _permissionService.GetCurrentEmployeeAsync(User);
+        if (createScope == AppPermissions.Scopes.Reporting && currentEmp != null)
+        {
+            Input.ReportingManagerId = currentEmp.EmployeeId;
+        }
+        else if (createScope == AppPermissions.Scopes.Department && currentEmp != null)
+        {
+            Input.DepartmentId = currentEmp.DepartmentId;
+        }
+
         var existingIds = await _db.Employees.Select(e => e.EmployeeId).ToListAsync();
         int nextId = 1;
         while (existingIds.Contains(nextId))
@@ -51,10 +72,16 @@ public sealed class CreateModel : PageModel
             nextId++;
         }
         Input.EmployeeId = nextId;
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesCreate))
+        {
+            return Forbid();
+        }
+
         await LoadOptionsAsync();
 
         if (!ModelState.IsValid)
@@ -69,12 +96,27 @@ public sealed class CreateModel : PageModel
             return Page();
         }
 
+        var createScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesCreate);
+        var currentEmp = await _permissionService.GetCurrentEmployeeAsync(User);
+        int? finalReportingId = Input.ReportingManagerId;
+        int? finalDeptId = Input.DepartmentId;
+
+        if (createScope == AppPermissions.Scopes.Reporting && currentEmp != null)
+        {
+            finalReportingId = currentEmp.EmployeeId;
+        }
+        else if (createScope == AppPermissions.Scopes.Department && currentEmp != null)
+        {
+            finalDeptId = currentEmp.DepartmentId;
+        }
+
         var employee = new Employee
         {
             EmployeeId = Input.EmployeeId,
             EmployeeName = Input.EmployeeName.Trim(),
-            DepartmentId = Input.DepartmentId,
+            DepartmentId = finalDeptId,
             DesignationId = Input.DesignationId,
+            ReportingManagerId = finalReportingId,
             Weekoff = Input.Weekoff,
             JoiningDate = Input.JoiningDate,
             ResignationDate = Input.ResignationDate,
@@ -164,6 +206,14 @@ public sealed class CreateModel : PageModel
         DepartmentOptions = new SelectList(departments, nameof(Department.Id), nameof(Department.DepartmentName));
         DesignationOptions = new SelectList(designations, nameof(Designation.Id), nameof(Designation.DesignationName));
 
+        var managers = await _db.Employees
+            .AsNoTracking()
+            .Where(e => e.Status == "active")
+            .OrderBy(e => e.EmployeeName)
+            .Select(e => new { e.EmployeeId, DisplayName = e.EmployeeName + " (#" + e.EmployeeId + ")" })
+            .ToListAsync();
+        ManagerOptions = new SelectList(managers, "EmployeeId", "DisplayName");
+
         var weekoffDays = new[]
         {
             "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
@@ -194,7 +244,8 @@ public sealed class CreateModel : PageModel
         [Display(Name = "Designation")]
         public int? DesignationId { get; set; }
 
-
+        [Display(Name = "Reporting Manager")]
+        public int? ReportingManagerId { get; set; }
 
         [Display(Name = "Weekoff")]
         public string? Weekoff { get; set; }

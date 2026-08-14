@@ -1,10 +1,12 @@
 using System;
+using HRDesk.Web.Constants;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
+using HRDesk.Web.Services;
+using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using HRDesk.Web.Services;
 
 namespace HRDesk.Web.Pages.Attendance;
 
@@ -12,11 +14,16 @@ public class RosterModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly IReferenceDataCacheService _cache;
+    private readonly IPermissionService _permissionService;
 
-    public RosterModel(BiometricAttendanceDbContext db, IReferenceDataCacheService cache)
+    public RosterModel(
+        BiometricAttendanceDbContext db, 
+        IReferenceDataCacheService cache,
+        IPermissionService permissionService)
     {
         _db = db;
         _cache = cache;
+        _permissionService = permissionService;
     }
 
     public PaginatedList<Employee> Employees { get; set; } = default!;
@@ -44,8 +51,13 @@ public class RosterModel : PageModel
 
     public DateOnly EndDate => (StartDate ?? DateOnly.FromDateTime(DateTime.Now)).AddDays(6);
 
-    public async Task OnGetAsync()
+    public async Task<IActionResult> OnGetAsync()
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRoster))
+        {
+            return Forbid();
+        }
+
         if (!StartDate.HasValue)
         {
             // Start from previous Monday or today if today is Monday
@@ -60,6 +72,8 @@ public class RosterModel : PageModel
         var query = _db.Employees
             .Include(e => e.Department)
             .Where(e => e.Status == "active");
+
+        query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.AttendanceRoster);
 
         if (!string.IsNullOrWhiteSpace(SearchQuery))
         {
@@ -100,6 +114,8 @@ public class RosterModel : PageModel
         DailyAttendanceRecords = await _db.DailyAttendance
             .Where(a => employeeIds.Contains(a.EmployeeId) && a.RecordDate >= StartDate && a.RecordDate <= EndDate)
             .ToListAsync();
+
+        return Page();
     }
 
     public async Task<IActionResult> OnPostGenerateAsync(string fromDate, string toDate, bool overwrite = false, List<int>? employeeIds = null, int? newShiftId = null, bool updateMasterShift = false)

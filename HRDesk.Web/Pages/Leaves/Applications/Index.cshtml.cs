@@ -1,7 +1,9 @@
 
+using HRDesk.Web.Constants;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
+using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +19,7 @@ public class IndexModel : PageModel
     private readonly ISequenceService _sequenceService;
     private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
     private readonly IReferenceDataCacheService _cache;
+    private readonly IPermissionService _permissionService;
 
     public IndexModel(
         BiometricAttendanceDbContext db, 
@@ -24,7 +27,8 @@ public class IndexModel : PageModel
         HRDesk.Web.Services.IAttendanceProcessorService processor, 
         ICompOffService compOffService,
         ILeaveAdjustmentService adjustmentService,
-        IReferenceDataCacheService cache)
+        IReferenceDataCacheService cache,
+        IPermissionService permissionService)
     {
         _db = db;
         _sequenceService = sequenceService;
@@ -32,6 +36,7 @@ public class IndexModel : PageModel
         _compOffService = compOffService;
         _adjustmentService = adjustmentService;
         _cache = cache;
+        _permissionService = permissionService;
     }
 
     public PaginatedList<LeaveApplication> LeaveApplications { get; set; } = default!;
@@ -60,9 +65,16 @@ public class IndexModel : PageModel
         });
     }
 
-    public async Task OnGetAsync(int pageNum = 1)
+    public async Task<IActionResult> OnGetAsync(int pageNum = 1)
     {
-        Employees = await _db.Employees.Where(e => e.Status == "active").OrderBy(e => e.EmployeeName).ToListAsync();
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesView))
+        {
+            return Forbid();
+        }
+
+        var empQuery = _db.Employees.Where(e => e.Status == "active");
+        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.LeavesApply);
+        Employees = await empQuery.OrderBy(e => e.EmployeeName).ToListAsync();
         
         LeaveTypes = await _cache.GetLeaveTypesAsync();
  
@@ -74,6 +86,7 @@ public class IndexModel : PageModel
  
         // Pagination & Search logic
         var baseQuery = _db.LeaveApplications.AsNoTracking();
+        baseQuery = await _permissionService.ApplyLeaveScopeAsync(baseQuery, User, AppPermissions.Keys.LeavesView);
 
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
@@ -109,6 +122,7 @@ public class IndexModel : PageModel
             .ToListAsync();
 
         LeaveApplications = new PaginatedList<LeaveApplication>(items, totalCount, pageNum, pageSize);
+        return Page();
     }
 
     public async Task<IActionResult> OnGetCheckBalanceAsync(int employeeId, int leaveTypeId, DateOnly date, int? currentAppId = null)

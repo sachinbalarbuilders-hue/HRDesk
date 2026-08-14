@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -85,6 +85,16 @@ public class LoginModel : PageModel
                     new Claim("OrganizationId", user.OrganizationId.ToString())
                 };
 
+                if (user.RoleId.HasValue)
+                {
+                    claims.Add(new Claim("RoleId", user.RoleId.Value.ToString()));
+                }
+
+                if (user.EmployeeId.HasValue)
+                {
+                    claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
+                }
+
                 var claimsIdentity = new ClaimsIdentity(
                     claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
@@ -125,6 +135,11 @@ public class LoginModel : PageModel
 
                 user.LastLogin = DateTime.Now;
                 await _context.SaveChangesAsync();
+
+                if (user.Role == "Employee" && (string.IsNullOrEmpty(returnUrl) || returnUrl == "/" || returnUrl == "/Index"))
+                {
+                    return RedirectToPage("/Portal/Dashboard");
+                }
 
                 return LocalRedirect(returnUrl);
             }

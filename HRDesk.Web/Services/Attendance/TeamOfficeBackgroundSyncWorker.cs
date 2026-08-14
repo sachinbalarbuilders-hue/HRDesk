@@ -28,42 +28,53 @@ public class TeamOfficeBackgroundSyncWorker : BackgroundService
     {
         _logger.LogInformation("TeamOfficeBackgroundSyncWorker is starting.");
 
-        // Initial delay to allow web app to boot cleanly
-        await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
-
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            var section = _config.GetSection("TeamOfficeApi");
-            bool enabled = section.GetValue<bool>("Enabled", true);
-            int intervalMins = section.GetValue<int>("SyncIntervalMinutes", 5);
-            if (intervalMins < 1) intervalMins = 1;
+            // Initial delay to allow web app to boot cleanly
+            await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
 
-            if (enabled)
+            while (!stoppingToken.IsCancellationRequested)
             {
-                try
+                var section = _config.GetSection("TeamOfficeApi");
+                bool enabled = section.GetValue<bool>("Enabled", true);
+                int intervalMins = section.GetValue<int>("SyncIntervalMinutes", 5);
+                if (intervalMins < 1) intervalMins = 1;
+
+                if (enabled)
                 {
-                    using var scope = _serviceProvider.CreateScope();
-                    var syncService = scope.ServiceProvider.GetRequiredService<ITeamOfficeSyncService>();
-                    var result = await syncService.SyncLatestPunchesAsync(stoppingToken);
-                    if (result.success && result.newLogs > 0)
+                    try
                     {
-                        _logger.LogInformation("TeamOffice background sync imported {Count} new punches.", result.newLogs);
+                        using var scope = _serviceProvider.CreateScope();
+                        var syncService = scope.ServiceProvider.GetRequiredService<ITeamOfficeSyncService>();
+                        var result = await syncService.SyncLatestPunchesAsync(stoppingToken);
+                        if (result.success && result.newLogs > 0)
+                        {
+                            _logger.LogInformation("TeamOffice background sync imported {Count} new punches.", result.newLogs);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error in TeamOfficeBackgroundSyncWorker loop.");
                     }
                 }
-                catch (Exception ex)
+
+                try
                 {
-                    _logger.LogError(ex, "Error in TeamOfficeBackgroundSyncWorker loop.");
+                    await Task.Delay(TimeSpan.FromMinutes(intervalMins), stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
             }
-
-            try
-            {
-                await Task.Delay(TimeSpan.FromMinutes(intervalMins), stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Normal graceful shutdown
         }
 
         _logger.LogInformation("TeamOfficeBackgroundSyncWorker is stopping.");

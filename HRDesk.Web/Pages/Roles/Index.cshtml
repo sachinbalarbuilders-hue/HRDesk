@@ -1,0 +1,138 @@
+@page
+@model HRDesk.Web.Pages.Roles.IndexModel
+@{
+    ViewData["Title"] = "Role & Permission Management";
+}
+
+<div class="container-fluid px-0 pb-5">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 mt-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h4 class="mb-0 fw-bold">Custom Roles & Permissions</h4>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 small">
+                    Access Control (RBAC)
+                </span>
+            </div>
+            <p class="text-muted mb-0 small">Create unlimited custom roles, define granular View/Create/Edit/Delete permissions, and configure data scopes.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-page="/Roles/Create" class="btn btn-primary d-inline-flex align-items-center gap-2 shadow-sm">
+                <i class="bi bi-plus-lg"></i>
+                <span>Create New Role</span>
+            </a>
+            <a asp-page="/Users/Index" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+                <i class="bi bi-person-gear"></i>
+                <span>User Accounts</span>
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-4 border-0 shadow-sm d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+            <div>@TempData["SuccessMessage"]</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-4 border-0 shadow-sm d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+            <div>@TempData["ErrorMessage"]</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Roles Grid -->
+    <div class="row g-3">
+        @foreach (var role in Model.RolesList)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="card h-100 shadow-sm border-0 position-relative">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex align-items-start justify-content-between mb-2">
+                            <div>
+                                <h5 class="fw-bold mb-1 text-body-emphasis">@role.Name</h5>
+                                @if (role.IsSystemRole)
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2 py-1 small">
+                                        <i class="bi bi-shield-lock me-1"></i>System Role
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small">
+                                        <i class="bi bi-sliders me-1"></i>Custom Role
+                                    </span>
+                                }
+                            </div>
+                            <div class="avatar-sm rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px;">
+                                <i class="bi bi-shield-check fs-5"></i>
+                            </div>
+                        </div>
+
+                        <p class="text-muted small mb-3 flex-grow-1">
+                            @(string.IsNullOrWhiteSpace(role.Description) ? "No description provided." : role.Description)
+                        </p>
+
+                        <!-- Stats Row -->
+                        <div class="d-flex align-items-center gap-3 py-2 px-3 bg-body-tertiary rounded-3 mb-3 small">
+                            <div>
+                                <span class="text-muted">Assigned Users:</span>
+                                <strong class="ms-1 text-body-emphasis">@role.UsersCount</strong>
+                            </div>
+                            <div class="border-start ps-3">
+                                <span class="text-muted">Permissions:</span>
+                                <strong class="ms-1 text-primary">@role.PermissionsCount</strong>
+                            </div>
+                        </div>
+
+                        <!-- Top Permissions Tags -->
+                        <div class="mb-4">
+                            <div class="text-muted small mb-1 fw-semibold">Sample Access:</div>
+                            <div class="d-flex flex-wrap gap-1">
+                                @if (!role.TopPermissions.Any())
+                                {
+                                    <span class="badge bg-light text-muted border">No permissions</span>
+                                }
+                                else
+                                {
+                                    @foreach (var perm in role.TopPermissions)
+                                    {
+                                        <span class="badge bg-body-secondary text-body-secondary border small text-truncate" style="max-width: 160px;">
+                                            @perm
+                                        </span>
+                                    }
+                                    @if (role.PermissionsCount > role.TopPermissions.Count)
+                                    {
+                                        <span class="badge bg-body-tertiary text-muted border small">
+                                            +@(role.PermissionsCount - role.TopPermissions.Count) more
+                                        </span>
+                                    }
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex align-items-center gap-2 pt-2 border-top mt-auto">
+                            <a asp-page="/Roles/Edit" asp-route-id="@role.Id" class="btn btn-sm btn-outline-primary flex-grow-1">
+                                <i class="bi bi-pencil-square me-1"></i>Configure Permissions
+                            </a>
+                            @if (!role.IsSystemRole)
+                            {
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@role.Id" onsubmit="return confirm('Are you sure you want to delete the role \'@role.Name\'?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Role">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

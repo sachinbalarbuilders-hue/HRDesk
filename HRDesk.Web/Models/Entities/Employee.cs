@@ -12,7 +12,10 @@ public sealed class Employee : IMustHaveTenant
 
     public int? DesignationId { get; set; }
 
+    [Column("reporting_manager_id")]
+    public int? ReportingManagerId { get; set; }
 
+    public Employee? ReportingManager { get; set; }
 
     public string? Phone { get; set; }
 
@@ -51,10 +54,8 @@ public sealed class Employee : IMustHaveTenant
     [Column("device_sync_error")]
     public string? DeviceSyncError { get; set; }
 
-
     [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
     public int OrganizationId { get; set; }
 
     public Organization? Organization { get; set; }
 }
-

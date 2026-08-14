@@ -1,9 +1,11 @@
+using HRDesk.Web.Constants;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
+using HRDesk.Web.Services;
+using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using HRDesk.Web.Services;
 
 namespace HRDesk.Web.Pages.Attendance;
 
@@ -12,12 +14,18 @@ public class MonthlyAttendanceSheetModel : PageModel
     private readonly BiometricAttendanceDbContext _db;
     private readonly IAttendanceSummaryService _attendanceSummaryService;
     private readonly IReferenceDataCacheService _cache;
+    private readonly IPermissionService _permissionService;
 
-    public MonthlyAttendanceSheetModel(BiometricAttendanceDbContext db, IAttendanceSummaryService attendanceSummaryService, IReferenceDataCacheService cache)
+    public MonthlyAttendanceSheetModel(
+        BiometricAttendanceDbContext db, 
+        IAttendanceSummaryService attendanceSummaryService, 
+        IReferenceDataCacheService cache,
+        IPermissionService permissionService)
     {
         _db = db;
         _attendanceSummaryService = attendanceSummaryService;
         _cache = cache;
+        _permissionService = permissionService;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -30,8 +38,13 @@ public class MonthlyAttendanceSheetModel : PageModel
 
     public int DaysInMonth { get; set; }
 
-    public async Task OnGetAsync(int pageNum = 1)
+    public async Task<IActionResult> OnGetAsync(int pageNum = 1)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceMonthlySheet))
+        {
+            return Forbid();
+        }
+
         var startDate = new DateOnly(Year, Month, 1);
         DaysInMonth = DateTime.DaysInMonth(Year, Month);
         var endDate = startDate.AddMonths(1);
@@ -51,6 +64,9 @@ public class MonthlyAttendanceSheetModel : PageModel
                     (_db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate >= startDate && a.RecordDate < endDate && a.InTime != null))
                 )
             );
+
+        // Apply employee scope (e.g. Reporting team only, Department only, or Own only)
+        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceMonthlySheet);
 
         var totalCount = await empQuery.CountAsync();
         
@@ -322,6 +338,7 @@ public class MonthlyAttendanceSheetModel : PageModel
         }
         
         EmployeeSummaries = new PaginatedList<EmployeeSummaryDto>(items, totalCount, pageNum, 50);
+        return Page();
     }
 
     private string GetStatusChar(DailyAttendance log)

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 @inject HRDesk.Web.Data.BiometricAttendanceDbContext DbContext
 @inject HRDesk.Web.Services.ICurrentTenantProvider TenantProvider
+@inject HRDesk.Web.Services.Infrastructure.IPermissionService NavPermSvc
 <html lang="en">
 <head>
     <script>
@@ -47,121 +48,129 @@
             </div>
 
             <div class="sidebar-content">
-                <!-- Dashboard -->
-                <a asp-page="/Index" class="nav-link">
-                    <i class="bi bi-house-door"></i> Dashboard
-                </a>
+                @{
+                    bool _canViewEmployees   = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.EmployeesView);
+                    bool _canAttendView      = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.AttendanceView);
+                    bool _canAttendProcess   = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.AttendanceProcess);
+                    bool _canAttendRoster    = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRoster);
+                    bool _canMonthlySheet    = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.AttendanceMonthlySheet);
+                    bool _canRegularize      = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRegularize);
+                    bool _canLeavesView      = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.LeavesView);
+                    bool _canLeavesApprove   = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.LeavesApprove);
+                    bool _canCompOff         = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.CompOffApprove);
+                    bool _canLeaveTypes      = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.LeavesManageTypes);
+                    bool _canLeaveAlloc      = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.LeavesManageAllocations);
+                    bool _canPayrollView     = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.PayrollView);
+                    bool _canPayrollProcess  = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.PayrollProcess);
+                    bool _canSalary          = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.PayrollManageSalary);
+                    bool _canLoans           = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.PayrollManageLoans);
+                    bool _canDepts           = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.MastersDepartments);
+                    bool _canDesigs          = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.MastersDesignations);
+                    bool _canShifts          = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.ShiftsManage);
+                    bool _canHolidays        = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.HolidaysManage);
+                    bool _canDevices         = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.SystemDevices);
+                    bool _canRoles           = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.SystemRoles);
+                    bool _canLogs            = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.SystemLogs);
+                    bool _canRecruit         = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.RecruitmentCandidates);
+                    bool _canInterviews      = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.RecruitmentInterviews);
+                    bool _canESS             = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.ESSDashboard);
 
-                <!-- Attendance Section -->
-                <div class="nav-section-title mt-3">Attendance</div>
-                <a asp-page="/AttendanceLogs/Index" class="nav-link">
-                    <i class="bi bi-list-ul"></i> Attendance Logs
-                </a>
-                <a asp-page="/Attendance/Process" class="nav-link">
-                    <i class="bi bi-gear"></i> Process Attendance
-                </a>
-                <a asp-page="/Attendance/Roster" class="nav-link">
-                    <i class="bi bi-calendar-range"></i> Shift Roster
-                </a>
-                <a asp-page="/Attendance/MonthlyAttendanceSheet" class="nav-link">
-                    <i class="bi bi-table"></i> Monthly Sheet
-                </a>
-                <a asp-page="/Regularizations/Index" class="nav-link">
-                    <i class="bi bi-pencil-square"></i> Regularization
-                </a>
-
-                <!-- Masters Section -->
-                <div class="nav-section-title mt-3">Masters</div>
-                <a asp-page="/Employees/Index" class="nav-link">
-                    <i class="bi bi-people"></i> Employees
-                </a>
-                <a asp-page="/Departments/Index" class="nav-link">
-                    <i class="bi bi-building"></i> Departments
-                </a>
-                <a asp-page="/Designations/Index" class="nav-link">
-                    <i class="bi bi-award"></i> Designations
-                </a>
-                <a asp-page="/Shifts/Index" class="nav-link">
-                    <i class="bi bi-clock"></i> Shifts
-                </a>
-                <a asp-page="/Holidays/Index" class="nav-link">
-                    <i class="bi bi-calendar-event"></i> Holidays
-                </a>
-                <a asp-page="/Masters/DeviceSettings" class="nav-link">
-                    <i class="bi bi-hdd-network"></i> Device Settings
-                </a>
-
-                <!-- HR & Payroll Section -->
-                <div class="nav-section-title mt-3">HR & Payroll</div>
-                <a asp-page="/Leaves/Applications/Index" class="nav-link">
-                    <i class="bi bi-file-earmark-text"></i> Leave Applications
-                </a>
-                <a asp-page="/CompOff/Requests/Index" class="nav-link">
-                    <i class="bi bi-calendar-plus"></i> Comp Off Requests
-                </a>
-                <a asp-page="/Leaves/Allocations/Index" class="nav-link">
-                    <i class="bi bi-calendar-check"></i> Leave Allocations
-                </a>
-                <a asp-page="/Leaves/Types/Index" class="nav-link">
-                    <i class="bi bi-tags"></i> Leave Types
-                </a>
-                <a asp-page="/Loans/Applications/Index" class="nav-link">
-                    <i class="bi bi-wallet2"></i> Loan Applications
-                </a>
-                <a asp-page="/Payroll/EmployeeSalary/Index" class="nav-link">
-                    <i class="bi bi-currency-rupee"></i> Employee Salaries
-                </a>
-                <a asp-page="/Payroll/Process" class="nav-link">
-                    <i class="bi bi-calculator"></i> Process Payroll
-                </a>
-
-                <!-- Recruitment Section -->
-                <div class="nav-section-title mt-3">Recruitment</div>
-                <a asp-area="Recruitment" asp-page="/Candidates/Index" class="nav-link">
-                    <i class="bi bi-person-lines-fill"></i> Candidates
-                </a>
-                <a asp-area="Recruitment" asp-page="/Interviews/Calendar" class="nav-link">
-                    <i class="bi bi-calendar3"></i> Interview Calendar
-                </a>
-
-                <!-- System Section -->
-                <div class="nav-section-title mt-3">System</div>
-                <a asp-page="/ServiceLogs/Index" class="nav-link">
-                    <i class="bi bi-terminal"></i> Service Logs
-                </a>
-                <a asp-page="/WhatsApp/Index" class="nav-link">
-                    <i class="bi bi-whatsapp"></i> WhatsApp Status
-                </a>
-
-                <!-- Reports Section -->
-                <div class="nav-section-title mt-3">Reports</div>
-                <a asp-page="/Reports/LateIn" class="nav-link">
-                    <i class="bi bi-clock-history"></i> Late In Report
-                </a>
-                <a asp-page="/Reports/EarlyGo" class="nav-link">
-                    <i class="bi bi-door-open"></i> Early Go Report
-                </a>
-                <a asp-page="/Reports/MissingPunch" class="nav-link">
-                    <i class="bi bi-exclamation-triangle"></i> Missing Punch
-                </a>
-                <a asp-page="/Reports/ApplicationTracking" class="nav-link">
-                    <i class="bi bi-list-ol"></i> Application Tracking
-                </a>
-                <a asp-page="/Reports/EmployeeLeaveReport" class="nav-link">
-                    <i class="bi bi-file-earmark-bar-graph"></i> Employee Leave Report
-                </a>
-
-                @if (User.IsInRole("SuperAdmin"))
-                {
-                    <div class="nav-section-title mt-3">Super Admin</div>
-                    <a asp-page="/Organizations/Index" class="nav-link">
-                        <i class="bi bi-diagram-3"></i> Organizations
-                    </a>
+                    bool _isEmployeeOnly = User.IsInRole("Employee");
                 }
-            </div>
 
-            <div class="sidebar-footer">
-                <small class="text-muted">&copy; 2026 HRDesk.Web</small>
+
+                @if (_isEmployeeOnly)
+                {
+                    <!-- ESS-only sidebar -->
+                    <div class="nav-section-title">My Self-Service</div>
+                    <a asp-page="/Portal/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i> My Dashboard</a>
+                    <a asp-page="/Portal/MyAttendance" class="nav-link"><i class="bi bi-clock-history"></i> My Attendance</a>
+                    <a asp-page="/Portal/MyLeaves" class="nav-link"><i class="bi bi-calendar-plus"></i> My Leaves &amp; Quotas</a>
+                    <a asp-page="/Portal/MyPayslips" class="nav-link"><i class="bi bi-wallet2"></i> My Payslips</a>
+                }
+                else
+                {
+                    <!-- Dashboard always visible for non-employees -->
+                    <a asp-page="/Index" class="nav-link"><i class="bi bi-house-door"></i> Dashboard</a>
+
+                    <!-- Attendance Section -->
+                    @if (_canAttendView || _canAttendProcess || _canAttendRoster || _canMonthlySheet || _canRegularize)
+                    {
+                        <div class="nav-section-title mt-3">Attendance</div>
+                        @if (_canAttendView)    { <a asp-page="/AttendanceLogs/Index" class="nav-link"><i class="bi bi-list-ul"></i> Attendance Logs</a> }
+                        @if (_canAttendProcess) { <a asp-page="/Attendance/Process" class="nav-link"><i class="bi bi-gear"></i> Process Attendance</a> }
+                        @if (_canAttendRoster)  { <a asp-page="/Attendance/Roster" class="nav-link"><i class="bi bi-calendar-range"></i> Shift Roster</a> }
+                        @if (_canMonthlySheet)  { <a asp-page="/Attendance/MonthlyAttendanceSheet" class="nav-link"><i class="bi bi-table"></i> Monthly Sheet</a> }
+                        @if (_canRegularize)    { <a asp-page="/Regularizations/Index" class="nav-link"><i class="bi bi-pencil-square"></i> Regularization</a> }
+                    }
+
+                    <!-- Masters Section -->
+                    @if (_canViewEmployees || _canDepts || _canDesigs || _canShifts || _canHolidays || _canDevices)
+                    {
+                        <div class="nav-section-title mt-3">Masters</div>
+                        @if (_canViewEmployees) { <a asp-page="/Employees/Index" class="nav-link"><i class="bi bi-people"></i> Employees</a> }
+                        @if (_canDepts)         { <a asp-page="/Departments/Index" class="nav-link"><i class="bi bi-building"></i> Departments</a> }
+                        @if (_canDesigs)        { <a asp-page="/Designations/Index" class="nav-link"><i class="bi bi-award"></i> Designations</a> }
+                        @if (_canShifts)        { <a asp-page="/Shifts/Index" class="nav-link"><i class="bi bi-clock"></i> Shifts</a> }
+                        @if (_canHolidays)      { <a asp-page="/Holidays/Index" class="nav-link"><i class="bi bi-calendar-event"></i> Holidays</a> }
+                        @if (_canDevices)       { <a asp-page="/Masters/DeviceSettings" class="nav-link"><i class="bi bi-hdd-network"></i> Device Settings</a> }
+                    }
+
+                    <!-- HR & Payroll Section -->
+                    @if (_canLeavesView || _canLeavesApprove || _canCompOff || _canLeaveTypes || _canLeaveAlloc || _canPayrollView || _canPayrollProcess || _canSalary || _canLoans)
+                    {
+                        <div class="nav-section-title mt-3">HR &amp; Payroll</div>
+                        @if (_canLeavesView || _canLeavesApprove) { <a asp-page="/Leaves/Applications/Index" class="nav-link"><i class="bi bi-file-earmark-text"></i> Leave Applications</a> }
+                        @if (_canCompOff)       { <a asp-page="/CompOff/Requests/Index" class="nav-link"><i class="bi bi-calendar-plus"></i> Comp Off Requests</a> }
+                        @if (_canLeaveAlloc)    { <a asp-page="/Leaves/Allocations/Index" class="nav-link"><i class="bi bi-calendar-check"></i> Leave Allocations</a> }
+                        @if (_canLeaveTypes)    { <a asp-page="/Leaves/Types/Index" class="nav-link"><i class="bi bi-tags"></i> Leave Types</a> }
+                        @if (_canLoans)         { <a asp-page="/Loans/Applications/Index" class="nav-link"><i class="bi bi-wallet2"></i> Loan Applications</a> }
+                        @if (_canSalary)        { <a asp-page="/Payroll/EmployeeSalary/Index" class="nav-link"><i class="bi bi-currency-rupee"></i> Employee Salaries</a> }
+                        @if (_canPayrollProcess){ <a asp-page="/Payroll/Process" class="nav-link"><i class="bi bi-calculator"></i> Process Payroll</a> }
+                    }
+
+                    <!-- Recruitment Section -->
+                    @if (_canRecruit || _canInterviews)
+                    {
+                        <div class="nav-section-title mt-3">Recruitment</div>
+                        @if (_canRecruit)    { <a asp-area="Recruitment" asp-page="/Candidates/Index" class="nav-link"><i class="bi bi-person-lines-fill"></i> Candidates</a> }
+                        @if (_canInterviews) { <a asp-area="Recruitment" asp-page="/Interviews/Calendar" class="nav-link"><i class="bi bi-calendar3"></i> Interview Calendar</a> }
+                    }
+
+                    <!-- System Section -->
+                    @if (_canRoles || _canLogs)
+                    {
+                        <div class="nav-section-title mt-3">System &amp; Access</div>
+                        @if (_canRoles)      { <a asp-page="/Roles/Index" class="nav-link"><i class="bi bi-shield-lock"></i> Roles &amp; Permissions</a> }
+                        @if (_canRoles)      { <a asp-page="/Users/Index" class="nav-link"><i class="bi bi-person-gear"></i> User Accounts</a> }
+                        @if (_canLogs)       { <a asp-page="/ServiceLogs/Index" class="nav-link"><i class="bi bi-terminal"></i> Service Logs</a> }
+                        @if (_canLogs)       { <a asp-page="/WhatsApp/Index" class="nav-link"><i class="bi bi-whatsapp"></i> WhatsApp Status</a> }
+                    }
+
+                    <!-- Reports Section -->
+                    @if (_canAttendView || _canLeavesView)
+                    {
+                        <div class="nav-section-title mt-3">Reports</div>
+                        @if (_canAttendView) { <a asp-page="/Reports/LateIn" class="nav-link"><i class="bi bi-clock-history"></i> Late In Report</a> }
+                        @if (_canAttendView) { <a asp-page="/Reports/EarlyGo" class="nav-link"><i class="bi bi-door-open"></i> Early Go Report</a> }
+                        @if (_canAttendView) { <a asp-page="/Reports/MissingPunch" class="nav-link"><i class="bi bi-exclamation-triangle"></i> Missing Punch</a> }
+                        @if (_canLeavesView) { <a asp-page="/Reports/ApplicationTracking" class="nav-link"><i class="bi bi-list-ol"></i> Application Tracking</a> }
+                        @if (_canLeavesView) { <a asp-page="/Reports/EmployeeLeaveReport" class="nav-link"><i class="bi bi-file-earmark-bar-graph"></i> Employee Leave Report</a> }
+                    }
+
+                    <!-- Self-Service link for managers/admins who also have ESS -->
+                    @if (_canESS)
+                    {
+                        <div class="nav-section-title mt-3">Self-Service</div>
+                        <a asp-page="/Portal/Dashboard" class="nav-link"><i class="bi bi-person-circle"></i> My Portal (ESS)</a>
+                    }
+
+                    @if (User.IsInRole("SuperAdmin"))
+                    {
+                        <div class="nav-section-title mt-3">Super Admin</div>
+                        <a asp-page="/Organizations/Index" class="nav-link"><i class="bi bi-diagram-3"></i> Organizations</a>
+                    }
+                }
             </div>
         </aside>
 

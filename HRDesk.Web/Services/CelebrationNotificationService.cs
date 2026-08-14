@@ -33,47 +33,60 @@ namespace HRDesk.Web.Services
         {
             _logger.LogInformation("Celebration Notification Service is starting.");
 
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
-                var now = DateTime.Now;
-                
-                // Trigger any time after 9:30 AM
-                bool shouldTrigger = (now.Hour == 9 && now.Minute >= 30) || (now.Hour >= 10);
-
-                if (shouldTrigger)
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    try
-                    {
-                        bool allSent = await ProcessCelebrationsAsync(now.Date);
+                    var now = DateTime.Now;
+                    
+                    // Trigger any time after 9:30 AM
+                    bool shouldTrigger = (now.Hour == 9 && now.Minute >= 30) || (now.Hour >= 10);
 
-                        if (allSent)
+                    if (shouldTrigger)
+                    {
+                        try
                         {
-                            // All messages sent — sleep until tomorrow 9:30 AM
-                            var tomorrow930 = now.Date.AddDays(1).AddHours(9).AddMinutes(30);
-                            var sleepDuration = tomorrow930 - DateTime.Now;
-                            _logger.LogInformation("All celebrations processed. Sleeping until {Time}.", tomorrow930);
-                            await Task.Delay(sleepDuration, stoppingToken);
-                            continue;
+                            bool allSent = await ProcessCelebrationsAsync(now.Date);
+
+                            if (allSent)
+                            {
+                                // All messages sent — sleep until tomorrow 9:30 AM
+                                var tomorrow930 = now.Date.AddDays(1).AddHours(9).AddMinutes(30);
+                                var sleepDuration = tomorrow930 - DateTime.Now;
+                                _logger.LogInformation("All celebrations processed. Sleeping until {Time}.", tomorrow930);
+                                await Task.Delay(sleepDuration, stoppingToken);
+                                continue;
+                            }
+                            else
+                            {
+                                // Some failed (WhatsApp disconnected) — retry in 5 minutes
+                                _logger.LogWarning("Some celebration messages failed. Retrying in 5 minutes.");
+                                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+                                continue;
+                            }
                         }
-                        else
+                        catch (OperationCanceledException)
                         {
-                            // Some failed (WhatsApp disconnected) — retry in 5 minutes
-                            _logger.LogWarning("Some celebration messages failed. Retrying in 5 minutes.");
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error processing celebrations. Retrying in 5 minutes.");
                             await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
                             continue;
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error processing celebrations. Retrying in 5 minutes.");
-                        await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
-                        continue;
-                    }
-                }
 
-                // Before 9:30 AM — check every 5 minutes
-                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+                    // Before 9:30 AM — check every 5 minutes
+                    await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+                }
             }
+            catch (OperationCanceledException)
+            {
+                // Normal graceful shutdown
+            }
+
+            _logger.LogInformation("Celebration Notification Service is stopping.");
         }
 
         private async Task<bool> ProcessCelebrationsAsync(DateTime today)

@@ -4,6 +4,7 @@ using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRDesk.Web.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260814161834_AddBiometricEmployeeMapping")]
+    partial class AddBiometricEmployeeMapping
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -906,10 +909,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("date")
                         .HasColumnName("probation_start");
 
-                    b.Property<int?>("ReportingManagerId")
-                        .HasColumnType("int")
-                        .HasColumnName("reporting_manager_id");
-
                     b.Property<DateOnly?>("ResignationDate")
                         .HasColumnType("date")
                         .HasColumnName("resignation_date");
@@ -929,8 +928,6 @@ namespace HRDesk.Web.Migrations
                     b.HasIndex("DesignationId");
 
                     b.HasIndex("Status");
-
-                    b.HasIndex("OrganizationId", "ReportingManagerId");
 
                     b.ToTable("employees", (string)null);
                 });
@@ -1731,87 +1728,6 @@ namespace HRDesk.Web.Migrations
                     b.ToTable("payroll_master", (string)null);
                 });
 
-            modelBuilder.Entity("HRDesk.Web.Models.Role", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("description");
-
-                    b.Property<bool>("IsSystemRole")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_system_role");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
-
-                    b.Property<int>("OrganizationId")
-                        .HasColumnType("int")
-                        .HasColumnName("organization_id");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.ToTable("roles", (string)null);
-                });
-
-            modelBuilder.Entity("HRDesk.Web.Models.RolePermission", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("OrganizationId")
-                        .HasColumnType("int")
-                        .HasColumnName("organization_id");
-
-                    b.Property<string>("PermissionKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("permission_key");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int")
-                        .HasColumnName("role_id");
-
-                    b.Property<string>("Scope")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("scope");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("RoleId", "PermissionKey");
-
-                    b.ToTable("role_permissions", (string)null);
-                });
-
             modelBuilder.Entity("HRDesk.Web.Models.SalaryComponent", b =>
                 {
                     b.Property<int>("Id")
@@ -2054,10 +1970,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
-                    b.Property<int?>("EmployeeId")
-                        .HasColumnType("int")
-                        .HasColumnName("employee_id");
-
                     b.Property<string>("FullName")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
@@ -2083,13 +1995,9 @@ namespace HRDesk.Web.Migrations
 
                     b.Property<string>("Role")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
                         .HasColumnName("role");
-
-                    b.Property<int?>("RoleId")
-                        .HasColumnType("int")
-                        .HasColumnName("role_id");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -2099,12 +2007,10 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("Username")
                         .IsUnique();
-
-                    b.HasIndex("OrganizationId", "EmployeeId");
 
                     b.ToTable("users", (string)null);
                 });
@@ -2369,18 +2275,11 @@ namespace HRDesk.Web.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("HRDesk.Web.Models.Employee", "ReportingManager")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "ReportingManagerId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("Department");
 
                     b.Navigation("Designation");
 
                     b.Navigation("Organization");
-
-                    b.Navigation("ReportingManager");
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.EmployeeLoan", b =>
@@ -2669,36 +2568,6 @@ namespace HRDesk.Web.Migrations
                     b.Navigation("Organization");
                 });
 
-            modelBuilder.Entity("HRDesk.Web.Models.Role", b =>
-                {
-                    b.HasOne("HRDesk.Web.Models.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("HRDesk.Web.Models.RolePermission", b =>
-                {
-                    b.HasOne("HRDesk.Web.Models.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("HRDesk.Web.Models.Role", "Role")
-                        .WithMany("Permissions")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Organization");
-
-                    b.Navigation("Role");
-                });
-
             modelBuilder.Entity("HRDesk.Web.Models.SalaryComponent", b =>
                 {
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
@@ -2766,20 +2635,6 @@ namespace HRDesk.Web.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("HRDesk.Web.Models.Role", "CustomRole")
-                        .WithMany("Users")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("HRDesk.Web.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("CustomRole");
-
-                    b.Navigation("Employee");
-
                     b.Navigation("Organization");
                 });
 
@@ -2801,13 +2656,6 @@ namespace HRDesk.Web.Migrations
             modelBuilder.Entity("HRDesk.Web.Models.PayrollMaster", b =>
                 {
                     b.Navigation("PayrollDetails");
-                });
-
-            modelBuilder.Entity("HRDesk.Web.Models.Role", b =>
-                {
-                    b.Navigation("Permissions");
-
-                    b.Navigation("Users");
                 });
 #pragma warning restore 612, 618
         }

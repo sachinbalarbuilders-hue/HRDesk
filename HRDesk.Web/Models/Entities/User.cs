@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
 
+[Table("users")]
 public class User : IMustHaveTenant
 {
     [Key]
@@ -25,8 +26,18 @@ public class User : IMustHaveTenant
     public string? FullName { get; set; }
 
     [Column("role")]
-    [StringLength(20)]
-    public string Role { get; set; } = "User"; // Admin, User, etc.
+    [StringLength(50)]
+    public string Role { get; set; } = "Employee"; // Legacy fallback / Quick check
+
+    [Column("role_id")]
+    public int? RoleId { get; set; }
+
+    public Role? CustomRole { get; set; }
+
+    [Column("employee_id")]
+    public int? EmployeeId { get; set; }
+
+    public Employee? Employee { get; set; }
 
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
@@ -37,9 +48,8 @@ public class User : IMustHaveTenant
     [Column("last_login")]
     public DateTime? LastLogin { get; set; }
 
-    [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
+    [Column("organization_id")]
     public int OrganizationId { get; set; }
 
     public Organization? Organization { get; set; }
 }
-

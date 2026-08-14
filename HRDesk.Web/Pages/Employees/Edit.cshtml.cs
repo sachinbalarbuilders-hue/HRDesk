@@ -10,6 +10,9 @@ using Microsoft.Extensions.Configuration;
 using HRDesk.Web.Services;
 using Microsoft.AspNetCore.Http;
 
+using HRDesk.Web.Constants;
+using HRDesk.Web.Services.Infrastructure;
+
 namespace HRDesk.Web.Pages.Employees;
 
 public sealed class EditModel : PageModel
@@ -17,12 +20,14 @@ public sealed class EditModel : PageModel
     private readonly BiometricAttendanceDbContext _db;
     private readonly IConfiguration _configuration;
     private readonly IReferenceDataCacheService _cache;
+    private readonly IPermissionService _permissionService;
 
-    public EditModel(BiometricAttendanceDbContext db, IConfiguration configuration, IReferenceDataCacheService cache)
+    public EditModel(BiometricAttendanceDbContext db, IConfiguration configuration, IReferenceDataCacheService cache, IPermissionService permissionService)
     {
         _db = db;
         _configuration = configuration;
         _cache = cache;
+        _permissionService = permissionService;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -41,8 +46,21 @@ public sealed class EditModel : PageModel
  
     public SelectList WeekoffOptions { get; private set; } = default!;
 
+    public SelectList ManagerOptions { get; private set; } = default!;
+
+
     public async Task<IActionResult> OnGetAsync()
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
+        {
+            return Forbid();
+        }
+
+        if (!await IsEmployeeInEditScopeAsync(Id))
+        {
+            return Forbid();
+        }
+
         await LoadOptionsAsync();
 
         var employee = await _db.Employees
@@ -59,6 +77,7 @@ public sealed class EditModel : PageModel
             EmployeeName = employee.EmployeeName,
             DepartmentId = employee.DepartmentId,
             DesignationId = employee.DesignationId,
+            ReportingManagerId = employee.ReportingManagerId,
             Weekoff = employee.Weekoff ?? string.Empty,
             JoiningDate = employee.JoiningDate,
             ResignationDate = employee.ResignationDate,
@@ -87,6 +106,16 @@ public sealed class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
+        {
+            return Forbid();
+        }
+
+        if (!await IsEmployeeInEditScopeAsync(Id))
+        {
+            return Forbid();
+        }
+
         await LoadOptionsAsync();
 
         if (string.Equals(Input.Status, "inactive", StringComparison.OrdinalIgnoreCase) && Input.LastWorkingDate == null)
@@ -112,6 +141,7 @@ public sealed class EditModel : PageModel
         employee.EmployeeName = Input.EmployeeName.Trim();
         employee.DepartmentId = Input.DepartmentId;
         employee.DesignationId = Input.DesignationId;
+        employee.ReportingManagerId = Input.ReportingManagerId;
         employee.Weekoff = Input.Weekoff;
         employee.JoiningDate = Input.JoiningDate;
         employee.ResignationDate = Input.ResignationDate;
@@ -229,6 +259,16 @@ public sealed class EditModel : PageModel
 
     public async Task<IActionResult> OnPostToggleStatusAsync()
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
+        {
+            return Forbid();
+        }
+
+        if (!await IsEmployeeInEditScopeAsync(Id))
+        {
+            return Forbid();
+        }
+
         var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == Id);
         if (employee is null)
         {
@@ -248,6 +288,36 @@ public sealed class EditModel : PageModel
         return RedirectToPage(new { id = Id });
     }
 
+    private async Task<bool> IsEmployeeInEditScopeAsync(int employeeId)
+    {
+        if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin")) return true;
+        
+        var scope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesEdit);
+        if (string.IsNullOrEmpty(scope) || scope == AppPermissions.Scopes.All) return true;
+
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        if (!currentEmpId.HasValue) return false;
+
+        var targetEmp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+        if (targetEmp == null) return false;
+
+        if (scope == AppPermissions.Scopes.Own)
+        {
+            return targetEmp.EmployeeId == currentEmpId.Value;
+        }
+        if (scope == AppPermissions.Scopes.Reporting)
+        {
+            return targetEmp.EmployeeId == currentEmpId.Value || targetEmp.ReportingManagerId == currentEmpId.Value;
+        }
+        if (scope == AppPermissions.Scopes.Department)
+        {
+            var currentEmp = await _permissionService.GetCurrentEmployeeAsync(User);
+            return currentEmp?.DepartmentId != null && targetEmp.DepartmentId == currentEmp.DepartmentId;
+        }
+
+        return false;
+    }
+
     private async Task LoadOptionsAsync()
     {
         var departments = await _cache.GetDepartmentsAsync();
@@ -255,6 +325,15 @@ public sealed class EditModel : PageModel
 
         DepartmentOptions = new SelectList(departments, nameof(Department.Id), nameof(Department.DepartmentName));
         DesignationOptions = new SelectList(designations, nameof(Designation.Id), nameof(Designation.DesignationName));
+
+        // Load all active employees as potential reporting managers (excluding current employee)
+        var managers = await _db.Employees
+            .AsNoTracking()
+            .Where(e => e.Status == "active" && e.EmployeeId != Id)
+            .OrderBy(e => e.EmployeeName)
+            .Select(e => new { e.EmployeeId, DisplayName = e.EmployeeName + " (#" + e.EmployeeId + ")" })
+            .ToListAsync();
+        ManagerOptions = new SelectList(managers, "EmployeeId", "DisplayName");
  
         var weekoffDays = new[]
         {
@@ -281,6 +360,9 @@ public sealed class EditModel : PageModel
 
         [Display(Name = "Designation")]
         public int? DesignationId { get; set; }
+
+        [Display(Name = "Reporting Manager")]
+        public int? ReportingManagerId { get; set; }
 
         [Display(Name = "Weekoff")]
         public string? Weekoff { get; set; }

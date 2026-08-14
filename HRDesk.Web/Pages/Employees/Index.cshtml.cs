@@ -1,5 +1,6 @@
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
+using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -10,16 +11,71 @@ public sealed class IndexModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly HRDesk.Web.Services.IDeviceCommunicationService _deviceService;
+    private readonly IPermissionService _permissionService;
     private const int DefaultPageSize = 15;
 
-    public IndexModel(BiometricAttendanceDbContext db, HRDesk.Web.Services.IDeviceCommunicationService deviceService)
+    public IndexModel(BiometricAttendanceDbContext db, HRDesk.Web.Services.IDeviceCommunicationService deviceService, IPermissionService permissionService)
     {
         _db = db;
         _deviceService = deviceService;
+        _permissionService = permissionService;
     }
 
     public PaginatedList<Employee> Employees { get; private set; } = default!;
     
+    public bool CanCreate { get; private set; }
+    public bool CanEdit { get; private set; }
+    public bool CanDelete { get; private set; }
+
+    public string? EditScope { get; private set; }
+    public string? DeleteScope { get; private set; }
+    public int? CurrentEmployeeId { get; private set; }
+    public Employee? CurrentEmployee { get; private set; }
+
+    public bool CanUserEdit(Employee target)
+    {
+        if (!CanEdit) return false;
+        if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin")) return true;
+        if (string.IsNullOrEmpty(EditScope) || EditScope == HRDesk.Web.Constants.AppPermissions.Scopes.All) return true;
+
+        if (EditScope == HRDesk.Web.Constants.AppPermissions.Scopes.Own)
+        {
+            return CurrentEmployeeId.HasValue && target.EmployeeId == CurrentEmployeeId.Value;
+        }
+        if (EditScope == HRDesk.Web.Constants.AppPermissions.Scopes.Reporting)
+        {
+            return CurrentEmployeeId.HasValue && (target.EmployeeId == CurrentEmployeeId.Value || target.ReportingManagerId == CurrentEmployeeId.Value);
+        }
+        if (EditScope == HRDesk.Web.Constants.AppPermissions.Scopes.Department)
+        {
+            return CurrentEmployee?.DepartmentId != null && target.DepartmentId == CurrentEmployee.DepartmentId;
+        }
+
+        return false;
+    }
+
+    public bool CanUserDelete(Employee target)
+    {
+        if (!CanDelete) return false;
+        if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin")) return true;
+        if (string.IsNullOrEmpty(DeleteScope) || DeleteScope == HRDesk.Web.Constants.AppPermissions.Scopes.All) return true;
+
+        if (DeleteScope == HRDesk.Web.Constants.AppPermissions.Scopes.Own)
+        {
+            return CurrentEmployeeId.HasValue && target.EmployeeId == CurrentEmployeeId.Value;
+        }
+        if (DeleteScope == HRDesk.Web.Constants.AppPermissions.Scopes.Reporting)
+        {
+            return CurrentEmployeeId.HasValue && (target.EmployeeId == CurrentEmployeeId.Value || target.ReportingManagerId == CurrentEmployeeId.Value);
+        }
+        if (DeleteScope == HRDesk.Web.Constants.AppPermissions.Scopes.Department)
+        {
+            return CurrentEmployee?.DepartmentId != null && target.DepartmentId == CurrentEmployee.DepartmentId;
+        }
+
+        return false;
+    }
+
     // Search property
     [BindProperty(SupportsGet = true)]
     public string? SearchQuery { get; set; }
@@ -30,6 +86,15 @@ public sealed class IndexModel : PageModel
 
     public async Task OnGetAsync(int pageNum = 1)
     {
+        CanCreate = await _permissionService.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.EmployeesCreate);
+        CanEdit = await _permissionService.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.EmployeesEdit);
+        CanDelete = await _permissionService.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.EmployeesDelete);
+
+        EditScope = await _permissionService.GetPermissionScopeAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.EmployeesEdit);
+        DeleteScope = await _permissionService.GetPermissionScopeAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.EmployeesDelete);
+        CurrentEmployeeId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        CurrentEmployee = await _permissionService.GetCurrentEmployeeAsync(User);
+
         if (string.IsNullOrEmpty(StatusFilter))
         {
             StatusFilter = "active";
@@ -60,6 +125,9 @@ public sealed class IndexModel : PageModel
             query = query.Where(e => e.Status != null && e.Status.ToLower() == StatusFilter.ToLower());
         }
         
+        // Apply permission scope (Own / Reporting / Department / All)
+        query = await _permissionService.ApplyEmployeeScopeAsync(query, User);
+
         var orderedQuery = query
             .OrderBy(e => e.EmployeeName)
             .ThenBy(e => e.EmployeeId);
@@ -69,6 +137,11 @@ public sealed class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostToggleStatusAsync(int id)
     {
+        if (!await _permissionService.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.EmployeesEdit))
+        {
+            return new JsonResult(new { success = false, message = "Unauthorized to edit employees." }) { StatusCode = 403 };
+        }
+
         var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id);
         if (employee is null)
         {
@@ -164,11 +237,30 @@ public sealed class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
+        if (!await _permissionService.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.EmployeesDelete))
+        {
+            return Forbid();
+        }
+
         var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id);
         if (employee is null)
         {
             TempData["SetNameResult"] = "Employee not found.";
             return RedirectToPage();
+        }
+
+        var deleteScope = await _permissionService.GetPermissionScopeAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.EmployeesDelete);
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        if (deleteScope == HRDesk.Web.Constants.AppPermissions.Scopes.Reporting && currentEmpId.HasValue)
+        {
+            if (employee.ReportingManagerId != currentEmpId.Value)
+                return Forbid();
+        }
+        else if (deleteScope == HRDesk.Web.Constants.AppPermissions.Scopes.Department && currentEmpId.HasValue)
+        {
+            var currentEmp = await _permissionService.GetCurrentEmployeeAsync(User);
+            if (employee.DepartmentId != currentEmp?.DepartmentId)
+                return Forbid();
         }
 
         string? deviceError = null;

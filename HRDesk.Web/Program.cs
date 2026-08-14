@@ -101,6 +101,8 @@ builder.Services.AddHostedService<HRDesk.Web.Services.CelebrationNotificationSer
 builder.Services.AddHttpClient<HRDesk.Web.Services.Attendance.ITeamOfficeSyncService, HRDesk.Web.Services.Attendance.TeamOfficeSyncService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.Attendance.TeamOfficeBackgroundSyncWorker>();
 
+builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPermissionService, HRDesk.Web.Services.Infrastructure.PermissionService>();
+
 builder.Services.AddCors(options => {
     options.AddPolicy("LocalDevices", policy => {
         policy.WithOrigins("http://localhost", "http://192.168.1.*")
@@ -174,7 +176,6 @@ using (var scope = app.Services.CreateScope())
         {
             db.Organizations.Add(new HRDesk.Web.Models.Organization
             {
-                Id = 1,
                 Name = "Default Organization",
                 IsActive = true,
                 CreatedAt = DateTime.Now
@@ -182,24 +183,139 @@ using (var scope = app.Services.CreateScope())
             db.SaveChanges();
         }
 
-        if (!db.Users.Any())
+        var defaultOrg = db.Organizations.FirstOrDefault();
+        if (defaultOrg != null)
         {
-            var randomPassword = Guid.NewGuid().ToString("N").Substring(0, 10);
-            Console.WriteLine("\n========================================================");
-            Console.WriteLine($"[SECURITY] Seeded default admin 'admin' with password: {randomPassword}");
-            Console.WriteLine("========================================================\n");
-
-            db.Users.Add(new HRDesk.Web.Models.User
+            // Seed System Roles
+            var superAdminRole = db.Roles.FirstOrDefault(r => r.OrganizationId == defaultOrg.Id && r.Name == "Super Admin");
+            if (superAdminRole == null)
             {
-                Username = "admin",
-                PasswordHash = randomPassword, // Seeded with secure random string
-                FullName = "Administrator",
-                Role = "SuperAdmin",
-                IsActive = true,
-                CreatedAt = DateTime.Now,
-                OrganizationId = 1
-            });
-            db.SaveChanges();
+                superAdminRole = new HRDesk.Web.Models.Role
+                {
+                    Name = "Super Admin",
+                    Description = "Full access across all system modules and organization settings.",
+                    IsSystemRole = true,
+                    OrganizationId = defaultOrg.Id,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                };
+                db.Roles.Add(superAdminRole);
+                db.SaveChanges();
+
+                // Grant all permissions with scope = All
+                foreach (var perm in HRDesk.Web.Constants.AppPermissions.All)
+                {
+                    db.RolePermissions.Add(new HRDesk.Web.Models.RolePermission
+                    {
+                        RoleId = superAdminRole.Id,
+                        PermissionKey = perm.Key,
+                        Scope = HRDesk.Web.Constants.AppPermissions.Scopes.All,
+                        OrganizationId = defaultOrg.Id
+                    });
+                }
+                db.SaveChanges();
+            }
+
+            var managerRole = db.Roles.FirstOrDefault(r => r.OrganizationId == defaultOrg.Id && r.Name == "Department Manager");
+            if (managerRole == null)
+            {
+                managerRole = new HRDesk.Web.Models.Role
+                {
+                    Name = "Department Manager",
+                    Description = "Can manage rosters, approve leaves, and view attendance for direct reportees / department.",
+                    IsSystemRole = true,
+                    OrganizationId = defaultOrg.Id,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                };
+                db.Roles.Add(managerRole);
+                db.SaveChanges();
+
+                var managerPerms = new[]
+                {
+                    (HRDesk.Web.Constants.AppPermissions.Keys.EmployeesView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRoster, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRegularize, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.LeavesView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.LeavesApprove, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.CompOffApprove, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.ESSDashboard, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.ESSMyAttendance, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.ESSApplyLeave, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.ESSMyPayslips, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.ESSMyRoster, HRDesk.Web.Constants.AppPermissions.Scopes.Own)
+                };
+
+                foreach (var (permKey, permScope) in managerPerms)
+                {
+                    db.RolePermissions.Add(new HRDesk.Web.Models.RolePermission
+                    {
+                        RoleId = managerRole.Id,
+                        PermissionKey = permKey,
+                        Scope = permScope,
+                        OrganizationId = defaultOrg.Id
+                    });
+                }
+                db.SaveChanges();
+            }
+
+            var employeeRole = db.Roles.FirstOrDefault(r => r.OrganizationId == defaultOrg.Id && r.Name == "Employee");
+            if (employeeRole == null)
+            {
+                employeeRole = new HRDesk.Web.Models.Role
+                {
+                    Name = "Employee",
+                    Description = "Standard staff account with access to Employee Self-Service (ESS) portal.",
+                    IsSystemRole = true,
+                    OrganizationId = defaultOrg.Id,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                };
+                db.Roles.Add(employeeRole);
+                db.SaveChanges();
+
+                var essPerms = HRDesk.Web.Constants.AppPermissions.All
+                    .Where(p => p.Module == HRDesk.Web.Constants.AppPermissions.Modules.SelfService);
+
+                foreach (var perm in essPerms)
+                {
+                    db.RolePermissions.Add(new HRDesk.Web.Models.RolePermission
+                    {
+                        RoleId = employeeRole.Id,
+                        PermissionKey = perm.Key,
+                        Scope = HRDesk.Web.Constants.AppPermissions.Scopes.Own,
+                        OrganizationId = defaultOrg.Id
+                    });
+                }
+                db.SaveChanges();
+            }
+
+            var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin");
+            if (adminUser == null)
+            {
+                db.Users.Add(new HRDesk.Web.Models.User
+                {
+                    Username = "admin",
+                    PasswordHash = "password",
+                    FullName = "Administrator",
+                    Role = "SuperAdmin",
+                    RoleId = superAdminRole.Id,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now,
+                    OrganizationId = defaultOrg.Id
+                });
+                db.SaveChanges();
+                Console.WriteLine("\n[SEED] Created user: admin / password (Super Admin)\n");
+            }
+            else
+            {
+                adminUser.PasswordHash = "password";
+                adminUser.Role = "SuperAdmin";
+                adminUser.RoleId = superAdminRole.Id;
+                adminUser.IsActive = true;
+                db.SaveChanges();
+            }
         }
 
         // Seed PF Salary Component if not exists

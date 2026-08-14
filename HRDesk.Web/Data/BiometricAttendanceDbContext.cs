@@ -69,6 +69,8 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<DeviceConfiguration> DeviceConfigurations => Set<DeviceConfiguration>();
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
     public DbSet<DeviceSyncState> DeviceSyncStates => Set<DeviceSyncState>();
     public DbSet<LeaveTypeEligibility> LeaveTypeEligibilities => Set<LeaveTypeEligibility>();
@@ -452,6 +454,42 @@ public sealed class BiometricAttendanceDbContext : DbContext
         {
             entity.ToTable("users");
             entity.HasIndex(u => u.Username).IsUnique();
+            entity.HasOne(u => u.CustomRole)
+                .WithMany(r => r.Users)
+                .HasForeignKey(u => u.RoleId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(u => u.Employee)
+                .WithMany()
+                .HasForeignKey(u => new { u.OrganizationId, u.EmployeeId })
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.ToTable("roles");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+            entity.HasMany(e => e.Permissions)
+                .WithOne(p => p.Role)
+                .HasForeignKey(p => p.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.ToTable("role_permissions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PermissionKey).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Scope).HasMaxLength(50).IsRequired();
+            entity.HasIndex(e => new { e.RoleId, e.PermissionKey });
+        });
+
+        modelBuilder.Entity<Employee>(entity =>
+        {
+            entity.HasOne(e => e.ReportingManager)
+                .WithMany()
+                .HasForeignKey(e => new { e.OrganizationId, e.ReportingManagerId })
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
                 modelBuilder.Entity<AttendanceRegularization>(entity =>
