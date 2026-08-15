@@ -26,12 +26,53 @@ builder.Services.AddRazorPages(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddHealthChecks();
 
-// Require authentication by default for all endpoints (Controllers & Pages)
+// Require authentication by default for all endpoints (Controllers & Pages) supporting both Cookies and JWT Bearer
 builder.Services.AddAuthorization(options =>
 {
-    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+    var defaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(
+        CookieAuthenticationDefaults.AuthenticationScheme,
+        Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
         .RequireAuthenticatedUser()
         .Build();
+
+    options.DefaultPolicy = defaultPolicy;
+    options.FallbackPolicy = defaultPolicy;
+});
+
+// Swagger & OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "HRDesk REST API",
+        Version = "v1",
+        Description = "Unified REST API for HRDesk Web & Mobile"
+    });
+
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using Bearer scheme. Format: Bearer {token}",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 // Add HttpContextAccessor and Tenant Provider
@@ -39,7 +80,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<HRDesk.Web.Services.ICurrentTenantProvider, HRDesk.Web.Services.CurrentTenantProvider>();
 builder.Services.AddScoped<HRDesk.Web.Services.IDeviceCommunicationService, HRDesk.Web.Services.DeviceCommunicationService>();
-// Configure Authentication: Primary is Cookies for the Web Portal
+// Configure Authentication: Primary is Cookies for the Web Portal + JWT for SPA & Mobile
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -104,10 +145,11 @@ builder.Services.AddHostedService<HRDesk.Web.Services.Attendance.TeamOfficeBackg
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPermissionService, HRDesk.Web.Services.Infrastructure.PermissionService>();
 
 builder.Services.AddCors(options => {
-    options.AddPolicy("LocalDevices", policy => {
-        policy.WithOrigins("http://localhost", "http://192.168.1.*")
+    options.AddPolicy("AllowAll", policy => {
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyHeader()
-              .WithMethods("GET", "POST");
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
@@ -137,6 +179,14 @@ app.Use(async (context, next) =>
     }
 });
 
+// Swagger in Development & Production for testing
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "HRDesk REST API v1");
+    c.RoutePrefix = "swagger";
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -152,10 +202,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseSerilogRequestLogging();
 
-
 app.UseRouting();
-
-app.UseCors("LocalDevices");
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();

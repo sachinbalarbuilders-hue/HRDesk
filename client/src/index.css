@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --navy-900: #0A1F44;
+    --navy-700: #152C56;
+    --gold-500: #C9A84C;
+    --gold-100: #F4EAD1;
+    --paper: #F7F6F2;
+    --ink: #1C1C1C;
+    --ink-muted: #6B6B63;
+    --rule: #D8D5CB;
+    --ok-600: #2F6B4F;
+    --warn-600: #B07B1E;
+    --err-600: #A8402E;
+    --surface: #FFFFFF;
+    --surface-header: #F1EFEA;
+    --surface-hover: #FDFCFA;
+    --surface-weekend: #EAE7E0;
+    --surface-weekend-cell: #F9F8F5;
+  }
+
+  .dark {
+    --navy-900: #08152E;
+    --navy-700: #0F2248;
+    --gold-500: #D4AF37;
+    --gold-100: #2B2312;
+    --paper: #0D1117;
+    --ink: #E6EDF3;
+    --ink-muted: #8B949E;
+    --rule: #2D333B;
+    --ok-600: #3FB950;
+    --warn-600: #D29922;
+    --err-600: #F85149;
+    --surface: #161B22;
+    --surface-header: #1C2128;
+    --surface-hover: #21262D;
+    --surface-weekend: #1E232B;
+    --surface-weekend-cell: #13171F;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-size: 13.5px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Typography Helpers */
+.font-display {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+.font-ui {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+}
+
+.font-data {
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Signature Register Rule: Horizontal hairline ledger rule with margin ticks */
+.register-rule {
+  position: relative;
+  border-bottom: 1px solid var(--rule);
+}
+
+.register-rule::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background-image: radial-gradient(circle, var(--rule) 1px, transparent 1px);
+  background-size: 16px 4px;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Register Table Styling */
+.register-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--surface);
+}
+
+.register-table th {
+  background-color: var(--surface-header);
+  color: var(--ink-muted);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+}
+
+.register-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.register-table tr:hover td {
+  background-color: var(--surface-hover);
+}
+
+/* Status Dot: 6px circle + label */
+.status-dot-ok {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: var(--ok-600);
+}
+
+.status-dot-warn {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: var(--warn-600);
+}
+
+.status-dot-err {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: var(--err-600);
+}
+
+/* Register Buttons */
+.btn-primary {
+  background-color: var(--navy-900);
+  color: #FFFFFF;
+  border: 1px solid var(--navy-900);
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background-color: var(--navy-700);
+  color: var(--gold-500);
+  border-color: var(--gold-500);
+}
+
+.btn-outline {
+  background-color: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.btn-outline:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--ink-muted);
+}
+
+/* Clean Form inputs */
+.register-input {
+  background-color: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.register-input:focus {
+  border-color: var(--gold-500);
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.35);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--paper);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-muted);
+}

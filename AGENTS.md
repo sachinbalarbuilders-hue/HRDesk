@@ -124,7 +124,31 @@ var summary = _attendanceSummaryService.ComputeSummary(employeeId, year, month, 
 
 ---
 
-## ?? Security First
+## 🛡️ APPROVED TECHNOLOGY STACK & ARCHITECTURAL GUARDRAILS
+
+### Core Approved Stack
+| Layer | Technology | Rules & Guardrails |
+| :--- | :--- | :--- |
+| **Backend** | **ASP.NET Core (.NET 8 / C#)** | Primary backend engine. All business logic, biometrics, and calculations must remain in C#. |
+| **Database** | **Microsoft SQL Server (MSSQL)** | **STRICT RULE**: The database is stabilized on SQL Server with EF Core (`Microsoft.EntityFrameworkCore.SqlServer`). **DO NOT** migrate or suggest switching to MySQL, MongoDB, SQLite, or Postgres unless explicitly instructed by the user. |
+| **ORM** | **Entity Framework Core 8** | Use EF Core migrations and LINQ queries. Do not add redundant ORMs. |
+| **RBAC & Security** | **`IPermissionService`** | All row-level data scoping (`All`, `Reporting`, `Department`, `Own`) MUST use `_permissionService.ApplyEmployeeScopeAsync`, `ApplyLeaveScopeAsync`, etc. |
+| **Attendance Engine** | **`AttendanceSummaryService`** | **Single Source of Truth** for all attendance, payable days, LOP, and leave credit counts. |
+| **Frontend Strategy** | **React (Vite + TS + Tailwind + shadcn/ui)** or **Razor Pages** | When building REST APIs for frontend/mobile, use ASP.NET Core API controllers calling existing services. |
+| **Mobile Strategy** | **React Native / Capacitor** | Connects to the same .NET REST API endpoints (`/api/...`). |
+
+### 🚫 STRICT FORBIDDEN ACTIONS FOR AI AGENTS
+1. **DO NOT change the database engine** (No MySQL, No MongoDB, No SQLite). The database is **Microsoft SQL Server**.
+2. **DO NOT write separate attendance/LOP counting logic** in any Controller, Page, or Service. Always delegate to `AttendanceSummaryService`.
+3. **DO NOT bypass RBAC scoping**. Always apply `IPermissionService` filters to queries when fetching employees, attendance logs, rosters, or leaves.
+4. **DO NOT install bloated or vulnerable NuGet/npm packages**. Keep dependencies lean.
+5. **DO NOT reintroduce obsolete status codes** (e.g., `CHF` was migrated to `COHF`).
+6. **DO NOT break mobile/tablet responsiveness**. Always ensure horizontal tables have sticky columns, drawers collapse to full width on mobile, and the viewport root has zero horizontal overflow.
+7. **DO NOT deviate from `HRMS-DESIGN.md`**. Always use the defined Register design system tokens, `Fraunces` / `IBM Plex` typography, and ledger styling.
+
+---
+
+## 🔒 Security First
 
 - **NEVER use vulnerable libraries.**
 - **Security is the first priority.** Always check for known vulnerabilities in NuGet or npm packages before installing or updating them.
