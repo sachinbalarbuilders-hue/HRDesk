@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { DataToolbar } from '../components/ui/DataToolbar';
@@ -17,6 +18,7 @@ import { TableSkeleton } from '../components/ui/PageSkeleton';
 export const Leaves: React.FC = () => {
   const { user, hasPermission, isAdmin } = useAuth();
   const { showSuccess, showError } = useToast();
+  const { currentOrganization, currentBranch } = useOrganization();
   const [applications, setApplications] = useState<any[]>([]);
   const [balances, setBalances] = useState<any[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
@@ -48,11 +50,16 @@ export const Leaves: React.FC = () => {
           params: {
             status: statusFilter !== 'all' ? statusFilter : undefined,
             search: search || undefined,
+            branchId: currentBranch?.id || undefined,
             page,
             pageSize,
           },
         }),
-        apiClient.get('/leaves/types'),
+        apiClient.get('/leaves/types', {
+          params: {
+            branchId: currentBranch?.id || undefined,
+          },
+        }),
       ]);
 
       setApplications(appsRes.data.items || []);
@@ -73,7 +80,22 @@ export const Leaves: React.FC = () => {
 
   useEffect(() => {
     fetchLeavesData();
-  }, [statusFilter, search, page, pageSize]);
+  }, [statusFilter, search, currentOrganization?.id, currentBranch?.id, page, pageSize]);
+
+  useEffect(() => {
+    const handleReload = () => {
+      setPage(1);
+      fetchLeavesData();
+    };
+
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
+
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
+    };
+  }, [statusFilter, search]);
 
   const handleExportLeaves = () => {
     if (!applications.length) {

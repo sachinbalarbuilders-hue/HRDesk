@@ -16,11 +16,16 @@ public class HolidaysController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
+    private readonly ICurrentTenantProvider _tenantProvider;
 
-    public HolidaysController(BiometricAttendanceDbContext db, IPermissionService permissionService)
+    public HolidaysController(
+        BiometricAttendanceDbContext db,
+        IPermissionService permissionService,
+        ICurrentTenantProvider tenantProvider)
     {
         _db = db;
         _permissionService = permissionService;
+        _tenantProvider = tenantProvider;
     }
 
     public record HolidayDto(
@@ -28,21 +33,28 @@ public class HolidaysController : ControllerBase
         DateOnly StartDate,
         DateOnly EndDate,
         string? Description,
-        bool IsGlobal
+        bool IsGlobal,
+        int? BranchId = null
     );
 
     [HttpGet]
-    public async Task<IActionResult> GetHolidays([FromQuery] int? year = null, [FromQuery] string? search = null)
+    public async Task<IActionResult> GetHolidays([FromQuery] int? year = null, [FromQuery] string? search = null, [FromQuery] int? branchId = null)
     {
         var targetYear = year ?? DateTime.Today.Year;
         var startOfYear = new DateOnly(targetYear, 1, 1);
         var endOfYear = new DateOnly(targetYear, 12, 31);
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
 
         var query = _db.Holidays
             .AsNoTracking()
             .Where(h => (h.StartDate >= startOfYear && h.StartDate <= endOfYear) ||
                         (h.EndDate >= startOfYear && h.EndDate <= endOfYear))
             .AsQueryable();
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(h => h.BranchId == activeBranch.Value || h.BranchId == null);
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -61,7 +73,9 @@ public class HolidaysController : ControllerBase
                 days = h.EndDate.DayNumber - h.StartDate.DayNumber + 1,
                 isGlobal = h.IsGlobal,
                 description = h.Description ?? "",
-                applicableTo = h.IsGlobal ? "All Staff" : "Department Specific"
+                applicableTo = h.IsGlobal ? "All Staff" : "Department Specific",
+                branchId = h.BranchId,
+                branchName = h.Branch != null ? h.Branch.Name : null
             })
             .ToListAsync();
 
@@ -86,9 +100,8 @@ public class HolidaysController : ControllerBase
             return BadRequest(new { message = "End date cannot be earlier than start date." });
         }
 
-        var orgId = 1;
-        var orgClaim = User.FindFirst("OrganizationId")?.Value;
-        if (int.TryParse(orgClaim, out var parsedOrg)) orgId = parsedOrg;
+        var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var targetBranch = dto.BranchId ?? _tenantProvider.BranchId;
 
         var holiday = new Holiday
         {
@@ -97,7 +110,8 @@ public class HolidaysController : ControllerBase
             EndDate = dto.EndDate,
             Description = dto.Description?.Trim(),
             IsGlobal = dto.IsGlobal,
-            OrganizationId = orgId
+            OrganizationId = orgId,
+            BranchId = targetBranch
         };
 
         _db.Holidays.Add(holiday);
@@ -117,6 +131,7 @@ public class HolidaysController : ControllerBase
         holiday.EndDate = dto.EndDate;
         holiday.Description = dto.Description?.Trim();
         holiday.IsGlobal = dto.IsGlobal;
+        if (dto.BranchId.HasValue) holiday.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
 
         await _db.SaveChangesAsync();
         return Ok(new { message = "Holiday updated successfully.", id = holiday.Id });

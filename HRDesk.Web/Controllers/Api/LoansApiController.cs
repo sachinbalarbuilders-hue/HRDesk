@@ -16,16 +16,16 @@ public class LoansController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
-    private readonly ISequenceService _sequenceService;
+    private readonly ICurrentTenantProvider _tenantProvider;
 
     public LoansController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        ISequenceService sequenceService)
+        ICurrentTenantProvider tenantProvider)
     {
         _db = db;
         _permissionService = permissionService;
-        _sequenceService = sequenceService;
+        _tenantProvider = tenantProvider;
     }
 
     public record LoanApplyDto(
@@ -34,7 +34,8 @@ public class LoansController : ControllerBase
         decimal PrincipalAmount,
         int TenureMonths,
         DateOnly StartDate,
-        string? Reason
+        string? Reason,
+        int? BranchId = null
     );
 
     public record LoanStatusDto(string? Remarks);
@@ -44,9 +45,12 @@ public class LoansController : ControllerBase
         [FromQuery] string? status = null,
         [FromQuery] string? search = null,
         [FromQuery] int? loanTypeId = null,
+        [FromQuery] int? branchId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+
         var query = _db.EmployeeLoans
             .AsNoTracking()
             .Include(l => l.Employee)
@@ -54,8 +58,17 @@ public class LoansController : ControllerBase
             .Include(l => l.LoanType)
             .AsQueryable();
 
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(l => (l.BranchId != null ? l.BranchId == activeBranch.Value : (l.Employee != null && l.Employee.BranchId == activeBranch.Value)));
+        }
+
         // RBAC Scoping
         var empScopedQuery = _db.Employees.AsNoTracking().AsQueryable();
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            empScopedQuery = empScopedQuery.Where(e => e.BranchId == activeBranch.Value);
+        }
         empScopedQuery = await _permissionService.ApplyEmployeeScopeAsync(empScopedQuery, User, AppPermissions.Keys.PayrollView);
         var allowedEmpIds = await empScopedQuery.Select(e => e.EmployeeId).ToListAsync();
 
@@ -91,12 +104,15 @@ public class LoansController : ControllerBase
             {
                 id = l.Id,
                 appNumber = l.ApplicationNumber ?? $"LN-{l.Id}",
+                applicationNumber = l.ApplicationNumber ?? $"LN-{l.Id}",
                 appDate = l.ApplicationDate.ToString("yyyy-MM-dd"),
+                applicationDate = l.ApplicationDate.ToString("yyyy-MM-dd"),
                 employeeId = l.EmployeeId,
-                employeeName = l.Employee != null ? l.Employee.EmployeeName : $"Emp #{l.EmployeeId}",
+                employeeName = l.Employee != null ? l.Employee.EmployeeName : "Employee",
                 department = l.Employee != null && l.Employee.Department != null ? l.Employee.Department.DepartmentName : "General",
-                loanType = l.LoanType != null ? l.LoanType.TypeName : "Advance",
+                loanType = l.LoanType != null ? l.LoanType.TypeName : "Loan",
                 loanTypeId = l.LoanTypeId,
+                loanTypeName = l.LoanType != null ? l.LoanType.TypeName : "Loan",
                 principalAmount = l.LoanAmount,
                 monthlyEmi = l.InstallmentAmount,
                 tenureMonths = l.Installments,
@@ -110,11 +126,17 @@ public class LoansController : ControllerBase
             })
             .ToListAsync();
 
-        // Calculate Aggregate Stats
-        var allLoans = await _db.EmployeeLoans
+        // Calculate Aggregate Stats scoped to active branch and allowed employees
+        var statsQuery = _db.EmployeeLoans
             .AsNoTracking()
-            .Where(l => allowedEmpIds.Contains(l.EmployeeId))
-            .ToListAsync();
+            .Where(l => allowedEmpIds.Contains(l.EmployeeId));
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            statsQuery = statsQuery.Where(l => (l.BranchId != null ? l.BranchId == activeBranch.Value : (l.Employee != null && l.Employee.BranchId == activeBranch.Value)));
+        }
+
+        var allLoans = await statsQuery.ToListAsync();
 
         var totalPrincipal = allLoans.Where(l => l.Status == "Disbursed" || l.Status == "Approved").Sum(l => l.LoanAmount);
         var totalOutstanding = allLoans.Where(l => l.Status == "Disbursed" || l.Status == "Approved").Sum(l => l.RemainingAmount);
@@ -140,11 +162,19 @@ public class LoansController : ControllerBase
     }
 
     [HttpGet("types")]
-    public async Task<IActionResult> GetLoanTypes()
+    public async Task<IActionResult> GetLoanTypes([FromQuery] int? branchId = null)
     {
-        var types = await _db.LoanTypes
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+        var query = _db.LoanTypes
             .AsNoTracking()
-            .Where(t => t.IsActive)
+            .Where(t => t.IsActive);
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(t => t.BranchId == activeBranch.Value || t.BranchId == null);
+        }
+
+        var types = await query
             .OrderBy(t => t.TypeName)
             .Select(t => new
             {
@@ -161,52 +191,64 @@ public class LoansController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateLoan([FromBody] LoanApplyDto dto)
     {
-        var employee = await _db.Employees.FindAsync(dto.EmployeeId);
-        if (employee == null) return NotFound(new { message = "Employee not found." });
-
-        if (dto.PrincipalAmount <= 0) return BadRequest(new { message = "Principal amount must be greater than zero." });
-        if (dto.TenureMonths <= 0) return BadRequest(new { message = "Tenure must be at least 1 month." });
-
-        var emi = Math.Round(dto.PrincipalAmount / dto.TenureMonths, 2);
-        var appNo = await _sequenceService.GenerateApplicationNumberAsync(dto.StartDate);
-
-        var loan = new EmployeeLoan
+        try
         {
-            OrganizationId = employee.OrganizationId,
-            EmployeeId = dto.EmployeeId,
-            LoanTypeId = dto.LoanTypeId,
-            ApplicationNumber = appNo,
-            LoanAmount = dto.PrincipalAmount,
-            Installments = dto.TenureMonths,
-            InstallmentAmount = emi,
-            RemainingAmount = dto.PrincipalAmount,
-            RemainingInstallments = dto.TenureMonths,
-            StartDate = dto.StartDate,
-            ApplicationDate = DateOnly.FromDateTime(DateTime.Today),
-            Reason = dto.Reason?.Trim(),
-            Status = "Pending",
-            CreatedAt = DateTime.Now
-        };
+            var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == dto.EmployeeId);
+            if (employee == null) return NotFound(new { message = "Employee not found." });
 
-        // Create installment schedule
-        for (int i = 0; i < dto.TenureMonths; i++)
-        {
-            var instDate = dto.StartDate.AddMonths(i);
-            loan.LoanInstallments.Add(new LoanInstallment
+            if (dto.PrincipalAmount <= 0) return BadRequest(new { message = "Principal amount must be greater than zero." });
+            if (dto.TenureMonths <= 0) return BadRequest(new { message = "Tenure must be at least 1 month." });
+
+            var emi = Math.Round(dto.PrincipalAmount / dto.TenureMonths, 2);
+            var count = await _db.EmployeeLoans.CountAsync(l => l.OrganizationId == employee.OrganizationId);
+            var appNo = $"LN-{dto.StartDate:yyyyMM}-{(count + 1):D3}";
+
+            var targetBranch = employee.BranchId ?? dto.BranchId ?? _tenantProvider.BranchId;
+
+            var loan = new EmployeeLoan
             {
                 OrganizationId = employee.OrganizationId,
-                InstallmentNumber = i + 1,
-                DueMonth = instDate.ToString("yyyy-MM"),
-                Amount = emi,
-                PaidAmount = 0,
-                Status = "Pending"
-            });
+                BranchId = targetBranch,
+                EmployeeId = dto.EmployeeId,
+                LoanTypeId = dto.LoanTypeId,
+                ApplicationNumber = appNo,
+                LoanAmount = dto.PrincipalAmount,
+                Installments = dto.TenureMonths,
+                InstallmentAmount = emi,
+                RemainingAmount = dto.PrincipalAmount,
+                RemainingInstallments = dto.TenureMonths,
+                StartDate = dto.StartDate,
+                ApplicationDate = DateOnly.FromDateTime(DateTime.Today),
+                Reason = dto.Reason?.Trim(),
+                Status = "Pending",
+                CreatedAt = DateTime.Now
+            };
+
+            // Create installment schedule
+            for (int i = 0; i < dto.TenureMonths; i++)
+            {
+                var instDate = dto.StartDate.AddMonths(i);
+                loan.LoanInstallments.Add(new LoanInstallment
+                {
+                    OrganizationId = employee.OrganizationId,
+                    BranchId = targetBranch,
+                    InstallmentNumber = i + 1,
+                    DueMonth = instDate.ToString("yyyy-MM"),
+                    Amount = emi,
+                    PaidAmount = 0,
+                    Status = "Pending"
+                });
+            }
+
+            _db.EmployeeLoans.Add(loan);
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Loan application submitted successfully.", id = loan.Id, applicationNumber = appNo });
         }
-
-        _db.EmployeeLoans.Add(loan);
-        await _db.SaveChangesAsync();
-
-        return Ok(new { message = "Loan application submitted successfully.", id = loan.Id, applicationNumber = appNo });
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Failed to create loan application: {ex.Message}" });
+        }
     }
 
     [HttpPost("{id}/approve")]

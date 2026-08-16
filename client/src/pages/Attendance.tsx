@@ -7,6 +7,7 @@ import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useOrganization } from '../context/CompanyContext';
 import {
   ChevronLeft,
   ChevronRight,
@@ -41,6 +42,7 @@ interface CompOffItem {
 export const Attendance: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const { hasPermission, isAdmin } = useAuth();
+  const { currentOrganization, currentBranch } = useOrganization();
 
   const [activeTab, setActiveTab] = useState<'matrix' | 'daily_logs' | 'compoff'>('matrix');
   const [data, setData] = useState<any>(null);
@@ -81,7 +83,9 @@ export const Attendance: React.FC = () => {
     try {
       const [deptRes, empRes] = await Promise.all([
         apiClient.get('/employees/lookups'),
-        apiClient.get('/employees?pageSize=200'),
+        apiClient.get('/employees', {
+          params: { pageSize: 200, branchId: currentBranch?.id || undefined }
+        }),
       ]);
       setDepartments(deptRes.data?.departments || []);
       const empList = (empRes.data?.items || []).map((e: any) => ({
@@ -99,7 +103,7 @@ export const Attendance: React.FC = () => {
 
   useEffect(() => {
     fetchLookups();
-  }, []);
+  }, [currentOrganization?.id, currentBranch?.id]);
 
   const fetchAttendanceSheet = async () => {
     try {
@@ -110,6 +114,7 @@ export const Attendance: React.FC = () => {
           month,
           search: search || undefined,
           departmentId: departmentId ? parseInt(departmentId) : undefined,
+          branchId: currentBranch?.id || undefined,
           page,
           pageSize,
         },
@@ -130,6 +135,7 @@ export const Attendance: React.FC = () => {
           date: selectedDate,
           search: search || undefined,
           departmentId: departmentId ? parseInt(departmentId) : undefined,
+          branchId: currentBranch?.id || undefined,
         },
       });
       setDailyLogs(res.data?.items || res.data?.logs || (Array.isArray(res.data) ? res.data : []));
@@ -146,6 +152,7 @@ export const Attendance: React.FC = () => {
       const res = await apiClient.get('/regularizations/compoff', {
         params: {
           status: compOffStatus !== 'all' ? compOffStatus : undefined,
+          branchId: currentBranch?.id || undefined,
           page,
           pageSize,
         },
@@ -168,7 +175,24 @@ export const Attendance: React.FC = () => {
     } else {
       fetchCompOff();
     }
-  }, [activeTab, year, month, selectedDate, search, departmentId, compOffStatus, page, pageSize]);
+  }, [activeTab, year, month, selectedDate, search, departmentId, compOffStatus, currentOrganization?.id, currentBranch?.id, page, pageSize]);
+
+  useEffect(() => {
+    const handleReload = () => {
+      setPage(1);
+      if (activeTab === 'matrix') fetchAttendanceSheet();
+      else if (activeTab === 'daily_logs') fetchDailyLogs();
+      else fetchCompOff();
+    };
+
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
+
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
+    };
+  }, [activeTab, year, month, selectedDate, search, departmentId, compOffStatus]);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',

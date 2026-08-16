@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -80,5 +80,10 @@ public class EmployeeLoan : IMustHaveTenant
     public int OrganizationId { get; set; }
 
     public Organization? Organization { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("branch_id")]
+    public int? BranchId { get; set; }
+
+    public Branch? Branch { get; set; }
 }
 

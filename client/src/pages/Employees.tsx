@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { DataToolbar } from '../components/ui/DataToolbar';
@@ -11,6 +12,9 @@ import {
   X,
   FileText,
   Calendar,
+  MapPin,
+  Sliders,
+  Sparkles,
 } from 'lucide-react';
 import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
@@ -20,6 +24,7 @@ import { TableSkeleton } from '../components/ui/PageSkeleton';
 export const Employees: React.FC = () => {
   const { hasPermission, isAdmin } = useAuth();
   const { showSuccess, showError } = useToast();
+  const { currentOrganization, currentBranch, branches } = useOrganization();
   const [employees, setEmployees] = useState<any[]>([]);
   const [lookups, setLookups] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -37,18 +42,77 @@ export const Employees: React.FC = () => {
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [prefixModalOpen, setPrefixModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [savingPrefix, setSavingPrefix] = useState(false);
+
+  // Prefix & Series Setup State (Series Code, Connector, Sequence, Padding)
+  const [prefixForm, setPrefixForm] = useState({
+    seriesCode: 'EMP',
+    connector: '#',
+    paddingDigits: 3,
+    startSequence: 1,
+    branchId: '',
+  });
+
   const [createForm, setCreateForm] = useState({
+    employeeId: '',
     employeeName: '',
     phone: '',
     departmentId: '',
     designationId: '',
     reportingManagerId: '',
+    branchId: '',
     weekoff: 'Sunday',
     joiningDate: new Date().toISOString().split('T')[0],
   });
 
-  const fetchEmployees = async () => {
+  const fetchPrefixSettings = async (targetBranchId?: string) => {
+    try {
+      const res = await apiClient.get('/employees/prefix-settings', {
+        params: { branchId: targetBranchId ?? (currentBranch?.id || undefined) }
+      });
+      if (res.data) {
+        setPrefixForm({
+          seriesCode: res.data.seriesCode || 'EMP',
+          connector: res.data.connector ?? '#',
+          paddingDigits: res.data.paddingDigits || 3,
+          startSequence: res.data.startSequence || 1,
+          branchId: targetBranchId ?? (currentBranch?.id || ''),
+        });
+      }
+    } catch (e) {
+      console.error('Failed to load prefix settings', e);
+    }
+  };
+
+  const handleSavePrefixSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSavingPrefix(true);
+      await apiClient.post('/employees/prefix-settings', {
+        seriesCode: prefixForm.seriesCode.trim(),
+        connector: prefixForm.connector,
+        paddingDigits: Number(prefixForm.paddingDigits),
+        startSequence: Number(prefixForm.startSequence),
+      }, {
+        params: { branchId: prefixForm.branchId || currentBranch?.id || undefined }
+      });
+      showSuccess(
+        'Series Configured',
+        `Employee code format set to ${prefixForm.seriesCode}${prefixForm.connector}${String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}.`
+      );
+      setPrefixModalOpen(false);
+      fetchEmployees();
+      window.dispatchEvent(new CustomEvent('hrdesk:branch_changed', { detail: { branchId: prefixForm.branchId } }));
+    } catch (err: any) {
+      showError('Save Failed', err.response?.data?.message || 'Could not save series settings');
+    } finally {
+      setSavingPrefix(false);
+    }
+  };
+
+  const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
       const apiStatus = archiveFilter === 'archived' ? 'inactive' : archiveFilter === 'all' ? undefined : 'active';
@@ -56,6 +120,7 @@ export const Employees: React.FC = () => {
         params: {
           search: search || undefined,
           departmentId: departmentId || undefined,
+          branchId: currentBranch?.id || undefined,
           status: apiStatus,
           page,
           pageSize,
@@ -69,7 +134,7 @@ export const Employees: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [archiveFilter, search, departmentId, currentBranch?.id, page, pageSize]);
 
   const fetchLookups = async () => {
     try {
@@ -82,11 +147,32 @@ export const Employees: React.FC = () => {
 
   useEffect(() => {
     fetchLookups();
-  }, []);
+  }, [currentOrganization?.id]);
 
   useEffect(() => {
     fetchEmployees();
-  }, [search, departmentId, archiveFilter, page, pageSize]);
+  }, [fetchEmployees, currentOrganization?.id, currentBranch?.id]);
+
+  // Listen to tenant and branch change events
+  useEffect(() => {
+    const handleTenantChange = () => {
+      setPage(1);
+      fetchEmployees();
+      fetchLookups();
+    };
+    const handleBranchChange = () => {
+      setPage(1);
+      fetchEmployees();
+    };
+
+    window.addEventListener('hrdesk:tenant_changed', handleTenantChange);
+    window.addEventListener('hrdesk:branch_changed', handleBranchChange);
+
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleTenantChange);
+      window.removeEventListener('hrdesk:branch_changed', handleBranchChange);
+    };
+  }, [fetchEmployees]);
 
   const handleExportCSV = () => {
     if (!employees.length) {
@@ -132,22 +218,26 @@ export const Employees: React.FC = () => {
     try {
       setCreating(true);
       await apiClient.post('/employees', {
+        employeeId: createForm.employeeId ? parseInt(createForm.employeeId) : null,
         employeeName: createForm.employeeName,
         phone: createForm.phone || null,
         departmentId: createForm.departmentId ? parseInt(createForm.departmentId) : null,
         designationId: createForm.designationId ? parseInt(createForm.designationId) : null,
         reportingManagerId: createForm.reportingManagerId ? parseInt(createForm.reportingManagerId) : null,
+        branchId: createForm.branchId ? parseInt(createForm.branchId) : (currentBranch?.id ? parseInt(currentBranch.id) : null),
         weekoff: createForm.weekoff,
         joiningDate: createForm.joiningDate || null,
       });
       showSuccess('Employee Added', `${createForm.employeeName} added to directory.`);
       setCreateModalOpen(false);
       setCreateForm({
+        employeeId: '',
         employeeName: '',
         phone: '',
         departmentId: '',
         designationId: '',
         reportingManagerId: '',
+        branchId: currentBranch?.id || '',
         weekoff: 'Sunday',
         joiningDate: new Date().toISOString().split('T')[0],
       });
@@ -230,7 +320,22 @@ export const Employees: React.FC = () => {
               }
             : undefined
         }
-      />
+      >
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => {
+              fetchPrefixSettings();
+              setPrefixModalOpen(true);
+            }}
+            className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
+            title="Configure Series Code, Connector and Sequence"
+          >
+            <Sliders size={13} className="text-[var(--gold-500)]" />
+            <span>Prefix Setup</span>
+          </button>
+        )}
+      </DataToolbar>
 
       {/* 3. Primary Table: Ruled Ledger Table */}
       <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
@@ -273,8 +378,10 @@ export const Employees: React.FC = () => {
                     <td className="font-semibold text-[var(--ink)]">
                       {emp.employeeName}
                     </td>
-                    <td className="font-data text-xs text-[var(--ink-muted)]">
-                      #{emp.employeeId}
+                    <td className="font-data text-xs">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] bg-[var(--paper)] border border-[var(--rule)] font-mono text-[11px] font-bold text-[var(--gold-600)] shadow-2xs">
+                        {emp.employeeCode || (emp.branchCode ? `${emp.branchCode}${String(emp.employeeId).padStart(3, '0')}` : `EMP#${String(emp.employeeId).padStart(3, '0')}`)}
+                      </span>
                     </td>
                     <td className="text-xs text-[var(--ink)]">
                       {emp.department || 'General'}
@@ -410,6 +517,50 @@ export const Employees: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Assigned Branch / Location</span>
+                    <MapPin size={13} className="text-[var(--gold-500)]" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedEmployee.branchId || ''}
+                      onChange={async (e) => {
+                        const newBranchId = e.target.value ? parseInt(e.target.value) : null;
+                        try {
+                          await apiClient.put(`/employees/${selectedEmployee.employeeId}`, {
+                            employeeName: selectedEmployee.employeeName,
+                            phone: selectedEmployee.phone,
+                            departmentId: selectedEmployee.departmentId,
+                            designationId: selectedEmployee.designationId,
+                            reportingManagerId: selectedEmployee.reportingManagerId,
+                            branchId: newBranchId,
+                            weekoff: selectedEmployee.weekoff,
+                          });
+                          const matchedBranch = branches.find((b: any) => String(b.id) === String(newBranchId));
+                          setSelectedEmployee((prev: any) => ({
+                            ...prev,
+                            branchId: newBranchId,
+                            branch: matchedBranch?.name || null,
+                          }));
+                          showSuccess('Branch Updated', `Employee assigned to ${matchedBranch?.name || 'Unassigned'}.`);
+                          fetchEmployees();
+                        } catch (err: any) {
+                          showError('Update Failed', err.response?.data?.message || 'Could not update branch');
+                        }
+                      }}
+                      className="register-input w-full font-semibold text-xs"
+                    >
+                      <option value="">-- No Branch Assigned (All Branches) --</option>
+                      {branches?.map((b: any) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.city || b.code || 'Branch'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between">
                   <div>
                     <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Phone Number</span>
@@ -481,9 +632,24 @@ export const Employees: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateEmployee} className="p-5 space-y-3.5">
+              {/* Branch Prefix Auto-ID Badge */}
+              <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] font-ui block">
+                    Employee Code &amp; ID
+                  </span>
+                  <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+                    System-generated with branch prefix
+                  </p>
+                </div>
+                <span className="font-mono text-xs font-bold text-[var(--gold-600)] px-2.5 py-1 rounded-[3px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
+                  {branches?.find((b: any) => String(b.id) === String(createForm.branchId || currentBranch?.id))?.code || 'EMP#'}00X (Auto)
+                </span>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Full Name *
+                  Full Legal Name *
                 </label>
                 <input
                   type="text"
@@ -491,7 +657,7 @@ export const Employees: React.FC = () => {
                   value={createForm.employeeName}
                   onChange={(e) => setCreateForm({ ...createForm, employeeName: e.target.value })}
                   placeholder="e.g. Ramesh Patel"
-                  className="register-input w-full"
+                  className="register-input w-full text-xs"
                 />
               </div>
 
@@ -578,18 +744,36 @@ export const Employees: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Weekly Off
+                    Branch / Site Location
                   </label>
                   <select
-                    value={createForm.weekoff}
-                    onChange={(e) => setCreateForm({ ...createForm, weekoff: e.target.value })}
+                    value={createForm.branchId}
+                    onChange={(e) => setCreateForm({ ...createForm, branchId: e.target.value })}
                     className="register-input w-full"
                   >
-                    <option value="Sunday">Sunday</option>
-                    <option value="Monday">Monday</option>
-                    <option value="Saturday">Saturday</option>
+                    <option value="">All / Default HQ</option>
+                    {branches?.map((b: any) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.city || b.code || 'Branch'})
+                      </option>
+                    ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                  Weekly Off
+                </label>
+                <select
+                  value={createForm.weekoff}
+                  onChange={(e) => setCreateForm({ ...createForm, weekoff: e.target.value })}
+                  className="register-input w-full"
+                >
+                  <option value="Sunday">Sunday</option>
+                  <option value="Monday">Monday</option>
+                  <option value="Saturday">Saturday</option>
+                </select>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
@@ -626,6 +810,206 @@ export const Employees: React.FC = () => {
           fetchEmployees();
         }}
       />
+
+      {/* 7. Dedicated Employee ID & Prefix Setup Modal */}
+      {prefixModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center">
+                  <Sliders size={16} />
+                </div>
+                <div>
+                  <h3 className="font-display font-semibold text-sm text-[var(--ink)]">
+                    Employee ID &amp; Prefix Setup
+                  </h3>
+                  <p className="text-[11px] text-[var(--ink-muted)] font-ui">
+                    Series Formula: [Series] + [Connector] + [Sequence]
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPrefixModalOpen(false)}
+                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePrefixSettings} className="space-y-4 text-xs">
+              {/* Branch / Scope Selector */}
+              <div>
+                <label className="block font-semibold text-[var(--ink)] mb-1">
+                  Target Branch Scope
+                </label>
+                <select
+                  value={prefixForm.branchId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPrefixForm((prev) => ({ ...prev, branchId: val }));
+                    fetchPrefixSettings(val);
+                  }}
+                  className="register-input w-full"
+                >
+                  <option value="">-- Company-Wide (Default) --</option>
+                  {branches?.map((b: any) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.city || 'Branch'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 1. Series Code & 2. Connector */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">
+                    1. Series Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={prefixForm.seriesCode}
+                    onChange={(e) =>
+                      setPrefixForm({ ...prefixForm, seriesCode: e.target.value.toUpperCase() })
+                    }
+                    placeholder="e.g. EMP, STAFF, SB"
+                    className="register-input w-full font-mono text-xs font-bold uppercase tracking-wider"
+                  />
+                  <span className="text-[10px] text-[var(--ink-muted)] block mt-0.5">e.g. EMP, SB, VF</span>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">
+                    2. Connector / Symbol
+                  </label>
+                  <input
+                    type="text"
+                    value={prefixForm.connector}
+                    onChange={(e) => setPrefixForm({ ...prefixForm, connector: e.target.value })}
+                    placeholder="e.g. #, -, @, /, _"
+                    className="register-input w-full font-mono text-xs font-bold text-center"
+                  />
+                  <div className="flex items-center gap-1 mt-1">
+                    {['#', '-', '@', '/', '_', '.'].map((sym) => (
+                      <button
+                        type="button"
+                        key={sym}
+                        onClick={() => setPrefixForm({ ...prefixForm, connector: sym })}
+                        className={`px-1.5 py-0.5 rounded-[2px] border text-[10px] font-mono font-bold cursor-pointer transition-colors ${
+                          prefixForm.connector === sym
+                            ? 'bg-[var(--gold-500)] text-[var(--navy-950)] border-[var(--gold-500)] font-bold'
+                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--gold-500)]'
+                        }`}
+                      >
+                        {sym}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setPrefixForm({ ...prefixForm, connector: '' })}
+                      className={`px-1.5 py-0.5 rounded-[2px] border text-[9px] font-ui cursor-pointer transition-colors ${
+                        prefixForm.connector === ''
+                          ? 'bg-[var(--gold-500)] text-[var(--navy-950)] border-[var(--gold-500)]'
+                          : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink-muted)]'
+                      }`}
+                    >
+                      None
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Sequence Start & Padding */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">
+                    3. Sequence Starting No.
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={prefixForm.startSequence}
+                    onChange={(e) =>
+                      setPrefixForm({
+                        ...prefixForm,
+                        startSequence: Math.max(1, parseInt(e.target.value) || 1),
+                      })
+                    }
+                    className="register-input w-full font-data text-xs"
+                  />
+                  <span className="text-[10px] text-[var(--ink-muted)] block mt-0.5">Start numbering from (e.g. 1)</span>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">
+                    Sequence Padding
+                  </label>
+                  <select
+                    value={prefixForm.paddingDigits}
+                    onChange={(e) =>
+                      setPrefixForm({ ...prefixForm, paddingDigits: parseInt(e.target.value) })
+                    }
+                    className="register-input w-full text-xs font-mono"
+                  >
+                    <option value={3}>3 Digits (001, 002...)</option>
+                    <option value={4}>4 Digits (0001, 0002...)</option>
+                    <option value={2}>2 Digits (01, 02...)</option>
+                    <option value={1}>No Padding (1, 2, 3...)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 4. LIVE INTERACTIVE PREVIEW */}
+              <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--gold-600)] font-ui flex items-center gap-1">
+                    <Sparkles size={12} /> Live Preview Output
+                  </span>
+                  <span className="text-[10px] font-mono text-[var(--ink-muted)]">
+                    [{prefixForm.seriesCode || 'EMP'}][{prefixForm.connector}][{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}]
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-[3px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
+                  <span className="text-xs text-[var(--ink-muted)] font-ui">Next Generated ID:</span>
+                  <span className="font-mono text-base font-bold text-[var(--gold-600)] tracking-wide">
+                    {prefixForm.seriesCode || 'EMP'}{prefixForm.connector}{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}
+                  </span>
+                </div>
+
+                <div className="pt-1 flex items-center justify-between text-[11px] font-mono text-[var(--ink-muted)]">
+                  <span>Series Samples:</span>
+                  <span className="font-bold text-[var(--ink)]">
+                    {prefixForm.seriesCode || 'EMP'}{prefixForm.connector}{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}&nbsp;&rarr;&nbsp;
+                    {prefixForm.seriesCode || 'EMP'}{prefixForm.connector}{String(prefixForm.startSequence + 1).padStart(prefixForm.paddingDigits, '0')}&nbsp;&rarr;&nbsp;
+                    {prefixForm.seriesCode || 'EMP'}{prefixForm.connector}{String(prefixForm.startSequence + 2).padStart(prefixForm.paddingDigits, '0')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
+                <button
+                  type="button"
+                  onClick={() => setPrefixModalOpen(false)}
+                  className="btn-outline cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPrefix}
+                  className="btn-primary disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                >
+                  {savingPrefix ? 'Saving...' : 'Save & Apply Setup'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

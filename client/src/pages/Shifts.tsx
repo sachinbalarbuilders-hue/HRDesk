@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
@@ -35,6 +36,7 @@ interface ShiftMaster {
 
 export const Shifts: React.FC = () => {
   const { showSuccess, showError } = useToast();
+  const { currentOrganization, currentBranch } = useOrganization();
   const [shifts, setShifts] = useState<ShiftMaster[]>([]);
   const [roster, setRoster] = useState<EmployeeShift[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -82,9 +84,9 @@ export const Shifts: React.FC = () => {
   const fetchLookups = async () => {
     try {
       const [deptRes, empRes, shiftsRes] = await Promise.all([
-        apiClient.get('/employees/lookups'),
-        apiClient.get('/employees?pageSize=200'),
-        apiClient.get('/shifts'),
+        apiClient.get('/employees/lookups', { params: { branchId: currentBranch?.id || undefined } }),
+        apiClient.get('/employees?pageSize=200', { params: { branchId: currentBranch?.id || undefined } }),
+        apiClient.get('/shifts', { params: { branchId: currentBranch?.id || undefined } }),
       ]);
       setDepartments(deptRes.data?.departments || []);
       const emps = (empRes.data.items || []).map((e: any) => ({
@@ -104,7 +106,7 @@ export const Shifts: React.FC = () => {
 
   useEffect(() => {
     fetchLookups();
-  }, []);
+  }, [currentOrganization?.id, currentBranch?.id]);
 
   const weekStartStr = currentWeekStart.toISOString().split('T')[0];
 
@@ -114,6 +116,7 @@ export const Shifts: React.FC = () => {
       const res = await apiClient.get('/shifts/roster', {
         params: {
           startDate: weekStartStr,
+          branchId: currentBranch?.id || undefined,
           departmentId: departmentFilter ? parseInt(departmentFilter) : undefined,
           search: search || undefined,
           page,
@@ -132,7 +135,23 @@ export const Shifts: React.FC = () => {
 
   useEffect(() => {
     fetchRoster();
-  }, [weekStartStr, departmentFilter, search, page, pageSize]);
+  }, [weekStartStr, departmentFilter, search, currentOrganization?.id, currentBranch?.id, page, pageSize]);
+
+  useEffect(() => {
+    const handleReload = () => {
+      setPage(1);
+      fetchLookups();
+      fetchRoster();
+    };
+
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
+
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
+    };
+  }, [weekStartStr, departmentFilter, search, currentOrganization?.id, currentBranch?.id]);
 
   // Helper: Get 7 days of the active week
   const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -162,7 +181,10 @@ export const Shifts: React.FC = () => {
 
     try {
       setSubmitting(true);
-      await apiClient.post('/shifts/roster/assign', assignForm);
+      await apiClient.post('/shifts/roster/assign', {
+        ...assignForm,
+        branchId: currentBranch?.id ? parseInt(currentBranch.id) : undefined
+      });
       showSuccess('Roster Assigned', 'Shift assignments saved to roster database.');
       setAssignModalOpen(false);
       fetchRoster();
@@ -182,7 +204,10 @@ export const Shifts: React.FC = () => {
 
     try {
       setSubmitting(true);
-      await apiClient.post('/shifts', shiftForm);
+      await apiClient.post('/shifts', {
+        ...shiftForm,
+        branchId: currentBranch?.id ? parseInt(currentBranch.id) : undefined
+      });
       showSuccess('Shift Created', `Shift master "${shiftForm.shiftName}" registered.`);
       setShiftModalOpen(false);
       fetchLookups();

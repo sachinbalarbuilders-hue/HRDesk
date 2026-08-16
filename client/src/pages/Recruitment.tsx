@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { DataTable, type ColumnDef } from '../components/ui/DataTable';
@@ -76,6 +77,7 @@ const STAGES = [
 
 export const Recruitment: React.FC = () => {
   const { showSuccess, showError } = useToast();
+  const { currentOrganization, currentBranch } = useOrganization();
 
   const [activeTab, setActiveTab] = useState<'candidates' | 'interviews' | 'openings'>('candidates');
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('table');
@@ -236,12 +238,29 @@ export const Recruitment: React.FC = () => {
   useEffect(() => {
     fetchOverview();
     fetchLookups();
-  }, []);
+  }, [currentOrganization?.id]);
 
   useEffect(() => {
     if (activeTab === 'candidates') fetchCandidates();
     if (activeTab === 'interviews') fetchInterviews();
-  }, [activeTab, candidateSearch, candidateStageFilter, candidatePositionFilter, candidatePage, candidatePageSize, interviewStatusFilter]);
+  }, [activeTab, candidateSearch, candidateStageFilter, candidatePositionFilter, candidatePage, candidatePageSize, interviewStatusFilter, currentOrganization?.id, currentBranch?.id]);
+
+  useEffect(() => {
+    const handleReload = () => {
+      fetchOverview();
+      fetchLookups();
+      if (activeTab === 'candidates') fetchCandidates();
+      if (activeTab === 'interviews') fetchInterviews();
+    };
+
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
+
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
+    };
+  }, [activeTab]);
 
   // =========================================================================
   // ACTIONS & HANDLERS

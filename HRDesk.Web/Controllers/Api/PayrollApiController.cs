@@ -17,15 +17,18 @@ public class PayrollController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPayrollService _payrollService;
     private readonly IPermissionService _permissionService;
+    private readonly ICurrentTenantProvider _tenantProvider;
 
     public PayrollController(
         BiometricAttendanceDbContext db,
         IPayrollService payrollService,
-        IPermissionService permissionService)
+        IPermissionService permissionService,
+        ICurrentTenantProvider tenantProvider)
     {
         _db = db;
         _payrollService = payrollService;
         _permissionService = permissionService;
+        _tenantProvider = tenantProvider;
     }
 
     [HttpGet("records")]
@@ -33,11 +36,13 @@ public class PayrollController : ControllerBase
         [FromQuery] string? month = null,
         [FromQuery] string? search = null,
         [FromQuery] int? departmentId = null,
+        [FromQuery] int? branchId = null,
         [FromQuery] string? status = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
         var targetMonth = !string.IsNullOrWhiteSpace(month) ? month : DateTime.Now.ToString("yyyy-MM");
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
 
         var query = _db.PayrollMasters
             .AsNoTracking()
@@ -46,6 +51,11 @@ public class PayrollController : ControllerBase
             .Include(p => p.Employee)
                 .ThenInclude(e => e.Designation)
             .Where(p => p.Month == targetMonth);
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(p => p.BranchId == activeBranch.Value || (p.Employee != null && p.Employee.BranchId == activeBranch.Value));
+        }
 
         if (!User.IsInRole("SuperAdmin") && !User.IsInRole("Admin"))
         {

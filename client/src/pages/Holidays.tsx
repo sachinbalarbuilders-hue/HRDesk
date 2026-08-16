@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
@@ -29,6 +30,7 @@ interface Holiday {
 
 export const Holidays: React.FC = () => {
   const { showSuccess, showError } = useToast();
+  const { currentOrganization, currentBranch } = useOrganization();
   const [search, setSearch] = useState('');
   const [yearFilter, setYearFilter] = useState(new Date().getFullYear().toString());
   const [page, setPage] = useState(1);
@@ -56,6 +58,7 @@ export const Holidays: React.FC = () => {
         params: {
           year: parseInt(yearFilter) || new Date().getFullYear(),
           search: search || undefined,
+          branchId: currentBranch?.id || undefined,
         },
       });
       setHolidays(res.data.items || []);
@@ -68,7 +71,22 @@ export const Holidays: React.FC = () => {
 
   useEffect(() => {
     fetchHolidays();
-  }, [yearFilter, search]);
+  }, [yearFilter, search, currentOrganization?.id, currentBranch?.id]);
+
+  useEffect(() => {
+    const handleReload = () => {
+      setPage(1);
+      fetchHolidays();
+    };
+
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
+
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
+    };
+  }, [yearFilter, search, currentOrganization?.id, currentBranch?.id]);
 
   const handleOpenAdd = () => {
     setEditingId(null);
@@ -115,10 +133,16 @@ export const Holidays: React.FC = () => {
     try {
       setSubmitting(true);
       if (editingId) {
-        await apiClient.put(`/holidays/${editingId}`, form);
+        await apiClient.put(`/holidays/${editingId}`, {
+          ...form,
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : undefined
+        });
         showSuccess('Holiday Updated', `"${form.name}" has been updated.`);
       } else {
-        await apiClient.post('/holidays', form);
+        await apiClient.post('/holidays', {
+          ...form,
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : undefined
+        });
         showSuccess('Holiday Added', `"${form.name}" added to company calendar.`);
       }
       setHolidayModalOpen(false);

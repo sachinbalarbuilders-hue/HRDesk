@@ -16,11 +16,16 @@ public class ShiftsController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
+    private readonly ICurrentTenantProvider _tenantProvider;
 
-    public ShiftsController(BiometricAttendanceDbContext db, IPermissionService permissionService)
+    public ShiftsController(
+        BiometricAttendanceDbContext db,
+        IPermissionService permissionService,
+        ICurrentTenantProvider tenantProvider)
     {
         _db = db;
         _permissionService = permissionService;
+        _tenantProvider = tenantProvider;
     }
 
     public record ShiftDto(
@@ -30,7 +35,8 @@ public class ShiftsController : ControllerBase
         string EndTime,   // HH:mm
         int? LateComingGraceMinutes,
         int? EarlyLeaveGraceMinutes,
-        string? ColorCode
+        string? ColorCode,
+        int? BranchId = null
     );
 
     public record AssignRosterDto(
@@ -38,14 +44,22 @@ public class ShiftsController : ControllerBase
         DateOnly StartDate,
         DateOnly EndDate,
         int? ShiftId,
-        bool IsWeekOff
+        bool IsWeekOff,
+        int? BranchId = null
     );
 
     [HttpGet]
-    public async Task<IActionResult> GetShifts()
+    public async Task<IActionResult> GetShifts([FromQuery] int? branchId = null)
     {
-        var shifts = await _db.Shifts
-            .AsNoTracking()
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+        var query = _db.Shifts.AsNoTracking().AsQueryable();
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(s => s.BranchId == activeBranch.Value || s.BranchId == null);
+        }
+
+        var shifts = await query
             .OrderBy(s => s.StartTime)
             .Select(s => new
             {
@@ -57,7 +71,8 @@ public class ShiftsController : ControllerBase
                 workingHours = s.WorkingHours,
                 lateComingGraceMinutes = s.LateComingGraceMinutes ?? 15,
                 earlyLeaveGraceMinutes = s.EarlyLeaveGraceMinutes ?? 15,
-                colorCode = s.ColorCode ?? "#4e73df"
+                colorCode = s.ColorCode ?? "#4e73df",
+                branchId = s.BranchId
             })
             .ToListAsync();
 
@@ -71,9 +86,8 @@ public class ShiftsController : ControllerBase
         if (!TimeOnly.TryParse(dto.StartTime, out var sTime)) return BadRequest(new { message = "Invalid start time." });
         if (!TimeOnly.TryParse(dto.EndTime, out var eTime)) return BadRequest(new { message = "Invalid end time." });
 
-        var orgId = 1;
-        var orgClaim = User.FindFirst("OrganizationId")?.Value;
-        if (int.TryParse(orgClaim, out var parsedOrg)) orgId = parsedOrg;
+        var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var targetBranch = dto.BranchId ?? _tenantProvider.BranchId;
 
         var shift = new Shift
         {
@@ -85,6 +99,7 @@ public class ShiftsController : ControllerBase
             EarlyLeaveGraceMinutes = dto.EarlyLeaveGraceMinutes ?? 15,
             ColorCode = dto.ColorCode ?? "#4e73df",
             OrganizationId = orgId,
+            BranchId = targetBranch,
             Status = "active"
         };
 
@@ -131,6 +146,7 @@ public class ShiftsController : ControllerBase
         [FromQuery] string startDate,
         [FromQuery] string? search = null,
         [FromQuery] int? departmentId = null,
+        [FromQuery] int? branchId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
@@ -140,6 +156,7 @@ public class ShiftsController : ControllerBase
         }
 
         var parsedEnd = parsedStart.AddDays(6); // 7-day week window
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
 
         var empQuery = _db.Employees
             .AsNoTracking()
@@ -147,6 +164,11 @@ public class ShiftsController : ControllerBase
             .Include(e => e.Designation)
             .Where(e => e.Status == "active")
             .AsQueryable();
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            empQuery = empQuery.Where(e => e.BranchId == activeBranch.Value);
+        }
 
         if (departmentId.HasValue && departmentId.Value > 0)
         {
@@ -231,9 +253,8 @@ public class ShiftsController : ControllerBase
             return BadRequest(new { message = "End date cannot be earlier than start date." });
         }
 
-        var orgId = 1;
-        var orgClaim = User.FindFirst("OrganizationId")?.Value;
-        if (int.TryParse(orgClaim, out var parsedOrg)) orgId = parsedOrg;
+        var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var targetBranch = dto.BranchId ?? _tenantProvider.BranchId;
 
         var existingRosters = await _db.ShiftRosters
             .Where(r => dto.EmployeeIds.Contains(r.EmployeeId) && r.RosterDate >= dto.StartDate && r.RosterDate <= dto.EndDate)
@@ -241,14 +262,22 @@ public class ShiftsController : ControllerBase
 
         _db.ShiftRosters.RemoveRange(existingRosters);
 
+        var employees = await _db.Employees
+            .Where(e => dto.EmployeeIds.Contains(e.EmployeeId))
+            .ToDictionaryAsync(e => e.EmployeeId, e => e.BranchId);
+
         var newRosters = new List<ShiftRoster>();
         foreach (var empId in dto.EmployeeIds)
         {
+            employees.TryGetValue(empId, out var empBranch);
+            var branchToSet = targetBranch ?? empBranch;
+
             for (var d = dto.StartDate; d <= dto.EndDate; d = d.AddDays(1))
             {
                 newRosters.Add(new ShiftRoster
                 {
                     OrganizationId = orgId,
+                    BranchId = branchToSet,
                     EmployeeId = empId,
                     ShiftId = dto.IsWeekOff ? null : dto.ShiftId,
                     RosterDate = d,

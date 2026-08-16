@@ -20,19 +20,22 @@ public class RegularizationsController : ControllerBase
     private readonly ISequenceService _sequenceService;
     private readonly IAttendanceProcessorService _processor;
     private readonly ICompOffService _compOffService;
+    private readonly ICurrentTenantProvider _tenantProvider;
 
     public RegularizationsController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         ISequenceService sequenceService,
         IAttendanceProcessorService processor,
-        ICompOffService compOffService)
+        ICompOffService compOffService,
+        ICurrentTenantProvider tenantProvider)
     {
         _db = db;
         _permissionService = permissionService;
         _sequenceService = sequenceService;
         _processor = processor;
         _compOffService = compOffService;
+        _tenantProvider = tenantProvider;
     }
 
     public record RegularizationCreateItem(
@@ -71,6 +74,7 @@ public class RegularizationsController : ControllerBase
         [FromQuery] string? status = null,
         [FromQuery] string? search = null,
         [FromQuery] int? employeeId = null,
+        [FromQuery] int? branchId = null,
         [FromQuery] int? month = null,
         [FromQuery] int? year = null,
         [FromQuery] int page = 1,
@@ -82,14 +86,25 @@ public class RegularizationsController : ControllerBase
             return Forbid();
         }
 
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+
         var query = _db.AttendanceRegularizations
             .AsNoTracking()
             .Include(r => r.Employee)
                 .ThenInclude(e => e.Department)
             .AsQueryable();
 
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(r => r.Employee != null && r.Employee.BranchId == activeBranch.Value);
+        }
+
         // RBAC Scoping via Employee filter
         var empScopedQuery = _db.Employees.AsNoTracking().AsQueryable();
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            empScopedQuery = empScopedQuery.Where(e => e.BranchId == activeBranch.Value);
+        }
         empScopedQuery = await _permissionService.ApplyEmployeeScopeAsync(empScopedQuery, User, AppPermissions.Keys.AttendanceRegularize);
         var allowedEmpIds = await empScopedQuery.Select(e => e.EmployeeId).ToListAsync();
 
@@ -233,7 +248,7 @@ public class RegularizationsController : ControllerBase
             return BadRequest(new { message = "At least one regularization date item is required." });
         }
 
-        var employee = await _db.Employees.FindAsync(request.EmployeeId);
+        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == request.EmployeeId);
         if (employee == null)
         {
             return NotFound(new { message = "Employee not found." });
@@ -453,15 +468,23 @@ public class RegularizationsController : ControllerBase
     public async Task<IActionResult> GetCompOffRequests(
         [FromQuery] string? status = null,
         [FromQuery] int? employeeId = null,
+        [FromQuery] int? branchId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+
         var query = _db.CompOffRequests
             .AsNoTracking()
             .Include(c => c.Employee)
                 .ThenInclude(e => e.Department)
             .Include(c => c.Shift)
             .AsQueryable();
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(c => c.Employee != null && c.Employee.BranchId == activeBranch.Value);
+        }
 
         if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
@@ -512,7 +535,7 @@ public class RegularizationsController : ControllerBase
     [HttpPost("compoff")]
     public async Task<IActionResult> CreateCompOff([FromBody] CreateCompOffDto dto)
     {
-        var employee = await _db.Employees.FindAsync(dto.EmployeeId);
+        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == dto.EmployeeId);
         if (employee == null) return NotFound(new { message = "Employee not found." });
 
         TimeOnly? inT = null;

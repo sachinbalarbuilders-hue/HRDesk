@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
@@ -43,6 +44,7 @@ interface LoanRecord {
 export const Loans: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const { hasPermission, isAdmin } = useAuth();
+  const { currentOrganization, currentBranch } = useOrganization();
 
   const [loans, setLoans] = useState<LoanRecord[]>([]);
   const [loanTypes, setLoanTypes] = useState<Array<{ id: number; name: string }>>([]);
@@ -81,11 +83,23 @@ export const Loans: React.FC = () => {
     reason: '',
   });
 
+  const handleOpenApply = () => {
+    setForm({
+      employeeId: employees.length > 0 ? employees[0].employeeId : 0,
+      loanTypeId: loanTypes.length > 0 ? loanTypes[0].id : 1,
+      principalAmount: 25000,
+      tenureMonths: 5,
+      startDate: new Date().toISOString().split('T')[0],
+      reason: '',
+    });
+    setApplyModalOpen(true);
+  };
+
   const fetchLookups = async () => {
     try {
       const [typesRes, empRes] = await Promise.all([
-        apiClient.get('/loans/types'),
-        apiClient.get('/employees?pageSize=200'),
+        apiClient.get('/loans/types', { params: { branchId: currentBranch?.id || undefined } }),
+        apiClient.get('/employees?pageSize=200', { params: { branchId: currentBranch?.id || undefined } }),
       ]);
       const types = typesRes.data || [];
       const emps = (empRes.data.items || []).map((e: any) => ({
@@ -94,12 +108,15 @@ export const Loans: React.FC = () => {
       }));
       setLoanTypes(types);
       setEmployees(emps);
-      if (types.length > 0 && form.loanTypeId === 1) {
-        setForm(prev => ({ ...prev, loanTypeId: types[0].id }));
-      }
-      if (emps.length > 0 && form.employeeId === 0) {
-        setForm(prev => ({ ...prev, employeeId: emps[0].employeeId }));
-      }
+      setForm(prev => ({
+        ...prev,
+        employeeId: prev.employeeId && emps.some((x: any) => x.employeeId === prev.employeeId)
+          ? prev.employeeId
+          : (emps.length > 0 ? emps[0].employeeId : 0),
+        loanTypeId: prev.loanTypeId && types.some((x: any) => x.id === prev.loanTypeId)
+          ? prev.loanTypeId
+          : (types.length > 0 ? types[0].id : 1),
+      }));
     } catch (e) {
       console.error('Failed to load loan lookups', e);
     }
@@ -107,7 +124,7 @@ export const Loans: React.FC = () => {
 
   useEffect(() => {
     fetchLookups();
-  }, []);
+  }, [currentOrganization?.id, currentBranch?.id]);
 
   const fetchLoans = async () => {
     try {
@@ -117,6 +134,7 @@ export const Loans: React.FC = () => {
           status: statusFilter !== 'all' && statusFilter ? statusFilter : undefined,
           loanTypeId: typeFilter && typeFilter !== 'all' ? parseInt(typeFilter) : undefined,
           search: search || undefined,
+          branchId: currentBranch?.id || undefined,
           page,
           pageSize,
         },
@@ -136,7 +154,23 @@ export const Loans: React.FC = () => {
 
   useEffect(() => {
     fetchLoans();
-  }, [statusFilter, typeFilter, search, page, pageSize]);
+  }, [statusFilter, typeFilter, search, currentOrganization?.id, currentBranch?.id, page, pageSize]);
+
+  useEffect(() => {
+    const handleReload = () => {
+      setPage(1);
+      fetchLookups();
+      fetchLoans();
+    };
+
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
+
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
+    };
+  }, [statusFilter, typeFilter, search, currentOrganization?.id, currentBranch?.id]);
 
   const handleApprove = async (id: number) => {
     try {
@@ -179,14 +213,22 @@ export const Loans: React.FC = () => {
 
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.employeeId) {
+    const targetEmpId = form.employeeId || (employees.length > 0 ? employees[0].employeeId : 0);
+    if (!targetEmpId) {
       showError('Validation Error', 'Please select an employee.');
       return;
     }
 
+    const targetLoanTypeId = form.loanTypeId || (loanTypes.length > 0 ? loanTypes[0].id : 1);
+
     try {
       setSubmitting(true);
-      await apiClient.post('/loans', form);
+      await apiClient.post('/loans', {
+        ...form,
+        employeeId: targetEmpId,
+        loanTypeId: targetLoanTypeId,
+        branchId: currentBranch?.id ? parseInt(currentBranch.id) : undefined
+      });
       showSuccess('Application Submitted', 'Loan request submitted with scheduled EMI breakdown.');
       setApplyModalOpen(false);
       fetchLoans();
@@ -323,7 +365,7 @@ export const Loans: React.FC = () => {
         primaryAction={{
           label: 'Apply Loan / Advance',
           icon: <Plus className="w-3.5 h-3.5" />,
-          onClick: () => setApplyModalOpen(true),
+          onClick: handleOpenApply,
         }}
       />
 
@@ -505,16 +547,20 @@ export const Loans: React.FC = () => {
               <div>
                 <label className="block font-semibold text-[var(--ink)] mb-1">Select Employee *</label>
                 <select
-                  value={form.employeeId}
+                  value={form.employeeId || (employees.length > 0 ? employees[0].employeeId : 0)}
                   onChange={(e) => setForm({ ...form, employeeId: parseInt(e.target.value) || 0 })}
                   className="input-field w-full font-medium"
                   required
                 >
-                  {employees.map((e) => (
-                    <option key={e.employeeId} value={e.employeeId}>
-                      {e.employeeName} (#{e.employeeId})
-                    </option>
-                  ))}
+                  {employees.length === 0 ? (
+                    <option value={0}>No employees found for this branch</option>
+                  ) : (
+                    employees.map((e) => (
+                      <option key={e.employeeId} value={e.employeeId}>
+                        {e.employeeName} (#{e.employeeId})
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -522,15 +568,19 @@ export const Loans: React.FC = () => {
                 <div>
                   <label className="block font-semibold text-[var(--ink)] mb-1">Loan / Advance Type *</label>
                   <select
-                    value={form.loanTypeId}
+                    value={form.loanTypeId || (loanTypes.length > 0 ? loanTypes[0].id : 1)}
                     onChange={(e) => setForm({ ...form, loanTypeId: parseInt(e.target.value) || 1 })}
                     className="input-field w-full"
                   >
-                    {loanTypes.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
+                    {loanTypes.length === 0 ? (
+                      <option value={1}>Salary Advance</option>
+                    ) : (
+                      loanTypes.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
                 <div>

@@ -17,21 +17,25 @@ public class EmployeesController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly IReferenceDataCacheService _cache;
+    private readonly ICurrentTenantProvider _tenantProvider;
 
     public EmployeesController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        IReferenceDataCacheService cache)
+        IReferenceDataCacheService cache,
+        ICurrentTenantProvider tenantProvider)
     {
         _db = db;
         _permissionService = permissionService;
         _cache = cache;
+        _tenantProvider = tenantProvider;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetEmployees(
         [FromQuery] string? search = null,
         [FromQuery] int? departmentId = null,
+        [FromQuery] int? branchId = null,
         [FromQuery] string? status = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
@@ -45,11 +49,24 @@ public class EmployeesController : ControllerBase
             .AsNoTracking()
             .Include(e => e.Department)
             .Include(e => e.Designation)
+            .Include(e => e.Branch)
             .Include(e => e.ReportingManager)
             .AsQueryable();
 
+        // Branch Scoping Filter
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(e => e.BranchId == activeBranch.Value);
+        }
+
         // Apply Scope (All, Reporting, Department, Own)
         query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.EmployeesView);
+
+        if (departmentId.HasValue && departmentId.Value > 0)
+        {
+            query = query.Where(e => e.DepartmentId == departmentId.Value);
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -58,11 +75,6 @@ public class EmployeesController : ControllerBase
                 e.EmployeeName.ToLower().Contains(s) ||
                 (e.Phone != null && e.Phone.Contains(s)) ||
                 e.EmployeeId.ToString().Contains(s));
-        }
-
-        if (departmentId.HasValue && departmentId.Value > 0)
-        {
-            query = query.Where(e => e.DepartmentId == departmentId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
@@ -83,6 +95,7 @@ public class EmployeesController : ControllerBase
             {
                 e.EmployeeId,
                 e.EmployeeName,
+                employeeCode = (e.Branch != null && !string.IsNullOrEmpty(e.Branch.Code) ? e.Branch.Code : "EMP#") + e.EmployeeId.ToString("D3"),
                 e.Phone,
                 Department = e.Department != null ? e.Department.DepartmentName : null,
                 DepartmentId = e.DepartmentId,
@@ -90,6 +103,9 @@ public class EmployeesController : ControllerBase
                 DesignationId = e.DesignationId,
                 ReportingManager = e.ReportingManager != null ? e.ReportingManager.EmployeeName : null,
                 e.ReportingManagerId,
+                e.BranchId,
+                Branch = e.Branch != null ? e.Branch.Name : null,
+                BranchCode = e.Branch != null ? e.Branch.Code : null,
                 e.JoiningDate,
                 e.Status,
                 e.Weekoff,
@@ -119,6 +135,7 @@ public class EmployeesController : ControllerBase
             .AsNoTracking()
             .Include(e => e.Department)
             .Include(e => e.Designation)
+            .Include(e => e.Branch)
             .Include(e => e.ReportingManager)
             .Where(e => e.EmployeeId == id);
 
@@ -134,6 +151,7 @@ public class EmployeesController : ControllerBase
         {
             employee.EmployeeId,
             employee.EmployeeName,
+            employeeCode = (employee.Branch != null && !string.IsNullOrEmpty(employee.Branch.Code) ? employee.Branch.Code : "EMP#") + employee.EmployeeId.ToString("D3"),
             employee.Phone,
             employee.DateOfBirth,
             employee.JoiningDate,
@@ -144,6 +162,9 @@ public class EmployeesController : ControllerBase
             employee.Status,
             employee.Weekoff,
             employee.PhotoPath,
+            employee.BranchId,
+            Branch = employee.Branch != null ? employee.Branch.Name : null,
+            BranchCode = employee.Branch != null ? employee.Branch.Code : null,
             Department = employee.Department != null ? employee.Department.DepartmentName : null,
             employee.DepartmentId,
             Designation = employee.Designation != null ? employee.Designation.DesignationName : null,
@@ -189,12 +210,31 @@ public class EmployeesController : ControllerBase
             return BadRequest(new { message = "Employee name is required." });
         }
 
-        var orgId = 1;
-        var orgClaim = User.FindFirst("OrganizationId")?.Value;
-        if (int.TryParse(orgClaim, out var parsedOrg)) orgId = parsedOrg;
+        var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var targetBranchId = dto.BranchId ?? _tenantProvider.BranchId;
+
+        int targetEmpId;
+        if (dto.EmployeeId.HasValue && dto.EmployeeId.Value > 0)
+        {
+            var exists = await _db.Employees.AnyAsync(e => e.OrganizationId == targetOrgId && e.EmployeeId == dto.EmployeeId.Value);
+            if (exists)
+            {
+                return BadRequest(new { message = $"Employee ID #{dto.EmployeeId.Value} already exists in this organization." });
+            }
+            targetEmpId = dto.EmployeeId.Value;
+        }
+        else
+        {
+            var maxId = await _db.Employees
+                .Where(e => e.OrganizationId == targetOrgId)
+                .Select(e => (int?)e.EmployeeId)
+                .MaxAsync() ?? 0;
+            targetEmpId = maxId + 1;
+        }
 
         var employee = new Employee
         {
+            EmployeeId = targetEmpId,
             EmployeeName = dto.EmployeeName.Trim(),
             Phone = dto.Phone?.Trim(),
             DateOfBirth = dto.DateOfBirth,
@@ -203,8 +243,9 @@ public class EmployeesController : ControllerBase
             DesignationId = dto.DesignationId,
             ReportingManagerId = dto.ReportingManagerId,
             Weekoff = dto.Weekoff ?? "Sunday",
+            BranchId = targetBranchId,
             Status = "active",
-            OrganizationId = orgId
+            OrganizationId = targetOrgId
         };
 
         _db.Employees.Add(employee);
@@ -243,6 +284,7 @@ public class EmployeesController : ControllerBase
         employee.DepartmentId = dto.DepartmentId;
         employee.DesignationId = dto.DesignationId;
         employee.ReportingManagerId = dto.ReportingManagerId;
+        if (dto.BranchId.HasValue) employee.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
         if (!string.IsNullOrWhiteSpace(dto.Weekoff)) employee.Weekoff = dto.Weekoff;
 
         await _db.SaveChangesAsync();
@@ -278,6 +320,116 @@ public class EmployeesController : ControllerBase
         return Ok(new { status = employee.Status, message = $"Employee status set to {employee.Status}." });
     }
 
+    [HttpGet("prefix-settings")]
+    public async Task<IActionResult> GetPrefixSettings([FromQuery] int? branchId = null)
+    {
+        var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var targetBranch = branchId ?? _tenantProvider.BranchId;
+
+        var settings = await _db.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == targetOrgId && (s.BranchId == targetBranch || s.BranchId == null))
+            .ToListAsync();
+
+        string series = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+            ?? "EMP";
+
+        string connector = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+            ?? "#";
+
+        int padding = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue, out var p) ? p : 3;
+
+        int startSeq = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_StartSeq")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_StartSeq")?.SettingValue, out var sSeq) ? sSeq : 1;
+
+        var maxId = await _db.Employees.Where(e => e.OrganizationId == targetOrgId).Select(e => (int?)e.EmployeeId).MaxAsync() ?? 0;
+        var nextSeq = Math.Max(maxId + 1, startSeq);
+
+        var preview = $"{series}{connector}{nextSeq.ToString($"D{padding}")}";
+
+        return Ok(new
+        {
+            seriesCode = series,
+            connector = connector,
+            paddingDigits = padding,
+            startSequence = startSeq,
+            nextSequence = nextSeq,
+            preview = preview,
+            sample1 = $"{series}{connector}{(nextSeq).ToString($"D{padding}")}",
+            sample2 = $"{series}{connector}{(nextSeq + 1).ToString($"D{padding}")}",
+            sample3 = $"{series}{connector}{(nextSeq + 2).ToString($"D{padding}")}"
+        });
+    }
+
+    [HttpPost("prefix-settings")]
+    public async Task<IActionResult> SavePrefixSettings([FromBody] PrefixSettingsDto dto, [FromQuery] int? branchId = null)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
+        {
+            return Forbid();
+        }
+
+        var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var targetBranch = branchId ?? _tenantProvider.BranchId;
+
+        async Task UpsertSetting(string key, string value, string desc)
+        {
+            var existing = await _db.SystemSettings
+                .FirstOrDefaultAsync(s => s.OrganizationId == targetOrgId && s.BranchId == targetBranch && s.SettingKey == key);
+            if (existing != null)
+            {
+                existing.SettingValue = value;
+                existing.UpdatedAt = DateTime.Now;
+            }
+            else
+            {
+                _db.SystemSettings.Add(new SystemSetting
+                {
+                    OrganizationId = targetOrgId,
+                    BranchId = targetBranch,
+                    SettingKey = key,
+                    SettingValue = value,
+                    Description = desc,
+                    UpdatedAt = DateTime.Now
+                });
+            }
+        }
+
+        var series = string.IsNullOrWhiteSpace(dto.SeriesCode) ? "EMP" : dto.SeriesCode.Trim();
+        var connector = dto.Connector ?? "";
+        var padding = dto.PaddingDigits > 0 ? dto.PaddingDigits : 3;
+        var startSeq = dto.StartSequence > 0 ? dto.StartSequence : 1;
+
+        await UpsertSetting("Employee_Prefix_Series", series, "Employee Code Series Prefix");
+        await UpsertSetting("Employee_Prefix_Connector", connector, "Employee Code Connector / Delimiter");
+        await UpsertSetting("Employee_Prefix_Padding", padding.ToString(), "Employee Code Sequence Padding Length");
+        await UpsertSetting("Employee_Prefix_StartSeq", startSeq.ToString(), "Employee Code Starting Sequence");
+
+        if (targetBranch.HasValue && targetBranch.Value > 0)
+        {
+            var b = await _db.Branches.FirstOrDefaultAsync(br => br.Id == targetBranch.Value);
+            if (b != null)
+            {
+                b.Code = $"{series}{connector}";
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        _permissionService.ClearCache();
+
+        return Ok(new { message = "Employee Code Series & Prefix setup saved successfully." });
+    }
+
+    public record PrefixSettingsDto(
+        string SeriesCode,
+        string Connector,
+        int PaddingDigits = 3,
+        int StartSequence = 1
+    );
+
     public record EmployeeCreateDto(
         string EmployeeName,
         string? Phone,
@@ -286,7 +438,9 @@ public class EmployeesController : ControllerBase
         int? DepartmentId,
         int? DesignationId,
         int? ReportingManagerId,
-        string? Weekoff
+        string? Weekoff,
+        int? EmployeeId = null,
+        int? BranchId = null
     );
 
     public record EmployeeUpdateDto(
@@ -301,6 +455,7 @@ public class EmployeesController : ControllerBase
         int? DepartmentId,
         int? DesignationId,
         int? ReportingManagerId,
-        string? Weekoff
+        string? Weekoff,
+        int? BranchId = null
     );
 }

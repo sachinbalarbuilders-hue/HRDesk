@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
@@ -25,6 +26,7 @@ import {
 export const Payroll: React.FC = () => {
   const { hasPermission, isAdmin } = useAuth();
   const { showSuccess, showError } = useToast();
+  const { currentOrganization, currentBranch } = useOrganization();
 
   const [records, setRecords] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>({});
@@ -61,7 +63,9 @@ export const Payroll: React.FC = () => {
 
   const fetchLookups = async () => {
     try {
-      const res = await apiClient.get('/employees/lookups');
+      const res = await apiClient.get('/employees/lookups', {
+        params: { branchId: currentBranch?.id || undefined }
+      });
       setDepartments(res.data?.departments || []);
     } catch (err) {
       console.error('Failed to load lookups', err);
@@ -70,7 +74,7 @@ export const Payroll: React.FC = () => {
 
   useEffect(() => {
     fetchLookups();
-  }, []);
+  }, [currentOrganization?.id, currentBranch?.id]);
 
   const fetchPayrollRecords = async () => {
     try {
@@ -81,6 +85,7 @@ export const Payroll: React.FC = () => {
           search: search || undefined,
           departmentId: departmentId ? parseInt(departmentId) : undefined,
           status: statusFilter !== 'all' ? statusFilter : undefined,
+          branchId: currentBranch?.id || undefined,
           page,
           pageSize,
         },
@@ -98,7 +103,23 @@ export const Payroll: React.FC = () => {
 
   useEffect(() => {
     fetchPayrollRecords();
-  }, [selectedMonth, search, departmentId, statusFilter, page, pageSize]);
+  }, [selectedMonth, search, departmentId, statusFilter, currentOrganization?.id, currentBranch?.id, page, pageSize]);
+
+  useEffect(() => {
+    const handleReload = () => {
+      setPage(1);
+      fetchLookups();
+      fetchPayrollRecords();
+    };
+
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
+
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
+    };
+  }, [selectedMonth, search, departmentId, statusFilter, currentOrganization?.id, currentBranch?.id]);
 
   const handlePrevMonth = () => {
     setPage(1);

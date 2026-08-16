@@ -4,6 +4,7 @@ using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRDesk.Web.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260816162235_AddCompanyAndBranchEntities")]
+    partial class AddCompanyAndBranchEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -828,10 +831,6 @@ namespace HRDesk.Web.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
-
                     b.Property<string>("DepartmentName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
@@ -847,8 +846,6 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BranchId");
-
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("departments", (string)null);
@@ -862,10 +859,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
 
                     b.Property<string>("DesignationName")
                         .IsRequired()
@@ -881,8 +874,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("status");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("OrganizationId");
 
@@ -1148,10 +1139,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("approved_date");
 
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at");
@@ -1215,8 +1202,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("status");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("LoanTypeId");
 
@@ -1285,10 +1270,6 @@ namespace HRDesk.Web.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at");
@@ -1315,8 +1296,6 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BranchId");
-
                     b.HasIndex("ShiftId");
 
                     b.HasIndex("OrganizationId", "EmployeeId");
@@ -1332,10 +1311,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)")
@@ -1366,8 +1341,6 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BranchId");
-
                     b.HasIndex("OrganizationId");
 
                     b.HasIndex("StartDate", "EndDate");
@@ -1389,13 +1362,7 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("employee_id");
 
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
-
                     b.HasKey("OrganizationId", "HolidayId", "EmployeeId");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("HolidayId");
 
@@ -1560,10 +1527,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("background_color");
 
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
-
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -1605,8 +1568,6 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BranchId");
-
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("leave_types", (string)null);
@@ -1646,10 +1607,6 @@ namespace HRDesk.Web.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("amount");
-
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
 
                     b.Property<string>("DueMonth")
                         .IsRequired()
@@ -1694,8 +1651,6 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BranchId");
-
                     b.HasIndex("LoanId");
 
                     b.HasIndex("OrganizationId");
@@ -1711,10 +1666,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2")
@@ -1744,8 +1695,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("type_name");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("OrganizationId");
 
@@ -1827,10 +1776,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("amount");
 
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
-
                     b.Property<int?>("ComponentId")
                         .HasColumnType("int")
                         .HasColumnName("component_id");
@@ -1860,8 +1805,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("remarks");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("ComponentId");
 
@@ -1894,10 +1837,6 @@ namespace HRDesk.Web.Migrations
                     b.Property<DateTime?>("ApprovedDate")
                         .HasColumnType("datetime2")
                         .HasColumnName("approved_date");
-
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2")
@@ -1999,8 +1938,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("weekoffs");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("Month");
 
@@ -2157,10 +2094,6 @@ namespace HRDesk.Web.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
-
                     b.Property<string>("ColorCode")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("color_code");
@@ -2240,8 +2173,6 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BranchId");
-
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("shifts", (string)null);
@@ -2255,10 +2186,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2")
@@ -2290,8 +2217,6 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BranchId");
-
                     b.HasIndex("RosterDate");
 
                     b.HasIndex("ShiftId");
@@ -2308,10 +2233,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
 
                     b.Property<string>("Description")
                         .HasMaxLength(255)
@@ -2338,8 +2259,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("OrganizationId");
 
@@ -2627,36 +2546,22 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.Department", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.Designation", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Organization");
                 });
@@ -2735,11 +2640,6 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.EmployeeLoan", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.LoanType", "LoanType")
                         .WithMany()
                         .HasForeignKey("LoanTypeId")
@@ -2757,8 +2657,6 @@ namespace HRDesk.Web.Migrations
                         .HasForeignKey("OrganizationId", "EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Employee");
 
@@ -2796,11 +2694,6 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.EmployeeShiftAssignment", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
@@ -2819,8 +2712,6 @@ namespace HRDesk.Web.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Branch");
-
                     b.Navigation("Employee");
 
                     b.Navigation("Organization");
@@ -2830,29 +2721,17 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.Holiday", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Branch");
-
                     b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.HolidayEmployee", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Holiday", "Holiday")
                         .WithMany("EligibleEmployees")
                         .HasForeignKey("HolidayId")
@@ -2870,8 +2749,6 @@ namespace HRDesk.Web.Migrations
                         .HasForeignKey("OrganizationId", "EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Employee");
 
@@ -2936,18 +2813,11 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.LeaveType", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Organization");
                 });
@@ -2981,11 +2851,6 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.LoanInstallment", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.EmployeeLoan", "EmployeeLoan")
                         .WithMany("LoanInstallments")
                         .HasForeignKey("LoanId")
@@ -2998,8 +2863,6 @@ namespace HRDesk.Web.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Branch");
-
                     b.Navigation("EmployeeLoan");
 
                     b.Navigation("Organization");
@@ -3007,18 +2870,11 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.LoanType", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Organization");
                 });
@@ -3035,11 +2891,6 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.PayrollDetail", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.SalaryComponent", "SalaryComponent")
                         .WithMany()
                         .HasForeignKey("ComponentId")
@@ -3057,8 +2908,6 @@ namespace HRDesk.Web.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Branch");
-
                     b.Navigation("Organization");
 
                     b.Navigation("PayrollMaster");
@@ -3068,11 +2917,6 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.PayrollMaster", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
@@ -3084,8 +2928,6 @@ namespace HRDesk.Web.Migrations
                         .HasForeignKey("OrganizationId", "EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Employee");
 
@@ -3142,29 +2984,17 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.Shift", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Branch");
-
                     b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.ShiftRoster", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
@@ -3182,8 +3012,6 @@ namespace HRDesk.Web.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Branch");
-
                     b.Navigation("Employee");
 
                     b.Navigation("Organization");
@@ -3193,18 +3021,11 @@ namespace HRDesk.Web.Migrations
 
             modelBuilder.Entity("HRDesk.Web.Models.SystemSetting", b =>
                 {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Branch");
 
                     b.Navigation("Organization");
                 });

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { DataTable, type ColumnDef } from '../components/ui/DataTable';
@@ -27,6 +28,7 @@ import {
 
 export const Settings: React.FC = () => {
   const { showSuccess, showError } = useToast();
+  const { currentOrganization, currentBranch } = useOrganization();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'company' | 'departments' | 'designations' | 'leaves' | 'shifts' | 'attendance'>('company');
   const [selectedBranchForPermissions, setSelectedBranchForPermissions] = useState<any | null>(null);
@@ -138,14 +140,30 @@ export const Settings: React.FC = () => {
   const fetchOverview = async () => {
     try {
       setLoading(true);
-      const [overviewRes, companyRes] = await Promise.allSettled([
-        apiClient.get('/masters/overview'),
+      const [overviewRes, companyRes, policyRes] = await Promise.allSettled([
+        apiClient.get('/masters/overview', {
+          params: { branchId: currentBranch?.id || undefined }
+        }),
         apiClient.get('/masters/company'),
+        apiClient.get('/masters/attendance-policy', {
+          params: { branchId: currentBranch?.id || undefined }
+        }),
       ]);
 
       if (companyRes.status === 'fulfilled' && companyRes.value.data) {
         setCompany(companyRes.value.data);
         setCompanyForm(companyRes.value.data);
+      }
+
+      if (policyRes.status === 'fulfilled' && policyRes.value.data) {
+        const pol = policyRes.value.data;
+        setAttendancePolicy({
+          gracePeriodMinutes: pol.gracePeriodMinutes ?? 15,
+          halfDayThresholdHours: pol.halfDayThresholdHours ?? 4.5,
+          fullDayThresholdHours: pol.fullDayThresholdHours ?? 8.0,
+          autoSyncIntervalMinutes: pol.autoSyncIntervalMinutes ?? 5,
+          defaultWeekoff: pol.defaultWeekoff ?? 'Sunday',
+        });
       }
 
       if (overviewRes.status === 'fulfilled' && overviewRes.value.data) {
@@ -186,10 +204,10 @@ export const Settings: React.FC = () => {
             status: b.isActive !== false ? 'Active' : 'Inactive',
           })));
         }
-        if (res.data.departments) setDepartments(res.data.departments.map((d: any) => ({ id: d.id, name: d.name, code: `DEP-${d.id}`, head: 'HOD', status: d.status || 'Active' })));
-        if (res.data.designations) setDesignations(res.data.designations.map((d: any) => ({ id: d.id, title: d.name, code: `DSG-${d.id}`, department: 'General', level: 'L2 (Mid)', status: d.status || 'Active' })));
-        if (res.data.leaveTypes) setLeaveTypes(res.data.leaveTypes.map((l: any) => ({ id: l.id, name: l.name, code: l.code || 'LV', quota: l.defaultDays, isPaid: l.isPaid, status: l.status || 'Active' })));
-        if (res.data.shifts) setShifts(res.data.shifts.map((s: any) => ({ id: s.id, name: s.name, code: s.code || 'SHF', startTime: s.startTime, endTime: s.endTime, breakMinutes: 60, status: 'Active' })));
+        if (res.data.departments) setDepartments(res.data.departments.map((d: any) => ({ id: d.id, name: d.name, code: `DEP-${d.id}`, head: 'HOD', status: d.status || 'Active', branchId: d.branchId })));
+        if (res.data.designations) setDesignations(res.data.designations.map((d: any) => ({ id: d.id, title: d.name, code: `DSG-${d.id}`, department: 'General', level: 'L2 (Mid)', status: d.status || 'Active', branchId: d.branchId })));
+        if (res.data.leaveTypes) setLeaveTypes(res.data.leaveTypes.map((l: any) => ({ id: l.id, name: l.name, code: l.code || 'LV', quota: l.defaultDays, isPaid: l.isPaid, status: l.status || 'Active', branchId: l.branchId })));
+        if (res.data.shifts) setShifts(res.data.shifts.map((s: any) => ({ id: s.id, name: s.name, code: s.code || 'SHF', startTime: s.startTime, endTime: s.endTime, breakMinutes: 60, status: 'Active', branchId: s.branchId })));
       }
     } catch (e) {
       console.error('Failed to load masters overview', e);
@@ -200,6 +218,19 @@ export const Settings: React.FC = () => {
 
   useEffect(() => {
     fetchOverview();
+  }, [currentOrganization?.id, currentBranch?.id]);
+
+  useEffect(() => {
+    const handleReload = () => {
+      fetchOverview();
+    };
+
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
+    };
   }, []);
 
   const handleTabSwitch = (tab: typeof activeTab) => {
@@ -303,6 +334,8 @@ export const Settings: React.FC = () => {
         setExpandedOrgId(branchForm.organizationId);
       }
       fetchOverview();
+      window.dispatchEvent(new CustomEvent('hrdesk:branch_changed', { detail: { branchId: editingBranchId } }));
+      window.dispatchEvent(new CustomEvent('hrdesk:tenant_changed', { detail: { organizationId: branchForm.organizationId } }));
     } catch (err: any) {
       showError('Failed', err.response?.data?.message || 'Server error');
     }
@@ -333,20 +366,30 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleSaveAttendancePolicy = (e: React.FormEvent) => {
+  const handleSaveAttendancePolicy = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      setSaving(true);
+      await apiClient.put('/masters/attendance-policy', {
+        ...attendancePolicy,
+        branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+      });
       showSuccess('Policy Saved', 'Attendance counting and late rules updated.');
-    }, 500);
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Could not save attendance policy');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAddDept = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDept.name.trim()) return;
     try {
-      await apiClient.post('/masters/departments', { departmentName: newDept.name });
+      await apiClient.post('/masters/departments', {
+        departmentName: newDept.name,
+        branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+      });
       setNewDept({ name: '', code: '', head: '' });
       setDeptModalOpen(false);
       showSuccess('Department Added', `${newDept.name} registered.`);
@@ -360,7 +403,10 @@ export const Settings: React.FC = () => {
     e.preventDefault();
     if (!newDesignation.title.trim()) return;
     try {
-      await apiClient.post('/masters/designations', { designationName: newDesignation.title });
+      await apiClient.post('/masters/designations', {
+        designationName: newDesignation.title,
+        branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+      });
       setNewDesignation({ title: '', code: '', department: 'Engineering & Technology', level: 'L2 (Mid)' });
       setDesigModalOpen(false);
       showSuccess('Designation Added', `${newDesignation.title} registered.`);
@@ -370,27 +416,38 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleAddLeaveType = (e: React.FormEvent) => {
+  const handleAddLeaveType = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLeaveType.name.trim()) return;
-    setLeaveTypes([
-      ...leaveTypes,
-      { id: Date.now(), name: newLeaveType.name, code: newLeaveType.code || 'LV', quota: newLeaveType.quota, isPaid: newLeaveType.isPaid },
-    ]);
-    setNewLeaveType({ name: '', code: '', quota: 12, isPaid: true });
-    setLeaveModalOpen(false);
-    showSuccess('Leave Category Added', `${newLeaveType.name} configured.`);
+    try {
+      await apiClient.post('/masters/leave-types', {
+        name: newLeaveType.name,
+        code: newLeaveType.code || 'LV',
+        defaultYearlyQuota: newLeaveType.quota,
+        isPaid: newLeaveType.isPaid,
+        status: 'Active',
+        branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+      });
+      setNewLeaveType({ name: '', code: '', quota: 12, isPaid: true });
+      setLeaveModalOpen(false);
+      showSuccess('Leave Category Added', `${newLeaveType.name} configured.`);
+      fetchOverview();
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Server error');
+    }
   };
 
   const handleAddShift = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newShift.name.trim()) return;
     try {
-      await apiClient.post('/shifts', {
-        shiftName: newShift.name,
-        shiftCode: newShift.code || 'SHF',
+      await apiClient.post('/masters/shifts', {
+        name: newShift.name,
+        code: newShift.code || 'SHF',
         startTime: newShift.startTime,
         endTime: newShift.endTime,
+        breakMinutes: newShift.breakMinutes,
+        branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
       });
       setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', breakMinutes: 60 });
       setShiftModalOpen(false);
@@ -1016,7 +1073,9 @@ export const Settings: React.FC = () => {
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                       <span className="font-semibold text-xs text-[var(--ink)]">{branch.name}</span>
-                                      <span className="font-data text-[10px] px-1 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink-muted)]">{branch.code}</span>
+                                      <span className="inline-flex items-center gap-1 font-mono text-[10px] px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] text-indigo-600 font-bold">
+                                        Prefix: {branch.code || 'None'} <span className="text-[9px] text-[var(--ink-muted)]">({branch.code || 'EMP#'}001)</span>
+                                      </span>
                                       {branch.isActive !== false
                                         ? <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Active</span>
                                         : <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-800">Archived</span>
@@ -1425,6 +1484,151 @@ export const Settings: React.FC = () => {
                 </button>
                 <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
                   {editingOrgId ? 'Save Changes' : 'Create Organisation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 1b. Add / Edit Branch Modal */}
+      {branchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                <MapPin size={16} className="text-indigo-500" />
+                <span>{editingBranchId ? 'Edit Branch Profile' : 'Register New Branch'}</span>
+              </h3>
+              <button onClick={() => setBranchModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBranch} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Branch Name *</label>
+                  <input
+                    type="text"
+                    value={branchForm.name}
+                    onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })}
+                    placeholder="e.g. Ville Flora 2"
+                    className="input-field w-full"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">
+                    Employee Code Prefix *
+                  </label>
+                  <input
+                    type="text"
+                    value={branchForm.code}
+                    onChange={(e) => setBranchForm({ ...branchForm, code: e.target.value })}
+                    placeholder="e.g. EMP#, EMP-, VF2-"
+                    className="input-field w-full font-mono text-xs font-bold text-indigo-600"
+                    required
+                  />
+                  <span className="text-[10px] text-[var(--ink-muted)] block mt-0.5">
+                    Used for auto employee codes (e.g. {branchForm.code || 'EMP#'}001)
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">City</label>
+                  <input
+                    type="text"
+                    value={branchForm.city}
+                    onChange={(e) => setBranchForm({ ...branchForm, city: e.target.value })}
+                    placeholder="e.g. Surat"
+                    className="input-field w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">State</label>
+                  <input
+                    type="text"
+                    value={branchForm.state}
+                    onChange={(e) => setBranchForm({ ...branchForm, state: e.target.value })}
+                    placeholder="e.g. Gujarat"
+                    className="input-field w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Pincode</label>
+                  <input
+                    type="text"
+                    value={branchForm.pincode}
+                    onChange={(e) => setBranchForm({ ...branchForm, pincode: e.target.value })}
+                    placeholder="e.g. 395007"
+                    className="input-field w-full font-data"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">Street Address</label>
+                <input
+                  type="text"
+                  value={branchForm.address}
+                  onChange={(e) => setBranchForm({ ...branchForm, address: e.target.value })}
+                  placeholder="e.g. Site #4, Vesu Main Road"
+                  className="input-field w-full"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Latitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={branchForm.latitude}
+                    onChange={(e) => setBranchForm({ ...branchForm, latitude: Number(e.target.value) })}
+                    className="input-field w-full font-data"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Longitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={branchForm.longitude}
+                    onChange={(e) => setBranchForm({ ...branchForm, longitude: Number(e.target.value) })}
+                    className="input-field w-full font-data"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Radius (Meters)</label>
+                  <input
+                    type="number"
+                    value={branchForm.radiusMeters}
+                    onChange={(e) => setBranchForm({ ...branchForm, radiusMeters: Number(e.target.value) })}
+                    className="input-field w-full font-data"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">WhatsApp Group ID</label>
+                <input
+                  type="text"
+                  value={branchForm.whatsAppGroupId}
+                  onChange={(e) => setBranchForm({ ...branchForm, whatsAppGroupId: e.target.value })}
+                  placeholder="e.g. 120363275932360787@g.us"
+                  className="input-field w-full font-mono text-[11px]"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
+                <button type="button" onClick={() => setBranchModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
+                  {editingBranchId ? 'Save Branch' : 'Create Branch'}
                 </button>
               </div>
             </form>

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
 
@@ -45,5 +45,10 @@ public sealed class Shift : IMustHaveTenant
     public int OrganizationId { get; set; }
 
     public Organization? Organization { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("branch_id")]
+    public int? BranchId { get; set; }
+
+    public Branch? Branch { get; set; }
 }
 

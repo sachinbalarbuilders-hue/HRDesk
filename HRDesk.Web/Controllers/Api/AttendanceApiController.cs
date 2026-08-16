@@ -19,19 +19,22 @@ public class AttendanceController : ControllerBase
     private readonly IPermissionService _permissionService;
     private readonly IReferenceDataCacheService _cache;
     private readonly IAttendanceProcessorService _processor;
+    private readonly ICurrentTenantProvider _tenantProvider;
 
     public AttendanceController(
         BiometricAttendanceDbContext db,
         IAttendanceSummaryService attendanceSummaryService,
         IPermissionService permissionService,
         IReferenceDataCacheService cache,
-        IAttendanceProcessorService processor)
+        IAttendanceProcessorService processor,
+        ICurrentTenantProvider tenantProvider)
     {
         _db = db;
         _attendanceSummaryService = attendanceSummaryService;
         _permissionService = permissionService;
         _cache = cache;
         _processor = processor;
+        _tenantProvider = tenantProvider;
     }
 
     [HttpGet("monthly-sheet")]
@@ -40,6 +43,7 @@ public class AttendanceController : ControllerBase
         [FromQuery] int? month = null,
         [FromQuery] string? search = null,
         [FromQuery] int? departmentId = null,
+        [FromQuery] int? branchId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
@@ -65,6 +69,13 @@ public class AttendanceController : ControllerBase
                     (e.LastWorkingDate != null && e.LastWorkingDate >= startDate) ||
                     (_db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate >= startDate && a.RecordDate < endDate && a.InTime != null))
                 ));
+
+        // Branch Scoping Filter
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            empQuery = empQuery.Where(e => e.BranchId == activeBranch.Value);
+        }
 
         if (departmentId.HasValue && departmentId.Value > 0)
         {
@@ -265,7 +276,8 @@ public class AttendanceController : ControllerBase
     public async Task<IActionResult> GetDailyLogs(
         [FromQuery] DateOnly? date = null,
         [FromQuery] string? search = null,
-        [FromQuery] int? departmentId = null)
+        [FromQuery] int? departmentId = null,
+        [FromQuery] int? branchId = null)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceView))
         {
@@ -280,6 +292,13 @@ public class AttendanceController : ControllerBase
                 .ThenInclude(e => e.Department)
             .Include(a => a.Shift)
             .Where(a => a.RecordDate == targetDate);
+
+        // Branch Scoping Filter
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(a => a.BranchId == activeBranch.Value || a.Employee.BranchId == activeBranch.Value);
+        }
 
         if (departmentId.HasValue && departmentId.Value > 0)
         {

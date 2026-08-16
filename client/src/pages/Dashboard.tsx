@@ -13,10 +13,12 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useOrganization } from '../context/CompanyContext';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
 
 export const Dashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
+  const { currentOrganization, currentBranch } = useOrganization();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [punching, setPunching] = useState(false);
@@ -25,7 +27,9 @@ export const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/dashboard/summary');
+      const res = await apiClient.get('/dashboard/summary', {
+        params: { branchId: currentBranch?.id || undefined }
+      });
       setStats(res.data);
     } catch (err) {
       console.error('Failed to load dashboard data', err);
@@ -36,7 +40,20 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [currentOrganization?.id, currentBranch?.id]);
+
+  useEffect(() => {
+    const handleTenantChange = () => fetchDashboardData();
+    const handleBranchChange = () => fetchDashboardData();
+
+    window.addEventListener('hrdesk:tenant_changed', handleTenantChange);
+    window.addEventListener('hrdesk:branch_changed', handleBranchChange);
+
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleTenantChange);
+      window.removeEventListener('hrdesk:branch_changed', handleBranchChange);
+    };
+  }, [currentOrganization?.id, currentBranch?.id]);
 
   const handleWebPunch = async (punchType: string) => {
     try {

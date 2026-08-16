@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
@@ -41,6 +42,7 @@ interface RegularizationItem {
 export const Regularizations: React.FC = () => {
   const { hasPermission, isAdmin } = useAuth();
   const { showSuccess, showError } = useToast();
+  const { currentOrganization, currentBranch } = useOrganization();
 
   const [items, setItems] = useState<RegularizationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,6 +97,7 @@ export const Regularizations: React.FC = () => {
         params: {
           status: statusFilter !== 'all' ? statusFilter : undefined,
           search: search || undefined,
+          branchId: currentBranch?.id || undefined,
           page,
           pageSize,
         },
@@ -115,7 +118,9 @@ export const Regularizations: React.FC = () => {
   // 2. Fetch Employee List for Dropdown
   const fetchEmployees = async () => {
     try {
-      const res = await apiClient.get('/employees?pageSize=200');
+      const res = await apiClient.get('/employees', {
+        params: { pageSize: 200, branchId: currentBranch?.id || undefined }
+      });
       const list = (res.data.items || []).map((e: any) => ({
         employeeId: e.employeeId || e.id,
         employeeName: e.employeeName || e.name,
@@ -131,12 +136,28 @@ export const Regularizations: React.FC = () => {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [currentOrganization?.id, currentBranch?.id]);
 
   useEffect(() => {
     setSelectedIds([]);
     fetchData();
-  }, [statusFilter, search, page, pageSize]);
+  }, [statusFilter, search, currentOrganization?.id, currentBranch?.id, page, pageSize]);
+
+  useEffect(() => {
+    const handleReload = () => {
+      setPage(1);
+      fetchData();
+      fetchEmployees();
+    };
+
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
+
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
+    };
+  }, [statusFilter, search]);
 
   // Fetch Live Punch Preview when employee or date changes in form
   useEffect(() => {

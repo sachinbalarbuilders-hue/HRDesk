@@ -20,6 +20,7 @@ public class LeavesController : ControllerBase
     private readonly ISequenceService _sequenceService;
     private readonly ICompOffService _compOffService;
     private readonly IAttendanceProcessorService _processor;
+    private readonly ICurrentTenantProvider _tenantProvider;
 
     public LeavesController(
         BiometricAttendanceDbContext db,
@@ -27,7 +28,8 @@ public class LeavesController : ControllerBase
         IReferenceDataCacheService cache,
         ISequenceService sequenceService,
         ICompOffService compOffService,
-        IAttendanceProcessorService processor)
+        IAttendanceProcessorService processor,
+        ICurrentTenantProvider tenantProvider)
     {
         _db = db;
         _permissionService = permissionService;
@@ -35,12 +37,14 @@ public class LeavesController : ControllerBase
         _sequenceService = sequenceService;
         _compOffService = compOffService;
         _processor = processor;
+        _tenantProvider = tenantProvider;
     }
 
     [HttpGet("applications")]
     public async Task<IActionResult> GetLeaveApplications(
         [FromQuery] string? status = null,
         [FromQuery] string? search = null,
+        [FromQuery] int? branchId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 30)
     {
@@ -49,12 +53,19 @@ public class LeavesController : ControllerBase
             return Forbid();
         }
 
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+
         var query = _db.LeaveApplications
             .AsNoTracking()
             .Include(la => la.Employee)
                 .ThenInclude(e => e.Department)
             .Include(la => la.LeaveType)
             .AsQueryable();
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(la => la.Employee != null && la.Employee.BranchId == activeBranch.Value);
+        }
 
         query = await _permissionService.ApplyLeaveScopeAsync(query, User, AppPermissions.Keys.LeavesView);
 
@@ -201,7 +212,7 @@ public class LeavesController : ControllerBase
             return BadRequest(new { message = "End date cannot be earlier than start date." });
         }
 
-        var emp = await _db.Employees.FindAsync(targetEmpId.Value);
+        var emp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == targetEmpId.Value);
         if (emp == null) return NotFound(new { message = "Employee not found." });
 
         var appNumber = await _sequenceService.GenerateApplicationNumberAsync(dto.StartDate);

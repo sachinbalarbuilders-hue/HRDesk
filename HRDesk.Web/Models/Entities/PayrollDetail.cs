@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
@@ -41,5 +41,10 @@ public class PayrollDetail : IMustHaveTenant
     public int OrganizationId { get; set; }
 
     public Organization? Organization { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("branch_id")]
+    public int? BranchId { get; set; }
+
+    public Branch? Branch { get; set; }
 }
 

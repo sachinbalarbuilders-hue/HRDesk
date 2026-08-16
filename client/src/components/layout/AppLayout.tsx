@@ -25,18 +25,21 @@ import {
   Sparkles,
   Banknote,
   UserPlus,
+  MapPin,
+  Globe,
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
   const { user, logout, hasPermission, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const { currentOrganization, organizations, switchOrganization } = useOrganization();
+  const { currentOrganization, organizations, currentBranch, branches, switchOrganization, switchBranch } = useOrganization();
   const { showSuccess } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
+  const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
 
   const navigation = [
     {
@@ -141,6 +144,12 @@ export const AppLayout: React.FC = () => {
     switchOrganization(orgId);
     setOrgDropdownOpen(false);
     showSuccess('Organisation Switched', `Active organisation: ${orgName}`);
+  };
+
+  const handleBranchSelect = (branchId: string | null, branchName: string) => {
+    switchBranch(branchId);
+    setBranchDropdownOpen(false);
+    showSuccess('Branch Switched', `Active branch: ${branchName}`);
   };
 
   return (
@@ -335,15 +344,15 @@ export const AppLayout: React.FC = () => {
               </span>
             </div>
 
-            {/* --- Global Single Organisation Switcher --- */}
+            {/* --- Global Organisation Switcher --- */}
             <div className="relative">
               <button
-                onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
+                onClick={() => { setOrgDropdownOpen(!orgDropdownOpen); setBranchDropdownOpen(false); }}
                 className="flex items-center gap-2 px-2.5 py-1 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] hover:border-[var(--gold-500)] text-xs font-semibold text-[var(--ink)] transition-colors cursor-pointer"
                 title="Switch Active Organisation"
               >
                 <Building2 size={13} className="text-[var(--gold-500)] flex-shrink-0" />
-                <span className="truncate max-w-[160px] sm:max-w-[220px]">
+                <span className="truncate max-w-[140px] sm:max-w-[200px]">
                   {currentOrganization?.name || 'Select Organisation'}
                 </span>
                 <ChevronDown size={12} className="text-[var(--ink-muted)]" />
@@ -387,6 +396,80 @@ export const AppLayout: React.FC = () => {
                 </>
               )}
             </div>
+
+            {/* --- Branch Switcher (when branches exist) --- */}
+            {branches.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => { setBranchDropdownOpen(!branchDropdownOpen); setOrgDropdownOpen(false); }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] hover:border-[var(--gold-500)] text-xs font-semibold text-[var(--ink)] transition-colors cursor-pointer"
+                  title="Switch Active Branch"
+                >
+                  <MapPin size={12} className="text-[var(--gold-500)] flex-shrink-0" />
+                  <span className="truncate max-w-[130px] sm:max-w-[180px]">
+                    {currentBranch?.name || 'All Branches'}
+                  </span>
+                  <ChevronDown size={12} className="text-[var(--ink-muted)]" />
+                </button>
+
+                {/* Branch Dropdown Popover */}
+                {branchDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => setBranchDropdownOpen(false)}
+                    />
+                    <div className="absolute left-0 mt-1.5 w-72 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-xl z-40 py-1.5 animate-in fade-in slide-in-from-top-1">
+                      <div className="px-3 py-1 text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider border-b border-[var(--rule)] mb-1">
+                        Branches ({currentOrganization?.name})
+                      </div>
+
+                      {/* All Branches Option */}
+                      <button
+                        onClick={() => handleBranchSelect(null, `All Branches (${currentOrganization?.name})`)}
+                        className={`w-full px-3 py-2 text-left flex items-center justify-between text-xs hover:bg-[var(--paper)] transition-colors cursor-pointer ${
+                          !currentBranch ? 'font-bold text-[var(--gold-500)] bg-[var(--gold-100)]/30' : 'text-[var(--ink)]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Globe size={13} className={!currentBranch ? 'text-[var(--gold-500)]' : 'text-[var(--ink-muted)]'} />
+                          <div>
+                            <p className="truncate leading-none">All Branches</p>
+                            <p className="text-[10px] font-data text-[var(--ink-muted)] mt-0.5">Consolidated View</p>
+                          </div>
+                        </div>
+                        {!currentBranch && <Check size={13} className="text-[var(--gold-500)] flex-shrink-0 ml-1" />}
+                      </button>
+
+                      {/* Individual Branches */}
+                      {branches.map((b) => {
+                        const isSelected = String(currentBranch?.id) === String(b.id);
+                        return (
+                          <button
+                            key={b.id}
+                            onClick={() => handleBranchSelect(String(b.id), b.name)}
+                            className={`w-full px-3 py-2 text-left flex items-center justify-between text-xs hover:bg-[var(--paper)] transition-colors cursor-pointer ${
+                              isSelected ? 'font-bold text-[var(--gold-500)] bg-[var(--gold-100)]/30' : 'text-[var(--ink)]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <MapPin size={13} className={isSelected ? 'text-[var(--gold-500)]' : 'text-[var(--ink-muted)]'} />
+                              <div className="truncate">
+                                <p className="truncate leading-none">{b.name}</p>
+                                <p className="text-[10px] font-data text-[var(--ink-muted)] mt-0.5">
+                                  {b.code ? `${b.code} · ` : ''}{b.city || 'Office'}
+                                </p>
+                              </div>
+                            </div>
+                            {isSelected && <Check size={13} className="text-[var(--gold-500)] flex-shrink-0 ml-1" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">

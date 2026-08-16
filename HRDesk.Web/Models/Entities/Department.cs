@@ -1,4 +1,4 @@
-﻿namespace HRDesk.Web.Models;
+namespace HRDesk.Web.Models;
 
 public sealed class Department : IMustHaveTenant
 {
@@ -12,5 +12,10 @@ public sealed class Department : IMustHaveTenant
     public int OrganizationId { get; set; }
 
     public Organization? Organization { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("branch_id")]
+    public int? BranchId { get; set; }
+
+    public Branch? Branch { get; set; }
 }
 

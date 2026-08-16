@@ -1,5 +1,6 @@
 using HRDesk.Web.Constants;
 using HRDesk.Web.Data;
+using HRDesk.Web.Services;
 using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,20 +15,26 @@ public class DashboardController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
+    private readonly ICurrentTenantProvider _tenantProvider;
 
-    public DashboardController(BiometricAttendanceDbContext db, IPermissionService permissionService)
+    public DashboardController(
+        BiometricAttendanceDbContext db,
+        IPermissionService permissionService,
+        ICurrentTenantProvider tenantProvider)
     {
         _db = db;
         _permissionService = permissionService;
+        _tenantProvider = tenantProvider;
     }
 
     [HttpGet("summary")]
     [HttpGet("stats")]
-    public async Task<IActionResult> GetDashboardSummary()
+    public async Task<IActionResult> GetDashboardSummary([FromQuery] int? branchId = null)
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
         var currentYear = today.Year;
         var currentMonth = today.Month;
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
 
         var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
         var empScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesView);
@@ -88,6 +95,11 @@ public class DashboardController : ControllerBase
         bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
 
         var empQuery = _db.Employees.AsNoTracking().Where(e => e.Status == null || e.Status.ToLower() == "active");
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            empQuery = empQuery.Where(e => e.BranchId == activeBranch.Value);
+        }
+
         if (!isAdminOrSuper)
         {
             empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.EmployeesView);
@@ -96,6 +108,11 @@ public class DashboardController : ControllerBase
         var totalActive = await empQuery.CountAsync();
 
         var attQuery = _db.DailyAttendance.AsNoTracking().Where(a => a.RecordDate == today);
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            attQuery = attQuery.Where(a => a.BranchId == activeBranch.Value || (a.Employee != null && a.Employee.BranchId == activeBranch.Value));
+        }
+
         if (!isAdminOrSuper)
         {
             attQuery = await _permissionService.ApplyAttendanceScopeAsync(attQuery, User, AppPermissions.Keys.AttendanceView);
@@ -106,6 +123,11 @@ public class DashboardController : ControllerBase
         var lateCount = await attQuery.CountAsync(a => a.IsLate);
 
         var leaveQuery = _db.LeaveApplications.AsNoTracking();
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            leaveQuery = leaveQuery.Where(l => l.Employee != null && l.Employee.BranchId == activeBranch.Value);
+        }
+
         if (!isAdminOrSuper)
         {
             leaveQuery = await _permissionService.ApplyLeaveScopeAsync(leaveQuery, User, AppPermissions.Keys.LeavesView);
@@ -173,14 +195,20 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("celebrations")]
-    public async Task<IActionResult> GetCelebrations()
+    public async Task<IActionResult> GetCelebrations([FromQuery] int? branchId = null)
     {
         var today = DateTime.Today;
         var currentMonth = today.Month;
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
 
-        var birthdays = await _db.Employees
-            .AsNoTracking()
-            .Where(e => (e.Status == null || e.Status.ToLower() == "active") && e.DateOfBirth.HasValue && e.DateOfBirth.Value.Month == currentMonth)
+        var baseEmpQuery = _db.Employees.AsNoTracking().Where(e => e.Status == null || e.Status.ToLower() == "active");
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            baseEmpQuery = baseEmpQuery.Where(e => e.BranchId == activeBranch.Value);
+        }
+
+        var birthdays = await baseEmpQuery
+            .Where(e => e.DateOfBirth.HasValue && e.DateOfBirth.Value.Month == currentMonth)
             .OrderBy(e => e.DateOfBirth!.Value.Day)
             .Take(5)
             .Select(e => new
@@ -193,9 +221,8 @@ public class DashboardController : ControllerBase
             })
             .ToListAsync();
 
-        var anniversaries = await _db.Employees
-            .AsNoTracking()
-            .Where(e => (e.Status == null || e.Status.ToLower() == "active") && e.JoiningDate.HasValue && e.JoiningDate.Value.Month == currentMonth && e.JoiningDate.Value.Year < today.Year)
+        var anniversaries = await baseEmpQuery
+            .Where(e => e.JoiningDate.HasValue && e.JoiningDate.Value.Month == currentMonth && e.JoiningDate.Value.Year < today.Year)
             .OrderBy(e => e.JoiningDate!.Value.Day)
             .Take(5)
             .Select(e => new
