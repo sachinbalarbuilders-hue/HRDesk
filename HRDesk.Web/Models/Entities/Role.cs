@@ -28,6 +28,11 @@ public class Role : IMustHaveTenant
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
+    [Column("branch_id")]
+    public int? BranchId { get; set; }
+
+    public Branch? Branch { get; set; }
+
     [Column("organization_id")]
     public int OrganizationId { get; set; }
 

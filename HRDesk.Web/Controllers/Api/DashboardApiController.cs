@@ -21,8 +21,9 @@ public class DashboardController : ControllerBase
         _permissionService = permissionService;
     }
 
+    [HttpGet("summary")]
     [HttpGet("stats")]
-    public async Task<IActionResult> GetDashboardStats()
+    public async Task<IActionResult> GetDashboardSummary()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
         var currentYear = today.Year;
@@ -61,19 +62,19 @@ public class DashboardController : ControllerBase
                 isPersonal = true,
                 employee = new
                 {
-                    emp?.EmployeeId,
-                    emp?.EmployeeName,
-                    Department = emp?.Department?.DepartmentName,
-                    Designation = emp?.Designation?.DesignationName,
-                    emp?.PhotoPath
+                    employeeId = emp?.EmployeeId,
+                    employeeName = emp?.EmployeeName,
+                    department = emp?.Department?.DepartmentName ?? "General",
+                    designation = emp?.Designation?.DesignationName ?? "Staff",
+                    photoPath = emp?.PhotoPath
                 },
                 todayAttendance = new
                 {
-                    date = today,
-                    inTime = todayLog?.InTime?.ToString("HH:mm"),
-                    outTime = todayLog?.OutTime?.ToString("HH:mm"),
+                    date = today.ToString("yyyy-MM-dd"),
+                    inTime = todayLog?.InTime?.ToString("HH:mm") ?? "--:--",
+                    outTime = todayLog?.OutTime?.ToString("HH:mm") ?? "--:--",
                     status = todayLog?.Status ?? "Not Checked In",
-                    shiftName = todayLog?.Shift?.ShiftName
+                    shiftName = todayLog?.Shift?.ShiftName ?? "General Shift"
                 },
                 metrics = new
                 {
@@ -84,49 +85,72 @@ public class DashboardController : ControllerBase
         }
 
         // Team / Organization Dashboard (Admin & Managers)
-        var scopedEmployees = _db.Employees.AsNoTracking().Where(e => e.Status == "active");
-        scopedEmployees = await _permissionService.ApplyEmployeeScopeAsync(scopedEmployees, User, AppPermissions.Keys.EmployeesView);
+        bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
 
-        var totalActive = await scopedEmployees.CountAsync();
-        var scopedEmpIds = await scopedEmployees.Select(e => e.EmployeeId).ToListAsync();
+        var empQuery = _db.Employees.AsNoTracking().Where(e => e.Status == null || e.Status.ToLower() == "active");
+        if (!isAdminOrSuper)
+        {
+            empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.EmployeesView);
+        }
 
-        var todayLogs = await _db.DailyAttendance
-            .AsNoTracking()
-            .Include(a => a.Employee)
-                .ThenInclude(e => e.Department)
-            .Where(a => a.RecordDate == today && scopedEmpIds.Contains(a.EmployeeId))
+        var totalActive = await empQuery.CountAsync();
+
+        var attQuery = _db.DailyAttendance.AsNoTracking().Where(a => a.RecordDate == today);
+        if (!isAdminOrSuper)
+        {
+            attQuery = await _permissionService.ApplyAttendanceScopeAsync(attQuery, User, AppPermissions.Keys.AttendanceView);
+        }
+
+        var presentCount = await attQuery.CountAsync(a => a.Status == "Present" || a.InTime != null);
+        var absentCount = await attQuery.CountAsync(a => a.Status == "Absent");
+        var lateCount = await attQuery.CountAsync(a => a.IsLate);
+
+        var leaveQuery = _db.LeaveApplications.AsNoTracking();
+        if (!isAdminOrSuper)
+        {
+            leaveQuery = await _permissionService.ApplyLeaveScopeAsync(leaveQuery, User, AppPermissions.Keys.LeavesView);
+        }
+
+        var onLeaveCount = await leaveQuery
+            .CountAsync(la => la.Status == "Approved" && la.StartDate <= today && la.EndDate >= today);
+
+        var pendingLeaveApprovals = await leaveQuery
+            .Include(la => la.Employee)
+            .Include(la => la.LeaveType)
+            .Where(la => la.Status == "Pending")
+            .OrderByDescending(la => la.CreatedAt)
+            .Take(5)
+            .Select(la => new
+            {
+                id = la.Id,
+                employeeId = la.EmployeeId,
+                employeeName = la.Employee != null ? la.Employee.EmployeeName : "Employee",
+                leaveType = la.LeaveType != null ? la.LeaveType.Name : "Leave",
+                startDate = la.StartDate.ToString("yyyy-MM-dd"),
+                endDate = la.EndDate.ToString("yyyy-MM-dd"),
+                days = la.TotalDays,
+                reason = la.Reason
+            })
             .ToListAsync();
 
-        var presentCount = todayLogs.Count(a => a.Status == "Present" || a.InTime.HasValue);
-        var absentCount = todayLogs.Count(a => a.Status == "Absent");
-        var lateCount = todayLogs.Count(a => a.IsLate);
-        var onLeaveCount = await _db.LeaveApplications
-            .CountAsync(la => la.Status == "Approved" && la.StartDate <= today && la.EndDate >= today && scopedEmpIds.Contains(la.EmployeeId));
-
-        var pendingLeaveApprovals = await _db.LeaveApplications
-            .CountAsync(la => la.Status == "Pending" && scopedEmpIds.Contains(la.EmployeeId));
-
-        // Recent Punches (Last 10 punches)
-        var recentPunches = todayLogs
-            .Where(a => a.InTime.HasValue)
+        var recentPunches = await attQuery
+            .Where(a => a.InTime != null)
             .OrderByDescending(a => a.InTime)
             .Take(10)
             .Select(a => new
             {
-                a.EmployeeId,
-                EmployeeName = a.Employee.EmployeeName,
-                Department = a.Employee.Department?.DepartmentName,
-                InTime = a.InTime?.ToString("hh:mm tt"),
-                OutTime = a.OutTime?.ToString("hh:mm tt"),
-                a.Status,
-                a.IsLate
-            });
+                employeeId = a.EmployeeId,
+                employeeName = a.Employee != null ? a.Employee.EmployeeName : "Staff",
+                department = (a.Employee != null && a.Employee.Department != null) ? a.Employee.Department.DepartmentName : "General",
+                inTime = a.InTime != null ? a.InTime.Value.ToString("HH:mm") : "--:--",
+                outTime = a.OutTime != null ? a.OutTime.Value.ToString("HH:mm") : "--:--",
+                status = a.Status ?? "Present",
+                isLate = a.IsLate
+            })
+            .ToListAsync();
 
-        // Department Headcount distribution
-        var departmentCounts = await _db.Employees
-            .AsNoTracking()
-            .Where(e => e.Status == "active" && scopedEmpIds.Contains(e.EmployeeId))
-            .GroupBy(e => e.Department != null ? e.Department.DepartmentName : "Unassigned")
+        var departmentCounts = await empQuery
+            .GroupBy(e => e.Department != null ? e.Department.DepartmentName : "General")
             .Select(g => new { name = g.Key, count = g.Count() })
             .ToListAsync();
 
@@ -140,9 +164,10 @@ public class DashboardController : ControllerBase
                 absentToday = absentCount,
                 onLeaveToday = onLeaveCount,
                 lateToday = lateCount,
-                pendingApprovals = pendingLeaveApprovals
+                pendingApprovals = pendingLeaveApprovals.Count
             },
             recentPunches,
+            pendingApprovals = pendingLeaveApprovals,
             departmentCounts
         });
     }
@@ -155,14 +180,14 @@ public class DashboardController : ControllerBase
 
         var birthdays = await _db.Employees
             .AsNoTracking()
-            .Where(e => e.Status == "active" && e.DateOfBirth.HasValue && e.DateOfBirth.Value.Month == currentMonth)
+            .Where(e => (e.Status == null || e.Status.ToLower() == "active") && e.DateOfBirth.HasValue && e.DateOfBirth.Value.Month == currentMonth)
             .OrderBy(e => e.DateOfBirth!.Value.Day)
             .Take(5)
             .Select(e => new
             {
                 e.EmployeeId,
                 e.EmployeeName,
-                Department = e.Department != null ? e.Department.DepartmentName : null,
+                Department = e.Department != null ? e.Department.DepartmentName : "General",
                 Day = e.DateOfBirth!.Value.Day,
                 Type = "Birthday"
             })
@@ -170,14 +195,14 @@ public class DashboardController : ControllerBase
 
         var anniversaries = await _db.Employees
             .AsNoTracking()
-            .Where(e => e.Status == "active" && e.JoiningDate.HasValue && e.JoiningDate.Value.Month == currentMonth && e.JoiningDate.Value.Year < today.Year)
+            .Where(e => (e.Status == null || e.Status.ToLower() == "active") && e.JoiningDate.HasValue && e.JoiningDate.Value.Month == currentMonth && e.JoiningDate.Value.Year < today.Year)
             .OrderBy(e => e.JoiningDate!.Value.Day)
             .Take(5)
             .Select(e => new
             {
                 e.EmployeeId,
                 e.EmployeeName,
-                Department = e.Department != null ? e.Department.DepartmentName : null,
+                Department = e.Department != null ? e.Department.DepartmentName : "General",
                 Day = e.JoiningDate!.Value.Day,
                 Years = today.Year - e.JoiningDate!.Value.Year,
                 Type = "Work Anniversary"

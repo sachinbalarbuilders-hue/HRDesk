@@ -48,6 +48,11 @@ public class User : IMustHaveTenant
     [Column("last_login")]
     public DateTime? LastLogin { get; set; }
 
+    [Column("branch_id")]
+    public int? BranchId { get; set; }
+
+    public Branch? Branch { get; set; }
+
     [Column("organization_id")]
     public int OrganizationId { get; set; }
 

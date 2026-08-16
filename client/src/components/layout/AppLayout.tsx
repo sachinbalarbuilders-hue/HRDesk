@@ -9,7 +9,6 @@ import {
   Users,
   CalendarCheck,
   CalendarOff,
-  ShieldCheck,
   LogOut,
   Menu,
   X,
@@ -25,6 +24,7 @@ import {
   Layers,
   Sparkles,
   Banknote,
+  UserPlus,
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
@@ -57,6 +57,17 @@ export const AppLayout: React.FC = () => {
       ],
     },
     {
+      group: 'Talent & Hiring',
+      items: [
+        {
+          name: 'Recruitment ATS',
+          href: '/recruitment',
+          icon: UserPlus,
+          show: true,
+        },
+      ],
+    },
+    {
       group: 'Time & Attendance',
       items: [
         {
@@ -64,6 +75,12 @@ export const AppLayout: React.FC = () => {
           href: '/attendance',
           icon: CalendarCheck,
           show: isAdmin || hasPermission('Attendance.View') || hasPermission('Attendance.MonthlySheet'),
+        },
+        {
+          name: 'Regularization',
+          href: '/regularizations',
+          icon: Clock,
+          show: isAdmin || hasPermission('Attendance.View') || hasPermission('Attendance.Regularize'),
         },
         {
           name: 'Shift Roster',
@@ -89,6 +106,12 @@ export const AppLayout: React.FC = () => {
       group: 'Finance & Advances',
       items: [
         {
+          name: 'Monthly Payroll',
+          href: '/payroll',
+          icon: Banknote,
+          show: isAdmin || hasPermission('Payroll.View') || hasPermission('Payroll.Process'),
+        },
+        {
           name: 'Loans & Advances',
           href: '/loans',
           icon: Banknote,
@@ -97,16 +120,10 @@ export const AppLayout: React.FC = () => {
       ],
     },
     {
-      group: 'Administration',
+      group: 'Administration & Governance',
       items: [
         {
-          name: 'Roles & Permissions',
-          href: '/roles',
-          icon: ShieldCheck,
-          show: isAdmin || hasPermission('System.Roles'),
-        },
-        {
-          name: 'Settings',
+          name: 'Settings & Masters',
           href: '/settings',
           icon: SettingsIcon,
           show: isAdmin,
@@ -326,7 +343,9 @@ export const AppLayout: React.FC = () => {
                 title="Switch Active Organisation"
               >
                 <Building2 size={13} className="text-[var(--gold-500)] flex-shrink-0" />
-                <span className="truncate max-w-[160px] sm:max-w-[220px]">{currentOrganization.name}</span>
+                <span className="truncate max-w-[160px] sm:max-w-[220px]">
+                  {currentOrganization?.name || 'Select Organisation'}
+                </span>
                 <ChevronDown size={12} className="text-[var(--ink-muted)]" />
               </button>
 
@@ -343,11 +362,11 @@ export const AppLayout: React.FC = () => {
                     </div>
 
                     {organizations.map((org) => {
-                      const isSelected = currentOrganization.id === org.id;
+                      const isSelected = String(currentOrganization?.id) === String(org.id);
                       return (
                         <button
                           key={org.id}
-                          onClick={() => handleOrgSelect(org.id, org.name)}
+                          onClick={() => handleOrgSelect(String(org.id), org.name)}
                           className={`w-full px-3 py-2 text-left flex items-center justify-between text-xs hover:bg-[var(--paper)] transition-colors cursor-pointer ${
                             isSelected ? 'font-bold text-[var(--gold-500)] bg-[var(--gold-100)]/30' : 'text-[var(--ink)]'
                           }`}
@@ -356,7 +375,7 @@ export const AppLayout: React.FC = () => {
                             <Building2 size={13} className={isSelected ? 'text-[var(--gold-500)]' : 'text-[var(--ink-muted)]'} />
                             <div className="truncate">
                               <p className="truncate leading-none">{org.name}</p>
-                              <p className="text-[10px] font-data text-[var(--ink-muted)] mt-0.5">{org.code}</p>
+                              {org.code && <p className="text-[10px] font-data text-[var(--ink-muted)] mt-0.5">{org.code}</p>}
                             </div>
                           </div>
 

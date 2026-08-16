@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
+import { TableSkeleton } from '../components/ui/PageSkeleton';
 import {
   ChevronLeft,
   ChevronRight,
   X,
   Plus,
+  Building2,
 } from 'lucide-react';
 
 interface EmployeeShift {
@@ -16,15 +19,35 @@ interface EmployeeShift {
   employeeName: string;
   department: string;
   designation: string;
-  schedule: Record<string, string>; // date string YYYY-MM-DD -> shiftCode (GEN, MORN, EVE, NIGHT, WO)
+  schedule: Record<string, string>; // '0'..'6' -> shiftCode
+}
+
+interface ShiftMaster {
+  id: number;
+  shiftName: string;
+  shiftCode: string;
+  startTime: string;
+  endTime: string;
+  lateComingGraceMinutes: number;
+  earlyLeaveGraceMinutes: number;
+  colorCode: string;
 }
 
 export const Shifts: React.FC = () => {
-  const { showSuccess } = useToast();
+  const { showSuccess, showError } = useToast();
+  const [shifts, setShifts] = useState<ShiftMaster[]>([]);
+  const [roster, setRoster] = useState<EmployeeShift[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<Array<{ employeeId: number; employeeName: string }>>([]);
+
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
     const d = new Date();
     const day = d.getDay();
@@ -34,21 +57,82 @@ export const Shifts: React.FC = () => {
 
   // Modal States
   const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [bulkShiftForm, setBulkShiftForm] = useState({
-    targetDepartment: '',
-    shiftCode: 'GEN',
-    effectiveFrom: new Date().toISOString().split('T')[0],
+  const [submitting, setSubmitting] = useState(false);
+
+  const [assignForm, setAssignForm] = useState({
+    employeeIds: [] as number[],
+    shiftId: 1,
+    isWeekOff: false,
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
   });
 
-  // Shift Definitions Master
-  const SHIFTS_LIST = [
-    { code: 'GEN', name: 'General Shift (09:00 - 18:00)', color: 'bg-[var(--navy-900)] text-[var(--gold-500)]' },
-    { code: 'MORN', name: 'Morning Shift (06:00 - 15:00)', color: 'bg-[var(--ok-600)]/15 text-[var(--ok-600)] border border-[var(--ok-600)]/30' },
-    { code: 'EVE', name: 'Evening Shift (14:00 - 23:00)', color: 'bg-[var(--warn-600)]/15 text-[var(--warn-600)] border border-[var(--warn-600)]/30' },
-    { code: 'NIGHT', name: 'Night Shift (22:00 - 07:00)', color: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30' },
-    { code: 'W/O', name: 'Weekly Off', color: 'bg-[var(--paper)] text-[var(--ink-muted)] border border-[var(--rule)]' },
-  ];
+  const [shiftForm, setShiftForm] = useState({
+    shiftName: '',
+    shiftCode: '',
+    startTime: '09:00',
+    endTime: '18:00',
+    lateComingGraceMinutes: 15,
+    earlyLeaveGraceMinutes: 15,
+    colorCode: '#4e73df',
+  });
+
+  const fetchLookups = async () => {
+    try {
+      const [deptRes, empRes, shiftsRes] = await Promise.all([
+        apiClient.get('/employees/lookups'),
+        apiClient.get('/employees?pageSize=200'),
+        apiClient.get('/shifts'),
+      ]);
+      setDepartments(deptRes.data?.departments || []);
+      const emps = (empRes.data.items || []).map((e: any) => ({
+        employeeId: e.employeeId || e.id,
+        employeeName: e.employeeName || e.name,
+      }));
+      setEmployees(emps);
+      const sList = shiftsRes.data || [];
+      setShifts(sList);
+      if (sList.length > 0) {
+        setAssignForm(prev => ({ ...prev, shiftId: sList[0].id }));
+      }
+    } catch (err) {
+      console.error('Failed to load lookups', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLookups();
+  }, []);
+
+  const weekStartStr = currentWeekStart.toISOString().split('T')[0];
+
+  const fetchRoster = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/shifts/roster', {
+        params: {
+          startDate: weekStartStr,
+          departmentId: departmentFilter ? parseInt(departmentFilter) : undefined,
+          search: search || undefined,
+          page,
+          pageSize,
+        },
+      });
+      setRoster(res.data.items || []);
+      setTotalCount(res.data.totalCount || 0);
+      setTotalPages(res.data.totalPages || 1);
+    } catch (err: any) {
+      showError('Failed to fetch roster', err.response?.data?.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoster();
+  }, [weekStartStr, departmentFilter, search, page, pageSize]);
 
   // Helper: Get 7 days of the active week
   const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -56,64 +140,6 @@ export const Shifts: React.FC = () => {
     d.setDate(d.getDate() + i);
     return d;
   });
-
-  // Initial Mock Roster
-  const [roster, setRoster] = useState<EmployeeShift[]>([
-    {
-      employeeId: 1,
-      employeeName: 'Ramesh Patel',
-      department: 'Engineering & Technology',
-      designation: 'Lead Architect',
-      schedule: {
-        '0': 'GEN', '1': 'GEN', '2': 'GEN', '3': 'GEN', '4': 'GEN', '5': 'GEN', '6': 'W/O'
-      }
-    },
-    {
-      employeeId: 2,
-      employeeName: 'Priya Sharma',
-      department: 'Human Resources & People',
-      designation: 'HR Specialist',
-      schedule: {
-        '0': 'GEN', '1': 'GEN', '2': 'GEN', '3': 'GEN', '4': 'GEN', '5': 'W/O', '6': 'W/O'
-      }
-    },
-    {
-      employeeId: 3,
-      employeeName: 'Anil Kumar',
-      department: 'Operations & Logistics',
-      designation: 'Site Supervisor',
-      schedule: {
-        '0': 'MORN', '1': 'MORN', '2': 'MORN', '3': 'MORN', '4': 'MORN', '5': 'MORN', '6': 'W/O'
-      }
-    },
-    {
-      employeeId: 4,
-      employeeName: 'Sunita Reddy',
-      department: 'Engineering & Technology',
-      designation: 'Senior Developer',
-      schedule: {
-        '0': 'EVE', '1': 'EVE', '2': 'EVE', '3': 'EVE', '4': 'EVE', '5': 'EVE', '6': 'W/O'
-      }
-    },
-    {
-      employeeId: 5,
-      employeeName: 'Vikram Mehta',
-      department: 'Finance & Accounts',
-      designation: 'Financial Controller',
-      schedule: {
-        '0': 'GEN', '1': 'GEN', '2': 'GEN', '3': 'GEN', '4': 'GEN', '5': 'W/O', '6': 'W/O'
-      }
-    },
-    {
-      employeeId: 6,
-      employeeName: 'Kavita Joshi',
-      department: 'Operations & Logistics',
-      designation: 'Night Dispatch Officer',
-      schedule: {
-        '0': 'NIGHT', '1': 'NIGHT', '2': 'NIGHT', '3': 'NIGHT', '4': 'NIGHT', '5': 'W/O', '6': 'W/O'
-      }
-    }
-  ]);
 
   const handlePrevWeek = () => {
     const d = new Date(currentWeekStart);
@@ -127,360 +153,336 @@ export const Shifts: React.FC = () => {
     setCurrentWeekStart(d);
   };
 
-  const handleToggleCellShift = (empId: number, dayIdx: number) => {
-    const shiftCycle = ['GEN', 'MORN', 'EVE', 'NIGHT', 'W/O'];
-    setRoster((prev) =>
-      prev.map((emp) => {
-        if (emp.employeeId === empId) {
-          const current = emp.schedule[dayIdx.toString()] || 'GEN';
-          const nextIdx = (shiftCycle.indexOf(current) + 1) % shiftCycle.length;
-          const nextShift = shiftCycle[nextIdx];
-          return {
-            ...emp,
-            schedule: {
-              ...emp.schedule,
-              [dayIdx.toString()]: nextShift,
-            },
-          };
-        }
-        return emp;
-      })
-    );
-  };
-
-  const handleExportRoster = () => {
-    const headers = [
-      { key: 'employeeId', label: 'Employee ID' },
-      { key: 'employeeName', label: 'Employee Name' },
-      { key: 'department', label: 'Department' },
-      { key: 'designation', label: 'Designation' },
-      { key: 'mon', label: `Mon (${weekDays[0].toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })})` },
-      { key: 'tue', label: `Tue (${weekDays[1].toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })})` },
-      { key: 'wed', label: `Wed (${weekDays[2].toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })})` },
-      { key: 'thu', label: `Thu (${weekDays[3].toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })})` },
-      { key: 'fri', label: `Fri (${weekDays[4].toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })})` },
-      { key: 'sat', label: `Sat (${weekDays[5].toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })})` },
-      { key: 'sun', label: `Sun (${weekDays[6].toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })})` },
-    ];
-
-    const rows = filteredRoster.map((emp) => ({
-      employeeId: emp.employeeId,
-      employeeName: emp.employeeName,
-      department: emp.department,
-      designation: emp.designation,
-      mon: emp.schedule['0'] || 'GEN',
-      tue: emp.schedule['1'] || 'GEN',
-      wed: emp.schedule['2'] || 'GEN',
-      thu: emp.schedule['3'] || 'GEN',
-      fri: emp.schedule['4'] || 'GEN',
-      sat: emp.schedule['5'] || 'W/O',
-      sun: emp.schedule['6'] || 'W/O',
-    }));
-
-    exportToCSV(`Shift_Roster_${weekDays[0].toISOString().split('T')[0]}`, rows, headers);
-    showSuccess('Roster Exported', 'Weekly shift schedule downloaded to CSV.');
-  };
-
-  const handleBulkAssign = (e: React.FormEvent) => {
+  const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bulkShiftForm.shiftCode) return;
+    if (!assignForm.employeeIds.length) {
+      showError('Validation Error', 'Please select at least one employee.');
+      return;
+    }
 
-    setRoster((prev) =>
-      prev.map((emp) => {
-        if (!bulkShiftForm.targetDepartment || emp.department === bulkShiftForm.targetDepartment) {
-          const updated: Record<string, string> = {};
-          for (let i = 0; i < 6; i++) updated[i.toString()] = bulkShiftForm.shiftCode;
-          updated['6'] = 'W/O';
-          return { ...emp, schedule: updated };
-        }
-        return emp;
-      })
-    );
-
-    showSuccess('Shift Assigned', `Assigned ${bulkShiftForm.shiftCode} shift to ${bulkShiftForm.targetDepartment || 'all departments'}.`);
-    setAssignModalOpen(false);
+    try {
+      setSubmitting(true);
+      await apiClient.post('/shifts/roster/assign', assignForm);
+      showSuccess('Roster Assigned', 'Shift assignments saved to roster database.');
+      setAssignModalOpen(false);
+      fetchRoster();
+    } catch (err: any) {
+      showError('Assignment Failed', err.response?.data?.message || 'Server error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // Filtered Roster
-  const filteredRoster = roster.filter((emp) => {
-    const matchesSearch = !search || emp.employeeName.toLowerCase().includes(search.toLowerCase()) || emp.employeeId.toString().includes(search);
-    const matchesDept = !departmentFilter || emp.department === departmentFilter;
-    return matchesSearch && matchesDept;
-  });
+  const handleCreateShift = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shiftForm.shiftName) {
+      showError('Validation Error', 'Shift name is required.');
+      return;
+    }
 
-  const totalCount = filteredRoster.length;
-  const totalPages = Math.ceil(totalCount / pageSize) || 1;
-  const paginatedRoster = filteredRoster.slice((page - 1) * pageSize, page * pageSize);
+    try {
+      setSubmitting(true);
+      await apiClient.post('/shifts', shiftForm);
+      showSuccess('Shift Created', `Shift master "${shiftForm.shiftName}" registered.`);
+      setShiftModalOpen(false);
+      fetchLookups();
+    } catch (err: any) {
+      showError('Failed to create shift', err.response?.data?.message || 'Server error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleExport = () => {
+    if (!roster.length) return showError('Empty', 'No roster records to export.');
+    exportToCSV(
+      `Weekly_Shift_Roster_${weekStartStr}`,
+      roster.map(r => ({
+        'Employee Name': r.employeeName,
+        Department: r.department,
+        Designation: r.designation,
+        Mon: r.schedule['0'] || 'GEN',
+        Tue: r.schedule['1'] || 'GEN',
+        Wed: r.schedule['2'] || 'GEN',
+        Thu: r.schedule['3'] || 'GEN',
+        Fri: r.schedule['4'] || 'GEN',
+        Sat: r.schedule['5'] || 'W/O',
+        Sun: r.schedule['6'] || 'W/O',
+      }))
+    );
+  };
 
   return (
-    <div className="space-y-6 font-ui">
-      {/* 1. Header with Display Serif and Divider */}
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">
-              Shift Roster
-            </h1>
-            <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
-              Weekly shift timetable & employee schedule allocation
-            </p>
-          </div>
-
-          <span className="text-xs font-data text-[var(--ink-muted)]">
-            {filteredRoster.length} Staff on Roster
+    <div className="space-y-6">
+      {/* 1. Header Section */}
+      <div className="border-b border-[var(--rule)] pb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono tracking-widest text-[var(--accent)] uppercase font-semibold">
+            Shift & Roster Register
           </span>
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+          <span className="text-[11px] font-mono text-[var(--ink-muted)]">Weekly Roster Scheduling</span>
         </div>
-
-        {/* Signature Divider */}
-        <div className="register-rule pt-1" />
+        <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink)] mt-1">
+          Shift Roster & Master Register
+        </h1>
+        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+          Assign shift timings, grace periods, rotating weekly rosters, and designated week-offs.
+        </p>
       </div>
 
-      {/* 2. Unified DataToolbar with Week Navigator, Filters, Export, Import, and Assign Shift CTA */}
+      {/* 2. Unified Data Toolbar with Week Navigation */}
       <DataToolbar
+        searchPlaceholder="Search employee name in roster..."
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Search roster by staff name or ID..."
         filters={[
           {
             id: 'department',
+            ariaLabel: 'Department Filter',
             value: departmentFilter,
-            onChange: setDepartmentFilter,
+            onChange: (v) => { setDepartmentFilter(v); setPage(1); },
             options: [
               { value: '', label: 'All Departments' },
-              { value: 'Engineering & Technology', label: 'Engineering & Technology' },
-              { value: 'Human Resources & People', label: 'Human Resources & People' },
-              { value: 'Operations & Logistics', label: 'Operations & Logistics' },
-              { value: 'Finance & Accounts', label: 'Finance & Accounts' },
+              ...departments.map((d: any) => ({ value: String(d.departmentId || d.id), label: d.departmentName })),
             ],
           },
         ]}
-        onExport={handleExportRoster}
-        exportLabel="Export Roster"
+        onExport={handleExport}
         onImport={() => setImportModalOpen(true)}
         importLabel="Import Roster"
         primaryAction={{
-          label: 'Bulk Assign Shift',
-          icon: <Plus size={14} />,
+          label: 'Assign Shifts / Week-Off',
+          icon: <Plus className="w-3.5 h-3.5" />,
           onClick: () => setAssignModalOpen(true),
         }}
       >
-        {/* Custom Section Control: Week Picker Navigator */}
-        <div className="flex items-center gap-1 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-1.5 py-0.5">
+        <button
+          type="button"
+          onClick={() => setShiftModalOpen(true)}
+          className="btn-outline text-xs flex items-center gap-1 py-1.5 px-2.5 cursor-pointer"
+        >
+          <Plus className="w-3 h-3 text-[var(--accent)]" />
+          <span>New Shift</span>
+        </button>
+
+        <div className="flex items-center gap-1.5 bg-[var(--paper)] border border-[var(--rule)] rounded-lg p-1">
           <button
             onClick={handlePrevWeek}
-            className="p-1 rounded-[2px] hover:bg-[var(--surface)] text-[var(--ink)] cursor-pointer"
+            className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors"
             title="Previous Week"
           >
-            <ChevronLeft size={13} />
+            <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="px-2 font-semibold text-xs text-[var(--ink)] font-data">
-            {weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          <span className="font-serif font-bold text-xs px-2 text-[var(--ink)] whitespace-nowrap">
+            {weekDays[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {weekDays[6].toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
           </span>
           <button
             onClick={handleNextWeek}
-            className="p-1 rounded-[2px] hover:bg-[var(--surface)] text-[var(--ink)] cursor-pointer"
+            className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors"
             title="Next Week"
           >
-            <ChevronRight size={13} />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </DataToolbar>
 
-      {/* 3. Shift Legend Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] text-xs font-ui">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider">
-            Shift Legend:
+      {/* 3. Shifts Master Legend */}
+      <div className="flex items-center gap-2 flex-wrap text-[11px] p-3 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)]">
+        <span className="font-mono text-[var(--ink-muted)] uppercase tracking-wider font-semibold">Configured Shifts:</span>
+        {shifts.map((s) => (
+          <span key={s.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-medium border border-[var(--rule)] bg-[var(--paper)]">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.colorCode || '#4e73df' }} />
+            <span className="font-bold text-[var(--ink)]">{s.shiftCode}</span>
+            <span className="text-[var(--ink-muted)] text-[10px]">({s.startTime}-{s.endTime})</span>
           </span>
-          {SHIFTS_LIST.map((s) => (
-            <span key={s.code} className="inline-flex items-center gap-1.5 font-data text-[11px]">
-              <span className={`px-1.5 py-0.5 rounded-[2px] font-bold text-[10px] ${s.color}`}>
-                {s.code}
-              </span>
-              <span className="text-[var(--ink-muted)]">{s.name.split(' (')[0]}</span>
-            </span>
-          ))}
-        </div>
-
-        <span className="text-[11px] text-[var(--ink-muted)] font-ui italic">
-          💡 Click any shift pill to rotate schedule
+        ))}
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-medium border border-[var(--rule)] bg-[var(--paper)]">
+          <span className="w-2 h-2 rounded-full bg-gray-400" />
+          <span className="font-bold text-[var(--ink)]">W/O</span>
+          <span className="text-[var(--ink-muted)] text-[10px]">(Weekly Off)</span>
         </span>
       </div>
 
-      {/* 4. Weekly Roster Matrix Grid */}
-      <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-        <div className="overflow-x-auto">
-          <table className="w-full text-center text-xs border-collapse">
-            <thead>
-              <tr className="bg-[var(--surface-header)] text-[var(--ink-muted)] font-semibold border-b border-[var(--rule)]">
-                <th className="sticky left-0 z-20 bg-[var(--surface-header)] py-2 px-3 text-left min-w-[200px] border-r border-[var(--rule)] font-ui uppercase tracking-wider text-[11px]">
-                  Staff Member
-                </th>
-                {weekDays.map((day, idx) => {
-                  const isWeekend = idx === 5 || idx === 6;
-                  const isToday = new Date().toDateString() === day.toDateString();
-
-                  return (
-                    <th
-                      key={idx}
-                      className={`py-2 px-2 min-w-[100px] border-r border-[var(--rule)]/60 font-data text-xs ${
-                        isToday
-                          ? 'bg-[var(--gold-100)] text-[var(--gold-500)] font-bold'
-                          : isWeekend
-                          ? 'bg-[var(--surface-weekend)]'
-                          : ''
-                      }`}
-                    >
-                      <span className="block text-[9px] uppercase tracking-wider text-[var(--ink-muted)] font-ui">
-                        {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                      </span>
-                      <span>
-                        {day.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
-                      </span>
+      {/* 4. Roster Schedule Matrix Table */}
+      <div className="card overflow-hidden">
+        {loading ? (
+          <div className="p-6">
+            <TableSkeleton rows={8} />
+          </div>
+        ) : roster.length === 0 ? (
+          <div className="p-12 text-center text-xs text-[var(--ink-muted)]">
+            <Building2 className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
+            <div className="font-semibold text-sm text-[var(--ink)]">No Shift Rosters Found</div>
+            <p className="mt-1">No employee shift schedules found for this week.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-[var(--rule)] bg-[var(--paper-subtle)] text-[var(--ink-muted)] font-mono text-[11px] uppercase tracking-wider">
+                  <th className="p-3.5 font-semibold min-w-[200px]">Employee</th>
+                  {weekDays.map((d, i) => (
+                    <th key={i} className="p-3.5 text-center font-semibold">
+                      <div>{d.toLocaleDateString(undefined, { weekday: 'short' })}</div>
+                      <div className="text-[10px] text-[var(--ink-muted)] font-normal">{d.getDate()}</div>
                     </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--rule)]">
-              {paginatedRoster.map((emp) => (
-                <tr key={emp.employeeId} className="hover:bg-[var(--surface-hover)]">
-                  {/* Sticky Employee Identity Cell */}
-                  <td className="sticky left-0 z-10 bg-[var(--surface)] py-2.5 px-3 text-left border-r border-[var(--rule)]">
-                    <p className="font-semibold text-[var(--ink)] truncate max-w-[180px] font-ui">
-                      {emp.employeeName}
-                    </p>
-                    <p className="text-[10px] text-[var(--ink-muted)] font-data truncate">
-                      #{emp.employeeId} · {emp.designation}
-                    </p>
-                  </td>
-
-                  {/* 7 Day Shift Schedule Cells */}
-                  {weekDays.map((day, dayIdx) => {
-                    const shiftCode = emp.schedule[dayIdx.toString()] || 'GEN';
-                    const shiftDef = SHIFTS_LIST.find((s) => s.code === shiftCode) || SHIFTS_LIST[0];
-                    const isWeekend = dayIdx === 5 || dayIdx === 6;
-
-                    return (
-                      <td
-                        key={dayIdx}
-                        onClick={() => handleToggleCellShift(emp.employeeId, dayIdx)}
-                        className={`py-2 px-1 border-r border-[var(--rule)]/40 text-center cursor-pointer transition-colors hover:bg-[var(--paper)] ${
-                          isWeekend ? 'bg-[var(--surface-weekend-cell)]' : ''
-                        }`}
-                        title={`Click to rotate shift for ${emp.employeeName} on ${day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`}
-                      >
-                        <span className={`inline-block px-2 py-1 rounded-[2px] font-data text-[11px] font-bold select-none ${shiftDef.color}`}>
-                          {shiftCode}
-                        </span>
-                      </td>
-                    );
-                  })}
+                  ))}
                 </tr>
-              ))}
+              </thead>
+              <tbody className="divide-y divide-[var(--rule)]">
+                {roster.map((r) => (
+                  <tr key={r.employeeId} className="hover:bg-[var(--paper-subtle)] transition-colors">
+                    <td className="p-3.5">
+                      <div className="font-semibold text-[var(--ink)]">{r.employeeName}</div>
+                      <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
+                        <Building2 className="w-3 h-3" />
+                        <span>{r.department} • {r.designation}</span>
+                      </div>
+                    </td>
 
-              {paginatedRoster.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
-                    No staff records found for the selected department/filter.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    {weekDays.map((_, i) => {
+                      const code = r.schedule[String(i)] || 'GEN';
+                      const isWo = code === 'W/O' || code === 'WO';
 
-        {/* Ruled Pagination Toolbar */}
-        <PaginationToolbar
-          page={page}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          totalPages={totalPages}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-          pageSizeOptions={[10, 20, 50, 100]}
-        />
+                      return (
+                        <td key={i} className="p-3.5 text-center font-mono">
+                          <span
+                            className={`inline-block px-2.5 py-1 rounded text-xs font-bold ${
+                              isWo
+                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                                : 'bg-indigo-50 dark:bg-indigo-950/60 text-[var(--accent)] border border-indigo-200 dark:border-indigo-800'
+                            }`}
+                          >
+                            {code}
+                          </span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination Toolbar */}
+        {!loading && totalCount > 0 && (
+          <div className="border-t border-[var(--rule)] p-3">
+            <PaginationToolbar
+              page={page}
+              pageSize={pageSize}
+              totalCount={totalCount}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+            />
+          </div>
+        )}
       </div>
 
-      {/* 5. Bulk Assign Shift Modal */}
+      {/* 5. Assign Shift / Week-Off Modal */}
       {assignModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px]">
-          <div className="w-full max-w-md rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper-subtle)]">
               <div>
-                <h3 className="font-display text-lg font-semibold text-[var(--ink)]">
-                  Bulk Assign Shift
-                </h3>
-                <p className="text-xs text-[var(--ink-muted)]">Allocate shift schedule across department or staff</p>
+                <h3 className="font-serif font-bold text-base text-[var(--ink)]">Assign Shift Schedule</h3>
+                <p className="text-[11px] text-[var(--ink-muted)]">Assign duty shifts or designate weekly off for employee(s).</p>
               </div>
               <button
                 onClick={() => setAssignModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="p-1 rounded-lg hover:bg-[var(--paper)] text-[var(--ink-muted)]"
               >
-                <X size={16} />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleBulkAssign} className="p-5 space-y-4">
+            <form onSubmit={handleAssignSubmit} className="p-5 space-y-4 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Target Department
-                </label>
+                <label className="block font-semibold text-[var(--ink)] mb-1">Select Employees *</label>
                 <select
-                  value={bulkShiftForm.targetDepartment}
-                  onChange={(e) => setBulkShiftForm({ ...bulkShiftForm, targetDepartment: e.target.value })}
-                  className="register-input w-full"
+                  multiple
+                  value={assignForm.employeeIds.map(String)}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions, o => parseInt(o.value));
+                    setAssignForm({ ...assignForm, employeeIds: selected });
+                  }}
+                  className="input-field w-full font-medium h-28"
+                  required
                 >
-                  <option value="">All Departments (Entire Organization)</option>
-                  <option value="Engineering & Technology">Engineering & Technology</option>
-                  <option value="Human Resources & People">Human Resources & People</option>
-                  <option value="Operations & Logistics">Operations & Logistics</option>
-                  <option value="Finance & Accounts">Finance & Accounts</option>
+                  {employees.map((e) => (
+                    <option key={e.employeeId} value={e.employeeId}>
+                      {e.employeeName} (#{e.employeeId})
+                    </option>
+                  ))}
                 </select>
+                <span className="text-[10px] text-[var(--ink-muted)] mt-1 block">Hold Ctrl (Windows) / Cmd (Mac) to select multiple.</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Start Date *</label>
+                  <input
+                    type="date"
+                    value={assignForm.startDate}
+                    onChange={(e) => setAssignForm({ ...assignForm, startDate: e.target.value, endDate: e.target.value >= assignForm.endDate ? e.target.value : assignForm.endDate })}
+                    className="input-field w-full font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">End Date *</label>
+                  <input
+                    type="date"
+                    value={assignForm.endDate}
+                    onChange={(e) => setAssignForm({ ...assignForm, endDate: e.target.value })}
+                    className="input-field w-full font-mono"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Assigned Shift Schedule *
-                </label>
+                <label className="block font-semibold text-[var(--ink)] mb-1">Target Shift *</label>
                 <select
-                  value={bulkShiftForm.shiftCode}
-                  onChange={(e) => setBulkShiftForm({ ...bulkShiftForm, shiftCode: e.target.value })}
-                  className="register-input w-full font-data"
+                  disabled={assignForm.isWeekOff}
+                  value={assignForm.shiftId}
+                  onChange={(e) => setAssignForm({ ...assignForm, shiftId: parseInt(e.target.value) || 1 })}
+                  className="input-field w-full font-medium disabled:opacity-50"
                 >
-                  {SHIFTS_LIST.map((s) => (
-                    <option key={s.code} value={s.code}>
-                      {s.code} — {s.name}
+                  {shifts.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.shiftName} ({s.startTime} - {s.endTime})
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Effective Week Commencing
-                </label>
+              <label className="flex items-center gap-2 cursor-pointer pt-1">
                 <input
-                  type="date"
-                  value={bulkShiftForm.effectiveFrom}
-                  onChange={(e) => setBulkShiftForm({ ...bulkShiftForm, effectiveFrom: e.target.value })}
-                  className="register-input w-full font-data text-xs"
+                  type="checkbox"
+                  checked={assignForm.isWeekOff}
+                  onChange={(e) => setAssignForm({ ...assignForm, isWeekOff: e.target.checked })}
+                  className="rounded border-[var(--rule)] text-[var(--accent)]"
                 />
-              </div>
+                <span className="font-medium text-[var(--ink)]">Designate as Weekly Off (W/O)</span>
+              </label>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
+              <div className="pt-2 border-t border-[var(--rule)] flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setAssignModalOpen(false)}
-                  className="btn-outline cursor-pointer"
+                  className="btn-secondary py-1.5 px-3"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary cursor-pointer"
+                  disabled={submitting}
+                  className="btn-primary py-1.5 px-4 flex items-center gap-1.5"
                 >
-                  Apply Schedule
+                  {submitting ? 'Saving...' : 'Apply Assignment'}
                 </button>
               </div>
             </form>
@@ -488,17 +490,125 @@ export const Shifts: React.FC = () => {
         </div>
       )}
 
-      {/* 6. Bulk Import Roster Modal */}
+      {/* 6. New Shift Master Modal */}
+      {shiftModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper-subtle)]">
+              <div>
+                <h3 className="font-serif font-bold text-base text-[var(--ink)]">Create Shift Master</h3>
+                <p className="text-[11px] text-[var(--ink-muted)]">Configure start/end timings and grace periods.</p>
+              </div>
+              <button
+                onClick={() => setShiftModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-[var(--paper)] text-[var(--ink-muted)]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateShift} className="p-5 space-y-4 text-xs">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Shift Name *</label>
+                  <input
+                    type="text"
+                    value={shiftForm.shiftName}
+                    onChange={(e) => setShiftForm({ ...shiftForm, shiftName: e.target.value })}
+                    placeholder="e.g. General Shift, Night Shift"
+                    className="input-field w-full font-medium"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Code *</label>
+                  <input
+                    type="text"
+                    value={shiftForm.shiftCode}
+                    onChange={(e) => setShiftForm({ ...shiftForm, shiftCode: e.target.value.toUpperCase() })}
+                    placeholder="GEN"
+                    className="input-field w-full font-mono uppercase"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Start Time *</label>
+                  <input
+                    type="time"
+                    value={shiftForm.startTime}
+                    onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
+                    className="input-field w-full font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">End Time *</label>
+                  <input
+                    type="time"
+                    value={shiftForm.endTime}
+                    onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
+                    className="input-field w-full font-mono"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Late Grace (Mins)</label>
+                  <input
+                    type="number"
+                    value={shiftForm.lateComingGraceMinutes}
+                    onChange={(e) => setShiftForm({ ...shiftForm, lateComingGraceMinutes: parseInt(e.target.value) || 0 })}
+                    className="input-field w-full font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Early Grace (Mins)</label>
+                  <input
+                    type="number"
+                    value={shiftForm.earlyLeaveGraceMinutes}
+                    onChange={(e) => setShiftForm({ ...shiftForm, earlyLeaveGraceMinutes: parseInt(e.target.value) || 0 })}
+                    className="input-field w-full font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-[var(--rule)] flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShiftModalOpen(false)}
+                  className="btn-secondary py-1.5 px-3"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary py-1.5 px-4 flex items-center gap-1.5"
+                >
+                  {submitting ? 'Creating...' : 'Create Shift'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Bulk Import Modal */}
       <BulkImportModal
         isOpen={importModalOpen}
         onClose={() => setImportModalOpen(false)}
-        title="Import Shift Roster"
-        templateFilename="HRDesk_Shift_Roster"
-        templateHeaders={['EmployeeId', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-        templateSampleRow={['1042', 'GEN', 'GEN', 'GEN', 'GEN', 'GEN', 'GEN', 'W/O']}
+        title="Import Shift Rosters"
+        templateFilename="Shift_Roster"
+        templateHeaders={['EmployeeId', 'RosterDate', 'ShiftCode', 'IsWeekOff']}
+        templateSampleRow={['1042', '2026-08-16', 'GEN', 'false']}
         onImportComplete={() => {
-          setImportModalOpen(false);
-          showSuccess('Roster Imported', 'Staff shift schedules updated from CSV.');
+          showSuccess('Imported', 'Shift roster imported successfully.');
+          fetchRoster();
         }}
       />
     </div>

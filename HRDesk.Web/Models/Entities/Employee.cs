@@ -54,6 +54,11 @@ public sealed class Employee : IMustHaveTenant
     [Column("device_sync_error")]
     public string? DeviceSyncError { get; set; }
 
+    [Column("branch_id")]
+    public int? BranchId { get; set; }
+
+    public Branch? Branch { get; set; }
+
     [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
     public int OrganizationId { get; set; }
 

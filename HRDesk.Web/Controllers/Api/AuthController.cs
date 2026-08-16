@@ -41,8 +41,10 @@ public class AuthController : ControllerBase
         }
 
         var user = await _context.Users
+            .IgnoreQueryFilters()
             .Include(u => u.CustomRole)
             .Include(u => u.Employee)
+            .Include(u => u.Organization)
             .FirstOrDefaultAsync(u => u.Username == request.Username && u.IsActive);
 
         if (user == null || !VerifyPassword(request.Password, user.PasswordHash))
@@ -71,6 +73,22 @@ public class AuthController : ControllerBase
 
         var permissions = await _permissionService.GetUserPermissionsAsync(principal);
 
+        var rawOrgs = await _context.Organizations
+            .AsNoTracking()
+            .Where(o => o.IsActive)
+            .OrderBy(o => o.Id)
+            .ToListAsync();
+
+        var orgs = rawOrgs.Select(o => new
+        {
+            id = o.Id.ToString(),
+            name = o.Name,
+            code = o.Name.Length > 3 ? string.Concat(o.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(w => w[0])) : o.Name,
+            address = o.Address,
+            whatsAppGroupId = o.WhatsAppGroupId,
+            isActive = o.IsActive
+        }).ToList();
+
         return Ok(new
         {
             token,
@@ -85,9 +103,11 @@ public class AuthController : ControllerBase
                 employeeId = user.EmployeeId,
                 employeeName = user.Employee?.EmployeeName,
                 avatarUrl = user.Employee?.PhotoPath,
-                organizationId = user.OrganizationId
+                organizationId = user.OrganizationId,
+                organizationName = user.Organization?.Name ?? "HRDesk Builders & Developers"
             },
-            permissions
+            permissions,
+            organizations = orgs
         });
     }
 
@@ -102,8 +122,10 @@ public class AuthController : ControllerBase
         }
 
         var user = await _context.Users
+            .IgnoreQueryFilters()
             .Include(u => u.CustomRole)
             .Include(u => u.Employee)
+            .Include(u => u.Organization)
             .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
 
         if (user == null)
@@ -112,6 +134,22 @@ public class AuthController : ControllerBase
         }
 
         var permissions = await _permissionService.GetUserPermissionsAsync(User);
+
+        var rawOrgs = await _context.Organizations
+            .AsNoTracking()
+            .Where(o => o.IsActive)
+            .OrderBy(o => o.Id)
+            .ToListAsync();
+
+        var orgs = rawOrgs.Select(o => new
+        {
+            id = o.Id.ToString(),
+            name = o.Name,
+            code = o.Name.Length > 3 ? string.Concat(o.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(w => w[0])) : o.Name,
+            address = o.Address,
+            whatsAppGroupId = o.WhatsAppGroupId,
+            isActive = o.IsActive
+        }).ToList();
 
         return Ok(new
         {
@@ -126,15 +164,17 @@ public class AuthController : ControllerBase
                 employeeId = user.EmployeeId,
                 employeeName = user.Employee?.EmployeeName,
                 avatarUrl = user.Employee?.PhotoPath,
-                organizationId = user.OrganizationId
+                organizationId = user.OrganizationId,
+                organizationName = user.Organization?.Name ?? "HRDesk Builders & Developers"
             },
-            permissions
+            permissions,
+            organizations = orgs
         });
     }
 
     private string GenerateJwtToken(User user)
     {
-        var jwtKey = _config["Jwt:Key"] ?? "HRDeskDefaultSuperSecretJwtKey2026!#$@%";
+        var jwtKey = _config["Jwt:Key"] ?? _config["JwtSettings:Secret"] ?? "YourSuperSecretKeyWithAtLeast32CharactersForHMACSHA256";
         var jwtIssuer = _config["Jwt:Issuer"] ?? "HRDesk.Web";
 
         var claims = new List<Claim>

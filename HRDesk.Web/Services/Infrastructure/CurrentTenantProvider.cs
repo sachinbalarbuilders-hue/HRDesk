@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 
 namespace HRDesk.Web.Services;
@@ -25,8 +25,14 @@ public class CurrentTenantProvider : ICurrentTenantProvider
             var user = _httpContextAccessor.HttpContext?.User;
             if (user?.Identity?.IsAuthenticated == true)
             {
+                var headerValue = _httpContextAccessor.HttpContext?.Request.Headers["X-Organization-Id"].ToString();
+                if (!string.IsNullOrEmpty(headerValue) && int.TryParse(headerValue, out var headerTenantId))
+                {
+                    return headerTenantId;
+                }
+
                 // Check if user is SuperAdmin and has an active tenant cookie
-                if (user.IsInRole("SuperAdmin"))
+                if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
                 {
                     var cookieValue = _httpContextAccessor.HttpContext?.Request.Cookies["ActiveTenantId"];
                     if (!string.IsNullOrEmpty(cookieValue) && int.TryParse(cookieValue, out var activeTenantId))

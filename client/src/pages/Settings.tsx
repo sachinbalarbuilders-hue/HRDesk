@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
-import { PaginationToolbar } from '../components/ui/PaginationToolbar';
+import { DataTable, type ColumnDef } from '../components/ui/DataTable';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
+import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
+import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
+import { RolesPermissionsTab } from '../components/settings/RolesPermissionsTab';
 import {
   Building2,
   Clock,
@@ -13,22 +18,50 @@ import {
   Plus,
   Trash2,
   MapPin,
-  MessageSquare,
   X,
   Edit2,
   Layers,
   Award,
+  Shield,
 } from 'lucide-react';
 
 export const Settings: React.FC = () => {
   const { showSuccess, showError } = useToast();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'company' | 'departments' | 'designations' | 'leaves' | 'shifts' | 'attendance'>('company');
+  const [selectedBranchForPermissions, setSelectedBranchForPermissions] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Common Search & Filter States for Settings Tabs
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['company', 'branches', 'departments', 'designations', 'leaves', 'shifts', 'attendance'].includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, [searchParams]);
+
+  // Common Search & Filter States
   const [search, setSearch] = useState('');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [deptFilter, setDeptFilter] = useState('');
   const [leavePaidFilter, setLeavePaidFilter] = useState('');
+
+  // 0. Company Master State
+  const [company, setCompany] = useState<any>({
+    legalName: 'Sachin Balar Builders Pvt. Ltd.',
+    tradeName: 'Hue Builders',
+    code: 'SBB',
+    gstin: '24AAAAA0000A1Z5',
+    cin: 'U45200GJ2015PTC085123',
+    pan: 'AAAAA0000A',
+    email: 'contact@sachinbalar.com',
+    phone: '+91 98765 43210',
+    headquartersAddress: 'Surat, Gujarat, India',
+    website: 'https://sachinbalarbuilders.com',
+    branchCount: 0,
+  });
+  const [companyModalOpen, setCompanyModalOpen] = useState(false);
+  const [companyForm, setCompanyForm] = useState({ ...company });
 
   // Modals
   const [orgModalOpen, setOrgModalOpen] = useState(false);
@@ -39,39 +72,36 @@ export const Settings: React.FC = () => {
   const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
   const [bulkImportConfig, setBulkImportConfig] = useState({ title: '', filename: '', headers: [] as string[], sampleRow: [] as string[] });
 
-  // 1. Organizations State
-  const [organizations, setOrganizations] = useState([
-    {
-      id: 1,
-      name: 'HRDesk Builders & Developers',
-      code: 'HBD',
-      address: 'Plot 42, Cyber Gateway, Tech Park, Hyderabad, 500081',
-      whatsAppGroupId: '120363028192847192@g.us',
-      latitude: 17.4483,
-      longitude: 78.3742,
-      radiusMeters: 150,
-      isActive: true,
-    },
-    {
-      id: 2,
-      name: 'HRDesk Infra & Projects',
-      code: 'HIP',
-      address: 'Outer Ring Road, Bellandur, Bengaluru, Karnataka, 560103',
-      whatsAppGroupId: '120363098274619283@g.us',
-      latitude: 12.9279,
-      longitude: 77.6828,
-      radiusMeters: 100,
-      isActive: true,
-    },
-  ]);
+  // 1. Organizations (parent company sites / legal entities)
+  const [organizations, setOrganizations] = useState<any[]>([]);
   const [editingOrgId, setEditingOrgId] = useState<number | null>(null);
   const [orgForm, setOrgForm] = useState({
     name: '',
     code: '',
     address: '',
     whatsAppGroupId: '',
-    latitude: 17.4483,
-    longitude: 78.3742,
+    latitude: 21.1702,
+    longitude: 72.8311,
+    radiusMeters: 100,
+    isActive: true,
+  });
+
+  // 1b. Branches (sub-locations under an organization)
+  const [branches, setBranches] = useState<any[]>([]);
+  const [editingBranchId, setEditingBranchId] = useState<number | null>(null);
+  const [branchModalOpen, setBranchModalOpen] = useState(false);
+  const [expandedOrgId, setExpandedOrgId] = useState<number | null>(null);
+  const [branchForm, setBranchForm] = useState({
+    organizationId: 0, // which org this branch belongs to
+    name: '',
+    code: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    whatsAppGroupId: '',
+    latitude: 21.1702,
+    longitude: 72.8311,
     radiusMeters: 100,
     isActive: true,
   });
@@ -86,53 +116,96 @@ export const Settings: React.FC = () => {
   });
 
   // 3. Departments Master
-  const [departments, setDepartments] = useState([
-    { id: 1, name: 'Executive Leadership', code: 'EXEC', head: 'Managing Director' },
-    { id: 2, name: 'Engineering & Technology', code: 'ENG', head: 'Lead Architect' },
-    { id: 3, name: 'Human Resources & People', code: 'HR', head: 'HR Manager' },
-    { id: 4, name: 'Finance & Accounts', code: 'FIN', head: 'Financial Controller' },
-    { id: 5, name: 'Operations & Logistics', code: 'OPS', head: 'Site Operations Lead' },
-  ]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [newDept, setNewDept] = useState({ name: '', code: '', head: '' });
 
   // 4. Designations Master
-  const [designations, setDesignations] = useState([
-    { id: 1, title: 'Managing Director', code: 'MD', department: 'Executive Leadership', level: 'L5 (Executive)' },
-    { id: 2, title: 'Lead Software Architect', code: 'ARCH', department: 'Engineering & Technology', level: 'L4 (Lead)' },
-    { id: 3, title: 'Senior Software Engineer', code: 'SSE', department: 'Engineering & Technology', level: 'L3 (Senior)' },
-    { id: 4, title: 'HR Operations Specialist', code: 'HROS', department: 'Human Resources & People', level: 'L2 (Mid)' },
-    { id: 5, title: 'Financial Controller', code: 'FC', department: 'Finance & Accounts', level: 'L3 (Senior)' },
-    { id: 6, title: 'Site Operations Supervisor', code: 'SOS', department: 'Operations & Logistics', level: 'L2 (Mid)' },
-  ]);
+  const [designations, setDesignations] = useState<any[]>([]);
   const [newDesignation, setNewDesignation] = useState({ title: '', code: '', department: 'Engineering & Technology', level: 'L2 (Mid)' });
 
   // 5. Leave Types Master
-  const [leaveTypes, setLeaveTypes] = useState([
-    { id: 1, name: 'Paid Leave', code: 'PL', quota: 18, isPaid: true },
-    { id: 2, name: 'Sick Leave', code: 'SL', quota: 12, isPaid: true },
-    { id: 3, name: 'Compensatory Off', code: 'CO', quota: 0, isPaid: true },
-    { id: 4, name: 'Casual Leave', code: 'CL', quota: 10, isPaid: true },
-    { id: 5, name: 'Leave Without Pay', code: 'LWP', quota: 0, isPaid: false },
-  ]);
+  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [newLeaveType, setNewLeaveType] = useState({ name: '', code: '', quota: 12, isPaid: true });
 
   // 6. Work Shifts Master
-  const [shifts, setShifts] = useState([
-    { id: 1, name: 'General Shift', code: 'GEN', startTime: '09:00', endTime: '18:00', breakMinutes: 60 },
-    { id: 2, name: 'Morning Shift', code: 'MORN', startTime: '06:00', endTime: '15:00', breakMinutes: 45 },
-    { id: 3, name: 'Evening Shift', code: 'EVE', startTime: '14:00', endTime: '23:00', breakMinutes: 45 },
-    { id: 4, name: 'Night Shift', code: 'NIGHT', startTime: '22:00', endTime: '07:00', breakMinutes: 60 },
-  ]);
+  const [shifts, setShifts] = useState<any[]>([]);
   const [newShift, setNewShift] = useState({ name: '', code: '', startTime: '09:00', endTime: '18:00', breakMinutes: 60 });
 
   // Pagination states
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Tab switcher helper to reset page & search
+  const fetchOverview = async () => {
+    try {
+      setLoading(true);
+      const [overviewRes, companyRes] = await Promise.allSettled([
+        apiClient.get('/masters/overview'),
+        apiClient.get('/masters/company'),
+      ]);
+
+      if (companyRes.status === 'fulfilled' && companyRes.value.data) {
+        setCompany(companyRes.value.data);
+        setCompanyForm(companyRes.value.data);
+      }
+
+      if (overviewRes.status === 'fulfilled' && overviewRes.value.data) {
+        const res = overviewRes.value;
+        if (res.data.organizations) {
+          const orgList = res.data.organizations.map((o: any) => ({
+            id: o.id,
+            name: o.name,
+            code: o.code || (o.name.length > 3 ? o.name.split(' ').map((w: string) => w[0]).join('').toUpperCase() : o.name.toUpperCase()),
+            address: o.address || '',
+            whatsAppGroupId: o.whatsAppGroupId || '',
+            latitude: o.latitude || 21.1702,
+            longitude: o.longitude || 72.8311,
+            radiusMeters: o.radiusMeters || 100,
+            isActive: o.isActive !== false,
+            status: o.isActive !== false ? 'Active' : 'Inactive',
+          }));
+          setOrganizations(orgList);
+          if (orgList.length > 0) {
+            setExpandedOrgId(prev => prev ?? orgList[0].id);
+          }
+        }
+        if (res.data.branches) {
+          setBranches(res.data.branches.map((b: any) => ({
+            id: b.id,
+            organizationId: b.organizationId,
+            name: b.name,
+            code: b.code || (b.name.length > 3 ? b.name.split(' ').map((w: string) => w[0]).join('').toUpperCase() : b.name.toUpperCase()),
+            address: b.address || '',
+            city: b.city || '',
+            state: b.state || '',
+            pincode: b.pincode || '',
+            whatsAppGroupId: b.whatsAppGroupId || '',
+            latitude: b.latitude || 21.1702,
+            longitude: b.longitude || 72.8311,
+            radiusMeters: b.radiusMeters || 100,
+            isActive: b.isActive !== false,
+            status: b.isActive !== false ? 'Active' : 'Inactive',
+          })));
+        }
+        if (res.data.departments) setDepartments(res.data.departments.map((d: any) => ({ id: d.id, name: d.name, code: `DEP-${d.id}`, head: 'HOD', status: d.status || 'Active' })));
+        if (res.data.designations) setDesignations(res.data.designations.map((d: any) => ({ id: d.id, title: d.name, code: `DSG-${d.id}`, department: 'General', level: 'L2 (Mid)', status: d.status || 'Active' })));
+        if (res.data.leaveTypes) setLeaveTypes(res.data.leaveTypes.map((l: any) => ({ id: l.id, name: l.name, code: l.code || 'LV', quota: l.defaultDays, isPaid: l.isPaid, status: l.status || 'Active' })));
+        if (res.data.shifts) setShifts(res.data.shifts.map((s: any) => ({ id: s.id, name: s.name, code: s.code || 'SHF', startTime: s.startTime, endTime: s.endTime, breakMinutes: 60, status: 'Active' })));
+      }
+    } catch (e) {
+      console.error('Failed to load masters overview', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOverview();
+  }, []);
+
   const handleTabSwitch = (tab: typeof activeTab) => {
     setActiveTab(tab);
     setSearch('');
+    setArchiveFilter('active');
     setDeptFilter('');
     setLeavePaidFilter('');
     setPage(1);
@@ -158,37 +231,37 @@ export const Settings: React.FC = () => {
     setEditingOrgId(org.id);
     setOrgForm({
       name: org.name,
-      code: org.code,
-      address: org.address,
+      code: org.code || '',
+      address: org.address || '',
       whatsAppGroupId: org.whatsAppGroupId || '',
       latitude: org.latitude || 17.4483,
       longitude: org.longitude || 78.3742,
       radiusMeters: org.radiusMeters || 100,
-      isActive: org.isActive,
+      isActive: org.isActive !== false,
     });
     setOrgModalOpen(true);
   };
 
-  const handleSaveOrg = (e: React.FormEvent) => {
+  const handleSaveOrg = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgForm.name.trim()) {
       showError('Validation Error', 'Organisation name is required.');
       return;
     }
 
-    if (editingOrgId) {
-      setOrganizations(organizations.map(o => o.id === editingOrgId ? { ...o, ...orgForm } : o));
-      showSuccess('Organisation Updated', `${orgForm.name} profile saved.`);
-    } else {
-      const newOrg = {
-        id: Date.now(),
-        ...orgForm,
-        code: orgForm.code || `ORG-${organizations.length + 1}`,
-      };
-      setOrganizations([...organizations, newOrg]);
-      showSuccess('Organisation Registered', `${orgForm.name} added to workspace.`);
+    try {
+      if (editingOrgId) {
+        await apiClient.put(`/masters/organizations/${editingOrgId}`, orgForm);
+        showSuccess('Organisation Updated', `${orgForm.name} profile saved.`);
+      } else {
+        await apiClient.post('/masters/organizations', orgForm);
+        showSuccess('Organisation Registered', `${orgForm.name} added to workspace.`);
+      }
+      setOrgModalOpen(false);
+      fetchOverview();
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Server error');
     }
-    setOrgModalOpen(false);
   };
 
   const handleDeleteOrg = (id: number) => {
@@ -200,6 +273,66 @@ export const Settings: React.FC = () => {
     showSuccess('Organisation Deleted', 'Organisation profile removed.');
   };
 
+
+  // Branch handlers
+  const handleOpenCreateBranch = (orgId: number) => {
+    setEditingBranchId(null);
+    setBranchForm({ organizationId: orgId, name: '', code: '', address: '', city: '', state: '', pincode: '', whatsAppGroupId: '', latitude: 21.1702, longitude: 72.8311, radiusMeters: 100, isActive: true });
+    setBranchModalOpen(true);
+  };
+
+  const handleOpenEditBranch = (b: any) => {
+    setEditingBranchId(b.id);
+    setBranchForm({ organizationId: b.organizationId, name: b.name, code: b.code || '', address: b.address || '', city: b.city || '', state: b.state || '', pincode: b.pincode || '', whatsAppGroupId: b.whatsAppGroupId || '', latitude: b.latitude, longitude: b.longitude, radiusMeters: b.radiusMeters || 100, isActive: b.isActive !== false });
+    setBranchModalOpen(true);
+  };
+
+  const handleSaveBranch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!branchForm.name.trim()) { showError('Validation', 'Branch name is required.'); return; }
+    try {
+      if (editingBranchId) {
+        await apiClient.put(`/masters/branches/${editingBranchId}`, branchForm);
+        showSuccess('Branch Updated', `${branchForm.name} saved.`);
+      } else {
+        await apiClient.post('/masters/branches', branchForm);
+        showSuccess('Branch Created', `${branchForm.name} added.`);
+      }
+      setBranchModalOpen(false);
+      if (branchForm.organizationId) {
+        setExpandedOrgId(branchForm.organizationId);
+      }
+      fetchOverview();
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Server error');
+    }
+  };
+
+  const handleDeleteBranch = async (id: number) => {
+    try {
+      await apiClient.delete(`/masters/branches/${id}`);
+      setBranches(branches.filter(b => b.id !== id));
+      showSuccess('Branch Deleted', 'Branch removed.');
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Server error');
+    }
+  };
+
+  const handleSaveCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSaving(true);
+      await apiClient.put('/masters/company', companyForm);
+      setCompany(companyForm);
+      setCompanyModalOpen(false);
+      showSuccess('Company Profile Updated', 'Corporate profile updated successfully.');
+    } catch (err: any) {
+      showError('Save Failed', err.response?.data?.message || 'Could not update company profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveAttendancePolicy = (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -209,34 +342,32 @@ export const Settings: React.FC = () => {
     }, 500);
   };
 
-  const handleAddDept = (e: React.FormEvent) => {
+  const handleAddDept = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDept.name.trim()) return;
-    setDepartments([
-      ...departments,
-      { id: Date.now(), name: newDept.name, code: newDept.code || newDept.name.substring(0, 3).toUpperCase(), head: newDept.head || 'Staff' },
-    ]);
-    setNewDept({ name: '', code: '', head: '' });
-    setDeptModalOpen(false);
-    showSuccess('Department Added', `${newDept.name} registered.`);
+    try {
+      await apiClient.post('/masters/departments', { departmentName: newDept.name });
+      setNewDept({ name: '', code: '', head: '' });
+      setDeptModalOpen(false);
+      showSuccess('Department Added', `${newDept.name} registered.`);
+      fetchOverview();
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Server error');
+    }
   };
 
-  const handleAddDesignation = (e: React.FormEvent) => {
+  const handleAddDesignation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDesignation.title.trim()) return;
-    setDesignations([
-      ...designations,
-      {
-        id: Date.now(),
-        title: newDesignation.title,
-        code: newDesignation.code || newDesignation.title.substring(0, 3).toUpperCase(),
-        department: newDesignation.department,
-        level: newDesignation.level,
-      },
-    ]);
-    setNewDesignation({ title: '', code: '', department: 'Engineering & Technology', level: 'L2 (Mid)' });
-    setDesigModalOpen(false);
-    showSuccess('Designation Added', `${newDesignation.title} registered.`);
+    try {
+      await apiClient.post('/masters/designations', { designationName: newDesignation.title });
+      setNewDesignation({ title: '', code: '', department: 'Engineering & Technology', level: 'L2 (Mid)' });
+      setDesigModalOpen(false);
+      showSuccess('Designation Added', `${newDesignation.title} registered.`);
+      fetchOverview();
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Server error');
+    }
   };
 
   const handleAddLeaveType = (e: React.FormEvent) => {
@@ -251,16 +382,23 @@ export const Settings: React.FC = () => {
     showSuccess('Leave Category Added', `${newLeaveType.name} configured.`);
   };
 
-  const handleAddShift = (e: React.FormEvent) => {
+  const handleAddShift = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newShift.name.trim()) return;
-    setShifts([
-      ...shifts,
-      { id: Date.now(), name: newShift.name, code: newShift.code || 'SHF', startTime: newShift.startTime, endTime: newShift.endTime, breakMinutes: newShift.breakMinutes },
-    ]);
-    setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', breakMinutes: 60 });
-    setShiftModalOpen(false);
-    showSuccess('Shift Registered', `${newShift.name} added to roster.`);
+    try {
+      await apiClient.post('/shifts', {
+        shiftName: newShift.name,
+        shiftCode: newShift.code || 'SHF',
+        startTime: newShift.startTime,
+        endTime: newShift.endTime,
+      });
+      setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', breakMinutes: 60 });
+      setShiftModalOpen(false);
+      showSuccess('Shift Registered', `${newShift.name} added to roster.`);
+      fetchOverview();
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Server error');
+    }
   };
 
   // --- Export Handlers ---
@@ -304,44 +442,356 @@ export const Settings: React.FC = () => {
     showSuccess('Exported', 'Work shifts exported to CSV.');
   };
 
-  const handleExportOrganisations = () => {
-    exportToCSV('HRDesk_Organisations', organizations, [
-      { key: 'name', label: 'Organisation Name' },
-      { key: 'code', label: 'Code' },
-      { key: 'address', label: 'Address' },
-      { key: 'latitude', label: 'Latitude' },
-      { key: 'longitude', label: 'Longitude' },
-      { key: 'radiusMeters', label: 'Geofence Radius (m)' },
-    ]);
-    showSuccess('Exported', 'Organisations exported to CSV.');
-  };
+  // --- Filtering Calculations ---
+  const s = search.trim().toLowerCase();
 
-  // --- Filtering & Pagination Calculations ---
-  const filteredDepts = departments.filter(d => !search || d.name.toLowerCase().includes(search.toLowerCase()) || d.code.toLowerCase().includes(search.toLowerCase()));
+  const filteredOrgs = organizations.filter(o => {
+    const matchesSearch = !s || (o.name?.toLowerCase().includes(s)) || (o.code?.toLowerCase().includes(s));
+    const isAct = o.isActive !== false;
+    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+    return matchesSearch && matchesArchive;
+  });
+
+  const filteredDepts = departments.filter(d => {
+    const matchesSearch = !s || (d.name?.toLowerCase().includes(s)) || (d.code?.toLowerCase().includes(s));
+    const isAct = d.status?.toLowerCase() !== 'inactive' && d.status?.toLowerCase() !== 'archived';
+    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+    return matchesSearch && matchesArchive;
+  });
   const paginatedDepts = filteredDepts.slice((page - 1) * pageSize, page * pageSize);
 
   const filteredDesigs = designations.filter(d => {
-    const matchesSearch = !search || d.title.toLowerCase().includes(search.toLowerCase()) || d.code.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = !s || (d.title?.toLowerCase().includes(s)) || (d.code?.toLowerCase().includes(s));
     const matchesDept = !deptFilter || d.department === deptFilter;
-    return matchesSearch && matchesDept;
+    const isAct = d.status?.toLowerCase() !== 'inactive' && d.status?.toLowerCase() !== 'archived';
+    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+    return matchesSearch && matchesDept && matchesArchive;
   });
   const paginatedDesigs = filteredDesigs.slice((page - 1) * pageSize, page * pageSize);
 
   const filteredLeaves = leaveTypes.filter(l => {
-    const matchesSearch = !search || l.name.toLowerCase().includes(search.toLowerCase()) || l.code.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = !s || (l.name?.toLowerCase().includes(s)) || (l.code?.toLowerCase().includes(s));
     const matchesPaid = !leavePaidFilter || (leavePaidFilter === 'paid' ? l.isPaid : !l.isPaid);
     return matchesSearch && matchesPaid;
   });
   const paginatedLeaves = filteredLeaves.slice((page - 1) * pageSize, page * pageSize);
 
-  const filteredShifts = shifts.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.code.toLowerCase().includes(search.toLowerCase()));
+  const filteredShifts = shifts.filter(st => !s || (st.name?.toLowerCase().includes(s)) || (st.code?.toLowerCase().includes(s)));
   const paginatedShifts = filteredShifts.slice((page - 1) * pageSize, page * pageSize);
 
-  const filteredOrgs = organizations.filter(o => !search || o.name.toLowerCase().includes(search.toLowerCase()) || o.code.toLowerCase().includes(search.toLowerCase()));
+  // =========================================================================
+  // REUSABLE COLUMN DEFINITIONS
+  // =========================================================================
+
+  // 2. Departments Columns
+  const deptColumns: ColumnDef<any>[] = [
+    {
+      key: 'id',
+      header: '#',
+      width: '50px',
+      align: 'center',
+      className: 'font-data text-xs text-[var(--ink-muted)]',
+      render: (item) => `#${item.id}`,
+    },
+    {
+      key: 'name',
+      header: 'Department Name',
+      render: (item) => (
+        <div className="flex items-center gap-2">
+          <FolderTree size={14} className="text-[var(--gold-500)]" />
+          <span className="font-semibold text-xs text-[var(--ink)]">{item.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'code',
+      header: 'Code',
+      render: (item) => (
+        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] font-data text-[10px] font-bold text-[var(--ink)]">
+          {item.code}
+        </span>
+      ),
+    },
+    {
+      key: 'head',
+      header: 'Primary Officer / HOD',
+      className: 'text-xs text-[var(--ink-muted)]',
+      render: (item) => item.head || 'HOD',
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (item) =>
+        item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived' ? (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+            Active
+          </span>
+        ) : (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            Archived
+          </span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (item) => (
+        <div className="flex items-center justify-end gap-1">
+          <ArchiveActionButton
+            isArchived={item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived'}
+            onArchive={() => {
+              setDepartments(departments.map(d => d.id === item.id ? { ...d, status: 'inactive' } : d));
+              showSuccess('Department Archived', `${item.name} moved to archive.`);
+            }}
+            onRestore={() => {
+              setDepartments(departments.map(d => d.id === item.id ? { ...d, status: 'active' } : d));
+              showSuccess('Department Restored', `${item.name} restored.`);
+            }}
+            itemName={item.name}
+          />
+          <button
+            onClick={() => {
+              setDepartments(departments.filter(d => d.id !== item.id));
+              showSuccess('Department Deleted', 'Department removed.');
+            }}
+            className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors"
+            title="Delete Department"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  // 3. Designations Columns
+  const desigColumns: ColumnDef<any>[] = [
+    {
+      key: 'id',
+      header: '#',
+      width: '50px',
+      align: 'center',
+      className: 'font-data text-xs text-[var(--ink-muted)]',
+      render: (item) => `#${item.id}`,
+    },
+    {
+      key: 'title',
+      header: 'Designation Title',
+      render: (item) => (
+        <div className="flex items-center gap-2">
+          <Award size={14} className="text-[var(--gold-500)]" />
+          <span className="font-semibold text-xs text-[var(--ink)]">{item.title}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'code',
+      header: 'Code',
+      render: (item) => (
+        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] font-data text-[10px] font-bold text-[var(--ink)]">
+          {item.code}
+        </span>
+      ),
+    },
+    {
+      key: 'department',
+      header: 'Department',
+      className: 'text-xs text-[var(--ink-muted)]',
+      render: (item) => item.department || 'General',
+    },
+    {
+      key: 'level',
+      header: 'Job Grade',
+      render: (item) => (
+        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+          {item.level || 'L2 (Mid)'}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (item) =>
+        item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived' ? (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+            Active
+          </span>
+        ) : (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            Archived
+          </span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (item) => (
+        <div className="flex items-center justify-end gap-1">
+          <ArchiveActionButton
+            isArchived={item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived'}
+            onArchive={() => {
+              setDesignations(designations.map(d => d.id === item.id ? { ...d, status: 'inactive' } : d));
+              showSuccess('Designation Archived', `${item.title} moved to archive.`);
+            }}
+            onRestore={() => {
+              setDesignations(designations.map(d => d.id === item.id ? { ...d, status: 'active' } : d));
+              showSuccess('Designation Restored', `${item.title} restored.`);
+            }}
+            itemName={item.title}
+          />
+          <button
+            onClick={() => {
+              setDesignations(designations.filter(d => d.id !== item.id));
+              showSuccess('Designation Deleted', 'Designation removed.');
+            }}
+            className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors"
+            title="Delete Designation"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  // 4. Leave Types Columns
+  const leaveColumns: ColumnDef<any>[] = [
+    {
+      key: 'id',
+      header: '#',
+      width: '50px',
+      align: 'center',
+      className: 'font-data text-xs text-[var(--ink-muted)]',
+      render: (item) => `#${item.id}`,
+    },
+    {
+      key: 'name',
+      header: 'Leave Category',
+      render: (item) => (
+        <div className="flex items-center gap-2">
+          <CalendarCheck size={14} className="text-[var(--gold-500)]" />
+          <span className="font-semibold text-xs text-[var(--ink)]">{item.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'code',
+      header: 'Code',
+      render: (item) => (
+        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] font-data text-[10px] font-bold text-[var(--ink)]">
+          {item.code}
+        </span>
+      ),
+    },
+    {
+      key: 'quota',
+      header: 'Annual Quota',
+      align: 'center',
+      className: 'font-data font-bold text-xs text-[var(--ink)]',
+      render: (item) => `${item.quota} Days`,
+    },
+    {
+      key: 'isPaid',
+      header: 'Compensation Type',
+      render: (item) =>
+        item.isPaid ? (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+            Paid Leave
+          </span>
+        ) : (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
+            Loss of Pay (Unpaid)
+          </span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (item) => (
+        <button
+          onClick={() => {
+            setLeaveTypes(leaveTypes.filter(l => l.id !== item.id));
+            showSuccess('Leave Type Removed', 'Category deleted.');
+          }}
+          className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors"
+          title="Delete Leave Type"
+        >
+          <Trash2 size={13} />
+        </button>
+      ),
+    },
+  ];
+
+  // 5. Work Shifts Columns
+  const shiftColumns: ColumnDef<any>[] = [
+    {
+      key: 'id',
+      header: '#',
+      width: '50px',
+      align: 'center',
+      className: 'font-data text-xs text-[var(--ink-muted)]',
+      render: (item) => `#${item.id}`,
+    },
+    {
+      key: 'name',
+      header: 'Shift Name',
+      render: (item) => (
+        <div className="flex items-center gap-2">
+          <Layers size={14} className="text-[var(--gold-500)]" />
+          <span className="font-semibold text-xs text-[var(--ink)]">{item.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'code',
+      header: 'Code',
+      render: (item) => (
+        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] font-data text-[10px] font-bold text-[var(--ink)]">
+          {item.code}
+        </span>
+      ),
+    },
+    {
+      key: 'timing',
+      header: 'Timing',
+      render: (item) => (
+        <span className="font-data font-semibold text-xs text-emerald-700 dark:text-emerald-300">
+          {item.startTime} – {item.endTime}
+        </span>
+      ),
+    },
+    {
+      key: 'breakMinutes',
+      header: 'Break Duration',
+      align: 'center',
+      className: 'font-data text-xs text-[var(--ink-muted)]',
+      render: (item) => `${item.breakMinutes || 60} mins`,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (item) => (
+        <button
+          onClick={() => {
+            setShifts(shifts.filter(s => s.id !== item.id));
+            showSuccess('Shift Removed', 'Shift removed from roster.');
+          }}
+          className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors"
+          title="Delete Shift"
+        >
+          <Trash2 size={13} />
+        </button>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6 font-ui">
-      {/* 1. Header with Display Serif and Divider */}
+      {/* 1. Header */}
       <div className="space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
           <div>
@@ -358,7 +808,6 @@ export const Settings: React.FC = () => {
           </span>
         </div>
 
-        {/* Signature Divider */}
         <div className="register-rule pt-1" />
       </div>
 
@@ -439,115 +888,200 @@ export const Settings: React.FC = () => {
 
       {/* 3. Tab Views */}
 
-      {/* Tab 1: Organisations Studio */}
+      {/* Tab 1: Organisations → Branches (accordion) */}
       {activeTab === 'company' && (
         <div className="space-y-4">
-          <DataToolbar
-            searchValue={search}
-            onSearchChange={setSearch}
-            searchPlaceholder="Search organisation by name or code..."
-            onExport={handleExportOrganisations}
-            exportLabel="Export Organisations"
-            onImport={() => {
-              setBulkImportConfig({
-                title: 'Import Organisations',
-                filename: 'HRDesk_Organisations_Template',
-                headers: ['Name', 'Code', 'Address', 'Latitude', 'Longitude', 'RadiusMeters'],
-                sampleRow: ['HRDesk Hyderabad Campus', 'HYD-01', 'Tech Park, Hyderabad', '17.4483', '78.3742', '100'],
-              });
-              setBulkImportModalOpen(true);
-            }}
-            importLabel="Import Organisations"
-            primaryAction={{
-              label: 'Add Organisation',
-              icon: <Plus size={14} />,
-              onClick: handleOpenCreateOrg,
-            }}
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredOrgs.map((org) => (
-              <div
-                key={org.id}
-                className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] space-y-3 relative hover:border-[var(--gold-500)]/60 transition-colors"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-[4px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center font-bold text-xs flex-shrink-0">
-                      <Building2 size={16} />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-xs text-[var(--ink)]">{org.name}</h3>
-                      <p className="font-data text-[10px] text-[var(--ink-muted)]">{org.code}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleOpenEditOrg(org)}
-                      className="p-1 text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer"
-                      title="Edit Organisation"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteOrg(org.id)}
-                      className="p-1 text-[var(--ink-muted)] hover:text-[var(--err-600)] cursor-pointer"
-                      title="Delete Organisation"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-
-                <p className="text-xs text-[var(--ink-muted)] leading-snug">
-                  {org.address}
+          {/* Organisations + nested Branches accordion */}
+          <div className="space-y-3">
+            {/* Section header + add org button */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                  <Building2 size={15} className="text-[var(--gold-500)]" />
+                  <span>Organisations &amp; Their Branches</span>
+                </h3>
+                <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+                  Each Organisation can have multiple Branches (offices, sites). Branches inherit their Organisation's settings.
                 </p>
-
-                {/* Geofence & WhatsApp Badges */}
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[var(--rule)] text-[11px] font-data">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink)]">
-                    <MapPin size={12} className="text-[var(--gold-500)]" />
-                    <span>{org.latitude.toFixed(4)}, {org.longitude.toFixed(4)} (±{org.radiusMeters}m)</span>
-                  </span>
-
-                  {org.whatsAppGroupId ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[var(--ok-600)]/10 border border-[var(--ok-600)]/30 text-[var(--ok-600)] font-semibold">
-                      <MessageSquare size={12} />
-                      <span>WhatsApp Linked</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[var(--paper)] text-[var(--ink-muted)]">
-                      <MessageSquare size={12} />
-                      <span>No WhatsApp</span>
-                    </span>
-                  )}
-                </div>
               </div>
-            ))}
+              <button onClick={handleOpenCreateOrg} className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer">
+                <Plus size={13} /><span>Add Organisation</span>
+              </button>
+            </div>
+
+            {/* Search */}
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search organisations or branches…"
+              className="input-field w-full max-w-xs text-xs"
+            />
+
+            {/* Accordion list */}
+            {loading ? (
+              <div className="text-xs text-[var(--ink-muted)] py-6 text-center">Loading…</div>
+            ) : filteredOrgs.length === 0 ? (
+              <div className="text-xs text-[var(--ink-muted)] py-6 text-center border border-dashed border-[var(--rule)] rounded-[4px]">
+                No organisations found. Add one to get started.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredOrgs.map((org) => {
+                  const orgBranches = branches.filter(b => b.organizationId === org.id);
+                  const isExpanded = expandedOrgId === org.id;
+                  return (
+                    <div key={org.id} className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
+                      {/* Org row header */}
+                      <div className="flex items-center gap-3 px-4 py-3 bg-[var(--paper)]">
+                        {/* Expand/collapse toggle */}
+                        <button
+                          onClick={() => setExpandedOrgId(isExpanded ? null : org.id)}
+                          className="text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+                          title={isExpanded ? 'Collapse branches' : 'Expand branches'}
+                        >
+                          {isExpanded
+                            ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            : <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          }
+                        </button>
+
+                        {/* Org icon */}
+                        <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center shrink-0">
+                          <Building2 size={14} />
+                        </div>
+
+                        {/* Org info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm text-[var(--ink)]">{org.name}</span>
+                            <span className="font-data text-[10px] px-1.5 py-0.5 rounded-[2px] bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink-muted)]">{org.code}</span>
+                            {org.isActive !== false
+                              ? <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Active</span>
+                              : <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">Archived</span>
+                            }
+                          </div>
+                          <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[var(--ink-muted)]">
+                            {org.address && <span className="flex items-center gap-1"><MapPin size={10} />{org.address}</span>}
+                            <span className="flex items-center gap-1">
+                              <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="1" stroke="currentColor" strokeWidth="1.5"/><path d="M1 6h12" stroke="currentColor" strokeWidth="1.5"/></svg>
+                              {orgBranches.length} {orgBranches.length === 1 ? 'branch' : 'branches'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Org actions */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Add Branch to this org */}
+                          <button
+                            onClick={() => { handleOpenCreateBranch(org.id); }}
+                            className="flex items-center gap-1 px-2 py-1 rounded-[2px] text-[11px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer"
+                            title="Add branch to this organisation"
+                          >
+                            <Plus size={11} /><span>Add Branch</span>
+                          </button>
+                          <button onClick={() => handleOpenEditOrg(org)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors" title="Edit Organisation"><Edit2 size={13} /></button>
+                          <ArchiveActionButton
+                            isArchived={org.isActive === false}
+                            onArchive={async () => { try { await apiClient.put(`/masters/organizations/${org.id}`, { ...org, isActive: false }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: false } : o)); showSuccess('Archived', `${org.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
+                            onRestore={async () => { try { await apiClient.put(`/masters/organizations/${org.id}`, { ...org, isActive: true }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: true } : o)); showSuccess('Restored', `${org.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
+                            itemName={org.name}
+                          />
+                          <button onClick={() => handleDeleteOrg(org.id)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors" title="Delete Organisation"><Trash2 size={13} /></button>
+                        </div>
+                      </div>
+
+                      {/* Nested branches (only when expanded) */}
+                      {isExpanded && (
+                        <div className="border-t border-[var(--rule)]">
+                          {orgBranches.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center gap-2 py-6 text-xs text-[var(--ink-muted)]">
+                              <MapPin size={20} className="text-indigo-300" />
+                              <span>No branches under <strong>{org.name}</strong> yet.</span>
+                              <button
+                                onClick={() => handleOpenCreateBranch(org.id)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] bg-indigo-600 text-white text-[11px] font-semibold hover:bg-indigo-700 cursor-pointer transition-colors"
+                              >
+                                <Plus size={11} />Add First Branch
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="divide-y divide-[var(--rule)]">
+                              {orgBranches.map((branch) => (
+                                <div key={branch.id} className="flex items-center gap-3 px-4 py-2.5 pl-12 hover:bg-[var(--paper)]/60 transition-colors">
+                                  {/* Branch indent line */}
+                                  <div className="w-5 h-5 rounded-[3px] bg-indigo-600/10 text-indigo-600 flex items-center justify-center shrink-0">
+                                    <MapPin size={11} />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-xs text-[var(--ink)]">{branch.name}</span>
+                                      <span className="font-data text-[10px] px-1 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink-muted)]">{branch.code}</span>
+                                      {branch.isActive !== false
+                                        ? <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Active</span>
+                                        : <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-800">Archived</span>
+                                      }
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-0.5 text-[10px] text-[var(--ink-muted)]">
+                                      {branch.city && <span>{branch.city}{branch.state ? ', ' + branch.state : ''}</span>}
+                                      {branch.address && <span className="truncate max-w-xs">{branch.address}</span>}
+                                      {branch.latitude && <span className="font-data flex items-center gap-0.5"><MapPin size={9} className="text-indigo-400" />{branch.latitude.toFixed(4)}, {branch.longitude.toFixed(4)} ({branch.radiusMeters}m)</span>}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={() => setSelectedBranchForPermissions({ id: branch.id, name: branch.name, code: branch.code, orgName: org.name })}
+                                      className="p-1 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-indigo-600 cursor-pointer transition-colors"
+                                      title="Branch Roles & Permissions"
+                                    >
+                                      <Shield size={12} />
+                                    </button>
+                                    <button onClick={() => handleOpenEditBranch(branch)} className="p-1 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors" title="Edit Branch"><Edit2 size={12} /></button>
+                                    <ArchiveActionButton
+                                      isArchived={branch.isActive === false}
+                                      onArchive={async () => { try { await apiClient.put(`/masters/branches/${branch.id}`, { ...branch, isActive: false }); setBranches(branches.map(b => b.id === branch.id ? { ...b, isActive: false } : b)); showSuccess('Archived', `${branch.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
+                                      onRestore={async () => { try { await apiClient.put(`/masters/branches/${branch.id}`, { ...branch, isActive: true }); setBranches(branches.map(b => b.id === branch.id ? { ...b, isActive: true } : b)); showSuccess('Restored', `${branch.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
+                                      itemName={branch.name}
+                                    />
+                                    <button onClick={() => handleDeleteBranch(branch.id)} className="p-1 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors" title="Delete Branch"><Trash2 size={12} /></button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
-
-      {/* Tab 2: Departments Master */}
+      {/* Tab 2: Departments */}
       {activeTab === 'departments' && (
         <div className="space-y-4">
           <DataToolbar
             searchValue={search}
             onSearchChange={(v) => { setSearch(v); setPage(1); }}
             searchPlaceholder="Search departments by name or code..."
+            archiveFilter={{
+              value: archiveFilter,
+              onChange: (v) => { setArchiveFilter(v); setPage(1); },
+            }}
             onExport={handleExportDepartments}
-            exportLabel="Export Departments"
+            exportLabel="Export CSV"
             onImport={() => {
               setBulkImportConfig({
                 title: 'Import Departments',
                 filename: 'HRDesk_Departments_Template',
-                headers: ['DepartmentName', 'Code', 'Head'],
+                headers: ['Name', 'Code', 'Head'],
                 sampleRow: ['Quality Assurance', 'QA', 'QA Lead'],
               });
               setBulkImportModalOpen(true);
             }}
-            importLabel="Import Departments"
+            importLabel="Import CSV"
             primaryAction={{
               label: 'Add Department',
               icon: <Plus size={14} />,
@@ -555,67 +1089,38 @@ export const Settings: React.FC = () => {
             }}
           />
 
-          <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-            <table className="register-table">
-              <thead>
-                <tr>
-                  <th>Department Name</th>
-                  <th className="font-data">Code</th>
-                  <th>Primary Officer</th>
-                  <th className="text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedDepts.map((d) => (
-                  <tr key={d.id}>
-                    <td className="font-semibold text-[var(--ink)]">{d.name}</td>
-                    <td className="font-data text-xs text-[var(--ink-muted)] font-semibold">{d.code}</td>
-                    <td className="text-xs text-[var(--ink-muted)]">{d.head}</td>
-                    <td className="text-right">
-                      <button
-                        onClick={() => setDepartments(departments.filter(dept => dept.id !== d.id))}
-                        className="text-[var(--ink-muted)] hover:text-[var(--err-600)] p-1 cursor-pointer"
-                        title="Delete Department"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {paginatedDepts.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
-                      No departments match search query.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-
-            {/* Ruled Pagination Toolbar */}
-            <PaginationToolbar
-              page={page}
-              pageSize={pageSize}
-              totalCount={filteredDepts.length}
-              totalPages={Math.ceil(filteredDepts.length / pageSize) || 1}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
-              pageSizeOptions={[5, 10, 20]}
-            />
-          </div>
+          <DataTable
+            columns={deptColumns}
+            data={paginatedDepts}
+            loading={loading}
+            emptyMessage="No departments found matching your search."
+            pagination={{
+              page,
+              pageSize,
+              totalCount: filteredDepts.length,
+              totalPages: Math.ceil(filteredDepts.length / pageSize),
+              onPageChange: setPage,
+              onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+            }}
+          />
         </div>
       )}
 
-      {/* Tab 3: Designations Master */}
+      {/* Tab 3: Designations */}
       {activeTab === 'designations' && (
         <div className="space-y-4">
           <DataToolbar
             searchValue={search}
             onSearchChange={(v) => { setSearch(v); setPage(1); }}
             searchPlaceholder="Search designations by title or code..."
+            archiveFilter={{
+              value: archiveFilter,
+              onChange: (v) => { setArchiveFilter(v); setPage(1); },
+            }}
             filters={[
               {
-                id: 'dept',
+                id: 'department',
+                ariaLabel: 'Department Filter',
                 value: deptFilter,
                 onChange: (v) => { setDeptFilter(v); setPage(1); },
                 options: [
@@ -625,17 +1130,17 @@ export const Settings: React.FC = () => {
               },
             ]}
             onExport={handleExportDesignations}
-            exportLabel="Export Designations"
+            exportLabel="Export CSV"
             onImport={() => {
               setBulkImportConfig({
                 title: 'Import Designations',
                 filename: 'HRDesk_Designations_Template',
                 headers: ['Title', 'Code', 'Department', 'Level'],
-                sampleRow: ['DevOps Engineer', 'DEVOPS', 'Engineering & Technology', 'L3 (Senior)'],
+                sampleRow: ['DevOps Specialist', 'DEVOPS', 'Engineering & Technology', 'L3 (Senior)'],
               });
               setBulkImportModalOpen(true);
             }}
-            importLabel="Import Designations"
+            importLabel="Import CSV"
             primaryAction={{
               label: 'Add Designation',
               icon: <Plus size={14} />,
@@ -643,449 +1148,283 @@ export const Settings: React.FC = () => {
             }}
           />
 
-          <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-            <table className="register-table">
-              <thead>
-                <tr>
-                  <th>Designation Title</th>
-                  <th className="font-data">Code</th>
-                  <th>Department</th>
-                  <th className="font-data">Job Grade</th>
-                  <th className="text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedDesigs.map((des) => (
-                  <tr key={des.id}>
-                    <td className="font-semibold text-[var(--ink)]">{des.title}</td>
-                    <td className="font-data text-xs text-[var(--ink-muted)] font-semibold">{des.code}</td>
-                    <td className="text-xs text-[var(--ink)]">{des.department}</td>
-                    <td className="font-data text-xs text-[var(--ink-muted)] font-semibold">{des.level}</td>
-                    <td className="text-right">
-                      <button
-                        onClick={() => setDesignations(designations.filter(d => d.id !== des.id))}
-                        className="text-[var(--ink-muted)] hover:text-[var(--err-600)] p-1 cursor-pointer"
-                        title="Delete Designation"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {paginatedDesigs.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
-                      No designations match filter criteria.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-
-            {/* Ruled Pagination Toolbar */}
-            <PaginationToolbar
-              page={page}
-              pageSize={pageSize}
-              totalCount={filteredDesigs.length}
-              totalPages={Math.ceil(filteredDesigs.length / pageSize) || 1}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
-              pageSizeOptions={[5, 10, 20]}
-            />
-          </div>
+          <DataTable
+            columns={desigColumns}
+            data={paginatedDesigs}
+            loading={loading}
+            emptyMessage="No designations found matching your search."
+            pagination={{
+              page,
+              pageSize,
+              totalCount: filteredDesigs.length,
+              totalPages: Math.ceil(filteredDesigs.length / pageSize),
+              onPageChange: setPage,
+              onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+            }}
+          />
         </div>
       )}
 
-      {/* Tab 4: Leave Types Master */}
+      {/* Tab 4: Leave Types */}
       {activeTab === 'leaves' && (
         <div className="space-y-4">
           <DataToolbar
             searchValue={search}
             onSearchChange={(v) => { setSearch(v); setPage(1); }}
-            searchPlaceholder="Search leave category by name or code..."
+            searchPlaceholder="Search leave categories by name or code..."
             filters={[
               {
-                id: 'paid',
+                id: 'isPaid',
+                ariaLabel: 'Paid Status Filter',
                 value: leavePaidFilter,
                 onChange: (v) => { setLeavePaidFilter(v); setPage(1); },
                 options: [
-                  { value: '', label: 'All Leave Categories' },
-                  { value: 'paid', label: 'Paid Leaves' },
-                  { value: 'unpaid', label: 'Unpaid / LWP' },
+                  { value: '', label: 'All Leave Types' },
+                  { value: 'paid', label: 'Paid Leaves Only' },
+                  { value: 'unpaid', label: 'Unpaid Leaves Only' },
                 ],
               },
             ]}
             onExport={handleExportLeaveTypes}
-            exportLabel="Export Leave Types"
+            exportLabel="Export CSV"
             onImport={() => {
               setBulkImportConfig({
-                title: 'Import Leave Categories',
+                title: 'Import Leave Types',
                 filename: 'HRDesk_Leave_Types_Template',
-                headers: ['Name', 'Code', 'Quota', 'IsPaid'],
-                sampleRow: ['Maternity Leave', 'ML', '180', 'TRUE'],
+                headers: ['Name', 'Code', 'AnnualQuota', 'IsPaid'],
+                sampleRow: ['Paternity Leave', 'PAT', '15', 'true'],
               });
               setBulkImportModalOpen(true);
             }}
-            importLabel="Import Categories"
+            importLabel="Import CSV"
             primaryAction={{
-              label: 'Add Category',
+              label: 'Add Leave Category',
               icon: <Plus size={14} />,
               onClick: () => setLeaveModalOpen(true),
             }}
           />
 
-          <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-            <table className="register-table">
-              <thead>
-                <tr>
-                  <th>Category Name</th>
-                  <th className="font-data">Code</th>
-                  <th className="text-right font-data">Default Quota</th>
-                  <th>Salary Impact</th>
-                  <th className="text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedLeaves.map((t) => (
-                  <tr key={t.id}>
-                    <td className="font-semibold text-[var(--ink)]">{t.name}</td>
-                    <td className="font-data text-xs text-[var(--ink-muted)] font-semibold">{t.code}</td>
-                    <td className="text-right font-data text-xs text-[var(--ink)]">{t.quota > 0 ? `${t.quota} days/yr` : 'Credit-based'}</td>
-                    <td className="text-xs">
-                      <span className={`px-1.5 py-0.5 rounded-[2px] font-data text-[10px] font-bold ${t.isPaid ? 'bg-[var(--ok-600)]/10 text-[var(--ok-600)]' : 'bg-[var(--err-600)]/10 text-[var(--err-600)]'}`}>
-                        {t.isPaid ? 'Paid Leave' : 'Unpaid (LOP)'}
-                      </span>
-                    </td>
-                    <td className="text-right">
-                      <button
-                        onClick={() => setLeaveTypes(leaveTypes.filter(l => l.id !== t.id))}
-                        className="text-[var(--ink-muted)] hover:text-[var(--err-600)] p-1 cursor-pointer"
-                        title="Delete Leave Type"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {paginatedLeaves.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
-                      No leave categories match search query.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-
-            {/* Ruled Pagination Toolbar */}
-            <PaginationToolbar
-              page={page}
-              pageSize={pageSize}
-              totalCount={filteredLeaves.length}
-              totalPages={Math.ceil(filteredLeaves.length / pageSize) || 1}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
-              pageSizeOptions={[5, 10, 20]}
-            />
-          </div>
+          <DataTable
+            columns={leaveColumns}
+            data={paginatedLeaves}
+            loading={loading}
+            emptyMessage="No leave categories configured."
+            pagination={{
+              page,
+              pageSize,
+              totalCount: filteredLeaves.length,
+              totalPages: Math.ceil(filteredLeaves.length / pageSize),
+              onPageChange: setPage,
+              onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+            }}
+          />
         </div>
       )}
 
-      {/* Tab 5: Work Shifts Master */}
+      {/* Tab 5: Work Shifts */}
       {activeTab === 'shifts' && (
         <div className="space-y-4">
           <DataToolbar
             searchValue={search}
             onSearchChange={(v) => { setSearch(v); setPage(1); }}
-            searchPlaceholder="Search work shifts by name or code..."
+            searchPlaceholder="Search shifts by name or code..."
             onExport={handleExportShifts}
-            exportLabel="Export Shifts"
+            exportLabel="Export CSV"
             onImport={() => {
               setBulkImportConfig({
                 title: 'Import Work Shifts',
-                filename: 'HRDesk_Shifts_Template',
-                headers: ['ShiftName', 'Code', 'StartTime', 'EndTime', 'BreakMinutes'],
-                sampleRow: ['Weekend Shift', 'WKND', '08:00', '17:00', '60'],
+                filename: 'HRDesk_Work_Shifts_Template',
+                headers: ['ShiftName', 'ShiftCode', 'StartTime', 'EndTime', 'BreakMinutes'],
+                sampleRow: ['Rotational Shift', 'ROT', '10:00', '19:00', '60'],
               });
               setBulkImportModalOpen(true);
             }}
-            importLabel="Import Shifts"
+            importLabel="Import CSV"
             primaryAction={{
-              label: 'Add Shift',
+              label: 'Add Work Shift',
               icon: <Plus size={14} />,
               onClick: () => setShiftModalOpen(true),
             }}
           />
 
-          <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-            <table className="register-table">
-              <thead>
-                <tr>
-                  <th>Shift Name</th>
-                  <th className="font-data">Code</th>
-                  <th className="font-data">Timings</th>
-                  <th className="text-right font-data">Break Window</th>
-                  <th className="text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedShifts.map((s) => (
-                  <tr key={s.id}>
-                    <td className="font-semibold text-[var(--ink)]">{s.name}</td>
-                    <td className="font-data text-xs text-[var(--ink-muted)] font-semibold">{s.code}</td>
-                    <td className="font-data text-xs text-[var(--ink)]">
-                      {s.startTime} — {s.endTime}
-                    </td>
-                    <td className="text-right font-data text-xs text-[var(--ink-muted)]">
-                      {s.breakMinutes} mins
-                    </td>
-                    <td className="text-right">
-                      <button
-                        onClick={() => setShifts(shifts.filter(sh => sh.id !== s.id))}
-                        className="text-[var(--ink-muted)] hover:text-[var(--err-600)] p-1 cursor-pointer"
-                        title="Delete Shift"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {paginatedShifts.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
-                      No shifts match search query.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-
-            {/* Ruled Pagination Toolbar */}
-            <PaginationToolbar
-              page={page}
-              pageSize={pageSize}
-              totalCount={filteredShifts.length}
-              totalPages={Math.ceil(filteredShifts.length / pageSize) || 1}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
-              pageSizeOptions={[5, 10, 20]}
-            />
-          </div>
+          <DataTable
+            columns={shiftColumns}
+            data={paginatedShifts}
+            loading={loading}
+            emptyMessage="No work shifts defined."
+            pagination={{
+              page,
+              pageSize,
+              totalCount: filteredShifts.length,
+              totalPages: Math.ceil(filteredShifts.length / pageSize),
+              onPageChange: setPage,
+              onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+            }}
+          />
         </div>
       )}
 
       {/* Tab 6: Attendance Policy */}
       {activeTab === 'attendance' && (
-        <form onSubmit={handleSaveAttendancePolicy} className="space-y-6">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-5 space-y-4">
-            <div className="pb-2 border-b border-[var(--rule)]">
-              <h2 className="font-semibold text-sm text-[var(--ink)]">Attendance & Work Hours Policy</h2>
-              <p className="text-xs text-[var(--ink-muted)]">Thresholds for calculating present, half-day, and late mark deductions</p>
+        <form onSubmit={handleSaveAttendancePolicy} className="card p-6 space-y-6 max-w-3xl">
+          <div>
+            <h3 className="font-display font-semibold text-sm text-[var(--ink)]">Attendance & Work Hours Policy</h3>
+            <p className="text-xs text-[var(--ink-muted)]">Configure grace periods, half-day cutoffs, and device auto-sync intervals.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-[var(--ink)] mb-1">Grace Period for Late In (Minutes)</label>
+              <input
+                type="number"
+                value={attendancePolicy.gracePeriodMinutes}
+                onChange={(e) => setAttendancePolicy({ ...attendancePolicy, gracePeriodMinutes: Number(e.target.value) })}
+                className="input-field w-full font-data text-xs"
+                min={0}
+                max={60}
+              />
+              <p className="text-[10px] text-[var(--ink-muted)] mt-1">Punches within this buffer are marked On-Time.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Late In Grace Period (Minutes)
-                </label>
-                <input
-                  type="number"
-                  value={attendancePolicy.gracePeriodMinutes}
-                  onChange={(e) => setAttendancePolicy({ ...attendancePolicy, gracePeriodMinutes: Number(e.target.value) })}
-                  className="register-input w-full font-data"
-                />
-                <p className="text-[11px] text-[var(--ink-muted)] mt-1">Punches within grace time will not trigger a late flag.</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Half-Day Threshold (Hours)
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={attendancePolicy.halfDayThresholdHours}
-                  onChange={(e) => setAttendancePolicy({ ...attendancePolicy, halfDayThresholdHours: Number(e.target.value) })}
-                  className="register-input w-full font-data"
-                />
-                <p className="text-[11px] text-[var(--ink-muted)] mt-1">Minimum hours required to count 0.5 payable present day.</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Full-Day Shift Threshold (Hours)
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={attendancePolicy.fullDayThresholdHours}
-                  onChange={(e) => setAttendancePolicy({ ...attendancePolicy, fullDayThresholdHours: Number(e.target.value) })}
-                  className="register-input w-full font-data"
-                />
-                <p className="text-[11px] text-[var(--ink-muted)] mt-1">Minimum working hours required for 1.0 full present day.</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Biometric Terminal Polling Interval (Minutes)
-                </label>
-                <input
-                  type="number"
-                  value={attendancePolicy.autoSyncIntervalMinutes}
-                  onChange={(e) => setAttendancePolicy({ ...attendancePolicy, autoSyncIntervalMinutes: Number(e.target.value) })}
-                  className="register-input w-full font-data"
-                />
-                <p className="text-[11px] text-[var(--ink-muted)] mt-1">Telemetry polling frequency from physical fingerprint/face terminals.</p>
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--ink)] mb-1">Half-Day Threshold (Hours)</label>
+              <input
+                type="number"
+                step="0.5"
+                value={attendancePolicy.halfDayThresholdHours}
+                onChange={(e) => setAttendancePolicy({ ...attendancePolicy, halfDayThresholdHours: Number(e.target.value) })}
+                className="input-field w-full font-data text-xs"
+                min={1}
+                max={8}
+              />
+              <p className="text-[10px] text-[var(--ink-muted)] mt-1">Work duration below this triggers Half-Day deduction.</p>
             </div>
 
-            <div className="pt-2 border-t border-[var(--rule)] flex justify-end">
-              <button
-                type="submit"
-                disabled={saving}
-                className="btn-primary flex items-center gap-1.5 cursor-pointer"
+            <div>
+              <label className="block text-xs font-medium text-[var(--ink)] mb-1">Full-Day Working Hours Requirement</label>
+              <input
+                type="number"
+                step="0.5"
+                value={attendancePolicy.fullDayThresholdHours}
+                onChange={(e) => setAttendancePolicy({ ...attendancePolicy, fullDayThresholdHours: Number(e.target.value) })}
+                className="input-field w-full font-data text-xs"
+                min={4}
+                max={12}
+              />
+              <p className="text-[10px] text-[var(--ink-muted)] mt-1">Minimum total productive hours for full Present credit.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-[var(--ink)] mb-1">Biometric Device Auto-Sync Frequency</label>
+              <select
+                value={attendancePolicy.autoSyncIntervalMinutes}
+                onChange={(e) => setAttendancePolicy({ ...attendancePolicy, autoSyncIntervalMinutes: Number(e.target.value) })}
+                className="input-field w-full text-xs"
               >
-                <Save size={14} />
-                <span>{saving ? 'Saving...' : 'Save Policy'}</span>
-              </button>
+                <option value={1}>Every 1 Minute (High Precision)</option>
+                <option value={5}>Every 5 Minutes (Standard Recommended)</option>
+                <option value={15}>Every 15 Minutes</option>
+                <option value={30}>Every 30 Minutes</option>
+              </select>
+              <p className="text-[10px] text-[var(--ink-muted)] mt-1">Background cloud sync frequency from eTimeOffice / TeamOffice.</p>
             </div>
+          </div>
+
+          <div className="pt-4 border-t border-[var(--rule)] flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1.5"
+            >
+              <Save size={13} />
+              <span>{saving ? 'Updating Policies...' : 'Save Attendance Policy'}</span>
+            </button>
           </div>
         </form>
       )}
 
-      {/* Modal 1: Organisation Add / Edit */}
+      {/* ========================================================================= */}
+      {/* MODALS */}
+      {/* ========================================================================= */}
+
+      {/* 1. Add / Edit Organisation Modal */}
       {orgModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px]">
-          <div className="w-full max-w-lg rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-lg font-semibold text-[var(--ink)]">
-                  {editingOrgId ? 'Edit Organisation' : 'Register New Organisation'}
-                </h3>
-                <p className="text-xs text-[var(--ink-muted)]">Organisation particulars & location parameters</p>
-              </div>
-              <button
-                onClick={() => setOrgModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
-              >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                <Building2 size={16} className="text-[var(--gold-500)]" />
+                <span>{editingOrgId ? 'Edit Organisation Profile' : 'Register New Organisation'}</span>
+              </h3>
+              <button onClick={() => setOrgModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveOrg} className="p-5 space-y-3.5">
+            <form onSubmit={handleSaveOrg} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Organisation Name *
-                </label>
+                <label className="block font-medium text-[var(--ink)] mb-1">Organisation Name *</label>
                 <input
                   type="text"
-                  required
                   value={orgForm.name}
                   onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })}
-                  placeholder="e.g. HRDesk Builders & Developers"
-                  className="register-input w-full"
+                  placeholder="e.g. Setu Developers"
+                  className="input-field w-full"
+                  required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Organisation Code
-                  </label>
-                  <input
-                    type="text"
-                    value={orgForm.code}
-                    onChange={(e) => setOrgForm({ ...orgForm, code: e.target.value })}
-                    placeholder="HBD"
-                    className="register-input w-full font-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    WhatsApp Group ID
-                  </label>
-                  <input
-                    type="text"
-                    value={orgForm.whatsAppGroupId}
-                    onChange={(e) => setOrgForm({ ...orgForm, whatsAppGroupId: e.target.value })}
-                    placeholder="120363xxxxxx@g.us"
-                    className="register-input w-full font-data"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Physical Address
-                </label>
-                <textarea
-                  rows={2}
+                <label className="block font-medium text-[var(--ink)] mb-1">Address</label>
+                <input
+                  type="text"
                   value={orgForm.address}
                   onChange={(e) => setOrgForm({ ...orgForm, address: e.target.value })}
-                  placeholder="Street address, city, state, postal code"
-                  className="register-input w-full"
+                  placeholder="e.g. Corporate Park, Hyderabad"
+                  className="input-field w-full"
                 />
               </div>
 
-              {/* Geofencing Coordinates */}
-              <div className="p-3 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ink)]">
-                  <MapPin size={14} className="text-[var(--gold-500)]" />
-                  <span>GPS Geofencing Parameters</span>
-                </div>
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">WhatsApp Group ID</label>
+                <input
+                  type="text"
+                  value={orgForm.whatsAppGroupId}
+                  onChange={(e) => setOrgForm({ ...orgForm, whatsAppGroupId: e.target.value })}
+                  placeholder="e.g. 120363275932360787@g.us"
+                  className="input-field w-full font-mono text-[11px]"
+                />
+              </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[10px] uppercase font-semibold text-[var(--ink-muted)] mb-1">
-                      Latitude
-                    </label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={orgForm.latitude}
-                      onChange={(e) => setOrgForm({ ...orgForm, latitude: Number(e.target.value) })}
-                      className="register-input w-full font-data text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-semibold text-[var(--ink-muted)] mb-1">
-                      Longitude
-                    </label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={orgForm.longitude}
-                      onChange={(e) => setOrgForm({ ...orgForm, longitude: Number(e.target.value) })}
-                      className="register-input w-full font-data text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-semibold text-[var(--ink-muted)] mb-1">
-                      Radius (m)
-                    </label>
-                    <input
-                      type="number"
-                      value={orgForm.radiusMeters}
-                      onChange={(e) => setOrgForm({ ...orgForm, radiusMeters: Number(e.target.value) })}
-                      className="register-input w-full font-data text-xs"
-                    />
-                  </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Latitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={orgForm.latitude}
+                    onChange={(e) => setOrgForm({ ...orgForm, latitude: Number(e.target.value) })}
+                    className="input-field w-full font-data"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Longitude</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={orgForm.longitude}
+                    onChange={(e) => setOrgForm({ ...orgForm, longitude: Number(e.target.value) })}
+                    className="input-field w-full font-data"
+                  />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
-                <button
-                  type="button"
-                  onClick={() => setOrgModalOpen(false)}
-                  className="btn-outline cursor-pointer"
-                >
+              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
+                <button type="button" onClick={() => setOrgModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary cursor-pointer"
-                >
-                  {editingOrgId ? 'Save Changes' : 'Register Organisation'}
+                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
+                  {editingOrgId ? 'Save Changes' : 'Create Organisation'}
                 </button>
               </div>
             </form>
@@ -1093,74 +1432,39 @@ export const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* Modal 2: Add Department */}
+      {/* 2. Add Department Modal */}
       {deptModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px]">
-          <div className="w-full max-w-md rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-lg font-semibold text-[var(--ink)]">
-                  Add Department
-                </h3>
-                <p className="text-xs text-[var(--ink-muted)]">Register a new organizational unit</p>
-              </div>
-              <button
-                onClick={() => setDeptModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
-              >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                <FolderTree size={16} className="text-[var(--gold-500)]" />
+                <span>Create Department</span>
+              </h3>
+              <button onClick={() => setDeptModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleAddDept} className="p-5 space-y-3.5">
+            <form onSubmit={handleAddDept} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Department Name *</label>
+                <label className="block font-medium text-[var(--ink)] mb-1">Department Name *</label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Quality Assurance"
                   value={newDept.name}
                   onChange={(e) => setNewDept({ ...newDept, name: e.target.value })}
-                  className="register-input w-full"
+                  placeholder="e.g. Civil Engineering"
+                  className="input-field w-full"
+                  required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Department Code</label>
-                  <input
-                    type="text"
-                    placeholder="QA"
-                    value={newDept.code}
-                    onChange={(e) => setNewDept({ ...newDept, code: e.target.value })}
-                    className="register-input w-full font-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Lead / Officer</label>
-                  <input
-                    type="text"
-                    placeholder="QA Lead"
-                    value={newDept.head}
-                    onChange={(e) => setNewDept({ ...newDept, head: e.target.value })}
-                    className="register-input w-full"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
-                <button
-                  type="button"
-                  onClick={() => setDeptModalOpen(false)}
-                  className="btn-outline cursor-pointer"
-                >
+              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
+                <button type="button" onClick={() => setDeptModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary cursor-pointer"
-                >
-                  Add Department
+                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
+                  Save Department
                 </button>
               </div>
             </form>
@@ -1168,91 +1472,55 @@ export const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* Modal 3: Add Designation */}
+      {/* 3. Add Designation Modal */}
       {desigModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px]">
-          <div className="w-full max-w-md rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-lg font-semibold text-[var(--ink)]">
-                  Add Designation
-                </h3>
-                <p className="text-xs text-[var(--ink-muted)]">Configure job title and career hierarchy</p>
-              </div>
-              <button
-                onClick={() => setDesigModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
-              >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                <Award size={16} className="text-[var(--gold-500)]" />
+                <span>Create Designation</span>
+              </h3>
+              <button onClick={() => setDesigModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleAddDesignation} className="p-5 space-y-3.5">
+            <form onSubmit={handleAddDesignation} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Designation Title *</label>
+                <label className="block font-medium text-[var(--ink)] mb-1">Designation Title *</label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Senior DevOps Engineer"
                   value={newDesignation.title}
                   onChange={(e) => setNewDesignation({ ...newDesignation, title: e.target.value })}
-                  className="register-input w-full"
+                  placeholder="e.g. Senior Project Manager"
+                  className="input-field w-full"
+                  required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Code</label>
-                  <input
-                    type="text"
-                    placeholder="SDE"
-                    value={newDesignation.code}
-                    onChange={(e) => setNewDesignation({ ...newDesignation, code: e.target.value })}
-                    className="register-input w-full font-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Job Grade</label>
-                  <select
-                    value={newDesignation.level}
-                    onChange={(e) => setNewDesignation({ ...newDesignation, level: e.target.value })}
-                    className="register-input w-full text-xs font-data"
-                  >
-                    <option value="L1 (Associate)">L1 (Associate)</option>
-                    <option value="L2 (Mid)">L2 (Mid Level)</option>
-                    <option value="L3 (Senior)">L3 (Senior)</option>
-                    <option value="L4 (Lead)">L4 (Lead / Principal)</option>
-                    <option value="L5 (Executive)">L5 (Executive)</option>
-                  </select>
-                </div>
-              </div>
-
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Department</label>
+                <label className="block font-medium text-[var(--ink)] mb-1">Department</label>
                 <select
                   value={newDesignation.department}
                   onChange={(e) => setNewDesignation({ ...newDesignation, department: e.target.value })}
-                  className="register-input w-full"
+                  className="input-field w-full text-xs"
                 >
+                  <option value="General">General / All Departments</option>
                   {departments.map((d) => (
-                    <option key={d.id} value={d.name}>{d.name}</option>
+                    <option key={d.id} value={d.name}>
+                      {d.name}
+                    </option>
                   ))}
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
-                <button
-                  type="button"
-                  onClick={() => setDesigModalOpen(false)}
-                  className="btn-outline cursor-pointer"
-                >
+              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
+                <button type="button" onClick={() => setDesigModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary cursor-pointer"
-                >
-                  Add Designation
+                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
+                  Save Designation
                 </button>
               </div>
             </form>
@@ -1260,85 +1528,71 @@ export const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* Modal 4: Add Leave Type */}
+      {/* 4. Add Leave Type Modal */}
       {leaveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px]">
-          <div className="w-full max-w-md rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-lg font-semibold text-[var(--ink)]">
-                  Add Leave Category
-                </h3>
-                <p className="text-xs text-[var(--ink-muted)]">Configure quota policy & salary impact</p>
-              </div>
-              <button
-                onClick={() => setLeaveModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
-              >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                <CalendarCheck size={16} className="text-[var(--gold-500)]" />
+                <span>Configure Leave Category</span>
+              </h3>
+              <button onClick={() => setLeaveModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleAddLeaveType} className="p-5 space-y-3.5">
+            <form onSubmit={handleAddLeaveType} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Leave Category Name *</label>
+                <label className="block font-medium text-[var(--ink)] mb-1">Category Name *</label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Maternity Leave"
                   value={newLeaveType.name}
                   onChange={(e) => setNewLeaveType({ ...newLeaveType, name: e.target.value })}
-                  className="register-input w-full"
+                  placeholder="e.g. Paternity Leave"
+                  className="input-field w-full"
+                  required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Code</label>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Code</label>
                   <input
                     type="text"
-                    placeholder="ML"
                     value={newLeaveType.code}
-                    onChange={(e) => setNewLeaveType({ ...newLeaveType, code: e.target.value })}
-                    className="register-input w-full font-data"
+                    onChange={(e) => setNewLeaveType({ ...newLeaveType, code: e.target.value.toUpperCase() })}
+                    placeholder="e.g. PAT"
+                    className="input-field w-full font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Annual Quota (Days)</label>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Annual Quota (Days)</label>
                   <input
                     type="number"
                     value={newLeaveType.quota}
                     onChange={(e) => setNewLeaveType({ ...newLeaveType, quota: Number(e.target.value) })}
-                    className="register-input w-full font-data"
+                    className="input-field w-full font-data"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Salary Impact</label>
-                <select
-                  value={newLeaveType.isPaid ? 'true' : 'false'}
-                  onChange={(e) => setNewLeaveType({ ...newLeaveType, isPaid: e.target.value === 'true' })}
-                  className="register-input w-full font-data"
-                >
-                  <option value="true">Paid Leave (100% Payable)</option>
-                  <option value="false">Unpaid Leave (Loss of Pay / LOP)</option>
-                </select>
-              </div>
+              <label className="flex items-center gap-2 cursor-pointer pt-1">
+                <input
+                  type="checkbox"
+                  checked={newLeaveType.isPaid}
+                  onChange={(e) => setNewLeaveType({ ...newLeaveType, isPaid: e.target.checked })}
+                  className="rounded border-[var(--rule)]"
+                />
+                <span className="font-medium text-[var(--ink)]">Is Paid Leave (No salary deduction)</span>
+              </label>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
-                <button
-                  type="button"
-                  onClick={() => setLeaveModalOpen(false)}
-                  className="btn-outline cursor-pointer"
-                >
+              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
+                <button type="button" onClick={() => setLeaveModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary cursor-pointer"
-                >
-                  Add Category
+                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
+                  Save Category
                 </button>
               </div>
             </form>
@@ -1346,92 +1600,60 @@ export const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* Modal 5: Add Work Shift */}
+      {/* 5. Add Shift Modal */}
       {shiftModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px]">
-          <div className="w-full max-w-md rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-lg font-semibold text-[var(--ink)]">
-                  Add Work Shift
-                </h3>
-                <p className="text-xs text-[var(--ink-muted)]">Configure shift timings and break windows</p>
-              </div>
-              <button
-                onClick={() => setShiftModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
-              >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                <Layers size={16} className="text-[var(--gold-500)]" />
+                <span>Create Work Shift</span>
+              </h3>
+              <button onClick={() => setShiftModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleAddShift} className="p-5 space-y-3.5">
+            <form onSubmit={handleAddShift} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Shift Name *</label>
+                <label className="block font-medium text-[var(--ink)] mb-1">Shift Name *</label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Weekend Shift"
                   value={newShift.name}
                   onChange={(e) => setNewShift({ ...newShift, name: e.target.value })}
-                  className="register-input w-full"
+                  placeholder="e.g. Night Shift"
+                  className="input-field w-full"
+                  required
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Code</label>
-                  <input
-                    type="text"
-                    placeholder="WKND"
-                    value={newShift.code}
-                    onChange={(e) => setNewShift({ ...newShift, code: e.target.value })}
-                    className="register-input w-full font-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Start</label>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Start Time</label>
                   <input
                     type="time"
                     value={newShift.startTime}
                     onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })}
-                    className="register-input w-full font-data text-xs"
+                    className="input-field w-full font-data"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">End</label>
+                  <label className="block font-medium text-[var(--ink)] mb-1">End Time</label>
                   <input
                     type="time"
                     value={newShift.endTime}
                     onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })}
-                    className="register-input w-full font-data text-xs"
+                    className="input-field w-full font-data"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Break Duration (Minutes)</label>
-                <input
-                  type="number"
-                  value={newShift.breakMinutes}
-                  onChange={(e) => setNewShift({ ...newShift, breakMinutes: Number(e.target.value) })}
-                  className="register-input w-full font-data"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
-                <button
-                  type="button"
-                  onClick={() => setShiftModalOpen(false)}
-                  className="btn-outline cursor-pointer"
-                >
+              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
+                <button type="button" onClick={() => setShiftModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="btn-primary cursor-pointer"
-                >
-                  Add Shift
+                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
+                  Save Shift
                 </button>
               </div>
             </form>
@@ -1439,7 +1661,7 @@ export const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* Universal Bulk Import Modal for Settings */}
+      {/* 6. Bulk Import Modal */}
       <BulkImportModal
         isOpen={bulkImportModalOpen}
         onClose={() => setBulkImportModalOpen(false)}
@@ -1448,10 +1670,292 @@ export const Settings: React.FC = () => {
         templateHeaders={bulkImportConfig.headers}
         templateSampleRow={bulkImportConfig.sampleRow}
         onImportComplete={() => {
-          setBulkImportModalOpen(false);
-          showSuccess('Import Complete', `${bulkImportConfig.title} processed successfully.`);
+          showSuccess('Import Complete', 'Records imported successfully.');
+          fetchOverview();
         }}
       />
+
+      {/* 7. Branch Roles & Permissions Governance Modal */}
+      {selectedBranchForPermissions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 sm:p-6 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--rule)] bg-[var(--paper)]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center font-bold text-xs shrink-0">
+                  <Shield size={16} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display font-semibold text-base text-[var(--ink)]">
+                      {selectedBranchForPermissions.name}
+                    </h3>
+                    <span className="font-data text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink-muted)]">
+                      {selectedBranchForPermissions.code}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/60">
+                      Branch • {selectedBranchForPermissions.orgName || 'Organisation'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
+                    Branch-level Roles, Custom Profiles & Granular Data Scopes
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedBranchForPermissions(null)}
+                className="p-1.5 rounded text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer hover:bg-[var(--surface)] transition-colors"
+                title="Close Modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Scrollable Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 bg-[var(--surface)]">
+              <RolesPermissionsTab />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Edit Corporate Profile Modal */}
+      {companyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                <Building2 size={16} className="text-[var(--gold-500)]" />
+                <span>Edit Corporate Entity Profile</span>
+              </h3>
+              <button onClick={() => setCompanyModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCompany} className="space-y-3 text-xs overflow-y-auto flex-1 pr-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block font-medium text-[var(--ink)] mb-1">Legal Company Name *</label>
+                  <input
+                    type="text"
+                    value={companyForm.legalName}
+                    onChange={(e) => setCompanyForm({ ...companyForm, legalName: e.target.value })}
+                    placeholder="e.g. Sachin Balar Builders Pvt. Ltd."
+                    className="input-field w-full"
+                    required
+                  />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block font-medium text-[var(--ink)] mb-1">Brand / Trade Name</label>
+                  <input
+                    type="text"
+                    value={companyForm.tradeName || ''}
+                    onChange={(e) => setCompanyForm({ ...companyForm, tradeName: e.target.value })}
+                    placeholder="e.g. Hue Builders"
+                    className="input-field w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Company Code</label>
+                  <input
+                    type="text"
+                    value={companyForm.code || ''}
+                    onChange={(e) => setCompanyForm({ ...companyForm, code: e.target.value })}
+                    placeholder="SBB"
+                    className="input-field w-full font-data"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">GSTIN / Tax ID</label>
+                  <input
+                    type="text"
+                    value={companyForm.gstin || ''}
+                    onChange={(e) => setCompanyForm({ ...companyForm, gstin: e.target.value })}
+                    placeholder="24AAAAA0000A1Z5"
+                    className="input-field w-full font-data"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">PAN Number</label>
+                  <input
+                    type="text"
+                    value={companyForm.pan || ''}
+                    onChange={(e) => setCompanyForm({ ...companyForm, pan: e.target.value })}
+                    placeholder="AAAAA0000A"
+                    className="input-field w-full font-data"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">CIN / Registration No</label>
+                  <input
+                    type="text"
+                    value={companyForm.cin || ''}
+                    onChange={(e) => setCompanyForm({ ...companyForm, cin: e.target.value })}
+                    placeholder="U45200GJ2015PTC085123"
+                    className="input-field w-full font-data"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Official Website</label>
+                  <input
+                    type="text"
+                    value={companyForm.website || ''}
+                    onChange={(e) => setCompanyForm({ ...companyForm, website: e.target.value })}
+                    placeholder="https://sachinbalarbuilders.com"
+                    className="input-field w-full font-data"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Official Email</label>
+                  <input
+                    type="email"
+                    value={companyForm.email || ''}
+                    onChange={(e) => setCompanyForm({ ...companyForm, email: e.target.value })}
+                    placeholder="contact@sachinbalar.com"
+                    className="input-field w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={companyForm.phone || ''}
+                    onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })}
+                    placeholder="+91 98765 43210"
+                    className="input-field w-full font-data"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">Registered Headquarters Address</label>
+                <textarea
+                  value={companyForm.headquartersAddress || ''}
+                  onChange={(e) => setCompanyForm({ ...companyForm, headquartersAddress: e.target.value })}
+                  placeholder="Full Corporate Headquarters Address..."
+                  rows={2}
+                  className="input-field w-full resize-none"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
+                <button type="button" onClick={() => setCompanyModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
+                  Cancel
+                </button>
+                <button type="submit" disabled={saving} className="btn-primary py-1.5 px-4 text-xs">
+                  {saving ? 'Saving...' : 'Save Corporate Profile'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Branch Create / Edit Modal */}
+      {branchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                <MapPin size={16} className="text-indigo-500" />
+                <span>{editingBranchId ? 'Edit Branch' : 'Add New Branch'}</span>
+              </h3>
+              <button onClick={() => setBranchModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"><X size={16} /></button>
+            </div>
+
+            <form onSubmit={handleSaveBranch} className="space-y-3 text-xs overflow-y-auto flex-1 pr-1">
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">Parent Organisation *</label>
+                <select
+                  value={branchForm.organizationId || (organizations[0]?.id ?? '')}
+                  onChange={(e) => setBranchForm({ ...branchForm, organizationId: parseInt(e.target.value) })}
+                  className="input-field w-full font-medium"
+                  required
+                >
+                  <option value="" disabled>Select Organisation...</option>
+                  {organizations.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name} ({org.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block font-medium text-[var(--ink)] mb-1">Branch Name *</label>
+                  <input type="text" value={branchForm.name} onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })} placeholder="e.g. Vesu Project Site" className="input-field w-full" required />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block font-medium text-[var(--ink)] mb-1">Branch Code</label>
+                  <input type="text" value={branchForm.code} onChange={(e) => setBranchForm({ ...branchForm, code: e.target.value })} placeholder="e.g. VES-01" className="input-field w-full font-data" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">Address</label>
+                <input type="text" value={branchForm.address} onChange={(e) => setBranchForm({ ...branchForm, address: e.target.value })} placeholder="Street / Area / Landmark" className="input-field w-full" />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">City</label>
+                  <input type="text" value={branchForm.city} onChange={(e) => setBranchForm({ ...branchForm, city: e.target.value })} placeholder="Surat" className="input-field w-full" />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">State</label>
+                  <input type="text" value={branchForm.state} onChange={(e) => setBranchForm({ ...branchForm, state: e.target.value })} placeholder="Gujarat" className="input-field w-full" />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Pincode</label>
+                  <input type="text" value={branchForm.pincode} onChange={(e) => setBranchForm({ ...branchForm, pincode: e.target.value })} placeholder="395007" className="input-field w-full font-data" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Latitude</label>
+                  <input type="number" step="0.0001" value={branchForm.latitude} onChange={(e) => setBranchForm({ ...branchForm, latitude: parseFloat(e.target.value) })} className="input-field w-full font-data" />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Longitude</label>
+                  <input type="number" step="0.0001" value={branchForm.longitude} onChange={(e) => setBranchForm({ ...branchForm, longitude: parseFloat(e.target.value) })} className="input-field w-full font-data" />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Geofence Radius (m)</label>
+                  <input type="number" value={branchForm.radiusMeters} onChange={(e) => setBranchForm({ ...branchForm, radiusMeters: parseInt(e.target.value) })} className="input-field w-full font-data" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">WhatsApp Group ID</label>
+                <input type="text" value={branchForm.whatsAppGroupId} onChange={(e) => setBranchForm({ ...branchForm, whatsAppGroupId: e.target.value })} placeholder="WhatsApp broadcast channel link or group ID" className="input-field w-full font-data" />
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer pt-1">
+                <input type="checkbox" checked={branchForm.isActive} onChange={(e) => setBranchForm({ ...branchForm, isActive: e.target.checked })} className="rounded border-[var(--rule)]" />
+                <span className="font-medium text-[var(--ink)]">Branch is Active</span>
+              </label>
+
+              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
+                <button type="button" onClick={() => setBranchModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">Cancel</button>
+                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">{editingBranchId ? 'Update Branch' : 'Create Branch'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

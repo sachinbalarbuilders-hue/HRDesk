@@ -16,7 +16,9 @@ public sealed class BiometricAttendanceDbContext : DbContext
         _tenantProvider = tenantProvider;
     }
 
+    public DbSet<Company> Companies => Set<Company>();
     public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<Branch> Branches => Set<Branch>();
 
     public DbSet<DeviceCommand> DeviceCommands => Set<DeviceCommand>();
 
@@ -79,6 +81,12 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<CelebrationLog> CelebrationLogs => Set<CelebrationLog>();
     public DbSet<Candidate> Candidates => Set<Candidate>();
     public DbSet<InterviewSchedule> InterviewSchedules => Set<InterviewSchedule>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+        configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -567,7 +575,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
             {
                 case EntityState.Added:
                 case EntityState.Modified:
-                    if (entry.Entity.OrganizationId <= 0 || _tenantProvider.TenantId > 0)
+                    if (entry.Entity.OrganizationId <= 0)
                     {
                         entry.Entity.OrganizationId = targetTenantId;
                     }

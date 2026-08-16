@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
@@ -74,6 +74,11 @@ public sealed class DailyAttendance : IMustHaveTenant
 
     [ForeignKey("ShiftId")]
     public Shift? Shift { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("branch_id")]
+    public int? BranchId { get; set; }
+
+    public Branch? Branch { get; set; }
 
     [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
     public int OrganizationId { get; set; }

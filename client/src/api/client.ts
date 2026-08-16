@@ -7,12 +7,14 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor to attach JWT Bearer token
+// Request interceptor to attach JWT Bearer token and Active Organization
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('hrdesk_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const activeOrg = localStorage.getItem('hrdesk_active_organization') || '1';
+  config.headers['X-Organization-Id'] = activeOrg;
   return config;
 }, (error) => {
   return Promise.reject(error);

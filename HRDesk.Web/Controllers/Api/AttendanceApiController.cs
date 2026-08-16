@@ -38,6 +38,8 @@ public class AttendanceController : ControllerBase
     public async Task<IActionResult> GetMonthlyAttendanceSheet(
         [FromQuery] int? year = null,
         [FromQuery] int? month = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int? departmentId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
@@ -63,6 +65,17 @@ public class AttendanceController : ControllerBase
                     (e.LastWorkingDate != null && e.LastWorkingDate >= startDate) ||
                     (_db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate >= startDate && a.RecordDate < endDate && a.InTime != null))
                 ));
+
+        if (departmentId.HasValue && departmentId.Value > 0)
+        {
+            empQuery = empQuery.Where(e => e.DepartmentId == departmentId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            empQuery = empQuery.Where(e => e.EmployeeName.ToLower().Contains(s));
+        }
 
         empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceMonthlySheet);
 
@@ -99,7 +112,6 @@ public class AttendanceController : ControllerBase
             .Where(h => h.StartDate < endDate && h.EndDate >= startDate)
             .ToListAsync();
 
-        var allLeaveTypes = await _cache.GetLeaveTypesAsync();
         var monthRosters = await _db.ShiftRosters
             .AsNoTracking()
             .Where(r => r.RosterDate >= startDate && r.RosterDate <= endDate && pagedEmpIds.Contains(r.EmployeeId))
@@ -111,6 +123,7 @@ public class AttendanceController : ControllerBase
         {
             var empLogs = logs.Where(l => l.EmployeeId == emp.EmployeeId).ToList();
             var dailyRecords = new Dictionary<string, object>();
+            var dailyStatus = new Dictionary<string, string>();
 
             for (int day = 1; day <= daysInMonth; day++)
             {
@@ -141,7 +154,7 @@ public class AttendanceController : ControllerBase
 
                     if (log.Status == "Holiday")
                     {
-                        statusChar = "H";
+                        statusChar = "HLD";
                         textColor = "#7b1fa2";
                         bgColor = "#f3e5f5";
                         var hol = holidays.FirstOrDefault(h => date >= h.StartDate && date <= h.EndDate);
@@ -149,7 +162,7 @@ public class AttendanceController : ControllerBase
                     }
                     else if (log.Status == "W/O" || log.Status == "Weekoff")
                     {
-                        statusChar = "W/O";
+                        statusChar = "WO";
                         textColor = "#1976d2";
                         bgColor = "#e3f2fd";
                         tooltip = "Weekoff";
@@ -179,19 +192,21 @@ public class AttendanceController : ControllerBase
 
                         if (statusChar == "P") { textColor = "#2e7d32"; bgColor = "#e8f5e9"; }
                         else if (statusChar == "A") { textColor = "#d32f2f"; bgColor = "#ffebee"; }
-                        else if (statusChar == "W/O") { textColor = "#1976d2"; bgColor = "#e3f2fd"; }
+                        else if (statusChar == "WO" || statusChar == "W/O") { textColor = "#1976d2"; bgColor = "#e3f2fd"; }
                         else if (statusChar.EndsWith("HF")) { textColor = "#ef6c00"; bgColor = "#fff3e0"; }
                     }
                 }
                 else if (isWeekOff)
                 {
-                    statusChar = "W/O";
+                    statusChar = "WO";
                     textColor = "#1976d2";
                     bgColor = "#e3f2fd";
                     tooltip = "Default Weekoff";
                 }
 
-                dailyRecords[day.ToString()] = new
+                var dayKey = day.ToString();
+                dailyStatus[dayKey] = statusChar;
+                dailyRecords[dayKey] = new
                 {
                     day,
                     status = statusChar,
@@ -204,19 +219,21 @@ public class AttendanceController : ControllerBase
                 };
             }
 
-            // Single Source of Truth attendance computation!
+            // Single Source of Truth attendance computation
             var counts = _attendanceSummaryService.ComputeSummary(emp.EmployeeId, selectedYear, selectedMonth, logs, leaveApps);
 
             items.Add(new
             {
                 employee = new
                 {
-                    emp.EmployeeId,
-                    emp.EmployeeName,
-                    Department = emp.Department?.DepartmentName,
-                    emp.Weekoff
+                    employeeId = emp.EmployeeId,
+                    employeeName = emp.EmployeeName,
+                    department = emp.Department?.DepartmentName ?? "General",
+                    departmentName = emp.Department?.DepartmentName ?? "General",
+                    weekoff = emp.Weekoff
                 },
                 dailyRecords,
+                dailyStatus,
                 summary = new
                 {
                     presentDays = counts.PresentCount,
@@ -245,7 +262,10 @@ public class AttendanceController : ControllerBase
     }
 
     [HttpGet("daily-logs")]
-    public async Task<IActionResult> GetDailyLogs([FromQuery] DateOnly? date = null)
+    public async Task<IActionResult> GetDailyLogs(
+        [FromQuery] DateOnly? date = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int? departmentId = null)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceView))
         {
@@ -261,31 +281,42 @@ public class AttendanceController : ControllerBase
             .Include(a => a.Shift)
             .Where(a => a.RecordDate == targetDate);
 
-        // Apply Scope via Employee navigation
+        if (departmentId.HasValue && departmentId.Value > 0)
+        {
+            query = query.Where(a => a.Employee.DepartmentId == departmentId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(a => a.Employee.EmployeeName.ToLower().Contains(s));
+        }
+
         query = await _permissionService.ApplyAttendanceScopeAsync(query, User, AppPermissions.Keys.AttendanceView);
 
         var logs = await query
             .OrderBy(a => a.Employee.EmployeeName)
             .Select(a => new
             {
-                a.Id,
-                a.EmployeeId,
-                EmployeeName = a.Employee.EmployeeName,
-                Department = a.Employee.Department != null ? a.Employee.Department.DepartmentName : null,
-                a.RecordDate,
-                InTime = a.InTime != null ? a.InTime.Value.ToString("HH:mm") : null,
-                OutTime = a.OutTime != null ? a.OutTime.Value.ToString("HH:mm") : null,
-                a.WorkMinutes,
-                a.BreakMinutes,
-                a.Status,
-                ShiftName = a.Shift != null ? a.Shift.ShiftName : null,
-                a.IsLate,
-                a.IsEarly,
-                a.IsHalfDay
+                id = a.Id,
+                employeeId = a.EmployeeId,
+                employeeName = a.Employee.EmployeeName,
+                department = a.Employee.Department != null ? a.Employee.Department.DepartmentName : "General",
+                recordDate = a.RecordDate,
+                inTime = a.InTime != null ? a.InTime.Value.ToString("HH:mm") : null,
+                outTime = a.OutTime != null ? a.OutTime.Value.ToString("HH:mm") : null,
+                workMinutes = a.WorkMinutes,
+                breakMinutes = a.BreakMinutes,
+                status = a.Status,
+                shiftName = a.Shift != null ? a.Shift.ShiftName : "General Shift",
+                lateMinutes = a.LateMinutes,
+                isLate = a.IsLate,
+                isEarly = a.IsEarly,
+                isHalfDay = a.IsHalfDay
             })
             .ToListAsync();
 
-        return Ok(new { date = targetDate, total = logs.Count, logs });
+        return Ok(new { date = targetDate.ToString("yyyy-MM-dd"), total = logs.Count, items = logs, logs });
     }
 
     [HttpPost("punch")]
@@ -299,45 +330,37 @@ public class AttendanceController : ControllerBase
 
         var targetEmpId = dto.EmployeeId ?? currentEmpId!.Value;
         var now = DateTime.Now;
-        var date = DateOnly.FromDateTime(now);
-        var time = TimeOnly.FromDateTime(now);
+        var today = DateOnly.FromDateTime(now);
+        var timeOnly = TimeOnly.FromDateTime(now);
 
-        var emp = await _db.Employees.FindAsync(targetEmpId);
-        if (emp == null) return NotFound(new { message = "Employee not found." });
+        var existingLog = await _db.DailyAttendance
+            .FirstOrDefaultAsync(a => a.EmployeeId == targetEmpId && a.RecordDate == today);
 
-        // Record biometric punch into AttendanceLogs
-        var rawPunch = new AttendanceLog
+        if (existingLog == null)
         {
-            EmployeeId = targetEmpId,
-            PunchTime = now,
-            MachineNumber = dto.DeviceId ?? 0,
-            VerifyMode = 1,
-            VerifyType = "WEB_GPS",
-            SyncedAt = now,
-            CreatedAt = now,
-            OrganizationId = emp.OrganizationId
-        };
-
-        _db.AttendanceLogs.Add(rawPunch);
-        await _db.SaveChangesAsync();
-
-        // Process punch in background
-        _ = Task.Run(async () =>
-        {
-            try
+            existingLog = new DailyAttendance
             {
-                await _processor.ProcessDailyAttendanceAsync(date, targetEmpId);
-            }
-            catch { }
-        });
-
-        return Ok(new
+                EmployeeId = targetEmpId,
+                RecordDate = today,
+                InTime = timeOnly,
+                Status = "Present",
+                OrganizationId = 1
+            };
+            _db.DailyAttendance.Add(existingLog);
+        }
+        else
         {
-            success = true,
-            timestamp = now,
-            message = $"Punch recorded successfully at {time:hh:mm tt}."
-        });
-    }
+            existingLog.OutTime = timeOnly;
+            if (existingLog.InTime.HasValue)
+            {
+                var workDuration = timeOnly - existingLog.InTime.Value;
+                existingLog.WorkMinutes = (int)workDuration.TotalMinutes;
+            }
+        }
 
-    public record PunchRequestDto(int? EmployeeId, string? PunchType, int? DeviceId, double? Latitude, double? Longitude);
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Punch recorded successfully.", inTime = existingLog.InTime?.ToString("HH:mm"), outTime = existingLog.OutTime?.ToString("HH:mm") });
+    }
 }
+
+public record PunchRequestDto(int? EmployeeId, string? PunchType, string? Source);

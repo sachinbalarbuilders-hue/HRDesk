@@ -70,6 +70,7 @@ public sealed class PermissionService : IPermissionService
         if (!string.IsNullOrEmpty(username))
         {
             var dbUser = await _context.Users
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
 
@@ -102,7 +103,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.EmployeesView)
     {
-        if (user.IsInRole("SuperAdmin"))
+        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -149,7 +150,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.AttendanceView)
     {
-        if (user.IsInRole("SuperAdmin"))
+        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -205,7 +206,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.LeavesView)
     {
-        if (user.IsInRole("SuperAdmin"))
+        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -247,7 +248,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.AttendanceRegularize)
     {
-        if (user.IsInRole("SuperAdmin"))
+        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -289,7 +290,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.CompOffApprove)
     {
-        if (user.IsInRole("SuperAdmin"))
+        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -346,6 +347,7 @@ public sealed class PermissionService : IPermissionService
         }
 
         var dbUser = await _context.Users
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Include(u => u.CustomRole)
                 .ThenInclude(r => r!.Permissions)

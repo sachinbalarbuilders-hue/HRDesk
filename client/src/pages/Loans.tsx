@@ -1,19 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { apiClient } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
+import { TableSkeleton } from '../components/ui/PageSkeleton';
 import {
   DollarSign,
   Plus,
-  Trash2,
   CheckCircle,
   XCircle,
   X,
   CreditCard,
   Receipt,
   TrendingDown,
+  Building2,
+  Check,
 } from 'lucide-react';
 
 interface LoanRecord {
@@ -23,7 +27,8 @@ interface LoanRecord {
   employeeId: number;
   employeeName: string;
   department: string;
-  loanType: 'Salary Advance' | 'Personal Loan' | 'Emergency Aid' | 'Equipment Loan';
+  loanType: string;
+  loanTypeId: number;
   principalAmount: number;
   monthlyEmi: number;
   tenureMonths: number;
@@ -32,592 +37,575 @@ interface LoanRecord {
   startMonth: string;
   status: 'Pending' | 'Approved' | 'Disbursed' | 'Closed' | 'Rejected';
   reason: string;
+  approvedBy: string | null;
 }
 
 export const Loans: React.FC = () => {
   const { showSuccess, showError } = useToast();
+  const { hasPermission, isAdmin } = useAuth();
+
+  const [loans, setLoans] = useState<LoanRecord[]>([]);
+  const [loanTypes, setLoanTypes] = useState<Array<{ id: number; name: string }>>([]);
+  const [employees, setEmployees] = useState<Array<{ employeeId: number; employeeName: string }>>([]);
+  const [stats, setStats] = useState({
+    totalDisbursed: 0,
+    totalOutstanding: 0,
+    totalRecovered: 0,
+    activeLoansCount: 0,
+    pendingRequestsCount: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Modals
   const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectTargetId, setRejectTargetId] = useState<number | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   const [form, setForm] = useState({
-    employeeName: '',
-    employeeId: '',
-    department: 'Engineering & Technology',
-    loanType: 'Salary Advance' as const,
+    employeeId: 0,
+    loanTypeId: 1,
     principalAmount: 25000,
     tenureMonths: 5,
-    startMonth: '2026-09',
+    startDate: new Date().toISOString().split('T')[0],
     reason: '',
   });
 
-  const [loans, setLoans] = useState<LoanRecord[]>([
-    {
-      id: 1,
-      appNumber: 'LN-2026-001',
-      appDate: '2026-07-15',
-      employeeId: 1042,
-      employeeName: 'Ramesh Patel',
-      department: 'Engineering & Technology',
-      loanType: 'Personal Loan',
-      principalAmount: 100000,
-      monthlyEmi: 10000,
-      tenureMonths: 10,
-      paidMonths: 4,
-      remainingAmount: 60000,
-      startMonth: '2026-08',
-      status: 'Disbursed',
-      reason: 'Home renovation expenses',
-    },
-    {
-      id: 2,
-      appNumber: 'LN-2026-002',
-      appDate: '2026-08-01',
-      employeeId: 1089,
-      employeeName: 'Priya Sharma',
-      department: 'Human Resources & People',
-      loanType: 'Salary Advance',
-      principalAmount: 30000,
-      monthlyEmi: 10000,
-      tenureMonths: 3,
-      paidMonths: 1,
-      remainingAmount: 20000,
-      startMonth: '2026-08',
-      status: 'Disbursed',
-      reason: 'Family emergency advance',
-    },
-    {
-      id: 3,
-      appNumber: 'LN-2026-003',
-      appDate: '2026-08-10',
-      employeeId: 1104,
-      employeeName: 'Anil Kumar',
-      department: 'Operations & Logistics',
-      loanType: 'Emergency Aid',
-      principalAmount: 15000,
-      monthlyEmi: 5000,
-      tenureMonths: 3,
-      paidMonths: 0,
-      remainingAmount: 15000,
-      startMonth: '2026-09',
-      status: 'Approved',
-      reason: 'Medical prescription assistance',
-    },
-    {
-      id: 4,
-      appNumber: 'LN-2026-004',
-      appDate: '2026-08-14',
-      employeeId: 1120,
-      employeeName: 'Vikram Mehta',
-      department: 'Finance & Accounts',
-      loanType: 'Equipment Loan',
-      principalAmount: 50000,
-      monthlyEmi: 5000,
-      tenureMonths: 10,
-      paidMonths: 0,
-      remainingAmount: 50000,
-      startMonth: '2026-09',
-      status: 'Pending',
-      reason: 'Workstation laptop upgrade',
-    },
-  ]);
+  const fetchLookups = async () => {
+    try {
+      const [typesRes, empRes] = await Promise.all([
+        apiClient.get('/loans/types'),
+        apiClient.get('/employees?pageSize=200'),
+      ]);
+      const types = typesRes.data || [];
+      const emps = (empRes.data.items || []).map((e: any) => ({
+        employeeId: e.employeeId || e.id,
+        employeeName: e.employeeName || e.name,
+      }));
+      setLoanTypes(types);
+      setEmployees(emps);
+      if (types.length > 0 && form.loanTypeId === 1) {
+        setForm(prev => ({ ...prev, loanTypeId: types[0].id }));
+      }
+      if (emps.length > 0 && form.employeeId === 0) {
+        setForm(prev => ({ ...prev, employeeId: emps[0].employeeId }));
+      }
+    } catch (e) {
+      console.error('Failed to load loan lookups', e);
+    }
+  };
 
-  const handleApply = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchLookups();
+  }, []);
+
+  const fetchLoans = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/loans', {
+        params: {
+          status: statusFilter !== 'all' && statusFilter ? statusFilter : undefined,
+          loanTypeId: typeFilter && typeFilter !== 'all' ? parseInt(typeFilter) : undefined,
+          search: search || undefined,
+          page,
+          pageSize,
+        },
+      });
+      setLoans(res.data.items || []);
+      setTotalCount(res.data.totalCount || 0);
+      setTotalPages(res.data.totalPages || 1);
+      if (res.data.stats) {
+        setStats(res.data.stats);
+      }
+    } catch (err: any) {
+      showError('Failed to fetch loans', err.response?.data?.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLoans();
+  }, [statusFilter, typeFilter, search, page, pageSize]);
+
+  const handleApprove = async (id: number) => {
+    try {
+      await apiClient.post(`/loans/${id}/approve`);
+      showSuccess('Loan Approved', 'Loan application marked as Approved.');
+      fetchLoans();
+    } catch (err: any) {
+      showError('Approval Failed', err.response?.data?.message || 'Server error');
+    }
+  };
+
+  const handleDisburse = async (id: number) => {
+    try {
+      await apiClient.post(`/loans/${id}/disburse`);
+      showSuccess('Loan Disbursed', 'Principal amount marked as Disbursed. EMI deduction will begin on schedule.');
+      fetchLoans();
+    } catch (err: any) {
+      showError('Disbursement Failed', err.response?.data?.message || 'Server error');
+    }
+  };
+
+  const handleOpenReject = (id: number) => {
+    setRejectTargetId(id);
+    setRejectReason('');
+    setRejectModalOpen(true);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectTargetId) return;
+    try {
+      await apiClient.post(`/loans/${rejectTargetId}/reject`, { remarks: rejectReason });
+      showSuccess('Loan Rejected', 'Loan application has been rejected.');
+      setRejectModalOpen(false);
+      setRejectTargetId(null);
+      fetchLoans();
+    } catch (err: any) {
+      showError('Rejection Failed', err.response?.data?.message || 'Server error');
+    }
+  };
+
+  const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.employeeName.trim()) {
-      showError('Validation Error', 'Employee name is required.');
+    if (!form.employeeId) {
+      showError('Validation Error', 'Please select an employee.');
       return;
     }
 
-    const emi = Math.round(form.principalAmount / (form.tenureMonths || 1));
-    const newRecord: LoanRecord = {
-      id: Date.now(),
-      appNumber: `LN-2026-${String(loans.length + 1).padStart(3, '0')}`,
-      appDate: new Date().toISOString().split('T')[0],
-      employeeId: Number(form.employeeId) || 1000 + loans.length + 1,
-      employeeName: form.employeeName,
-      department: form.department,
-      loanType: form.loanType,
-      principalAmount: Number(form.principalAmount),
-      monthlyEmi: emi,
-      tenureMonths: Number(form.tenureMonths),
-      paidMonths: 0,
-      remainingAmount: Number(form.principalAmount),
-      startMonth: form.startMonth,
-      status: 'Pending',
-      reason: form.reason,
-    };
-
-    setLoans([newRecord, ...loans]);
-    showSuccess('Application Filed', `Loan application ${newRecord.appNumber} submitted for approval.`);
-    setApplyModalOpen(false);
-    setForm({
-      employeeName: '',
-      employeeId: '',
-      department: 'Engineering & Technology',
-      loanType: 'Salary Advance',
-      principalAmount: 25000,
-      tenureMonths: 5,
-      startMonth: '2026-09',
-      reason: '',
-    });
-  };
-
-  const handleStatusChange = (id: number, newStatus: LoanRecord['status']) => {
-    setLoans(loans.map(l => l.id === id ? { ...l, status: newStatus } : l));
-    showSuccess('Status Updated', `Loan record status changed to ${newStatus}.`);
-  };
-
-  const handleDelete = (id: number) => {
-    setLoans(loans.filter(l => l.id !== id));
-    showSuccess('Record Removed', 'Loan application deleted.');
+    try {
+      setSubmitting(true);
+      await apiClient.post('/loans', form);
+      showSuccess('Application Submitted', 'Loan request submitted with scheduled EMI breakdown.');
+      setApplyModalOpen(false);
+      fetchLoans();
+    } catch (err: any) {
+      showError('Submission Failed', err.response?.data?.message || 'Server error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleExport = () => {
-    const headers = [
-      { key: 'appNumber', label: 'App Number' },
-      { key: 'appDate', label: 'Application Date' },
-      { key: 'employeeId', label: 'Employee ID' },
-      { key: 'employeeName', label: 'Employee Name' },
-      { key: 'department', label: 'Department' },
-      { key: 'loanType', label: 'Loan Type' },
-      { key: 'principalAmount', label: 'Principal Amount' },
-      { key: 'monthlyEmi', label: 'Monthly EMI' },
-      { key: 'remainingAmount', label: 'Outstanding Balance' },
-      { key: 'status', label: 'Status' },
-    ];
-    exportToCSV('HRDesk_Loans_and_Advances', filteredLoans, headers);
-    showSuccess('Data Exported', 'Loan applications downloaded to CSV.');
+    if (!loans.length) {
+      showError('Export Empty', 'No loan records to export.');
+      return;
+    }
+
+    exportToCSV(
+      'Employee_Loans_Ledger',
+      loans.map(l => ({
+        'App Number': l.appNumber,
+        'App Date': l.appDate,
+        'Employee Name': l.employeeName,
+        Department: l.department,
+        'Loan Type': l.loanType,
+        'Principal Amount': l.principalAmount,
+        'Monthly EMI': l.monthlyEmi,
+        'Tenure (Months)': l.tenureMonths,
+        'Remaining Amount': l.remainingAmount,
+        'Start Month': l.startMonth,
+        Status: l.status,
+        'Approved By': l.approvedBy || '',
+      }))
+    );
   };
 
-  // Metrics Calculations
-  const totalDisbursed = loans.filter(l => l.status === 'Disbursed' || l.status === 'Closed').reduce((acc, l) => acc + l.principalAmount, 0);
-  const totalOutstanding = loans.filter(l => l.status === 'Disbursed' || l.status === 'Approved').reduce((acc, l) => acc + l.remainingAmount, 0);
-  const totalRecovered = totalDisbursed - totalOutstanding;
-
-  const filteredLoans = loans.filter((l) => {
-    const matchesSearch = !search ||
-      l.employeeName.toLowerCase().includes(search.toLowerCase()) ||
-      l.appNumber.toLowerCase().includes(search.toLowerCase()) ||
-      l.employeeId.toString().includes(search);
-    const matchesStatus = !statusFilter || l.status === statusFilter;
-    const matchesType = !typeFilter || l.loanType === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
-  });
-
-  const totalCount = filteredLoans.length;
-  const totalPages = Math.ceil(totalCount / pageSize) || 1;
-  const paginatedLoans = filteredLoans.slice((page - 1) * pageSize, page * pageSize);
+  const canManage = isAdmin || hasPermission('Payroll.ManageLoans');
 
   return (
-    <div className="space-y-6 font-ui">
-      {/* 1. Header with Display Serif and Divider */}
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">
-              Loans & Advances
-            </h1>
-            <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
-              Employee loan requests, salary advance ledgers & payroll EMI deductions
-            </p>
-          </div>
-
-          <span className="text-xs font-data text-[var(--ink-muted)]">
-            {filteredLoans.length} Applications on Record
+    <div className="space-y-6">
+      {/* 1. Header Section */}
+      <div className="border-b border-[var(--rule)] pb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono tracking-widest text-[var(--accent)] uppercase font-semibold">
+            Finance & Advances
           </span>
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+          <span className="text-[11px] font-mono text-[var(--ink-muted)]">Salary Advances & EMIs</span>
         </div>
-
-        {/* Signature Divider */}
-        <div className="register-rule pt-1" />
+        <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink)] mt-1">
+          Employee Loans & Advances Register
+        </h1>
+        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+          Manage company advances, emergency aid, installment schedules, and payroll auto-deductions.
+        </p>
       </div>
 
-      {/* 2. Financial Metrics Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] space-y-1">
-          <div className="flex items-center justify-between text-xs text-[var(--ink-muted)]">
-            <span>Total Applications</span>
-            <Receipt size={14} className="text-[var(--gold-500)]" />
+      {/* 2. Top Metrics Banner */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-[var(--accent)]">
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-[var(--accent)] flex items-center justify-center shrink-0">
+            <CreditCard className="w-5 h-5" />
           </div>
-          <p className="font-display text-xl font-bold text-[var(--ink)]">{loans.length}</p>
-          <p className="text-[10px] text-[var(--ink-muted)] font-data">
-            {loans.filter(l => l.status === 'Pending').length} Pending Approval
-          </p>
+          <div>
+            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Total Disbursed</div>
+            <div className="text-lg font-bold font-data text-[var(--ink)]">₹{stats.totalDisbursed.toLocaleString()}</div>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] space-y-1">
-          <div className="flex items-center justify-between text-xs text-[var(--ink-muted)]">
-            <span>Total Disbursed</span>
-            <CreditCard size={14} className="text-[var(--ok-600)]" />
+        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-amber-500">
+          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center shrink-0">
+            <TrendingDown className="w-5 h-5" />
           </div>
-          <p className="font-data text-xl font-bold text-[var(--ok-600)]">₹{totalDisbursed.toLocaleString('en-IN')}</p>
-          <p className="text-[10px] text-[var(--ink-muted)] font-data">Cumulative approved advances</p>
+          <div>
+            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Outstanding Balance</div>
+            <div className="text-lg font-bold font-data text-amber-700 dark:text-amber-300">₹{stats.totalOutstanding.toLocaleString()}</div>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] space-y-1">
-          <div className="flex items-center justify-between text-xs text-[var(--ink-muted)]">
-            <span>Total Recovered</span>
-            <TrendingDown size={14} className="text-[var(--gold-500)]" />
+        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-emerald-500">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center shrink-0">
+            <Receipt className="w-5 h-5" />
           </div>
-          <p className="font-data text-xl font-bold text-[var(--ink)]">₹{Math.max(0, totalRecovered).toLocaleString('en-IN')}</p>
-          <p className="text-[10px] text-[var(--ink-muted)] font-data">Via monthly salary deductions</p>
+          <div>
+            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Recovered Amount</div>
+            <div className="text-lg font-bold font-data text-emerald-700 dark:text-emerald-300">₹{stats.totalRecovered.toLocaleString()}</div>
+          </div>
         </div>
 
-        <div className="p-4 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] space-y-1">
-          <div className="flex items-center justify-between text-xs text-[var(--ink-muted)]">
-            <span>Outstanding Balance</span>
-            <DollarSign size={14} className="text-[var(--warn-600)]" />
+        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-purple-500">
+          <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center shrink-0">
+            <DollarSign className="w-5 h-5" />
           </div>
-          <p className="font-data text-xl font-bold text-[var(--warn-600)]">₹{totalOutstanding.toLocaleString('en-IN')}</p>
-          <p className="text-[10px] text-[var(--ink-muted)] font-data">Pending future recoveries</p>
+          <div>
+            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Active Loan Accounts</div>
+            <div className="text-lg font-bold font-data text-[var(--ink)]">{stats.activeLoansCount} Accounts</div>
+          </div>
         </div>
       </div>
 
-      {/* 3. Unified DataToolbar */}
+      {/* 3. Toolbar & Filters */}
       <DataToolbar
+        searchPlaceholder="Search application #, employee, or reason..."
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Search loans by employee, app # or record ID..."
         filters={[
           {
             id: 'status',
+            ariaLabel: 'Status Filter',
             value: statusFilter,
-            onChange: setStatusFilter,
+            onChange: (v) => { setStatusFilter(v); setPage(1); },
             options: [
-              { value: '', label: 'All Statuses' },
-              { value: 'Pending', label: 'Pending' },
-              { value: 'Approved', label: 'Approved' },
-              { value: 'Disbursed', label: 'Disbursed' },
-              { value: 'Closed', label: 'Closed' },
-              { value: 'Rejected', label: 'Rejected' },
+              { label: 'All Statuses', value: 'all' },
+              { label: 'Pending Review', value: 'Pending' },
+              { label: 'Approved', value: 'Approved' },
+              { label: 'Disbursed / Active', value: 'Disbursed' },
+              { label: 'Closed', value: 'Closed' },
+              { label: 'Rejected', value: 'Rejected' },
             ],
           },
           {
             id: 'type',
+            ariaLabel: 'Loan Type Filter',
             value: typeFilter,
-            onChange: setTypeFilter,
+            onChange: (v) => { setTypeFilter(v); setPage(1); },
             options: [
-              { value: '', label: 'All Loan Types' },
-              { value: 'Salary Advance', label: 'Salary Advance' },
-              { value: 'Personal Loan', label: 'Personal Loan' },
-              { value: 'Emergency Aid', label: 'Emergency Aid' },
-              { value: 'Equipment Loan', label: 'Equipment Loan' },
+              { label: 'All Loan Types', value: 'all' },
+              ...loanTypes.map(t => ({ label: t.name, value: String(t.id) })),
             ],
           },
         ]}
         onExport={handleExport}
-        exportLabel="Export Loans"
         onImport={() => setImportModalOpen(true)}
-        importLabel="Import CSV"
+        importLabel="Import Loans"
         primaryAction={{
-          label: 'Apply for Loan',
-          icon: <Plus size={14} />,
+          label: 'Apply Loan / Advance',
+          icon: <Plus className="w-3.5 h-3.5" />,
           onClick: () => setApplyModalOpen(true),
         }}
       />
 
-      {/* 4. Ruled Ledger Table */}
-      <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-        <table className="register-table">
-          <thead>
-            <tr>
-              <th className="font-data">App #</th>
-              <th>Employee Member</th>
-              <th>Category</th>
-              <th className="text-right font-data">Principal</th>
-              <th className="text-right font-data">Monthly EMI</th>
-              <th className="text-center font-data">Tenure</th>
-              <th className="text-right font-data">Remaining</th>
-              <th>Status</th>
-              <th className="text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedLoans.map((l) => {
-              const statusColors: Record<string, string> = {
-                Pending: 'bg-[var(--warn-600)]/10 text-[var(--warn-600)] border border-[var(--warn-600)]/30',
-                Approved: 'bg-[var(--gold-100)] text-[var(--gold-500)] border border-[var(--gold-500)]/30',
-                Disbursed: 'bg-[var(--ok-600)]/10 text-[var(--ok-600)] border border-[var(--ok-600)]/30',
-                Closed: 'bg-[var(--paper)] text-[var(--ink-muted)] border border-[var(--rule)]',
-                Rejected: 'bg-[var(--err-600)]/10 text-[var(--err-600)] border border-[var(--err-600)]/30',
-              };
+      {/* 4. Loans Table */}
+      <div className="card overflow-hidden">
+        {loading ? (
+          <div className="p-6">
+            <TableSkeleton rows={8} />
+          </div>
+        ) : loans.length === 0 ? (
+          <div className="p-12 text-center text-xs text-[var(--ink-muted)]">
+            <CreditCard className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
+            <div className="font-semibold text-sm text-[var(--ink)]">No Loan Applications Found</div>
+            <p className="mt-1">There are no employee loan records matching the selected filters.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-[var(--rule)] bg-[var(--paper-subtle)] text-[var(--ink-muted)] font-mono text-[11px] uppercase tracking-wider">
+                  <th className="p-3.5 font-semibold">Application #</th>
+                  <th className="p-3.5 font-semibold">Employee</th>
+                  <th className="p-3.5 font-semibold">Type</th>
+                  <th className="p-3.5 font-semibold">Principal</th>
+                  <th className="p-3.5 font-semibold">Monthly EMI</th>
+                  <th className="p-3.5 font-semibold">Repayment Progress</th>
+                  <th className="p-3.5 font-semibold">Remaining</th>
+                  <th className="p-3.5 font-semibold">Status</th>
+                  <th className="p-3.5 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--rule)]">
+                {loans.map((l) => (
+                  <tr key={l.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
+                    <td className="p-3.5 font-mono font-semibold text-[var(--accent)]">
+                      {l.appNumber}
+                      <div className="text-[10px] text-[var(--ink-muted)] font-normal">
+                        {l.appDate}
+                      </div>
+                    </td>
 
-              return (
-                <tr key={l.id}>
-                  {/* App # */}
-                  <td className="font-data text-xs font-semibold text-[var(--ink)]">
-                    {l.appNumber}
-                    <span className="block text-[10px] font-normal text-[var(--ink-muted)] font-data">{l.appDate}</span>
-                  </td>
+                    <td className="p-3.5">
+                      <div className="font-semibold text-[var(--ink)]">{l.employeeName}</div>
+                      <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
+                        <Building2 className="w-3 h-3" />
+                        <span>{l.department}</span>
+                      </div>
+                    </td>
 
-                  {/* Employee */}
-                  <td>
-                    <p className="font-semibold text-xs text-[var(--ink)] font-ui">{l.employeeName}</p>
-                    <p className="text-[10px] text-[var(--ink-muted)] font-data">#{l.employeeId} · {l.department}</p>
-                  </td>
+                    <td className="p-3.5 font-medium text-[var(--ink)]">
+                      {l.loanType}
+                    </td>
 
-                  {/* Loan Type */}
-                  <td className="text-xs text-[var(--ink)] font-semibold">
-                    {l.loanType}
-                  </td>
+                    <td className="p-3.5 font-mono font-bold text-[var(--ink)]">
+                      ₹{l.principalAmount.toLocaleString()}
+                    </td>
 
-                  {/* Principal */}
-                  <td className="text-right font-data text-xs text-[var(--ink)] font-bold">
-                    ₹{l.principalAmount.toLocaleString('en-IN')}
-                  </td>
+                    <td className="p-3.5 font-mono text-indigo-600 font-semibold">
+                      ₹{l.monthlyEmi.toLocaleString()} / mo
+                    </td>
 
-                  {/* Monthly EMI */}
-                  <td className="text-right font-data text-xs text-[var(--ink-muted)]">
-                    ₹{l.monthlyEmi.toLocaleString('en-IN')} / mo
-                  </td>
+                    <td className="p-3.5">
+                      <div className="text-[11px] font-mono mb-1">
+                        <span className="font-bold text-[var(--ink)]">{l.paidMonths}</span> of {l.tenureMonths} EMIs Paid
+                      </div>
+                      <div className="w-28 h-1.5 rounded-full bg-[var(--rule)] overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full"
+                          style={{ width: `${Math.min(100, (l.paidMonths / (l.tenureMonths || 1)) * 100)}%` }}
+                        />
+                      </div>
+                    </td>
 
-                  {/* Tenure / Progress */}
-                  <td className="text-center font-data text-xs text-[var(--ink)]">
-                    <span>{l.paidMonths} / {l.tenureMonths} mos</span>
-                  </td>
+                    <td className="p-3.5 font-mono font-bold text-amber-700 dark:text-amber-300">
+                      ₹{l.remainingAmount.toLocaleString()}
+                    </td>
 
-                  {/* Remaining Balance */}
-                  <td className="text-right font-data text-xs text-[var(--ink)] font-bold">
-                    ₹{l.remainingAmount.toLocaleString('en-IN')}
-                  </td>
-
-                  {/* Status Badge */}
-                  <td>
-                    <span className={`px-2 py-0.5 rounded-[2px] font-data text-[10px] font-bold inline-block ${statusColors[l.status]}`}>
-                      {l.status}
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1">
+                    <td className="p-3.5">
                       {l.status === 'Pending' && (
-                        <button
-                          onClick={() => handleStatusChange(l.id, 'Approved')}
-                          className="p-1 text-[var(--ok-600)] hover:bg-[var(--ok-600)]/10 rounded cursor-pointer"
-                          title="Approve Loan"
-                        >
-                          <CheckCircle size={14} />
-                        </button>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          Pending
+                        </span>
+                      )}
+                      {l.status === 'Approved' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                          <Check className="w-3 h-3 text-blue-600" />
+                          Approved
+                        </span>
+                      )}
+                      {l.status === 'Disbursed' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                          <CheckCircle className="w-3 h-3 text-emerald-600" />
+                          Disbursed
+                        </span>
+                      )}
+                      {l.status === 'Closed' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                          Closed
+                        </span>
+                      )}
+                      {l.status === 'Rejected' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
+                          <X className="w-3 h-3 text-rose-600" />
+                          Rejected
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="p-3.5 text-right">
+                      {canManage && l.status === 'Pending' && (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleApprove(l.id)}
+                            title="Approve Loan"
+                            className="p-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 transition-colors"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenReject(l.id)}
+                            title="Reject Loan"
+                            className="p-1.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/60 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
 
-                      {l.status === 'Approved' && (
+                      {canManage && l.status === 'Approved' && (
                         <button
-                          onClick={() => handleStatusChange(l.id, 'Disbursed')}
-                          className="p-1 text-[var(--gold-500)] hover:bg-[var(--gold-100)]/30 rounded cursor-pointer font-data text-[10px] font-bold"
-                          title="Disburse Funds"
+                          onClick={() => handleDisburse(l.id)}
+                          className="btn-primary text-[11px] py-1 px-2.5 shadow-xs"
                         >
                           Disburse
                         </button>
                       )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-                      {l.status === 'Pending' && (
-                        <button
-                          onClick={() => handleStatusChange(l.id, 'Rejected')}
-                          className="p-1 text-[var(--err-600)] hover:bg-[var(--err-600)]/10 rounded cursor-pointer"
-                          title="Reject Loan"
-                        >
-                          <XCircle size={14} />
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => handleDelete(l.id)}
-                        className="p-1 text-[var(--ink-muted)] hover:text-[var(--err-600)] cursor-pointer"
-                        title="Delete Record"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-
-            {paginatedLoans.length === 0 && (
-              <tr>
-                <td colSpan={9} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
-                  No loan or advance applications match the selected filter.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-
-        {/* Ruled Pagination Toolbar */}
-        <PaginationToolbar
-          page={page}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          totalPages={totalPages}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-          pageSizeOptions={[10, 20, 50, 100]}
-        />
+        {/* Pagination Toolbar */}
+        {!loading && totalCount > 0 && (
+          <div className="border-t border-[var(--rule)] p-3">
+            <PaginationToolbar
+              page={page}
+              pageSize={pageSize}
+              totalCount={totalCount}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+            />
+          </div>
+        )}
       </div>
 
-      {/* 5. Apply for Loan Modal */}
+      {/* 5. Apply Loan Modal */}
       {applyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px]">
-          <div className="w-full max-w-lg rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper-subtle)]">
               <div>
-                <h3 className="font-display text-lg font-semibold text-[var(--ink)]">
-                  Apply for Loan / Advance
-                </h3>
-                <p className="text-xs text-[var(--ink-muted)]">Submit loan request for review & salary deduction setup</p>
+                <h3 className="font-serif font-bold text-base text-[var(--ink)]">Apply Employee Loan / Advance</h3>
+                <p className="text-[11px] text-[var(--ink-muted)]">Configure repayment tenure and automated monthly EMI deduction.</p>
               </div>
               <button
                 onClick={() => setApplyModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="p-1 rounded-lg hover:bg-[var(--paper)] text-[var(--ink-muted)]"
               >
-                <X size={16} />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleApply} className="p-5 space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Employee Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.employeeName}
-                    onChange={(e) => setForm({ ...form, employeeName: e.target.value })}
-                    placeholder="e.g. Ramesh Patel"
-                    className="register-input w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Employee ID
-                  </label>
-                  <input
-                    type="number"
-                    value={form.employeeId}
-                    onChange={(e) => setForm({ ...form, employeeId: e.target.value })}
-                    placeholder="1042"
-                    className="register-input w-full font-data"
-                  />
-                </div>
+            <form onSubmit={handleApplySubmit} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-[var(--ink)] mb-1">Select Employee *</label>
+                <select
+                  value={form.employeeId}
+                  onChange={(e) => setForm({ ...form, employeeId: parseInt(e.target.value) || 0 })}
+                  className="input-field w-full font-medium"
+                  required
+                >
+                  {employees.map((e) => (
+                    <option key={e.employeeId} value={e.employeeId}>
+                      {e.employeeName} (#{e.employeeId})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Department
-                  </label>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Loan / Advance Type *</label>
                   <select
-                    value={form.department}
-                    onChange={(e) => setForm({ ...form, department: e.target.value })}
-                    className="register-input w-full"
+                    value={form.loanTypeId}
+                    onChange={(e) => setForm({ ...form, loanTypeId: parseInt(e.target.value) || 1 })}
+                    className="input-field w-full"
                   >
-                    <option value="Engineering & Technology">Engineering & Technology</option>
-                    <option value="Human Resources & People">Human Resources & People</option>
-                    <option value="Operations & Logistics">Operations & Logistics</option>
-                    <option value="Finance & Accounts">Finance & Accounts</option>
+                    {loanTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Advance Category *
-                  </label>
-                  <select
-                    value={form.loanType}
-                    onChange={(e) => setForm({ ...form, loanType: e.target.value as any })}
-                    className="register-input w-full"
-                  >
-                    <option value="Salary Advance">Salary Advance</option>
-                    <option value="Personal Loan">Personal Loan</option>
-                    <option value="Emergency Aid">Emergency Aid</option>
-                    <option value="Equipment Loan">Equipment Loan</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Amount (₹) *
-                  </label>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Principal Amount (₹) *</label>
                   <input
                     type="number"
-                    step="1000"
-                    required
                     value={form.principalAmount}
-                    onChange={(e) => setForm({ ...form, principalAmount: Number(e.target.value) })}
-                    className="register-input w-full font-data text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Tenure (Months) *
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="36"
+                    onChange={(e) => setForm({ ...form, principalAmount: parseFloat(e.target.value) || 0 })}
+                    className="input-field w-full font-mono font-bold"
+                    min={1000}
+                    step={500}
                     required
-                    value={form.tenureMonths}
-                    onChange={(e) => setForm({ ...form, tenureMonths: Number(e.target.value) })}
-                    className="register-input w-full font-data text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Deduction Start
-                  </label>
-                  <input
-                    type="month"
-                    required
-                    value={form.startMonth}
-                    onChange={(e) => setForm({ ...form, startMonth: e.target.value })}
-                    className="register-input w-full font-data text-xs"
                   />
                 </div>
               </div>
 
-              {/* Monthly EMI Estimator */}
-              <div className="p-3 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] flex items-center justify-between text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Repayment Tenure (Months) *</label>
+                  <input
+                    type="number"
+                    value={form.tenureMonths}
+                    onChange={(e) => setForm({ ...form, tenureMonths: parseInt(e.target.value) || 1 })}
+                    className="input-field w-full font-mono"
+                    min={1}
+                    max={60}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Deduction Start Date *</label>
+                  <input
+                    type="date"
+                    value={form.startDate}
+                    onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                    className="input-field w-full font-mono"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Calculated EMI preview */}
+              <div className="p-3 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)] flex items-center justify-between font-mono text-xs">
                 <span className="text-[var(--ink-muted)]">Calculated Monthly EMI:</span>
-                <span className="font-data font-bold text-[var(--ink)]">
-                  ₹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString('en-IN')} / month
+                <span className="text-sm font-bold text-indigo-600">
+                  ₹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
                 </span>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Reason / Justification
-                </label>
+                <label className="block font-semibold text-[var(--ink)] mb-1">Purpose / Reason *</label>
                 <textarea
-                  rows={2}
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                  placeholder="Purpose of the loan or salary advance request"
-                  className="register-input w-full"
+                  placeholder="State the purpose of loan application (e.g. Medical emergency, housing advance)..."
+                  rows={2}
+                  className="input-field w-full"
+                  required
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
+              <div className="pt-2 border-t border-[var(--rule)] flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setApplyModalOpen(false)}
-                  className="btn-outline cursor-pointer"
+                  className="btn-secondary py-1.5 px-3"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary cursor-pointer"
+                  disabled={submitting}
+                  className="btn-primary py-1.5 px-4 flex items-center gap-1.5"
                 >
-                  Submit Application
+                  {submitting ? 'Submitting...' : 'Submit Application'}
                 </button>
               </div>
             </form>
@@ -625,17 +613,55 @@ export const Loans: React.FC = () => {
         </div>
       )}
 
-      {/* 6. Bulk Import Modal */}
+      {/* 6. Reject Modal */}
+      {rejectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-sm w-full p-4 space-y-3">
+            <h3 className="font-serif font-bold text-base text-rose-600 flex items-center gap-1.5">
+              <XCircle className="w-5 h-5" /> Reject Loan Application
+            </h3>
+            <p className="text-xs text-[var(--ink-muted)]">
+              Specify the reason for rejecting this loan request.
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Existing active advance / Exceeds eligibility threshold..."
+              rows={3}
+              className="input-field w-full text-xs"
+              required
+            />
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectModalOpen(false)}
+                className="btn-secondary py-1.5 px-3 text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReject}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-1.5 px-3.5 rounded-lg text-xs"
+              >
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Bulk Import Modal */}
       <BulkImportModal
         isOpen={importModalOpen}
         onClose={() => setImportModalOpen(false)}
-        title="Import Loans & Advances"
-        templateFilename="HRDesk_Loans_Template"
-        templateHeaders={['EmployeeId', 'LoanType', 'PrincipalAmount', 'TenureMonths', 'StartMonth', 'Reason']}
-        templateSampleRow={['1042', 'Salary Advance', '25000', '5', '2026-09', 'Emergency Advance']}
+        title="Import Employee Loans"
+        templateFilename="Employee_Loans"
+        templateHeaders={['EmployeeId', 'LoanTypeCode', 'PrincipalAmount', 'TenureMonths', 'StartDate', 'Reason']}
+        templateSampleRow={['1042', 'ADV', '25000', '5', '2026-09-01', 'Emergency advance']}
         onImportComplete={() => {
-          setImportModalOpen(false);
-          showSuccess('Loans Imported', 'Advance records updated from CSV.');
+          showSuccess('Imported', 'Loans imported successfully.');
+          fetchLoans();
         }}
       />
     </div>

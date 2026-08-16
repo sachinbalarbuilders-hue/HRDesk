@@ -46,6 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const res = await apiClient.get('/auth/me');
           setUser(res.data.user);
           setPermissions(res.data.permissions || []);
+          if (res.data.organizations && res.data.organizations.length > 0) {
+            localStorage.setItem('hrdesk_db_orgs', JSON.stringify(res.data.organizations));
+          }
           localStorage.setItem('hrdesk_user', JSON.stringify(res.data.user));
           localStorage.setItem('hrdesk_permissions', JSON.stringify(res.data.permissions || []));
         } catch {
@@ -60,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string) => {
     const res = await apiClient.post('/auth/login', { username, password });
-    const { token: newToken, user: newUser, permissions: newPerms } = res.data;
+    const { token: newToken, user: newUser, permissions: newPerms, organizations: newOrgs } = res.data;
 
     setToken(newToken);
     setUser(newUser);
@@ -69,6 +72,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('hrdesk_token', newToken);
     localStorage.setItem('hrdesk_user', JSON.stringify(newUser));
     localStorage.setItem('hrdesk_permissions', JSON.stringify(newPerms || []));
+    if (newOrgs && newOrgs.length > 0) {
+      localStorage.setItem('hrdesk_db_orgs', JSON.stringify(newOrgs));
+      localStorage.setItem('hrdesk_active_organization', String(newUser.organizationId || newOrgs[0].id));
+    }
   };
 
   const logout = () => {
@@ -78,6 +85,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('hrdesk_token');
     localStorage.removeItem('hrdesk_user');
     localStorage.removeItem('hrdesk_permissions');
+    localStorage.removeItem('hrdesk_db_orgs');
+    localStorage.removeItem('hrdesk_active_org_obj');
   };
 
   const hasPermission = (permissionKey: string): boolean => {

@@ -12,6 +12,8 @@ import {
   FileText,
   Calendar,
 } from 'lucide-react';
+import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
+import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 
@@ -23,7 +25,7 @@ export const Employees: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [departmentId, setDepartmentId] = useState<string>('');
-  const [status, setStatus] = useState<string>('active');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
   const [profileTab, setProfileTab] = useState<'details' | 'attendance' | 'records'>('details');
 
@@ -49,11 +51,12 @@ export const Employees: React.FC = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
+      const apiStatus = archiveFilter === 'archived' ? 'inactive' : archiveFilter === 'all' ? undefined : 'active';
       const res = await apiClient.get('/employees', {
         params: {
           search: search || undefined,
           departmentId: departmentId || undefined,
-          status: status || undefined,
+          status: apiStatus,
           page,
           pageSize,
         },
@@ -83,7 +86,7 @@ export const Employees: React.FC = () => {
 
   useEffect(() => {
     fetchEmployees();
-  }, [search, departmentId, status, page, pageSize]);
+  }, [search, departmentId, archiveFilter, page, pageSize]);
 
   const handleExportCSV = () => {
     if (!employees.length) {
@@ -190,6 +193,13 @@ export const Employees: React.FC = () => {
           setPage(1);
         }}
         searchPlaceholder="Search employees by name, phone or ID..."
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (val) => {
+            setArchiveFilter(val);
+            setPage(1);
+          },
+        }}
         filters={[
           {
             id: 'department',
@@ -204,19 +214,6 @@ export const Employees: React.FC = () => {
                 value: d.departmentId.toString(),
                 label: d.departmentName,
               })) || []),
-            ],
-          },
-          {
-            id: 'status',
-            value: status,
-            onChange: (val) => {
-              setStatus(val);
-              setPage(1);
-            },
-            options: [
-              { value: 'active', label: 'Active Employees' },
-              { value: 'inactive', label: 'Inactive / Relieved' },
-              { value: 'all', label: 'All Records' },
             ],
           },
         ]}
@@ -248,13 +245,14 @@ export const Employees: React.FC = () => {
                 <th>Designation</th>
                 <th>Reporting Manager</th>
                 <th className="text-right">Joining Date</th>
-                <th className="text-right">Status</th>
+                <th className="text-center">Status</th>
+                <th className="text-right w-16">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="p-0">
+                  <td colSpan={9} className="p-0">
                     <TableSkeleton rows={8} />
                   </td>
                 </tr>
@@ -290,13 +288,21 @@ export const Employees: React.FC = () => {
                     <td className="text-right font-data text-xs text-[var(--ink-muted)]">
                       {emp.joiningDate || '-'}
                     </td>
-                    <td className="text-right text-xs">
-                      <span className="inline-flex items-center gap-1.5 justify-end">
+                    <td className="text-center text-xs">
+                      <span className="inline-flex items-center gap-1.5 justify-center">
                         <span className={isActive ? 'status-dot-ok' : 'status-dot-err'} />
                         <span className={isActive ? 'text-[var(--ok-600)]' : 'text-[var(--err-600)]'}>
                           {emp.status}
                         </span>
                       </span>
+                    </td>
+                    <td className="text-right">
+                      <ArchiveActionButton
+                        isArchived={!isActive}
+                        onArchive={() => handleToggleStatus(emp.employeeId)}
+                        onRestore={() => handleToggleStatus(emp.employeeId)}
+                        itemName={emp.employeeName}
+                      />
                     </td>
                   </tr>
                 );
@@ -304,7 +310,7 @@ export const Employees: React.FC = () => {
 
               {employees.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
+                  <td colSpan={9} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
                     No employees found matching search criteria.
                   </td>
                 </tr>

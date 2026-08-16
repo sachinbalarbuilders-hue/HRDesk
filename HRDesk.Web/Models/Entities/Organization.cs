@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -14,6 +14,10 @@ public class Organization
     [Column("name")]
     [StringLength(100)]
     public string Name { get; set; } = string.Empty;
+
+    [Column("code")]
+    [StringLength(50)]
+    public string? Code { get; set; }
 
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
@@ -35,4 +39,12 @@ public class Organization
 
     [Column("longitude")]
     public double? Longitude { get; set; }
+
+    [Column("radius_meters")]
+    public double? RadiusMeters { get; set; } = 100;
+
+    [Column("company_id")]
+    public int? CompanyId { get; set; }
+
+    public Company? Company { get; set; }
 }

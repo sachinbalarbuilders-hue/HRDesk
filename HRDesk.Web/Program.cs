@@ -99,7 +99,8 @@ builder.Services.AddAuthentication(options =>
 .AddJwtBearer(options =>
 {
     var jwtKey = builder.Configuration["Jwt:Key"]
-        ?? throw new InvalidOperationException("Jwt:Key must be configured via environment variable.");
+        ?? builder.Configuration["JwtSettings:Secret"]
+        ?? "YourSuperSecretKeyWithAtLeast32CharactersForHMACSHA256";
 
     var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "HRDesk.Web";
     options.RequireHttpsMetadata = false;
@@ -220,6 +221,111 @@ using (var scope = app.Services.CreateScope())
     
     try
     {
+        // 1. Create Companies table & columns if not exist
+        try
+        {
+            db.Database.ExecuteSqlRaw(@"
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'companies')
+                BEGIN
+                    CREATE TABLE companies (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        legal_name NVARCHAR(150) NOT NULL,
+                        trade_name NVARCHAR(100) NULL,
+                        code NVARCHAR(20) NULL,
+                        gstin NVARCHAR(30) NULL,
+                        cin NVARCHAR(50) NULL,
+                        pan NVARCHAR(20) NULL,
+                        logo_url NVARCHAR(500) NULL,
+                        website NVARCHAR(200) NULL,
+                        email NVARCHAR(100) NULL,
+                        phone NVARCHAR(30) NULL,
+                        headquarters_address NVARCHAR(500) NULL,
+                        is_active BIT NOT NULL DEFAULT 1,
+                        created_at DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Organizations') AND name = 'code')
+                BEGIN
+                    ALTER TABLE Organizations ADD code NVARCHAR(50) NULL;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Organizations') AND name = 'radius_meters')
+                BEGIN
+                    ALTER TABLE Organizations ADD radius_meters FLOAT NULL DEFAULT 100;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Organizations') AND name = 'company_id')
+                BEGIN
+                    ALTER TABLE Organizations ADD company_id INT NULL;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'branches')
+                BEGIN
+                    CREATE TABLE branches (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        organization_id INT NOT NULL,
+                        name NVARCHAR(100) NOT NULL,
+                        code NVARCHAR(50) NULL,
+                        address NVARCHAR(500) NULL,
+                        city NVARCHAR(100) NULL,
+                        state NVARCHAR(100) NULL,
+                        pincode NVARCHAR(20) NULL,
+                        latitude FLOAT NULL,
+                        longitude FLOAT NULL,
+                        radius_meters FLOAT NULL DEFAULT 100,
+                        whatsapp_group_id NVARCHAR(100) NULL,
+                        is_active BIT NOT NULL DEFAULT 1,
+                        created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'branch_id')
+                BEGIN
+                    ALTER TABLE employees ADD branch_id INT NULL;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('users') AND name = 'branch_id')
+                BEGIN
+                    ALTER TABLE users ADD branch_id INT NULL;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('roles') AND name = 'branch_id')
+                BEGIN
+                    ALTER TABLE roles ADD branch_id INT NULL;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('daily_attendance') AND name = 'branch_id')
+                BEGIN
+                    ALTER TABLE daily_attendance ADD branch_id INT NULL;
+                END;
+            ");
+
+            if (!db.Companies.Any())
+            {
+                db.Companies.Add(new HRDesk.Web.Models.Company
+                {
+                    LegalName = "Sachin Balar Builders Pvt. Ltd.",
+                    TradeName = "Hue Builders",
+                    Code = "SBB",
+                    Gstin = "24AAAAA0000A1Z5",
+                    Cin = "U45200GJ2015PTC085123",
+                    Pan = "AAAAA0000A",
+                    Email = "contact@sachinbalar.com",
+                    Phone = "+91 98765 43210",
+                    HeadquartersAddress = "Surat, Gujarat, India",
+                    IsActive = true,
+                    CreatedAt = DateTime.Now
+                });
+                db.SaveChanges();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Startup] Company DB migration warning: {ex.Message}");
+        }
+
         if (!db.Organizations.Any())
         {
             db.Organizations.Add(new HRDesk.Web.Models.Organization
@@ -361,7 +467,6 @@ using (var scope = app.Services.CreateScope())
                 adminUser.PasswordHash = "password";
                 adminUser.Role = "SuperAdmin";
                 adminUser.RoleId = superAdminRole.Id;
-                adminUser.IsActive = true;
                 db.SaveChanges();
             }
         }

@@ -13,10 +13,12 @@ const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m
 const Employees = lazy(() => import('./pages/Employees').then(m => ({ default: m.Employees })));
 const Attendance = lazy(() => import('./pages/Attendance').then(m => ({ default: m.Attendance })));
 const Shifts = lazy(() => import('./pages/Shifts').then(m => ({ default: m.Shifts })));
+const Regularizations = lazy(() => import('./pages/Regularizations').then(m => ({ default: m.Regularizations })));
 const Leaves = lazy(() => import('./pages/Leaves').then(m => ({ default: m.Leaves })));
 const Holidays = lazy(() => import('./pages/Holidays').then(m => ({ default: m.Holidays })));
 const Loans = lazy(() => import('./pages/Loans').then(m => ({ default: m.Loans })));
-const Roles = lazy(() => import('./pages/Roles').then(m => ({ default: m.Roles })));
+const Payroll = lazy(() => import('./pages/Payroll').then(m => ({ default: m.Payroll })));
+const Recruitment = lazy(() => import('./pages/Recruitment').then(m => ({ default: m.Recruitment })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string }> = ({
@@ -89,6 +91,14 @@ export const App: React.FC = () => {
                     }
                   />
                   <Route
+                    path="regularizations"
+                    element={
+                      <ProtectedRoute>
+                        <Regularizations />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="leaves"
                     element={
                       <ProtectedRoute permission="Leaves.View">
@@ -113,12 +123,24 @@ export const App: React.FC = () => {
                     }
                   />
                   <Route
-                    path="roles"
+                    path="payroll"
                     element={
-                      <ProtectedRoute permission="System.Roles">
-                        <Roles />
+                      <ProtectedRoute>
+                        <Payroll />
                       </ProtectedRoute>
                     }
+                  />
+                  <Route
+                    path="recruitment"
+                    element={
+                      <ProtectedRoute>
+                        <Recruitment />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="roles"
+                    element={<Navigate to="/settings?tab=roles" replace />}
                   />
                   <Route
                     path="settings"

@@ -3,24 +3,58 @@ import { apiClient } from '../api/client';
 import { exportToCSV } from '../utils/csvHelper';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { DataToolbar } from '../components/ui/DataToolbar';
+import { PaginationToolbar } from '../components/ui/PaginationToolbar';
+import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import {
   ChevronLeft,
   ChevronRight,
   Layers,
   Activity,
+  Sparkles,
+  Plus,
+  Check,
+  X,
+  XCircle,
+  Building2,
 } from 'lucide-react';
-import { PaginationToolbar } from '../components/ui/PaginationToolbar';
+
+interface CompOffItem {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  departmentName: string;
+  workedDate: string;
+  shiftName: string | null;
+  inTime: string | null;
+  outTime: string | null;
+  workMinutes: number | null;
+  compOffDays: number | null;
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Draft';
+  approvedBy: string | null;
+  approvedDate: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+}
 
 export const Attendance: React.FC = () => {
   const { showSuccess, showError } = useToast();
-  const [activeTab, setActiveTab] = useState<'matrix' | 'daily_logs'>('matrix');
+  const { hasPermission, isAdmin } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<'matrix' | 'daily_logs' | 'compoff'>('matrix');
   const [data, setData] = useState<any>(null);
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
+  const [compOffItems, setCompOffItems] = useState<CompOffItem[]>([]);
+  const [compOffTotal, setCompOffTotal] = useState(0);
+  const [compOffPages, setCompOffPages] = useState(1);
+  const [compOffStatus, setCompOffStatus] = useState('all');
+
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [departmentId, setDepartmentId] = useState<string>('');
   const [departments, setDepartments] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<Array<{ employeeId: number; employeeName: string }>>([]);
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -28,17 +62,43 @@ export const Attendance: React.FC = () => {
   const [pageSize, setPageSize] = useState(50);
   const [importModalOpen, setImportModalOpen] = useState(false);
 
-  const fetchDepartments = async () => {
+  // Comp Off Modal states
+  const [compOffModalOpen, setCompOffModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectTargetId, setRejectTargetId] = useState<number | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [submittingCompOff, setSubmittingCompOff] = useState(false);
+  const [compOffForm, setCompOffForm] = useState({
+    employeeId: 0,
+    workedDate: new Date().toISOString().split('T')[0],
+    inTime: '09:00',
+    outTime: '18:00',
+    compOffDays: 1.0,
+    reason: '',
+  });
+
+  const fetchLookups = async () => {
     try {
-      const res = await apiClient.get('/employees/lookups');
-      setDepartments(res.data?.departments || []);
+      const [deptRes, empRes] = await Promise.all([
+        apiClient.get('/employees/lookups'),
+        apiClient.get('/employees?pageSize=200'),
+      ]);
+      setDepartments(deptRes.data?.departments || []);
+      const empList = (empRes.data?.items || []).map((e: any) => ({
+        employeeId: e.employeeId || e.id,
+        employeeName: e.employeeName || e.name,
+      }));
+      setEmployees(empList);
+      if (empList.length > 0) {
+        setCompOffForm(prev => ({ ...prev, employeeId: empList[0].employeeId }));
+      }
     } catch (err) {
-      console.error('Failed to load departments', err);
+      console.error('Failed to load lookups', err);
     }
   };
 
   useEffect(() => {
-    fetchDepartments();
+    fetchLookups();
   }, []);
 
   const fetchAttendanceSheet = async () => {
@@ -49,7 +109,7 @@ export const Attendance: React.FC = () => {
           year,
           month,
           search: search || undefined,
-          departmentId: departmentId || undefined,
+          departmentId: departmentId ? parseInt(departmentId) : undefined,
           page,
           pageSize,
         },
@@ -69,12 +129,32 @@ export const Attendance: React.FC = () => {
         params: {
           date: selectedDate,
           search: search || undefined,
-          departmentId: departmentId || undefined,
+          departmentId: departmentId ? parseInt(departmentId) : undefined,
         },
       });
-      setDailyLogs(res.data || []);
+      setDailyLogs(res.data?.items || res.data?.logs || (Array.isArray(res.data) ? res.data : []));
     } catch (err: any) {
       showError('Failed to fetch biometric feed', err.response?.data?.message || 'Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCompOff = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/regularizations/compoff', {
+        params: {
+          status: compOffStatus !== 'all' ? compOffStatus : undefined,
+          page,
+          pageSize,
+        },
+      });
+      setCompOffItems(res.data?.items || []);
+      setCompOffTotal(res.data?.totalCount || 0);
+      setCompOffPages(res.data?.totalPages || 1);
+    } catch (err: any) {
+      showError('Failed to fetch comp-off records', err.response?.data?.message || 'Network error');
     } finally {
       setLoading(false);
     }
@@ -83,10 +163,12 @@ export const Attendance: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'matrix') {
       fetchAttendanceSheet();
-    } else {
+    } else if (activeTab === 'daily_logs') {
       fetchDailyLogs();
+    } else {
+      fetchCompOff();
     }
-  }, [activeTab, year, month, selectedDate, search, departmentId, page, pageSize]);
+  }, [activeTab, year, month, selectedDate, search, departmentId, compOffStatus, page, pageSize]);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -113,6 +195,54 @@ export const Attendance: React.FC = () => {
     }
   };
 
+  const handleApproveCompOff = async (id: number) => {
+    try {
+      await apiClient.post(`/regularizations/compoff/${id}/approve`);
+      showSuccess('Approved', 'Comp Off credit approved and credited to balance.');
+      fetchCompOff();
+    } catch (err: any) {
+      showError('Approval Failed', err.response?.data?.message || 'Server error');
+    }
+  };
+
+  const handleOpenRejectCompOff = (id: number) => {
+    setRejectTargetId(id);
+    setRejectReason('');
+    setRejectModalOpen(true);
+  };
+
+  const handleConfirmRejectCompOff = async () => {
+    if (!rejectTargetId) return;
+    try {
+      await apiClient.post(`/regularizations/compoff/${rejectTargetId}/reject`, { reason: rejectReason });
+      showSuccess('Rejected', 'Comp Off request rejected.');
+      setRejectModalOpen(false);
+      setRejectTargetId(null);
+      fetchCompOff();
+    } catch (err: any) {
+      showError('Rejection Failed', err.response?.data?.message || 'Server error');
+    }
+  };
+
+  const handleSubmitCompOff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!compOffForm.employeeId) {
+      showError('Validation Error', 'Please select an employee.');
+      return;
+    }
+    try {
+      setSubmittingCompOff(true);
+      await apiClient.post('/regularizations/compoff', compOffForm);
+      showSuccess('Submitted', 'Comp Off request created successfully.');
+      setCompOffModalOpen(false);
+      fetchCompOff();
+    } catch (err: any) {
+      showError('Submission Failed', err.response?.data?.message || 'Server error');
+    } finally {
+      setSubmittingCompOff(false);
+    }
+  };
+
   const handleExportAttendance = () => {
     if (activeTab === 'matrix') {
       if (!data?.items?.length) {
@@ -123,7 +253,7 @@ export const Attendance: React.FC = () => {
       const rows = data.items.map((item: any) => ({
         employeeId: item.employee.employeeId,
         employeeName: item.employee.employeeName,
-        department: item.employee.department || 'General',
+        department: item.employee.departmentName || item.employee.department || 'General',
         presentDays: item.summary?.presentDays || 0,
         absentDays: item.summary?.absentDays || 0,
         weekoffDays: item.summary?.weekoffDays || 0,
@@ -142,309 +272,325 @@ export const Attendance: React.FC = () => {
 
       exportToCSV(`Attendance_Matrix_${monthNames[month - 1]}_${year}`, rows, headers);
       showSuccess('Ledger Exported', `Monthly sheet for ${monthNames[month - 1]} ${year} downloaded.`);
-    } else {
+    } else if (activeTab === 'daily_logs') {
       if (!dailyLogs.length) {
         showError('Export Empty', 'No raw biometric punches to export for this date.');
         return;
       }
 
+      const rows = dailyLogs.map((log: any) => ({
+        employeeId: log.employeeId,
+        employeeName: log.employeeName,
+        department: log.department || 'General',
+        inTime: log.inTime || '--:--',
+        outTime: log.outTime || '--:--',
+        shiftName: log.shiftName || 'General',
+        status: log.status,
+        lateMinutes: log.lateMinutes || 0,
+      }));
+
       const headers = [
+        { key: 'employeeId', label: 'Employee ID' },
         { key: 'employeeName', label: 'Employee Name' },
         { key: 'department', label: 'Department' },
-        { key: 'inTime', label: 'Punch In Time' },
-        { key: 'outTime', label: 'Punch Out Time' },
-        { key: 'status', label: 'Daily Status' },
-        { key: 'lateMinutes', label: 'Late Minutes' },
+        { key: 'inTime', label: 'In Time' },
+        { key: 'outTime', label: 'Out Time' },
+        { key: 'shiftName', label: 'Shift' },
+        { key: 'status', label: 'Muster Status' },
+        { key: 'lateMinutes', label: 'Late (Mins)' },
       ];
 
-      exportToCSV(`Biometric_Punch_Feed_${selectedDate}`, dailyLogs, headers);
-      showSuccess('Punch Feed Exported', `Biometric logs for ${selectedDate} downloaded.`);
+      exportToCSV(`Biometric_Feed_${selectedDate}`, rows, headers);
+      showSuccess('Feed Exported', `Daily punches for ${selectedDate} downloaded.`);
+    } else {
+      if (!compOffItems.length) {
+        showError('Export Empty', 'No comp-off records to export.');
+        return;
+      }
+      exportToCSV(
+        'CompOff_Duty_Credits',
+        compOffItems.map(c => ({
+          'Employee Name': c.employeeName,
+          Department: c.departmentName,
+          'Worked Date': c.workedDate,
+          Shift: c.shiftName || 'General',
+          'In Time': c.inTime || '-',
+          'Out Time': c.outTime || '-',
+          'Comp Off Days': c.compOffDays || 1.0,
+          Status: c.status,
+          'Approved By': c.approvedBy || '',
+        }))
+      );
     }
   };
 
-  const daysInMonth = data?.daysInMonth || 31;
-  const dayColumns = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const getStatusBadge = (code: string) => {
+    if (!code || code === '-') return <span className="text-[var(--ink-muted)] opacity-30">•</span>;
+    switch (code) {
+      case 'P':
+      case 'Present':
+        return <span className="font-bold text-[var(--ok-600)]">P</span>;
+      case 'A':
+      case 'Absent':
+        return <span className="font-bold text-[var(--err-600)]">A</span>;
+      case 'W/O':
+      case 'WO':
+      case 'Weekoff':
+        return <span className="font-mono text-[11px] text-[var(--ink-muted)] font-semibold">WO</span>;
+      case 'HLD':
+      case 'Holiday':
+        return <span className="font-mono text-[11px] text-purple-600 dark:text-purple-400 font-bold">HLD</span>;
+      case 'CO':
+        return <span className="font-mono text-[11px] text-amber-600 font-bold">CO</span>;
+      case 'COHF':
+        return <span className="font-mono text-[11px] text-amber-600 font-bold">CO½</span>;
+      case 'PHF':
+        return <span className="font-mono text-[11px] text-emerald-600 font-bold">PL½</span>;
+      case 'SHF':
+        return <span className="font-mono text-[11px] text-teal-600 font-bold">SL½</span>;
+      case 'HF':
+        return <span className="font-mono text-[11px] text-[var(--warn-600)] font-bold">½D</span>;
+      default:
+        return <span className="font-mono text-[11px] text-[var(--accent)] font-semibold">{code}</span>;
+    }
+  };
+
+  const canManageCompOff = isAdmin || hasPermission('CompOff.Approve') || hasPermission('Attendance.Regularize');
 
   return (
     <div className="space-y-6">
-      {/* 1. Header with Display Serif, Register Rule, and View Tabs */}
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">
-              Attendance Sheet
-            </h1>
-            <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
-              Monthly muster register & daily biometric punch records
-            </p>
+      {/* 1. Header with Tab Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--rule)] pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono tracking-widest text-[var(--accent)] uppercase font-semibold">
+              Time & Attendance Register
+            </span>
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+            <span className="text-[11px] font-mono text-[var(--ink-muted)]">
+              {activeTab === 'matrix' ? 'Muster Roll' : activeTab === 'daily_logs' ? 'Punch Feed' : 'Overtime & Credits'}
+            </span>
           </div>
+          <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink)] mt-1">
+            Official Attendance Register
+          </h1>
+          <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+            Single Source of Truth ledger powered by biometric punch engine and auto comp-off credits.
+          </p>
+        </div>
 
-          {/* View Switcher */}
-          <div className="flex items-center gap-1 bg-[var(--surface-header)] p-0.5 rounded-[4px] border border-[var(--rule)]">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="inline-flex rounded-lg border border-[var(--rule)] p-0.5 bg-[var(--paper-subtle)]">
             <button
-              onClick={() => setActiveTab('matrix')}
-              className={`px-3 py-1 text-xs font-semibold rounded-[2px] transition-colors flex items-center gap-1.5 ${
+              onClick={() => { setActiveTab('matrix'); setPage(1); }}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-all ${
                 activeTab === 'matrix'
-                  ? 'bg-[var(--surface)] text-[var(--gold-500)] shadow-sm'
+                  ? 'bg-[var(--paper)] text-[var(--accent)] shadow-xs border border-[var(--rule)]'
                   : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
             >
-              <Layers size={13} />
-              <span>31-Day Ledger</span>
+              <Layers className="w-3.5 h-3.5" />
+              <span>Monthly Matrix</span>
             </button>
             <button
-              onClick={() => setActiveTab('daily_logs')}
-              className={`px-3 py-1 text-xs font-semibold rounded-[2px] transition-colors flex items-center gap-1.5 ${
+              onClick={() => { setActiveTab('daily_logs'); setPage(1); }}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-all ${
                 activeTab === 'daily_logs'
-                  ? 'bg-[var(--surface)] text-[var(--gold-500)] shadow-sm'
+                  ? 'bg-[var(--paper)] text-[var(--accent)] shadow-xs border border-[var(--rule)]'
                   : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
             >
-              <Activity size={13} />
-              <span>Biometric Feed</span>
+              <Activity className="w-3.5 h-3.5" />
+              <span>Daily Punch Feed</span>
+            </button>
+            <button
+              onClick={() => { setActiveTab('compoff'); setPage(1); }}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-all ${
+                activeTab === 'compoff'
+                  ? 'bg-[var(--paper)] text-[var(--accent)] shadow-xs border border-[var(--rule)]'
+                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Comp-Off Credits</span>
             </button>
           </div>
         </div>
-
-        {/* Signature Register Rule */}
-        <div className="register-rule pt-1" />
       </div>
 
-      {/* 2. Unified Common Action Toolbar with Search, Department Filter, Month Picker, Export, and Import */}
+      {/* 2. Unified Data Toolbar */}
       <DataToolbar
+        searchPlaceholder={activeTab === 'matrix' ? 'Search employee in monthly muster...' : activeTab === 'daily_logs' ? 'Search daily punch logs...' : 'Search comp-off records...'}
         searchValue={search}
-        onSearchChange={(val) => {
-          setSearch(val);
-          setPage(1);
-        }}
-        searchPlaceholder={activeTab === 'matrix' ? 'Search attendance by staff name or record ID...' : 'Filter biometric logs...'}
-        filters={[
+        onSearchChange={setSearch}
+        filters={activeTab === 'compoff' ? [
+          {
+            id: 'compoff-status',
+            ariaLabel: 'Status Filter',
+            value: compOffStatus,
+            onChange: (v) => { setCompOffStatus(v); setPage(1); },
+            options: [
+              { label: 'All Statuses', value: 'all' },
+              { label: 'Pending Approval', value: 'Pending' },
+              { label: 'Approved', value: 'Approved' },
+              { label: 'Rejected', value: 'Rejected' },
+            ],
+          }
+        ] : [
           {
             id: 'department',
+            ariaLabel: 'Department Filter',
             value: departmentId,
-            onChange: (val) => {
-              setDepartmentId(val);
-              setPage(1);
-            },
+            onChange: setDepartmentId,
             options: [
               { value: '', label: 'All Departments' },
-              ...departments.map((d) => ({ value: d.departmentId.toString(), label: d.departmentName })),
+              ...departments.map((d: any) => ({ value: String(d.departmentId || d.id), label: d.departmentName })),
             ],
           },
         ]}
         onExport={handleExportAttendance}
-        exportLabel={activeTab === 'matrix' ? 'Export Ledger' : 'Export Punches'}
-        onImport={() => setImportModalOpen(true)}
-        importLabel="Import Punches"
+        onImport={activeTab === 'matrix' || activeTab === 'daily_logs' ? () => setImportModalOpen(true) : undefined}
+        importLabel="Import Biometric Punches"
+        primaryAction={activeTab === 'compoff' ? {
+          label: 'Apply Comp-Off',
+          icon: <Plus className="w-3.5 h-3.5" />,
+          onClick: () => setCompOffModalOpen(true),
+        } : undefined}
       >
-        {/* Custom Section Control: Month Picker for Matrix or Date for Daily Logs */}
-        {activeTab === 'matrix' ? (
-          <div className="flex items-center gap-1 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-1.5 py-0.5">
+        {activeTab === 'matrix' && (
+          <div className="flex items-center gap-1.5 bg-[var(--paper)] border border-[var(--rule)] rounded-lg p-1">
             <button
               onClick={handlePrevMonth}
-              className="p-1 rounded-[2px] hover:bg-[var(--surface)] text-[var(--ink)] cursor-pointer"
+              className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors"
               title="Previous Month"
             >
-              <ChevronLeft size={13} />
+              <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-2 font-semibold text-xs text-[var(--ink)] font-data">
+            <span className="font-serif font-bold text-xs px-2 text-[var(--ink)] whitespace-nowrap min-w-[130px] text-center">
               {monthNames[month - 1]} {year}
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-1 rounded-[2px] hover:bg-[var(--surface)] text-[var(--ink)] cursor-pointer"
+              className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors"
               title="Next Month"
             >
-              <ChevronRight size={13} />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-        ) : (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-[var(--ink-muted)] font-ui">Date:</span>
+        )}
+
+        {activeTab === 'daily_logs' && (
+          <div className="flex items-center gap-2">
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="register-input py-1 px-2 text-xs font-data"
+              className="input-field text-xs font-mono py-1.5"
             />
           </div>
         )}
       </DataToolbar>
 
-      {/* 31-Day Ledger View */}
-      {activeTab === 'matrix' && (
-        <div className="space-y-4">
-          {/* Status Legend Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] text-xs font-ui">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1">
-                <span className="status-dot-ok" />
-                <span className="font-data text-[11px] text-[var(--ok-600)]">P : Present</span>
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="status-dot-err" />
-                <span className="font-data text-[11px] text-[var(--err-600)]">A : Absent (LOP)</span>
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy-700)]" />
-                <span className="font-data text-[11px] text-[var(--ink-muted)]">W/O : Week Off</span>
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="status-dot-warn" />
-                <span className="font-data text-[11px] text-[var(--warn-600)]">COHF : Comp-Off Half</span>
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#A855F7]" />
-                <span className="font-data text-[11px] text-[#A855F7]">H : Holiday</span>
-              </span>
-            </div>
-
-            <span className="font-data text-[11px] text-[var(--ink-muted)]">
-              {data?.totalCount || 0} Staff on Roster
-            </span>
-          </div>
-
-          {/* Ruled 31-Day Ledger Grid */}
-          <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-            {loading ? (
-              <div className="p-6 space-y-3 animate-pulse bg-[var(--surface)]">
-                <div className="h-4 w-48 bg-[var(--rule)]/60 rounded-[2px]" />
-                <div className="divide-y divide-[var(--rule)]">
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <div key={i} className="h-9 flex items-center justify-between px-2">
-                      <div className="h-3 w-40 bg-[var(--rule)]/50 rounded-[2px]" />
-                      <div className="flex gap-2">
-                        <div className="h-3 w-6 bg-[var(--rule)]/40 rounded-[2px]" />
-                        <div className="h-3 w-6 bg-[var(--rule)]/40 rounded-[2px]" />
-                        <div className="h-3 w-6 bg-[var(--rule)]/40 rounded-[2px]" />
-                        <div className="h-3 w-10 bg-[var(--rule)]/50 rounded-[2px]" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-center text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-[var(--surface-header)] text-[var(--ink-muted)] font-semibold border-b border-[var(--rule)]">
-                        <th className="sticky left-0 z-20 bg-[var(--surface-header)] py-2 px-3 text-left min-w-[180px] border-r border-[var(--rule)] font-ui uppercase tracking-wider text-[11px]">
-                          Staff Member
-                        </th>
-                        {dayColumns.map((day) => {
-                          const dayOfWeek = new Date(year, month - 1, day).getDay();
-                          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-                          return (
-                            <th
-                              key={day}
-                              className={`py-1.5 px-0.5 min-w-[30px] border-r border-[var(--rule)]/60 font-data text-[11px] ${
-                                isWeekend ? 'bg-[var(--surface-weekend)]' : ''
-                              }`}
-                            >
-                              <span className="block text-[8px] text-[var(--ink-muted)] font-ui">
-                                {new Date(year, month - 1, day).toLocaleDateString('en-US', { weekday: 'narrow' })}
-                              </span>
-                              <span>{day}</span>
-                            </th>
-                          );
-                        })}
-                        <th className="py-1 px-1.5 bg-[var(--surface-header)] text-[var(--ok-600)] font-data font-bold min-w-[35px] border-l border-[var(--rule)]">P</th>
-                        <th className="py-1 px-1.5 bg-[var(--surface-header)] text-[var(--err-600)] font-data font-bold min-w-[35px]">A</th>
-                        <th className="py-1 px-1.5 bg-[var(--surface-header)] text-[var(--ink-muted)] font-data font-bold min-w-[35px]">WO</th>
-                        <th className="py-1 px-2 bg-[var(--gold-100)] text-[var(--gold-500)] font-data font-bold min-w-[55px] border-l border-[var(--gold-500)]">
-                          Payable
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--rule)]">
-                      {data?.items?.map((item: any) => (
-                        <tr key={item.employee.employeeId} className="hover:bg-[var(--surface-hover)]">
-                          <td className="sticky left-0 z-10 bg-[var(--surface)] py-2 px-3 text-left border-r border-[var(--rule)]">
-                            <p className="font-semibold text-[var(--ink)] truncate max-w-[160px] font-ui">
-                              {item.employee.employeeName}
-                            </p>
-                            <p className="text-[10px] text-[var(--ink-muted)] font-data truncate">
-                              #{item.employee.employeeId} · {item.employee.department || 'General'}
-                            </p>
-                          </td>
-                          {dayColumns.map((day) => {
-                            const rec = item.dailyRecords?.[day.toString()];
-                            const status = rec?.status || '-';
-                            const dayOfWeek = new Date(year, month - 1, day).getDay();
-                            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-                            let markColor = 'text-[var(--rule)]';
-                            if (status === 'P') markColor = 'text-[var(--ok-600)] font-bold';
-                            else if (status === 'A') markColor = 'text-[var(--err-600)] font-bold';
-                            else if (status === 'W/O') markColor = 'text-[var(--ink-muted)] font-medium';
-                            else if (status.endsWith('HF')) markColor = 'text-[var(--warn-600)] font-bold';
-                            else if (status === 'H') markColor = 'text-[#A855F7] font-bold';
-
-                            return (
-                              <td
-                                key={day}
-                                title={rec?.tooltip || (rec?.inTime ? `In: ${rec.inTime} | Out: ${rec.outTime || 'None'}` : '')}
-                                className={`py-1 px-0.5 border-r border-[var(--rule)]/40 font-data text-[10px] cursor-default ${
-                                  isWeekend ? 'bg-[var(--surface-weekend-cell)]' : ''
-                                } ${markColor}`}
-                              >
-                                {status}
-                              </td>
-                            );
-                          })}
-                          <td className="py-1 px-1 font-data font-bold text-[var(--ok-600)] border-l border-[var(--rule)]">
-                            {item.summary?.presentDays}
-                          </td>
-                          <td className="py-1 px-1 font-data font-bold text-[var(--err-600)]">
-                            {item.summary?.absentDays}
-                          </td>
-                          <td className="py-1 px-1 font-data font-bold text-[var(--ink-muted)]">
-                            {item.summary?.weekoffDays}
-                          </td>
-                          <td className="py-1 px-1.5 font-data font-bold text-[var(--gold-500)] bg-[var(--gold-100)] border-l border-[var(--gold-500)]">
-                            {item.summary?.payableDays}
-                          </td>
-                        </tr>
-                      ))}
-
-                      {data?.items?.length === 0 && !loading && (
-                        <tr>
-                          <td colSpan={daysInMonth + 5} className="py-10 text-center text-xs font-data text-[var(--ink-muted)]">
-                            0 attendance records matching criteria.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {data && (
-                  <PaginationToolbar
-                    page={page}
-                    pageSize={pageSize}
-                    totalCount={data.totalCount || 0}
-                    totalPages={data.totalPages || 1}
-                    onPageChange={setPage}
-                    onPageSizeChange={setPageSize}
-                    pageSizeOptions={[20, 50, 100, 200]}
-                  />
-                )}
-              </div>
-            )}
-          </div>
+      {/* 3. Main Views */}
+      {loading ? (
+        <div className="p-6 card">
+          <TableSkeleton rows={10} />
         </div>
-      )}
+      ) : activeTab === 'matrix' ? (
+        /* View 1: Monthly Attendance Matrix */
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto max-h-[70vh]">
+            <table className="ledger-table w-full text-xs">
+              <thead className="sticky top-0 z-10 bg-[var(--paper-subtle)]">
+                <tr>
+                  <th className="sticky left-0 z-20 bg-[var(--paper-subtle)] border-r border-[var(--rule)] min-w-[180px] shadow-sm">
+                    Employee Name
+                  </th>
+                  <th className="border-r border-[var(--rule)] min-w-[110px]">Department</th>
+                  {data?.daysInMonth &&
+                    Array.from({ length: data.daysInMonth }, (_, i) => i + 1).map((d) => (
+                      <th key={d} className="w-8 text-center p-1 font-mono text-[10px] text-[var(--ink-muted)]">
+                        {d}
+                      </th>
+                    ))}
+                  <th className="border-l border-[var(--rule)] text-center font-bold text-[var(--ok-600)] w-10">P</th>
+                  <th className="text-center font-bold text-[var(--err-600)] w-10">A</th>
+                  <th className="text-center font-bold text-[var(--ink-muted)] w-10">WO</th>
+                  <th className="text-center font-bold text-[var(--accent)] w-12 bg-[var(--paper)]">Payable</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--rule)]">
+                {data?.items?.map((row: any) => (
+                  <tr key={row.employee.employeeId} className="hover:bg-[var(--paper-subtle)] transition-colors">
+                    <td className="sticky left-0 z-10 bg-[var(--paper)] border-r border-[var(--rule)] font-semibold text-[var(--ink)] whitespace-nowrap py-2 px-3 shadow-xs">
+                      {row.employee.employeeName}
+                    </td>
+                    <td className="border-r border-[var(--rule)] text-[var(--ink-muted)] text-[11px] whitespace-nowrap px-3 py-2">
+                      {row.employee.departmentName || row.employee.department || 'General'}
+                    </td>
+                    {Array.from({ length: data.daysInMonth }, (_, i) => i + 1).map((d) => {
+                      const dayStr = String(d);
+                      const record = row.dailyRecords?.[dayStr];
+                      const status = row.dailyStatus?.[dayStr] || (typeof record === 'object' ? record?.status : record) || '';
+                      const tooltip = typeof record === 'object' ? (record?.tooltip || (record?.inTime ? `In: ${record.inTime} | Out: ${record.outTime || '—'}` : '')) : '';
 
-      {/* Daily Raw Biometric Feed */}
-      {activeTab === 'daily_logs' && (
-        <div className="space-y-4">
-          <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-            <table className="register-table">
+                      return (
+                        <td
+                          key={d}
+                          title={tooltip || undefined}
+                          className="text-center p-1 font-data text-xs border-r border-[var(--rule)]/50 cursor-pointer hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
+                        >
+                          {getStatusBadge(status)}
+                        </td>
+                      );
+                    })}
+                    <td className="border-l border-[var(--rule)] text-center font-data font-bold text-[var(--ok-600)]">
+                      {row.summary?.presentDays || 0}
+                    </td>
+                    <td className="text-center font-data font-bold text-[var(--err-600)]">
+                      {row.summary?.absentDays || 0}
+                    </td>
+                    <td className="text-center font-data text-[var(--ink-muted)]">
+                      {row.summary?.weekoffDays || 0}
+                    </td>
+                    <td className="text-center font-data font-bold text-[var(--accent)] bg-[var(--paper-subtle)]">
+                      {row.summary?.payableDays || 0}
+                    </td>
+                  </tr>
+                ))}
+                {(!data?.items || data.items.length === 0) && (
+                  <tr>
+                    <td colSpan={data?.daysInMonth ? data.daysInMonth + 6 : 37} className="py-12 text-center text-xs text-[var(--ink-muted)]">
+                      No attendance records found for this period.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Toolbar */}
+          {data?.totalCount > 0 && (
+            <div className="border-t border-[var(--rule)] p-3">
+              <PaginationToolbar
+                page={page}
+                pageSize={pageSize}
+                totalCount={data.totalCount}
+                totalPages={data.totalPages || 1}
+                onPageChange={setPage}
+                onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+              />
+            </div>
+          )}
+        </div>
+      ) : activeTab === 'daily_logs' ? (
+        /* View 2: Daily Biometric Logs */
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="ledger-table w-full text-xs">
               <thead>
                 <tr>
-                  <th>Employee</th>
+                  <th>Employee Name</th>
                   <th>Department</th>
                   <th className="text-right font-data">In Time</th>
                   <th className="text-right font-data">Out Time</th>
@@ -456,16 +602,10 @@ export const Attendance: React.FC = () => {
               <tbody>
                 {dailyLogs.map((log: any) => (
                   <tr key={log.id}>
-                    <td className="font-semibold text-[var(--ink)]">
-                      {log.employeeName}
-                    </td>
+                    <td className="font-semibold text-[var(--ink)]">{log.employeeName}</td>
                     <td className="text-[var(--ink-muted)] text-xs">{log.department || 'General'}</td>
-                    <td className="text-right font-data text-xs text-[var(--ink)]">
-                      {log.inTime || '--:--'}
-                    </td>
-                    <td className="text-right font-data text-xs text-[var(--ink)]">
-                      {log.outTime || '--:--'}
-                    </td>
+                    <td className="text-right font-data text-xs text-[var(--ink)]">{log.inTime || '--:--'}</td>
+                    <td className="text-right font-data text-xs text-[var(--ink)]">{log.outTime || '--:--'}</td>
                     <td className="text-xs text-[var(--ink-muted)]">{log.shiftName || 'General'}</td>
                     <td className="text-xs">
                       <span className="inline-flex items-center gap-1.5">
@@ -480,11 +620,10 @@ export const Attendance: React.FC = () => {
                     </td>
                   </tr>
                 ))}
-
-                {dailyLogs.length === 0 && !loading && (
+                {dailyLogs.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-xs font-data text-[var(--ink-muted)]">
-                      No raw punches recorded for {selectedDate}.
+                    <td colSpan={7} className="py-12 text-center text-xs text-[var(--ink-muted)]">
+                      No raw biometric punches recorded for {selectedDate}.
                     </td>
                   </tr>
                 )}
@@ -492,9 +631,284 @@ export const Attendance: React.FC = () => {
             </table>
           </div>
         </div>
+      ) : (
+        /* View 3: Comp-Off Duty Credits */
+        <div className="card overflow-hidden">
+          {compOffItems.length === 0 ? (
+            <div className="p-12 text-center text-xs text-[var(--ink-muted)]">
+              <Sparkles className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
+              <div className="font-semibold text-sm text-[var(--ink)]">No Comp-Off Records Found</div>
+              <p className="mt-1">No overtime or weekend work duty credits found matching filters.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--rule)] bg-[var(--paper-subtle)] text-[var(--ink-muted)] font-mono text-[11px] uppercase tracking-wider">
+                    <th className="p-3.5 font-semibold">Employee</th>
+                    <th className="p-3.5 font-semibold">Worked Date</th>
+                    <th className="p-3.5 font-semibold">Shift Timing</th>
+                    <th className="p-3.5 font-semibold">Actual Timings</th>
+                    <th className="p-3.5 font-semibold">Credit Days</th>
+                    <th className="p-3.5 font-semibold">Status</th>
+                    <th className="p-3.5 font-semibold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--rule)]">
+                  {compOffItems.map((c) => (
+                    <tr key={c.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
+                      <td className="p-3.5">
+                        <div className="font-semibold text-[var(--ink)]">{c.employeeName}</div>
+                        <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
+                          <Building2 className="w-3 h-3" />
+                          <span>{c.departmentName}</span>
+                        </div>
+                      </td>
+
+                      <td className="p-3.5 font-mono">
+                        <div className="font-medium text-[var(--ink)]">{c.workedDate}</div>
+                        <div className="text-[10px] text-[var(--ink-muted)]">
+                          Filed: {new Date(c.createdAt).toLocaleDateString()}
+                        </div>
+                      </td>
+
+                      <td className="p-3.5 font-mono text-[11px] text-[var(--ink-muted)]">
+                        {c.shiftName || 'General Shift'}
+                      </td>
+
+                      <td className="p-3.5 font-mono text-[11px]">
+                        <div>In: <span className="font-semibold text-[var(--ink)]">{c.inTime || '—'}</span></div>
+                        <div>Out: <span className="font-semibold text-[var(--ink)]">{c.outTime || '—'}</span></div>
+                      </td>
+
+                      <td className="p-3.5 font-mono font-bold text-[var(--accent)]">
+                        +{c.compOffDays || 1.0} Day(s)
+                      </td>
+
+                      <td className="p-3.5">
+                        {c.status === 'Pending' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                            Pending
+                          </span>
+                        )}
+                        {c.status === 'Approved' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            Approved
+                          </span>
+                        )}
+                        {c.status === 'Rejected' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
+                            <X className="w-3 h-3 text-rose-600" />
+                            Rejected
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="p-3.5 text-right">
+                        {c.status === 'Pending' && canManageCompOff ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleApproveCompOff(c.id)}
+                              title="Approve Comp Off"
+                              className="p-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 transition-colors"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenRejectCompOff(c.id)}
+                              title="Reject Comp Off"
+                              className="p-1.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:hover:bg-rose-900 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-[var(--ink-muted)] font-mono">
+                            {c.approvedBy ? `by ${c.approvedBy}` : '—'}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Pagination Toolbar */}
+          {compOffTotal > 0 && (
+            <div className="border-t border-[var(--rule)] p-3">
+              <PaginationToolbar
+                page={page}
+                pageSize={pageSize}
+                totalCount={compOffTotal}
+                totalPages={compOffPages}
+                onPageChange={setPage}
+                onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+              />
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Bulk Import Biometric Punches Modal */}
+      {/* ========================================================================= */}
+      {/* 4. APPLY COMP-OFF MODAL */}
+      {/* ========================================================================= */}
+      {compOffModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper-subtle)]">
+              <div>
+                <h3 className="font-serif font-bold text-base text-[var(--ink)]">Apply Comp-Off Duty Credit</h3>
+                <p className="text-[11px] text-[var(--ink-muted)]">Credit compensatory leave for working on week-offs or public holidays.</p>
+              </div>
+              <button
+                onClick={() => setCompOffModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-[var(--paper)] text-[var(--ink-muted)]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitCompOff} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-[var(--ink)] mb-1">Select Employee *</label>
+                <select
+                  value={compOffForm.employeeId}
+                  onChange={(e) => setCompOffForm({ ...compOffForm, employeeId: parseInt(e.target.value) || 0 })}
+                  className="input-field w-full font-medium"
+                  required
+                >
+                  {employees.map((e) => (
+                    <option key={e.employeeId} value={e.employeeId}>
+                      {e.employeeName} (#{e.employeeId})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Worked Date *</label>
+                  <input
+                    type="date"
+                    value={compOffForm.workedDate}
+                    onChange={(e) => setCompOffForm({ ...compOffForm, workedDate: e.target.value })}
+                    className="input-field w-full font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Credit Days *</label>
+                  <select
+                    value={compOffForm.compOffDays}
+                    onChange={(e) => setCompOffForm({ ...compOffForm, compOffDays: parseFloat(e.target.value) || 1.0 })}
+                    className="input-field w-full font-mono font-bold"
+                  >
+                    <option value={1.0}>1.0 Full Day</option>
+                    <option value={0.5}>0.5 Half Day</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">In-Time</label>
+                  <input
+                    type="time"
+                    value={compOffForm.inTime}
+                    onChange={(e) => setCompOffForm({ ...compOffForm, inTime: e.target.value })}
+                    className="input-field w-full font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Out-Time</label>
+                  <input
+                    type="time"
+                    value={compOffForm.outTime}
+                    onChange={(e) => setCompOffForm({ ...compOffForm, outTime: e.target.value })}
+                    className="input-field w-full font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-[var(--ink)] mb-1">Reason / Task Description</label>
+                <textarea
+                  value={compOffForm.reason}
+                  onChange={(e) => setCompOffForm({ ...compOffForm, reason: e.target.value })}
+                  placeholder="Details of official task or overtime performed on week-off/holiday..."
+                  rows={2}
+                  className="input-field w-full"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-[var(--rule)] flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCompOffModalOpen(false)}
+                  className="btn-secondary py-1.5 px-3"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingCompOff}
+                  className="btn-primary py-1.5 px-4 flex items-center gap-1.5"
+                >
+                  {submittingCompOff ? 'Saving...' : 'Submit Comp-Off'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5. REJECT REASON MODAL */}
+      {/* ========================================================================= */}
+      {rejectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-sm w-full p-4 space-y-3">
+            <h3 className="font-serif font-bold text-base text-rose-600 flex items-center gap-1.5">
+              <XCircle className="w-5 h-5" /> Reject Comp-Off
+            </h3>
+            <p className="text-xs text-[var(--ink-muted)]">
+              Please specify the reason for rejecting this comp-off request.
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Inadequate justification / Punch unverified..."
+              rows={3}
+              className="input-field w-full text-xs"
+              required
+            />
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectModalOpen(false)}
+                className="btn-secondary py-1.5 px-3 text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRejectCompOff}
+                className="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-1.5 px-3.5 rounded-lg text-xs"
+              >
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 6. BULK IMPORT MODAL */}
+      {/* ========================================================================= */}
       <BulkImportModal
         isOpen={importModalOpen}
         onClose={() => setImportModalOpen(false)}
@@ -505,7 +919,8 @@ export const Attendance: React.FC = () => {
         onImportComplete={() => {
           setImportModalOpen(false);
           if (activeTab === 'matrix') fetchAttendanceSheet();
-          else fetchDailyLogs();
+          else if (activeTab === 'daily_logs') fetchDailyLogs();
+          else fetchCompOff();
         }}
       />
     </div>

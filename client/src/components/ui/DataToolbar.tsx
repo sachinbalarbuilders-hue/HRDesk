@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Download, Upload } from 'lucide-react';
+import { ArchiveToggle, type ArchiveFilterValue } from './ArchiveToggle';
 
 export interface FilterOption {
   value: string;
@@ -14,11 +15,22 @@ export interface DataFilter {
   ariaLabel?: string;
 }
 
+export interface ArchiveFilterConfig {
+  value: ArchiveFilterValue;
+  onChange: (val: ArchiveFilterValue) => void;
+  activeCount?: number;
+  archivedCount?: number;
+  allCount?: number;
+}
+
 export interface DataToolbarProps {
   // Search
   searchValue?: string;
   onSearchChange?: (val: string) => void;
   searchPlaceholder?: string;
+
+  // Archive Filter Toggle
+  archiveFilter?: ArchiveFilterConfig;
 
   // Dropdown Filters
   filters?: DataFilter[];
@@ -44,6 +56,7 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
   searchValue,
   onSearchChange,
   searchPlaceholder = 'Search records...',
+  archiveFilter,
   filters = [],
   children,
   onExport,
@@ -54,7 +67,7 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
 }) => {
   return (
     <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] font-ui">
-      {/* Left side: Search & Dropdown Filters & Custom Controls */}
+      {/* Left side: Search & Archive Toggle & Dropdown Filters & Custom Controls */}
       <div className="flex flex-1 flex-wrap items-center gap-2.5">
         {/* Search Input */}
         {onSearchChange !== undefined && (
@@ -68,6 +81,17 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
               className="w-full pl-8 pr-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] placeholder-[var(--ink-muted)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
             />
           </div>
+        )}
+
+        {/* Reusable Archive Toggle */}
+        {archiveFilter && (
+          <ArchiveToggle
+            value={archiveFilter.value}
+            onChange={archiveFilter.onChange}
+            activeCount={archiveFilter.activeCount}
+            archivedCount={archiveFilter.archivedCount}
+            allCount={archiveFilter.allCount}
+          />
         )}
 
         {/* Dynamic Filters */}
