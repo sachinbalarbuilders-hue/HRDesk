@@ -221,51 +221,7 @@ export const Leaves: React.FC = () => {
         }}
       />
 
-      {/* Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Entitlement Quotas (1/3) */}
-        <div className="space-y-4">
-          <div className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] space-y-3">
-            <div className="flex items-center justify-between pb-1 border-b border-[var(--rule)]">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--ink)] font-ui">
-                Leave Balances
-              </h2>
-              <CalendarCheck2 size={14} className="text-[var(--ink-muted)]" />
-            </div>
-
-            <div className="space-y-3">
-              {balances.map((b) => (
-                <div
-                  key={b.leaveTypeId}
-                  className="p-3 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] space-y-1.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[var(--ink)]">{b.name}</span>
-                    <span className="font-data text-[11px] text-[var(--ink-muted)] font-semibold">{b.code}</span>
-                  </div>
-
-                  <div className="flex items-baseline justify-between text-xs font-data">
-                    <p className="text-base font-bold text-[var(--gold-500)]">
-                      {b.remaining} <span className="text-xs font-normal text-[var(--ink-muted)]">remaining</span>
-                    </p>
-                    <span className="text-[11px] text-[var(--ink-muted)]">
-                      Used: {b.used} / {b.allocated}
-                    </span>
-                  </div>
-                </div>
-              ))}
-
-              {balances.length === 0 && (
-                <p className="text-xs text-[var(--ink-muted)] font-data py-3 text-center">
-                  No personal leave balances found.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Applications Log with 4px Left-Edge Status Bar (2/3) */}
-        <div className="lg:col-span-2 space-y-4">
+      <div className="space-y-4">
           {/* Table with 4px Left-Edge Status Bar */}
           <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
             <div className="overflow-x-auto">
@@ -365,7 +321,6 @@ export const Leaves: React.FC = () => {
             />
           </div>
         </div>
-      </div>
 
       {/* Slide-in Apply Panel (480px) */}
       {applyPanelOpen && (

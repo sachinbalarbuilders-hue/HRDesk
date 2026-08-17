@@ -63,4 +63,32 @@ public sealed class Employee : IMustHaveTenant
     public int OrganizationId { get; set; }
 
     public Organization? Organization { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(50)]
+    public string? EmploymentType { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(10)]
+    public string? BloodGroup { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(20)]
+    public string? Gender { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(50)]
+    public string? AttendanceType { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(50)]
+    public string? MaritalStatus { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(100)]
+    public string? Nationality { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(100)]
+    public string? WorkEmail { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(100)]
+    public string? PersonalEmail { get; set; }
+
+    public bool HasProbation { get; set; }
+
+    public int? ProbationDays { get; set; }
 }

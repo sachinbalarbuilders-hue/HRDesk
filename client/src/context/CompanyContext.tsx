@@ -112,7 +112,10 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
       } catch {}
     }
-    return DEFAULT_BRANCHES.find(b => String(b.id) === String(savedBranchId)) || null;
+    const savedOrgId = localStorage.getItem('hrdesk_active_organization') || '1';
+    return DEFAULT_BRANCHES.find(b => String(b.id) === String(savedBranchId)) || 
+           DEFAULT_BRANCHES.find(b => String(b.organizationId) === String(savedOrgId)) || 
+           DEFAULT_BRANCHES[0];
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -180,7 +183,11 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           localStorage.removeItem('hrdesk_active_branch');
         }
       } else {
-        setCurrentBranch(null);
+        const firstBranch = branchList.find(b => String(b.organizationId) === String(matchedOrg.id));
+        setCurrentBranch(firstBranch || null);
+        if (firstBranch) {
+          localStorage.setItem('hrdesk_active_branch', String(firstBranch.id));
+        }
       }
     } catch (err) {
       console.warn('Could not fetch organizations/branches from backend:', err);
@@ -208,9 +215,16 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setCurrentOrganization(match);
       localStorage.setItem('hrdesk_active_organization', String(match.id));
       localStorage.setItem('hrdesk_active_org_obj', JSON.stringify(match));
-      // Reset branch when switching organization
-      setCurrentBranch(null);
-      localStorage.setItem('hrdesk_active_branch', 'all');
+      // Auto-select the first branch of the newly selected organization
+      const firstBranch = allBranches.find(b => String(b.organizationId) === String(match.id));
+      setCurrentBranch(firstBranch || null);
+      if (firstBranch) {
+        localStorage.setItem('hrdesk_active_branch', String(firstBranch.id));
+        window.dispatchEvent(new CustomEvent('hrdesk:branch_changed', { detail: { branchId: firstBranch.id } }));
+      } else {
+        localStorage.removeItem('hrdesk_active_branch');
+      }
+      
       // Dispatch custom event so pages can re-fetch data without full page reload
       window.dispatchEvent(new CustomEvent('hrdesk:tenant_changed', { detail: { organizationId: match.id } }));
     }

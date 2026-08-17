@@ -285,48 +285,6 @@ export const Loans: React.FC = () => {
         </p>
       </div>
 
-      {/* 2. Top Metrics Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-[var(--accent)]">
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-[var(--accent)] flex items-center justify-center shrink-0">
-            <CreditCard className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Total Disbursed</div>
-            <div className="text-lg font-bold font-data text-[var(--ink)]">₹{stats.totalDisbursed.toLocaleString()}</div>
-          </div>
-        </div>
-
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-amber-500">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center shrink-0">
-            <TrendingDown className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Outstanding Balance</div>
-            <div className="text-lg font-bold font-data text-amber-700 dark:text-amber-300">₹{stats.totalOutstanding.toLocaleString()}</div>
-          </div>
-        </div>
-
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-emerald-500">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center shrink-0">
-            <Receipt className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Recovered Amount</div>
-            <div className="text-lg font-bold font-data text-emerald-700 dark:text-emerald-300">₹{stats.totalRecovered.toLocaleString()}</div>
-          </div>
-        </div>
-
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-purple-500">
-          <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center shrink-0">
-            <DollarSign className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Active Loan Accounts</div>
-            <div className="text-lg font-bold font-data text-[var(--ink)]">{stats.activeLoansCount} Accounts</div>
-          </div>
-        </div>
-      </div>
 
       {/* 3. Toolbar & Filters */}
       <DataToolbar
@@ -361,7 +319,6 @@ export const Loans: React.FC = () => {
         ]}
         onExport={handleExport}
         onImport={() => setImportModalOpen(true)}
-        importLabel="Import Loans"
         primaryAction={{
           label: 'Apply Loan / Advance',
           icon: <Plus className="w-3.5 h-3.5" />,

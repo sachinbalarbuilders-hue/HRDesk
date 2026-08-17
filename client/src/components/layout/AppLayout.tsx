@@ -40,6 +40,7 @@ export const AppLayout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
   const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
+  const [switchingWorkspace, setSwitchingWorkspace] = useState(false);
 
   const navigation = [
     {
@@ -143,17 +144,36 @@ export const AppLayout: React.FC = () => {
   const handleOrgSelect = (orgId: string, orgName: string) => {
     switchOrganization(orgId);
     setOrgDropdownOpen(false);
+    setSwitchingWorkspace(true);
+    setTimeout(() => setSwitchingWorkspace(false), 500);
     showSuccess('Organisation Switched', `Active organisation: ${orgName}`);
   };
 
   const handleBranchSelect = (branchId: string | null, branchName: string) => {
     switchBranch(branchId);
     setBranchDropdownOpen(false);
+    setSwitchingWorkspace(true);
+    setTimeout(() => setSwitchingWorkspace(false), 500);
     showSuccess('Branch Switched', `Active branch: ${branchName}`);
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--paper)] text-[var(--ink)] font-ui">
+    <div className="flex h-screen overflow-hidden bg-[var(--paper)] text-[var(--ink)] font-ui relative">
+      {/* Global Workspace Switching Overlay */}
+      {switchingWorkspace && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[var(--surface)]/80 backdrop-blur-sm transition-all duration-300">
+          <div className="flex flex-col items-center p-8 bg-[var(--surface)] rounded-[8px] shadow-2xl border border-[var(--rule)] animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 border-4 border-[var(--rule)] border-t-[var(--gold-500)] rounded-full animate-spin mb-4 shadow-sm" />
+            <h3 className="font-display font-semibold text-xl text-[var(--ink)]">
+              Switching Workspace...
+            </h3>
+            <p className="text-sm text-[var(--ink-muted)] font-data mt-1.5 text-center">
+              Loading global context and records
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Drawer Overlay */}
       {mobileOpen && (
         <div
@@ -424,23 +444,6 @@ export const AppLayout: React.FC = () => {
                         Branches ({currentOrganization?.name})
                       </div>
 
-                      {/* All Branches Option */}
-                      <button
-                        onClick={() => handleBranchSelect(null, `All Branches (${currentOrganization?.name})`)}
-                        className={`w-full px-3 py-2 text-left flex items-center justify-between text-xs hover:bg-[var(--paper)] transition-colors cursor-pointer ${
-                          !currentBranch ? 'font-bold text-[var(--gold-500)] bg-[var(--gold-100)]/30' : 'text-[var(--ink)]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <Globe size={13} className={!currentBranch ? 'text-[var(--gold-500)]' : 'text-[var(--ink-muted)]'} />
-                          <div>
-                            <p className="truncate leading-none">All Branches</p>
-                            <p className="text-[10px] font-data text-[var(--ink-muted)] mt-0.5">Consolidated View</p>
-                          </div>
-                        </div>
-                        {!currentBranch && <Check size={13} className="text-[var(--gold-500)] flex-shrink-0 ml-1" />}
-                      </button>
-
                       {/* Individual Branches */}
                       {branches.map((b) => {
                         const isSelected = String(currentBranch?.id) === String(b.id);
@@ -473,11 +476,7 @@ export const AppLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Live Biometric Machine Status */}
-            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-[11px] font-data text-[var(--ok-600)]">
-              <span className="status-dot-ok" />
-              <span>Biometrics Connected</span>
-            </div>
+
 
             {/* Theme Toggle Button */}
             <button

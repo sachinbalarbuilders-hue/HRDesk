@@ -322,48 +322,6 @@ export const Regularizations: React.FC = () => {
         </p>
       </div>
 
-      {/* 2. Top Metrics Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-amber-500">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center shrink-0">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Pending Approvals</div>
-            <div className="text-xl font-bold font-data text-[var(--ink)]">{metrics.pending}</div>
-          </div>
-        </div>
-
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-emerald-500">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center shrink-0">
-            <CalendarCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Approved Adjustments</div>
-            <div className="text-xl font-bold font-data text-[var(--ink)]">{metrics.approved}</div>
-          </div>
-        </div>
-
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-rose-500">
-          <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center shrink-0">
-            <XCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Rejected Requests</div>
-            <div className="text-xl font-bold font-data text-[var(--ink)]">{metrics.rejected}</div>
-          </div>
-        </div>
-
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-[var(--accent)]">
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-[var(--accent)] flex items-center justify-center shrink-0">
-            <FileText className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Total Ledger Entries</div>
-            <div className="text-xl font-bold font-data text-[var(--ink)]">{metrics.total}</div>
-          </div>
-        </div>
-      </div>
 
       {/* 3. Toolbar & Filters */}
       <div className="space-y-3">
@@ -387,7 +345,6 @@ export const Regularizations: React.FC = () => {
           ]}
           onExport={handleExport}
           onImport={canManage ? () => setImportModalOpen(true) : undefined}
-          importLabel="Bulk Import"
           primaryAction={{
             label: 'Apply Regularization',
             icon: <Plus className="w-3.5 h-3.5" />,

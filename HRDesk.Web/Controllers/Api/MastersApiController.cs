@@ -17,15 +17,18 @@ public class MastersController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly IReferenceDataCacheService _cacheService;
 
     public MastersController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        IReferenceDataCacheService cacheService)
     {
         _db = db;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
+        _cacheService = cacheService;
     }
 
     public record DepartmentDto(string DepartmentName, string? Status, int? BranchId = null);
@@ -253,6 +256,7 @@ public class MastersController : ControllerBase
 
         _db.Departments.Add(dept);
         await _db.SaveChangesAsync();
+        _cacheService.EvictDepartmentsCache();
 
         return Ok(new { message = "Department created successfully.", id = dept.Id });
     }
@@ -268,6 +272,8 @@ public class MastersController : ControllerBase
         if (dto.BranchId.HasValue) dept.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
 
         await _db.SaveChangesAsync();
+        _cacheService.EvictDepartmentsCache();
+        
         return Ok(new { message = "Department updated successfully.", id = dept.Id });
     }
 
@@ -279,6 +285,8 @@ public class MastersController : ControllerBase
 
         _db.Departments.Remove(dept);
         await _db.SaveChangesAsync();
+        _cacheService.EvictDepartmentsCache();
+        
         return Ok(new { message = "Department deleted successfully." });
     }
 
@@ -303,6 +311,7 @@ public class MastersController : ControllerBase
 
         _db.Designations.Add(desig);
         await _db.SaveChangesAsync();
+        _cacheService.EvictDesignationsCache();
 
         return Ok(new { message = "Designation created successfully.", id = desig.Id });
     }
@@ -318,6 +327,8 @@ public class MastersController : ControllerBase
         if (dto.BranchId.HasValue) desig.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
 
         await _db.SaveChangesAsync();
+        _cacheService.EvictDesignationsCache();
+        
         return Ok(new { message = "Designation updated successfully.", id = desig.Id });
     }
 
@@ -329,6 +340,8 @@ public class MastersController : ControllerBase
 
         _db.Designations.Remove(desig);
         await _db.SaveChangesAsync();
+        _cacheService.EvictDesignationsCache();
+        
         return Ok(new { message = "Designation deleted successfully." });
     }
 

@@ -65,12 +65,24 @@ export const Employees: React.FC = () => {
     branchId: '',
     weekoff: 'Sunday',
     joiningDate: new Date().toISOString().split('T')[0],
+    employmentType: '',
+    bloodGroup: '',
+    gender: '',
+    attendanceType: 'Biometric',
+    maritalStatus: '',
+    nationality: '',
+    workEmail: '',
+    personalEmail: '',
+    hasProbation: false,
+    probationDays: 90,
+    roleId: '',
+    dateOfBirth: ''
   });
 
-  const fetchPrefixSettings = async (targetBranchId?: string) => {
+  const fetchPrefixSettings = async () => {
     try {
       const res = await apiClient.get('/employees/prefix-settings', {
-        params: { branchId: targetBranchId ?? (currentBranch?.id || undefined) }
+        params: { branchId: currentBranch?.id || undefined }
       });
       if (res.data) {
         setPrefixForm({
@@ -78,7 +90,7 @@ export const Employees: React.FC = () => {
           connector: res.data.connector ?? '#',
           paddingDigits: res.data.paddingDigits || 3,
           startSequence: res.data.startSequence || 1,
-          branchId: targetBranchId ?? (currentBranch?.id || ''),
+          branchId: currentBranch?.id || '',
         });
       }
     } catch (e) {
@@ -96,15 +108,15 @@ export const Employees: React.FC = () => {
         paddingDigits: Number(prefixForm.paddingDigits),
         startSequence: Number(prefixForm.startSequence),
       }, {
-        params: { branchId: prefixForm.branchId || currentBranch?.id || undefined }
+        params: { branchId: currentBranch?.id || undefined }
       });
       showSuccess(
         'Series Configured',
-        `Employee code format set to ${prefixForm.seriesCode}${prefixForm.connector}${String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}.`
+        `Employee code format for ${currentBranch?.name || 'Workspace'} set to ${prefixForm.seriesCode}${prefixForm.connector}${String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}.`
       );
       setPrefixModalOpen(false);
       fetchEmployees();
-      window.dispatchEvent(new CustomEvent('hrdesk:branch_changed', { detail: { branchId: prefixForm.branchId } }));
+      window.dispatchEvent(new CustomEvent('hrdesk:branch_changed', { detail: { branchId: currentBranch?.id } }));
     } catch (err: any) {
       showError('Save Failed', err.response?.data?.message || 'Could not save series settings');
     } finally {
@@ -112,15 +124,20 @@ export const Employees: React.FC = () => {
     }
   };
 
-  const fetchEmployees = useCallback(async () => {
+  const fetchEmployees = useCallback(async (overrideBranchId?: string | null) => {
     try {
       setLoading(true);
       const apiStatus = archiveFilter === 'archived' ? 'inactive' : archiveFilter === 'all' ? undefined : 'active';
+      const storedBranch = localStorage.getItem('hrdesk_active_branch');
+      const effectiveBranchId = overrideBranchId !== undefined
+        ? (overrideBranchId === 'all' || !overrideBranchId ? undefined : overrideBranchId)
+        : (currentBranch?.id || (storedBranch && storedBranch !== 'all' ? storedBranch : undefined));
+
       const res = await apiClient.get('/employees', {
         params: {
           search: search || undefined,
           departmentId: departmentId || undefined,
-          branchId: currentBranch?.id || undefined,
+          branchId: effectiveBranchId,
           status: apiStatus,
           page,
           pageSize,
@@ -160,9 +177,10 @@ export const Employees: React.FC = () => {
       fetchEmployees();
       fetchLookups();
     };
-    const handleBranchChange = () => {
+    const handleBranchChange = (e: any) => {
       setPage(1);
-      fetchEmployees();
+      const newBranchId = e?.detail?.branchId !== undefined ? e.detail.branchId : localStorage.getItem('hrdesk_active_branch');
+      fetchEmployees(newBranchId);
     };
 
     window.addEventListener('hrdesk:tenant_changed', handleTenantChange);
@@ -227,6 +245,18 @@ export const Employees: React.FC = () => {
         branchId: createForm.branchId ? parseInt(createForm.branchId) : (currentBranch?.id ? parseInt(currentBranch.id) : null),
         weekoff: createForm.weekoff,
         joiningDate: createForm.joiningDate || null,
+        dateOfBirth: createForm.dateOfBirth || null,
+        employmentType: createForm.employmentType || null,
+        bloodGroup: createForm.bloodGroup || null,
+        gender: createForm.gender || null,
+        attendanceType: createForm.attendanceType || null,
+        maritalStatus: createForm.maritalStatus || null,
+        nationality: createForm.nationality || null,
+        workEmail: createForm.workEmail || null,
+        personalEmail: createForm.personalEmail || null,
+        hasProbation: createForm.hasProbation,
+        probationDays: createForm.probationDays,
+        roleId: createForm.roleId ? parseInt(createForm.roleId) : null,
       });
       showSuccess('Employee Added', `${createForm.employeeName} added to directory.`);
       setCreateModalOpen(false);
@@ -300,10 +330,12 @@ export const Employees: React.FC = () => {
             },
             options: [
               { value: '', label: 'All Departments' },
-              ...(lookups?.departments?.map((d: any) => ({
-                value: d.departmentId.toString(),
-                label: d.departmentName,
-              })) || []),
+              ...(lookups?.departments
+                ?.filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
+                .map((d: any) => ({
+                  value: d.departmentId.toString(),
+                  label: d.departmentName,
+                })) || []),
             ],
           },
         ]}
@@ -320,22 +352,23 @@ export const Employees: React.FC = () => {
               }
             : undefined
         }
-      >
-        {canEdit && (
-          <button
-            type="button"
-            onClick={() => {
-              fetchPrefixSettings();
-              setPrefixModalOpen(true);
-            }}
-            className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
-            title="Configure Series Code, Connector and Sequence"
-          >
-            <Sliders size={13} className="text-[var(--gold-500)]" />
-            <span>Prefix Setup</span>
-          </button>
-        )}
-      </DataToolbar>
+        customActions={
+          canEdit ? (
+            <button
+              type="button"
+              onClick={() => {
+                fetchPrefixSettings();
+                setPrefixModalOpen(true);
+              }}
+              className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
+              title="Configure Series Code, Connector and Sequence"
+            >
+              <Sliders size={13} className="text-[var(--gold-500)]" />
+              <span>Prefix Setup</span>
+            </button>
+          ) : undefined
+        }
+      />
 
       {/* 3. Primary Table: Ruled Ledger Table */}
       <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
@@ -515,6 +548,37 @@ export const Employees: React.FC = () => {
                     <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Weekly Off</span>
                     <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.weekoff || 'Sunday'}</p>
                   </div>
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Employment Type</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.employmentType || '-'}</p>
+                  </div>
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Attendance Type</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.attendanceType || '-'}</p>
+                  </div>
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Date of Birth</span>
+                    <p className="font-data font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.dateOfBirth ? new Date(selectedEmployee.dateOfBirth).toLocaleDateString() : '-'}</p>
+                  </div>
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Gender & Blood</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.gender || '-'} / {selectedEmployee.bloodGroup || '-'}</p>
+                  </div>
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Marital & Nationality</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.maritalStatus || '-'} / {selectedEmployee.nationality || '-'}</p>
+                  </div>
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Emails</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5 truncate" title={selectedEmployee.workEmail}>{selectedEmployee.workEmail || 'No work email'}</p>
+                    <p className="text-[var(--ink-muted)] truncate" title={selectedEmployee.personalEmail}>{selectedEmployee.personalEmail || 'No personal email'}</p>
+                  </div>
+                  <div className="col-span-2 p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Probation Details</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">
+                      {selectedEmployee.hasProbation ? `Yes, ${selectedEmployee.probationDays} days` : 'No Probation'}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-1.5">
@@ -615,8 +679,8 @@ export const Employees: React.FC = () => {
       {/* 5. Add Employee Modal */}
       {createModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="w-full max-w-lg rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-xl overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between">
+          <div className="w-full max-w-2xl rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between shrink-0">
               <div>
                 <h3 className="font-display text-lg font-semibold text-[var(--ink)]">
                   Add New Employee
@@ -631,168 +695,206 @@ export const Employees: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateEmployee} className="p-5 space-y-3.5">
-              {/* Branch Prefix Auto-ID Badge */}
-              <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] font-ui block">
-                    Employee Code &amp; ID
-                  </span>
-                  <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                    System-generated with branch prefix
-                  </p>
-                </div>
-                <span className="font-mono text-xs font-bold text-[var(--gold-600)] px-2.5 py-1 rounded-[3px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
-                  {branches?.find((b: any) => String(b.id) === String(createForm.branchId || currentBranch?.id))?.code || 'EMP#'}00X (Auto)
-                </span>
-              </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              <form id="addEmployeeForm" onSubmit={handleCreateEmployee} className="space-y-6">
+                {/* 1. Personal Details */}
+                <section className="space-y-3">
+                  <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">1. Personal Details</h4>
+                  
+                  {/* Auto ID */}
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between mb-3">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] font-ui block">
+                        Employee Code &amp; ID
+                      </span>
+                      <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+                        System-generated with branch prefix
+                      </p>
+                    </div>
+                    <span className="font-mono text-xs font-bold text-[var(--gold-600)] px-2.5 py-1 rounded-[3px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
+                      {branches?.find((b: any) => String(b.id) === String(createForm.branchId || currentBranch?.id))?.code || 'EMP#'}00X (Auto)
+                    </span>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Full Legal Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={createForm.employeeName}
-                  onChange={(e) => setCreateForm({ ...createForm, employeeName: e.target.value })}
-                  placeholder="e.g. Ramesh Patel"
-                  className="register-input w-full text-xs"
-                />
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Full Legal Name *</label>
+                      <input type="text" required value={createForm.employeeName} onChange={(e) => setCreateForm({ ...createForm, employeeName: e.target.value })} placeholder="e.g. Ramesh Patel" className="register-input w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Date of Birth</label>
+                      <input type="date" value={createForm.dateOfBirth} onChange={(e) => setCreateForm({ ...createForm, dateOfBirth: e.target.value })} className="register-input w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Gender</label>
+                      <select value={createForm.gender} onChange={(e) => setCreateForm({ ...createForm, gender: e.target.value })} className="register-input w-full">
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Blood Group</label>
+                      <select value={createForm.bloodGroup} onChange={(e) => setCreateForm({ ...createForm, bloodGroup: e.target.value })} className="register-input w-full">
+                        <option value="">Select</option>
+                        <option value="A+">A+</option><option value="A-">A-</option>
+                        <option value="B+">B+</option><option value="B-">B-</option>
+                        <option value="O+">O+</option><option value="O-">O-</option>
+                        <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Marital Status</label>
+                      <select value={createForm.maritalStatus} onChange={(e) => setCreateForm({ ...createForm, maritalStatus: e.target.value })} className="register-input w-full">
+                        <option value="">Select Status</option>
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Nationality</label>
+                      <input type="text" value={createForm.nationality} onChange={(e) => setCreateForm({ ...createForm, nationality: e.target.value })} placeholder="e.g. Indian" className="register-input w-full" />
+                    </div>
+                  </div>
+                </section>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={createForm.phone}
-                    onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
-                    placeholder="9876543210"
-                    className="register-input w-full font-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Joining Date
-                  </label>
-                  <input
-                    type="date"
-                    value={createForm.joiningDate}
-                    onChange={(e) => setCreateForm({ ...createForm, joiningDate: e.target.value })}
-                    className="register-input w-full font-data"
-                  />
-                </div>
-              </div>
+                {/* 2. Contact Details */}
+                <section className="space-y-3">
+                  <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">2. Contact Details</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Phone Number</label>
+                      <input type="text" value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} placeholder="9876543210" className="register-input w-full font-data" />
+                    </div>
+                    <div></div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Work Email</label>
+                      <input type="email" value={createForm.workEmail} onChange={(e) => setCreateForm({ ...createForm, workEmail: e.target.value })} placeholder="work@company.com" className="register-input w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Personal Email</label>
+                      <input type="email" value={createForm.personalEmail} onChange={(e) => setCreateForm({ ...createForm, personalEmail: e.target.value })} placeholder="personal@gmail.com" className="register-input w-full" />
+                    </div>
+                  </div>
+                </section>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Department
-                  </label>
-                  <select
-                    value={createForm.departmentId}
-                    onChange={(e) => setCreateForm({ ...createForm, departmentId: e.target.value })}
-                    className="register-input w-full"
-                  >
-                    <option value="">Select Department</option>
-                    {lookups?.departments?.map((d: any) => (
-                      <option key={d.departmentId} value={d.departmentId}>
-                        {d.departmentName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Designation
-                  </label>
-                  <select
-                    value={createForm.designationId}
-                    onChange={(e) => setCreateForm({ ...createForm, designationId: e.target.value })}
-                    className="register-input w-full"
-                  >
-                    <option value="">Select Designation</option>
-                    {lookups?.designations?.map((des: any) => (
-                      <option key={des.designationId} value={des.designationId}>
-                        {des.designationName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                {/* 3. Job Assignment */}
+                <section className="space-y-3">
+                  <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">3. Job Assignment</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Branch / Site Location</label>
+                      <div className="register-input w-full bg-[var(--paper)] text-[var(--ink-muted)] flex items-center">
+                        {currentBranch?.name || 'All / Default HQ'}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Employment Type</label>
+                      <select value={createForm.employmentType} onChange={(e) => setCreateForm({ ...createForm, employmentType: e.target.value })} className="register-input w-full">
+                        <option value="">Select Type</option>
+                        <option value="Full-time">Full-time</option>
+                        <option value="Part-time">Part-time</option>
+                        <option value="Contract">Contract</option>
+                        <option value="Intern">Intern</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Department</label>
+                      <select value={createForm.departmentId} onChange={(e) => setCreateForm({ ...createForm, departmentId: e.target.value })} className="register-input w-full">
+                        <option value="">Select Department</option>
+                        {lookups?.departments
+                          ?.filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
+                          .map((d: any) => (<option key={d.departmentId} value={d.departmentId}>{d.departmentName}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Designation</label>
+                      <select value={createForm.designationId} onChange={(e) => setCreateForm({ ...createForm, designationId: e.target.value })} className="register-input w-full">
+                        <option value="">Select Designation</option>
+                        {lookups?.designations
+                          ?.filter((des: any) => !currentBranch?.id || String(des.branchId) === String(currentBranch.id))
+                          .map((des: any) => (<option key={des.designationId} value={des.designationId}>{des.designationName}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Reporting Manager</label>
+                      <select value={createForm.reportingManagerId} onChange={(e) => setCreateForm({ ...createForm, reportingManagerId: e.target.value })} className="register-input w-full">
+                        <option value="">None (Top Level)</option>
+                        {lookups?.managers
+                          ?.filter((m: any) => !currentBranch?.id || String(m.branchId) === String(currentBranch.id))
+                          .map((m: any) => (<option key={m.employeeId} value={m.employeeId}>{m.employeeName}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">User Role (Auto-create account)</label>
+                      <select value={createForm.roleId} onChange={(e) => setCreateForm({ ...createForm, roleId: e.target.value })} className="register-input w-full">
+                        <option value="">No Login Access</option>
+                        {lookups?.roles?.map((r: any) => (<option key={r.id} value={r.id}>{r.name}</option>))}
+                      </select>
+                    </div>
+                  </div>
+                </section>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Reporting Manager
-                  </label>
-                  <select
-                    value={createForm.reportingManagerId}
-                    onChange={(e) => setCreateForm({ ...createForm, reportingManagerId: e.target.value })}
-                    className="register-input w-full"
-                  >
-                    <option value="">None (Top Level)</option>
-                    {lookups?.managers?.map((m: any) => (
-                      <option key={m.employeeId} value={m.employeeId}>
-                        {m.employeeName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                    Branch / Site Location
-                  </label>
-                  <select
-                    value={createForm.branchId}
-                    onChange={(e) => setCreateForm({ ...createForm, branchId: e.target.value })}
-                    className="register-input w-full"
-                  >
-                    <option value="">All / Default HQ</option>
-                    {branches?.map((b: any) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.city || b.code || 'Branch'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                {/* 4. Employment Rules */}
+                <section className="space-y-3">
+                  <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">4. Employment Rules</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Joining Date</label>
+                      <input type="date" value={createForm.joiningDate} onChange={(e) => setCreateForm({ ...createForm, joiningDate: e.target.value })} className="register-input w-full font-data" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Weekly Off</label>
+                      <select value={createForm.weekoff} onChange={(e) => setCreateForm({ ...createForm, weekoff: e.target.value })} className="register-input w-full">
+                        <option value="Sunday">Sunday</option>
+                        <option value="Monday">Monday</option>
+                        <option value="Saturday">Saturday</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Attendance Type</label>
+                      <select value={createForm.attendanceType} onChange={(e) => setCreateForm({ ...createForm, attendanceType: e.target.value })} className="register-input w-full">
+                        <option value="Biometric">Biometric</option>
+                        <option value="Web">Web Clock-in</option>
+                        <option value="Manual">Manual</option>
+                        <option value="None">None</option>
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-semibold text-[var(--ink)] mb-2">Probation Period?</label>
+                      <div className="flex gap-4 mb-2">
+                        <label className="flex items-center gap-1.5 text-xs text-[var(--ink)] cursor-pointer">
+                          <input type="radio" checked={createForm.hasProbation === true} onChange={() => setCreateForm({ ...createForm, hasProbation: true })} className="accent-[var(--gold-500)]" />
+                          Yes
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-[var(--ink)] cursor-pointer">
+                          <input type="radio" checked={createForm.hasProbation === false} onChange={() => setCreateForm({ ...createForm, hasProbation: false })} className="accent-[var(--gold-500)]" />
+                          No
+                        </label>
+                      </div>
+                      {createForm.hasProbation && (
+                        <div className="w-1/2">
+                          <label className="block text-xs font-semibold text-[var(--ink-muted)] mb-1">Probation Length (Days)</label>
+                          <input type="number" min="0" value={createForm.probationDays} onChange={(e) => setCreateForm({ ...createForm, probationDays: Number(e.target.value) })} className="register-input w-full font-data" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              </form>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Weekly Off
-                </label>
-                <select
-                  value={createForm.weekoff}
-                  onChange={(e) => setCreateForm({ ...createForm, weekoff: e.target.value })}
-                  className="register-input w-full"
-                >
-                  <option value="Sunday">Sunday</option>
-                  <option value="Monday">Monday</option>
-                  <option value="Saturday">Saturday</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
-                <button
-                  type="button"
-                  onClick={() => setCreateModalOpen(false)}
-                  className="btn-outline cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="btn-primary disabled:opacity-50 cursor-pointer"
-                >
-                  {creating ? 'Saving...' : 'Save Employee'}
-                </button>
-              </div>
-            </form>
+            <div className="p-4 border-t border-[var(--rule)] bg-[var(--paper)] shrink-0 flex items-center justify-end gap-2">
+              <button type="button" onClick={() => setCreateModalOpen(false)} className="btn-outline cursor-pointer">
+                Cancel
+              </button>
+              <button form="addEmployeeForm" type="submit" disabled={creating} className="btn-primary disabled:opacity-50 cursor-pointer">
+                {creating ? 'Saving...' : 'Save Employee'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -838,27 +940,13 @@ export const Employees: React.FC = () => {
             </div>
 
             <form onSubmit={handleSavePrefixSettings} className="space-y-4 text-xs">
-              {/* Branch / Scope Selector */}
-              <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">
-                  Target Branch Scope
-                </label>
-                <select
-                  value={prefixForm.branchId}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setPrefixForm((prev) => ({ ...prev, branchId: val }));
-                    fetchPrefixSettings(val);
-                  }}
-                  className="register-input w-full"
-                >
-                  <option value="">-- Company-Wide (Default) --</option>
-                  {branches?.map((b: any) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.city || 'Branch'})
-                    </option>
-                  ))}
-                </select>
+              {/* Active Branch Display Banner */}
+              <div className="flex items-center justify-between p-2.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                <span className="text-[var(--ink-muted)] font-ui text-[11px]">Active Branch:</span>
+                <span className="font-semibold text-xs text-[var(--gold-600)] flex items-center gap-1.5 font-ui">
+                  <MapPin size={13} className="text-[var(--gold-500)]" />
+                  {currentBranch ? currentBranch.name : 'All Branches (Company Default)'}
+                </span>
               </div>
 
               {/* 1. Series Code & 2. Connector */}
@@ -921,45 +1009,51 @@ export const Employees: React.FC = () => {
                 </div>
               </div>
 
-              {/* 3. Sequence Start & Padding */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">
-                    3. Sequence Starting No.
-                  </label>
+              {/* 3. Sequence Length */}
+              <div>
+                <label className="block font-semibold text-[var(--ink)] mb-1">
+                  3. Sequence Length *
+                </label>
+                <div className="flex items-center gap-2">
                   <input
                     type="number"
                     min="1"
+                    max="8"
                     required
-                    value={prefixForm.startSequence}
+                    value={prefixForm.paddingDigits}
                     onChange={(e) =>
                       setPrefixForm({
                         ...prefixForm,
-                        startSequence: Math.max(1, parseInt(e.target.value) || 1),
+                        paddingDigits: Math.max(1, Math.min(8, parseInt(e.target.value) || 1)),
                       })
                     }
-                    className="register-input w-full font-data text-xs"
+                    className="register-input w-24 font-mono text-xs font-bold text-center"
                   />
-                  <span className="text-[10px] text-[var(--ink-muted)] block mt-0.5">Start numbering from (e.g. 1)</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {[
+                      { len: 3, label: '3 Digits (001)' },
+                      { len: 4, label: '4 Digits (0001)' },
+                      { len: 5, label: '5 Digits (00001)' },
+                      { len: 1, label: '1 (1, 2, 3...)' },
+                    ].map((item) => (
+                      <button
+                        type="button"
+                        key={item.len}
+                        onClick={() => setPrefixForm({ ...prefixForm, paddingDigits: item.len })}
+                        className={`px-2 py-1 rounded-[2px] border text-[11px] font-mono cursor-pointer transition-colors ${
+                          prefixForm.paddingDigits === item.len
+                            ? 'bg-[var(--gold-500)] text-[var(--navy-950)] border-[var(--gold-500)] font-bold'
+                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--gold-500)]'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">
-                    Sequence Padding
-                  </label>
-                  <select
-                    value={prefixForm.paddingDigits}
-                    onChange={(e) =>
-                      setPrefixForm({ ...prefixForm, paddingDigits: parseInt(e.target.value) })
-                    }
-                    className="register-input w-full text-xs font-mono"
-                  >
-                    <option value={3}>3 Digits (001, 002...)</option>
-                    <option value={4}>4 Digits (0001, 0002...)</option>
-                    <option value={2}>2 Digits (01, 02...)</option>
-                    <option value={1}>No Padding (1, 2, 3...)</option>
-                  </select>
-                </div>
+                <span className="text-[10px] text-[var(--ink-muted)] block mt-1">
+                  Defines the zero-padding length for generated employee numbers (e.g. 3 &rarr; 001)
+                </span>
               </div>
 
               {/* 4. LIVE INTERACTIVE PREVIEW */}

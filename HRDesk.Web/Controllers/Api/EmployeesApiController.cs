@@ -170,7 +170,17 @@ public class EmployeesController : ControllerBase
             Designation = employee.Designation != null ? employee.Designation.DesignationName : null,
             employee.DesignationId,
             ReportingManager = employee.ReportingManager != null ? employee.ReportingManager.EmployeeName : null,
-            employee.ReportingManagerId
+            employee.ReportingManagerId,
+            employee.EmploymentType,
+            employee.BloodGroup,
+            employee.Gender,
+            employee.AttendanceType,
+            employee.MaritalStatus,
+            employee.Nationality,
+            employee.WorkEmail,
+            employee.PersonalEmail,
+            employee.HasProbation,
+            employee.ProbationDays
         });
     }
 
@@ -185,15 +195,21 @@ public class EmployeesController : ControllerBase
             .AsNoTracking()
             .Where(e => e.Status == "active")
             .OrderBy(e => e.EmployeeName)
-            .Select(e => new { e.EmployeeId, e.EmployeeName, Department = e.Department != null ? e.Department.DepartmentName : null })
+            .Select(e => new { e.EmployeeId, e.EmployeeName, Department = e.Department != null ? e.Department.DepartmentName : null, e.BranchId })
+            .ToListAsync();
+
+        var roles = await _db.Roles
+            .AsNoTracking()
+            .Select(r => new { r.Id, r.Name })
             .ToListAsync();
 
         return Ok(new
         {
-            departments = departments.Select(d => new { DepartmentId = d.Id, d.DepartmentName }),
-            designations = designations.Select(d => new { DesignationId = d.Id, d.DesignationName }),
+            departments = departments.Select(d => new { DepartmentId = d.Id, d.DepartmentName, d.BranchId }),
+            designations = designations.Select(d => new { DesignationId = d.Id, d.DesignationName, d.BranchId }),
             shifts = shifts.Select(s => new { ShiftId = s.Id, s.ShiftName, s.StartTime, s.EndTime }),
-            managers
+            managers,
+            roles
         });
     }
 
@@ -245,8 +261,35 @@ public class EmployeesController : ControllerBase
             Weekoff = dto.Weekoff ?? "Sunday",
             BranchId = targetBranchId,
             Status = "active",
-            OrganizationId = targetOrgId
+            OrganizationId = targetOrgId,
+            EmploymentType = dto.EmploymentType,
+            BloodGroup = dto.BloodGroup,
+            Gender = dto.Gender,
+            AttendanceType = dto.AttendanceType,
+            MaritalStatus = dto.MaritalStatus,
+            Nationality = dto.Nationality,
+            WorkEmail = dto.WorkEmail?.Trim(),
+            PersonalEmail = dto.PersonalEmail?.Trim(),
+            HasProbation = dto.HasProbation,
+            ProbationDays = dto.ProbationDays
         };
+
+        if (dto.RoleId.HasValue && dto.RoleId.Value > 0)
+        {
+            var user = new User
+            {
+                Username = dto.WorkEmail ?? dto.PersonalEmail ?? $"{dto.EmployeeName.Replace(" ", "").ToLower()}{targetEmpId}",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Welcome@123", 12),
+                FullName = dto.EmployeeName.Trim(),
+                RoleId = dto.RoleId,
+                Role = "Employee",
+                IsActive = true,
+                BranchId = targetBranchId,
+                OrganizationId = targetOrgId,
+                Employee = employee
+            };
+            _db.Users.Add(user);
+        }
 
         _db.Employees.Add(employee);
         await _db.SaveChangesAsync();
@@ -286,6 +329,17 @@ public class EmployeesController : ControllerBase
         employee.ReportingManagerId = dto.ReportingManagerId;
         if (dto.BranchId.HasValue) employee.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
         if (!string.IsNullOrWhiteSpace(dto.Weekoff)) employee.Weekoff = dto.Weekoff;
+        
+        employee.EmploymentType = dto.EmploymentType;
+        employee.BloodGroup = dto.BloodGroup;
+        employee.Gender = dto.Gender;
+        employee.AttendanceType = dto.AttendanceType;
+        employee.MaritalStatus = dto.MaritalStatus;
+        employee.Nationality = dto.Nationality;
+        if (dto.WorkEmail != null) employee.WorkEmail = dto.WorkEmail.Trim();
+        if (dto.PersonalEmail != null) employee.PersonalEmail = dto.PersonalEmail.Trim();
+        employee.HasProbation = dto.HasProbation;
+        employee.ProbationDays = dto.ProbationDays;
 
         await _db.SaveChangesAsync();
 
@@ -440,7 +494,18 @@ public class EmployeesController : ControllerBase
         int? ReportingManagerId,
         string? Weekoff,
         int? EmployeeId = null,
-        int? BranchId = null
+        int? BranchId = null,
+        string? EmploymentType = null,
+        string? BloodGroup = null,
+        string? Gender = null,
+        string? AttendanceType = null,
+        string? MaritalStatus = null,
+        string? Nationality = null,
+        string? WorkEmail = null,
+        string? PersonalEmail = null,
+        bool HasProbation = false,
+        int? ProbationDays = null,
+        int? RoleId = null
     );
 
     public record EmployeeUpdateDto(
@@ -456,6 +521,17 @@ public class EmployeesController : ControllerBase
         int? DesignationId,
         int? ReportingManagerId,
         string? Weekoff,
-        int? BranchId = null
+        int? BranchId = null,
+        string? EmploymentType = null,
+        string? BloodGroup = null,
+        string? Gender = null,
+        string? AttendanceType = null,
+        string? MaritalStatus = null,
+        string? Nationality = null,
+        string? WorkEmail = null,
+        string? PersonalEmail = null,
+        bool HasProbation = false,
+        int? ProbationDays = null,
+        int? RoleId = null
     );
 }

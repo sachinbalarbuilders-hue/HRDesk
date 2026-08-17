@@ -468,13 +468,12 @@ export const Attendance: React.FC = () => {
             onChange: setDepartmentId,
             options: [
               { value: '', label: 'All Departments' },
-              ...departments.map((d: any) => ({ value: String(d.departmentId || d.id), label: d.departmentName })),
+              ...departments.filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id)).map((d: any) => ({ value: String(d.departmentId || d.id), label: d.departmentName })),
             ],
           },
         ]}
         onExport={handleExportAttendance}
         onImport={activeTab === 'matrix' || activeTab === 'daily_logs' ? () => setImportModalOpen(true) : undefined}
-        importLabel="Import Biometric Punches"
         primaryAction={activeTab === 'compoff' ? {
           label: 'Apply Comp-Off',
           icon: <Plus className="w-3.5 h-3.5" />,
@@ -527,10 +526,10 @@ export const Attendance: React.FC = () => {
             <table className="ledger-table w-full text-xs">
               <thead className="sticky top-0 z-10 bg-[var(--paper-subtle)]">
                 <tr>
-                  <th className="sticky left-0 z-20 bg-[var(--paper-subtle)] border-r border-[var(--rule)] min-w-[180px] shadow-sm">
+                  <th className="sticky left-0 z-20 bg-[var(--paper-subtle)] border-r border-[var(--rule)] min-w-[180px] shadow-sm text-left py-2 px-3">
                     Employee Name
                   </th>
-                  <th className="border-r border-[var(--rule)] min-w-[110px]">Department</th>
+
                   {data?.daysInMonth &&
                     Array.from({ length: data.daysInMonth }, (_, i) => i + 1).map((d) => (
                       <th key={d} className="w-8 text-center p-1 font-mono text-[10px] text-[var(--ink-muted)]">
@@ -549,9 +548,7 @@ export const Attendance: React.FC = () => {
                     <td className="sticky left-0 z-10 bg-[var(--paper)] border-r border-[var(--rule)] font-semibold text-[var(--ink)] whitespace-nowrap py-2 px-3 shadow-xs">
                       {row.employee.employeeName}
                     </td>
-                    <td className="border-r border-[var(--rule)] text-[var(--ink-muted)] text-[11px] whitespace-nowrap px-3 py-2">
-                      {row.employee.departmentName || row.employee.department || 'General'}
-                    </td>
+
                     {Array.from({ length: data.daysInMonth }, (_, i) => i + 1).map((d) => {
                       const dayStr = String(d);
                       const record = row.dailyRecords?.[dayStr];
@@ -615,7 +612,7 @@ export const Attendance: React.FC = () => {
               <thead>
                 <tr>
                   <th>Employee Name</th>
-                  <th>Department</th>
+
                   <th className="text-right font-data">In Time</th>
                   <th className="text-right font-data">Out Time</th>
                   <th>Shift</th>
@@ -627,7 +624,7 @@ export const Attendance: React.FC = () => {
                 {dailyLogs.map((log: any) => (
                   <tr key={log.id}>
                     <td className="font-semibold text-[var(--ink)]">{log.employeeName}</td>
-                    <td className="text-[var(--ink-muted)] text-xs">{log.department || 'General'}</td>
+
                     <td className="text-right font-data text-xs text-[var(--ink)]">{log.inTime || '--:--'}</td>
                     <td className="text-right font-data text-xs text-[var(--ink)]">{log.outTime || '--:--'}</td>
                     <td className="text-xs text-[var(--ink-muted)]">{log.shiftName || 'General'}</td>
@@ -683,10 +680,7 @@ export const Attendance: React.FC = () => {
                     <tr key={c.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
                       <td className="p-3.5">
                         <div className="font-semibold text-[var(--ink)]">{c.employeeName}</div>
-                        <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
-                          <Building2 className="w-3 h-3" />
-                          <span>{c.departmentName}</span>
-                        </div>
+
                       </td>
 
                       <td className="p-3.5 font-mono">
@@ -950,3 +944,4 @@ export const Attendance: React.FC = () => {
     </div>
   );
 };
+

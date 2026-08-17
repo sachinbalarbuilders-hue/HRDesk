@@ -219,7 +219,6 @@ export const Holidays: React.FC = () => {
         ]}
         onExport={handleExport}
         onImport={() => setImportModalOpen(true)}
-        importLabel="Import Holidays"
         primaryAction={{
           label: 'Add Holiday',
           icon: <Plus className="w-3.5 h-3.5" />,

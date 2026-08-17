@@ -336,7 +336,7 @@ export const Payroll: React.FC = () => {
               onChange: (v) => { setDepartmentId(v); setPage(1); },
               options: [
                 { value: '', label: 'All Departments' },
-                ...departments.map((d: any) => ({ value: String(d.departmentId || d.id), label: d.departmentName })),
+                ...departments.filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id)).map((d: any) => ({ value: String(d.departmentId || d.id), label: d.departmentName })),
               ],
             },
           ]}
@@ -826,3 +826,4 @@ export const Payroll: React.FC = () => {
     </div>
   );
 };
+

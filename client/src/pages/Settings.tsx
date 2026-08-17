@@ -1073,9 +1073,7 @@ export const Settings: React.FC = () => {
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                       <span className="font-semibold text-xs text-[var(--ink)]">{branch.name}</span>
-                                      <span className="inline-flex items-center gap-1 font-mono text-[10px] px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] text-indigo-600 font-bold">
-                                        Prefix: {branch.code || 'None'} <span className="text-[9px] text-[var(--ink-muted)]">({branch.code || 'EMP#'}001)</span>
-                                      </span>
+
                                       {branch.isActive !== false
                                         ? <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Active</span>
                                         : <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-800">Archived</span>
