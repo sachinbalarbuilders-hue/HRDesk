@@ -27,6 +27,10 @@ import {
   UserPlus,
   MapPin,
   Globe,
+  Wallet,
+  Landmark,
+  PiggyBank,
+  Camera,
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
@@ -131,6 +135,12 @@ export const AppLayout: React.FC = () => {
           href: '/settings',
           icon: SettingsIcon,
           show: isAdmin,
+        },
+        {
+          name: 'ID Scanner',
+          href: '/scanner',
+          icon: Camera,
+          show: true,
         },
       ],
     },

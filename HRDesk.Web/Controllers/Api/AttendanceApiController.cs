@@ -272,6 +272,23 @@ public class AttendanceController : ControllerBase
         });
     }
 
+    [HttpGet("summary/{employeeId}")]
+    public async Task<IActionResult> GetEmployeeSummary(int employeeId, [FromQuery] int? year, [FromQuery] int? month)
+    {
+        var targetYear = year ?? DateTime.Today.Year;
+        var targetMonth = month ?? DateTime.Today.Month;
+        
+        var query = _db.Employees.AsNoTracking().Where(e => e.EmployeeId == employeeId);
+        query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.EmployeesView);
+        if (!await query.AnyAsync())
+        {
+            return Forbid();
+        }
+
+        var summary = await _attendanceSummaryService.GetSummaryAsync(employeeId, targetYear, targetMonth);
+        return Ok(summary);
+    }
+
     [HttpGet("daily-logs")]
     public async Task<IActionResult> GetDailyLogs(
         [FromQuery] DateOnly? date = null,

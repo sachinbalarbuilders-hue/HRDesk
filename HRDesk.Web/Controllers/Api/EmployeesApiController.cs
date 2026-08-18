@@ -150,6 +150,7 @@ public class EmployeesController : ControllerBase
         return Ok(new
         {
             employee.EmployeeId,
+            employee.VerificationId,
             employee.EmployeeName,
             employeeCode = (employee.Branch != null && !string.IsNullOrEmpty(employee.Branch.Code) ? employee.Branch.Code : "EMP#") + employee.EmployeeId.ToString("D3"),
             employee.Phone,
@@ -179,6 +180,8 @@ public class EmployeesController : ControllerBase
             employee.Nationality,
             employee.WorkEmail,
             employee.PersonalEmail,
+            employee.CurrentAddress,
+            employee.PermanentAddress,
             employee.HasProbation,
             employee.ProbationDays
         });
@@ -270,6 +273,8 @@ public class EmployeesController : ControllerBase
             Nationality = dto.Nationality,
             WorkEmail = dto.WorkEmail?.Trim(),
             PersonalEmail = dto.PersonalEmail?.Trim(),
+            CurrentAddress = dto.CurrentAddress?.Trim(),
+            PermanentAddress = dto.PermanentAddress?.Trim(),
             HasProbation = dto.HasProbation,
             ProbationDays = dto.ProbationDays
         };
@@ -338,6 +343,8 @@ public class EmployeesController : ControllerBase
         employee.Nationality = dto.Nationality;
         if (dto.WorkEmail != null) employee.WorkEmail = dto.WorkEmail.Trim();
         if (dto.PersonalEmail != null) employee.PersonalEmail = dto.PersonalEmail.Trim();
+        if (dto.CurrentAddress != null) employee.CurrentAddress = dto.CurrentAddress.Trim();
+        if (dto.PermanentAddress != null) employee.PermanentAddress = dto.PermanentAddress.Trim();
         employee.HasProbation = dto.HasProbation;
         employee.ProbationDays = dto.ProbationDays;
 
@@ -474,7 +481,147 @@ public class EmployeesController : ControllerBase
         await _db.SaveChangesAsync();
         _permissionService.ClearCache();
 
-        return Ok(new { message = "Employee Code Series & Prefix setup saved successfully." });
+        return Ok(new { success = true, message = "Prefix settings saved successfully." });
+    }
+
+    [HttpPost("{id}/photo")]
+    public async Task<IActionResult> UploadPhoto(int id, IFormFile photo)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
+        {
+            return Forbid();
+        }
+
+        if (photo == null || photo.Length == 0)
+        {
+            return BadRequest(new { message = "No file uploaded." });
+        }
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(photo.ContentType))
+        {
+            return BadRequest(new { message = "Invalid file type. Only JPEG, PNG, GIF, and WEBP are allowed." });
+        }
+
+        if (photo.Length > 5 * 1024 * 1024) // 5MB limit
+        {
+            return BadRequest(new { message = "File size cannot exceed 5MB." });
+        }
+
+        byte[] photoBytes;
+        using (var ms = new MemoryStream())
+        {
+            await photo.CopyToAsync(ms);
+            photoBytes = ms.ToArray();
+        }
+
+        var organizationId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+
+        var employee = await _db.Employees
+            .FirstOrDefaultAsync(e => e.EmployeeId == id && e.OrganizationId == organizationId);
+
+        if (employee == null)
+        {
+            return NotFound(new { message = "Employee not found." });
+        }
+
+        // Update using ADO.NET because PhotoData is [NotMapped] in EF Core to prevent hangs
+        var connection = Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.GetDbConnection(_db.Database);
+        bool wasClosed = connection.State == System.Data.ConnectionState.Closed;
+        if (wasClosed) await connection.OpenAsync();
+
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "UPDATE employees SET PhotoData = @p, PhotoContentType = @c, PhotoPath = @path WHERE employee_id = @id AND organization_id = @org";
+            
+            var pParam = cmd.CreateParameter(); pParam.ParameterName = "@p"; pParam.Value = photoBytes; cmd.Parameters.Add(pParam);
+            var cParam = cmd.CreateParameter(); cParam.ParameterName = "@c"; cParam.Value = photo.ContentType; cmd.Parameters.Add(cParam);
+            var idParam = cmd.CreateParameter(); idParam.ParameterName = "@id"; idParam.Value = id; cmd.Parameters.Add(idParam);
+            var orgParam = cmd.CreateParameter(); orgParam.ParameterName = "@org"; orgParam.Value = organizationId; cmd.Parameters.Add(orgParam);
+            
+            // Also set a dummy PhotoPath so the frontend knows there's a photo
+            var pathParam = cmd.CreateParameter(); pathParam.ParameterName = "@path"; pathParam.Value = $"/api/Thumbnail?employeeId={id}"; cmd.Parameters.Add(pathParam);
+            
+            await cmd.ExecuteNonQueryAsync();
+            
+            // Invalidate cache if there is any
+        }
+        finally
+        {
+            if (wasClosed) await connection.CloseAsync();
+        }
+
+        return Ok(new { success = true, photoPath = $"/api/Thumbnail?employeeId={id}", message = "Profile picture updated successfully." });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{verificationId}/public-verify")]
+    public async Task<IActionResult> PublicVerifyEmployee(Guid verificationId)
+    {
+        // For public verification, we disable tenant filtering if necessary, or just rely on the standard DB. 
+        // We will just query by ID and ensure no highly sensitive data is returned.
+        var employee = await _db.Employees
+            .IgnoreQueryFilters() // Bypass global tenant/permission filters for public verify
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.Designation)
+            .Include(e => e.Branch)
+            .FirstOrDefaultAsync(e => e.VerificationId == verificationId);
+
+        if (employee == null)
+            return NotFound(new { message = "Employee not found." });
+
+        var employeeCode = (employee.Branch != null && !string.IsNullOrEmpty(employee.Branch.Code) ? employee.Branch.Code : "EMP#") + employee.EmployeeId.ToString("D3");
+        var isActive = employee.ResignationDate == null && employee.LastWorkingDate == null;
+
+        return Ok(new
+        {
+            employeeId = employee.EmployeeId,
+            employeeCode,
+            employeeName = employee.EmployeeName,
+            designation = employee.Designation?.DesignationName,
+            department = employee.Department?.DepartmentName,
+            branch = employee.Branch?.Name,
+            isActive = isActive,
+            photoPath = $"/api/Employees/{verificationId}/public-photo"
+        });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{verificationId}/public-photo")]
+    public async Task<IActionResult> PublicVerifyPhoto(Guid verificationId)
+    {
+        var connection = _db.Database.GetDbConnection();
+        bool wasClosed = connection.State == System.Data.ConnectionState.Closed;
+        if (wasClosed) await connection.OpenAsync();
+
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            // Intentionally bypassing organization_id check since this is a public verification route for a specific ID
+            cmd.CommandText = "SELECT PhotoData, PhotoContentType FROM employees WHERE VerificationId = @vid";
+            var idParam = cmd.CreateParameter();
+            idParam.ParameterName = "@vid";
+            idParam.Value = verificationId;
+            cmd.Parameters.Add(idParam);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                if (!reader.IsDBNull(0) && !reader.IsDBNull(1))
+                {
+                    var photoBytes = (byte[])reader.GetValue(0);
+                    var contentType = reader.GetString(1);
+                    return File(photoBytes, contentType);
+                }
+            }
+            return NotFound();
+        }
+        finally
+        {
+            if (wasClosed) await connection.CloseAsync();
+        }
     }
 
     public record PrefixSettingsDto(
@@ -503,6 +650,8 @@ public class EmployeesController : ControllerBase
         string? Nationality = null,
         string? WorkEmail = null,
         string? PersonalEmail = null,
+        string? CurrentAddress = null,
+        string? PermanentAddress = null,
         bool HasProbation = false,
         int? ProbationDays = null,
         int? RoleId = null
@@ -530,6 +679,8 @@ public class EmployeesController : ControllerBase
         string? Nationality = null,
         string? WorkEmail = null,
         string? PersonalEmail = null,
+        string? CurrentAddress = null,
+        string? PermanentAddress = null,
         bool HasProbation = false,
         int? ProbationDays = null,
         int? RoleId = null

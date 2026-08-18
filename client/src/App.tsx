@@ -20,6 +20,8 @@ const Loans = lazy(() => import('./pages/Loans').then(m => ({ default: m.Loans }
 const Payroll = lazy(() => import('./pages/Payroll').then(m => ({ default: m.Payroll })));
 const Recruitment = lazy(() => import('./pages/Recruitment').then(m => ({ default: m.Recruitment })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const VerifyEmployee = lazy(() => import('./pages/VerifyEmployee').then(m => ({ default: m.VerifyEmployee })));
+const GuardScanner = lazy(() => import('./pages/GuardScanner').then(m => ({ default: m.GuardScanner })));
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string }> = ({
   children,
@@ -56,6 +58,7 @@ export const App: React.FC = () => {
             <Suspense fallback={<div className="p-8"><PageSkeleton /></div>}>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/verify/:id" element={<VerifyEmployee />} />
 
                 <Route
                   path="/"
@@ -95,6 +98,15 @@ export const App: React.FC = () => {
                     element={
                       <ProtectedRoute>
                         <Regularizations />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/scanner"
+                    element={
+                      <ProtectedRoute>
+                        <GuardScanner />
                       </ProtectedRoute>
                     }
                   />

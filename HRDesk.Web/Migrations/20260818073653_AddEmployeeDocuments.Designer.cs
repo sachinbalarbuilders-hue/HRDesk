@@ -4,6 +4,7 @@ using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRDesk.Web.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260818073653_AddEmployeeDocuments")]
+    partial class AddEmployeeDocuments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1048,10 +1051,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("branch_id");
 
-                    b.Property<string>("CurrentAddress")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<DateOnly?>("DateOfBirth")
                         .HasColumnType("date")
                         .HasColumnName("date_of_birth");
@@ -1106,10 +1105,6 @@ namespace HRDesk.Web.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("PermanentAddress")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<string>("PersonalEmail")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -1143,9 +1138,6 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("Status")
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("status");
-
-                    b.Property<Guid>("VerificationId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Weekoff")
                         .HasColumnType("nvarchar(max)")
@@ -1217,7 +1209,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("DocumentId");
 
-                    b.HasIndex("OrganizationId", "EmployeeId");
+                    b.HasIndex("EmployeeId", "OrganizationId");
 
                     b.ToTable("employee_documents");
                 });
@@ -2838,7 +2830,7 @@ namespace HRDesk.Web.Migrations
                 {
                     b.HasOne("HRDesk.Web.Models.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
+                        .HasForeignKey("EmployeeId", "OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

@@ -27,7 +27,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<DailyAttendance> DailyAttendance => Set<DailyAttendance>();
 
     public DbSet<Employee> Employees => Set<Employee>();
-
+    public DbSet<EmployeeDocument> EmployeeDocuments => Set<EmployeeDocument>();
     public DbSet<Department> Departments => Set<Department>();
 
     public DbSet<Designation> Designations => Set<Designation>();

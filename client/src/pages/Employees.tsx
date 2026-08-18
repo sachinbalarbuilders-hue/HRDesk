@@ -12,14 +12,31 @@ import {
   X,
   FileText,
   Calendar,
-  MapPin,
   Sliders,
   Sparkles,
+  Camera,
+  Loader2,
+  MapPin,
 } from 'lucide-react';
 import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
+import { EmployeeDocumentsTab } from '../components/employees/EmployeeDocumentsTab';
+import { EmployeeAttendanceTab } from '../components/employees/EmployeeAttendanceTab';
+import { EmployeeIdCardTab } from '../components/employees/EmployeeIdCardTab';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
+import { EmployeeForm, type EmployeeFormData } from '../components/forms/EmployeeForm';
+import { AuthImage } from '../components/ui/AuthImage';
+
+const formatDate = (dateStr: string | null | undefined) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr.split('T')[0];
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
 
 export const Employees: React.FC = () => {
   const { hasPermission, isAdmin } = useAuth();
@@ -32,7 +49,7 @@ export const Employees: React.FC = () => {
   const [departmentId, setDepartmentId] = useState<string>('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
-  const [profileTab, setProfileTab] = useState<'details' | 'attendance' | 'records'>('details');
+  const [profileTab, setProfileTab] = useState<'details' | 'attendance' | 'records' | 'idcard'>('details');
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -41,10 +58,14 @@ export const Employees: React.FC = () => {
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [prefixModalOpen, setPrefixModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [savingPrefix, setSavingPrefix] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Prefix & Series Setup State (Series Code, Connector, Sequence, Padding)
   const [prefixForm, setPrefixForm] = useState({
@@ -53,30 +74,6 @@ export const Employees: React.FC = () => {
     paddingDigits: 3,
     startSequence: 1,
     branchId: '',
-  });
-
-  const [createForm, setCreateForm] = useState({
-    employeeId: '',
-    employeeName: '',
-    phone: '',
-    departmentId: '',
-    designationId: '',
-    reportingManagerId: '',
-    branchId: '',
-    weekoff: 'Sunday',
-    joiningDate: new Date().toISOString().split('T')[0],
-    employmentType: '',
-    bloodGroup: '',
-    gender: '',
-    attendanceType: 'Biometric',
-    maritalStatus: '',
-    nationality: '',
-    workEmail: '',
-    personalEmail: '',
-    hasProbation: false,
-    probationDays: 90,
-    roleId: '',
-    dateOfBirth: ''
   });
 
   const fetchPrefixSettings = async () => {
@@ -213,6 +210,17 @@ export const Employees: React.FC = () => {
     showSuccess('Export Complete', 'Employee directory downloaded successfully.');
   };
 
+  const handleRowClick = async (emp: any) => {
+    // Optimistically open modal with summary data
+    setSelectedEmployee(emp);
+    try {
+      const res = await apiClient.get(`/employees/${emp.employeeId}`);
+      setSelectedEmployee(res.data);
+    } catch (err) {
+      console.error('Failed to load full details for slide-over', err);
+    }
+  };
+
   const handleToggleStatus = async (id: number) => {
     try {
       await apiClient.post(`/employees/${id}/toggle-status`);
@@ -229,53 +237,131 @@ export const Employees: React.FC = () => {
     }
   };
 
-  const handleCreateEmployee = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!createForm.employeeName.trim()) return;
+  const handleCreateEmployee = async (formData: EmployeeFormData) => {
+    if (!formData.employeeName.trim()) return;
 
     try {
       setCreating(true);
       await apiClient.post('/employees', {
-        employeeId: createForm.employeeId ? parseInt(createForm.employeeId) : null,
-        employeeName: createForm.employeeName,
-        phone: createForm.phone || null,
-        departmentId: createForm.departmentId ? parseInt(createForm.departmentId) : null,
-        designationId: createForm.designationId ? parseInt(createForm.designationId) : null,
-        reportingManagerId: createForm.reportingManagerId ? parseInt(createForm.reportingManagerId) : null,
-        branchId: createForm.branchId ? parseInt(createForm.branchId) : (currentBranch?.id ? parseInt(currentBranch.id) : null),
-        weekoff: createForm.weekoff,
-        joiningDate: createForm.joiningDate || null,
-        dateOfBirth: createForm.dateOfBirth || null,
-        employmentType: createForm.employmentType || null,
-        bloodGroup: createForm.bloodGroup || null,
-        gender: createForm.gender || null,
-        attendanceType: createForm.attendanceType || null,
-        maritalStatus: createForm.maritalStatus || null,
-        nationality: createForm.nationality || null,
-        workEmail: createForm.workEmail || null,
-        personalEmail: createForm.personalEmail || null,
-        hasProbation: createForm.hasProbation,
-        probationDays: createForm.probationDays,
-        roleId: createForm.roleId ? parseInt(createForm.roleId) : null,
+        employeeId: formData.employeeId ? parseInt(formData.employeeId) : null,
+        employeeName: formData.employeeName,
+        phone: formData.phone || null,
+        departmentId: formData.departmentId ? parseInt(formData.departmentId) : null,
+        designationId: formData.designationId ? parseInt(formData.designationId) : null,
+        reportingManagerId: formData.reportingManagerId ? parseInt(formData.reportingManagerId) : null,
+        branchId: formData.branchId ? parseInt(formData.branchId) : (currentBranch?.id ? parseInt(currentBranch.id) : null),
+        weekoff: formData.weekoff,
+        joiningDate: formData.joiningDate || null,
+        dateOfBirth: formData.dateOfBirth || null,
+        employmentType: formData.employmentType || null,
+        bloodGroup: formData.bloodGroup || null,
+        gender: formData.gender || null,
+        attendanceType: formData.attendanceType || null,
+        maritalStatus: formData.maritalStatus || null,
+        nationality: formData.nationality || null,
+        workEmail: formData.workEmail || null,
+        personalEmail: formData.personalEmail || null,
+        currentAddress: formData.currentAddress || null,
+        permanentAddress: formData.permanentAddress || null,
+        hasProbation: formData.hasProbation,
+        probationDays: formData.probationDays,
+        roleId: formData.roleId ? parseInt(formData.roleId) : null,
       });
-      showSuccess('Employee Added', `${createForm.employeeName} added to directory.`);
+      showSuccess('Employee Added', `${formData.employeeName} added to directory.`);
       setCreateModalOpen(false);
-      setCreateForm({
-        employeeId: '',
-        employeeName: '',
-        phone: '',
-        departmentId: '',
-        designationId: '',
-        reportingManagerId: '',
-        branchId: currentBranch?.id || '',
-        weekoff: 'Sunday',
-        joiningDate: new Date().toISOString().split('T')[0],
-      });
       fetchEmployees();
     } catch (err: any) {
       showError('Failed to add employee', err.response?.data?.message || 'Could not create employee record.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleUpdateEmployee = async (formData: EmployeeFormData) => {
+    if (!formData.employeeName.trim() || !formData.employeeId) return;
+
+    try {
+      setUpdating(true);
+      await apiClient.put(`/employees/${formData.employeeId}`, {
+        employeeName: formData.employeeName,
+        phone: formData.phone || null,
+        departmentId: formData.departmentId ? parseInt(formData.departmentId) : null,
+        designationId: formData.designationId ? parseInt(formData.designationId) : null,
+        reportingManagerId: formData.reportingManagerId ? parseInt(formData.reportingManagerId) : null,
+        branchId: formData.branchId ? parseInt(formData.branchId) : null,
+        weekoff: formData.weekoff,
+        joiningDate: formData.joiningDate || null,
+        dateOfBirth: formData.dateOfBirth || null,
+        employmentType: formData.employmentType || null,
+        bloodGroup: formData.bloodGroup || null,
+        gender: formData.gender || null,
+        attendanceType: formData.attendanceType || null,
+        maritalStatus: formData.maritalStatus || null,
+        nationality: formData.nationality || null,
+        workEmail: formData.workEmail || null,
+        personalEmail: formData.personalEmail || null,
+        currentAddress: formData.currentAddress || null,
+        permanentAddress: formData.permanentAddress || null,
+        hasProbation: formData.hasProbation,
+        probationDays: formData.probationDays,
+        roleId: formData.roleId ? parseInt(formData.roleId) : null,
+      });
+      showSuccess('Employee Updated', `${formData.employeeName}'s profile has been updated.`);
+      setEditModalOpen(false);
+      fetchEmployees();
+      
+      // Update selected employee in drawer if it's open
+      if (selectedEmployee && String(selectedEmployee.employeeId) === String(formData.employeeId)) {
+        setSelectedEmployee((prev: any) => ({
+          ...prev,
+          ...formData
+        }));
+      }
+    } catch (err: any) {
+      showError('Failed to update employee', err.response?.data?.message || 'Could not update employee record.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !selectedEmployee) return;
+    
+    const file = e.target.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      showError('File too large', 'Please upload a photo smaller than 5MB.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+      setUploadingPhoto(true);
+      const res = await apiClient.post(`/employees/${selectedEmployee.employeeId}/photo`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      showSuccess('Photo Updated', 'Employee profile picture has been updated.');
+      
+      // Update selected employee state to trigger re-render of AuthImage
+      // Appending a timestamp forces AuthImage to refetch bypassing browser cache
+      setSelectedEmployee((prev: any) => ({
+        ...prev,
+        photoPath: `${res.data.photoPath}&t=${new Date().getTime()}`
+      }));
+      
+      fetchEmployees();
+    } catch (err: any) {
+      showError('Upload Failed', err.response?.data?.message || 'Could not upload photo.');
+    } finally {
+      setUploadingPhoto(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -400,13 +486,23 @@ export const Employees: React.FC = () => {
                 return (
                   <tr
                     key={emp.employeeId}
-                    onClick={() => setSelectedEmployee(emp)}
+                    onClick={() => handleRowClick(emp)}
                     className="cursor-pointer"
                   >
                     <td className="text-center font-data text-xs text-[var(--ink-muted)]">
-                      <div className="w-6 h-6 rounded-[2px] bg-[var(--navy-900)] text-[var(--gold-500)] font-bold flex items-center justify-center text-[10px] mx-auto">
-                        {emp.employeeName.charAt(0)}
-                      </div>
+                      {emp.photoPath ? (
+                        <AuthImage 
+                          src={`/Thumbnail?employeeId=${emp.employeeId}`} 
+                          alt={emp.employeeName} 
+                          className="w-6 h-6 rounded-full object-cover mx-auto bg-[var(--paper)]" 
+                          fallbackInitial={emp.employeeName.charAt(0)}
+                          fallbackClassName="w-6 h-6 rounded-full text-[10px] mx-auto"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-[var(--navy-900)] text-[var(--gold-500)] font-bold flex items-center justify-center text-[10px] mx-auto">
+                          {emp.employeeName.charAt(0)}
+                        </div>
+                      )}
                     </td>
                     <td className="font-semibold text-[var(--ink)]">
                       {emp.employeeName}
@@ -425,8 +521,8 @@ export const Employees: React.FC = () => {
                     <td className="text-xs text-[var(--ink-muted)]">
                       {emp.reportingManager || 'None'}
                     </td>
-                    <td className="text-right font-data text-xs text-[var(--ink-muted)]">
-                      {emp.joiningDate || '-'}
+                    <td className="text-center font-data text-xs text-[var(--ink-muted)]">
+                      {formatDate(emp.joiningDate)}
                     </td>
                     <td className="text-center text-xs">
                       <span className="inline-flex items-center gap-1.5 justify-center">
@@ -470,22 +566,64 @@ export const Employees: React.FC = () => {
         />
       </div>
 
-      {/* 4. Slide-in Profile Record Sheet (480px) */}
+      {/* 4. Centered Profile Record Modal */}
       {selectedEmployee && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[1px]">
-          <div className="w-full max-w-[480px] bg-[var(--surface)] h-full p-6 shadow-2xl overflow-y-auto space-y-5 border-l border-[var(--rule)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px]">
+          <div className="w-full max-w-2xl bg-[var(--surface)] max-h-[90vh] rounded-[4px] p-6 shadow-2xl overflow-y-auto space-y-5 border border-[var(--rule)]">
             {/* Header with Serif Name */}
             <div className="flex items-start justify-between pb-3 border-b border-[var(--rule)]">
-              <div>
-                <span className="text-[10px] uppercase font-semibold text-[var(--gold-500)] font-data">
-                  Employee Profile
-                </span>
-                <h2 className="font-display text-2xl font-semibold text-[var(--ink)] mt-0.5">
-                  {selectedEmployee.employeeName}
-                </h2>
-                <p className="text-xs font-data text-[var(--ink-muted)]">
-                  ID: #{selectedEmployee.employeeId} &nbsp;|&nbsp; Joined: {selectedEmployee.joiningDate || '-'}
-                </p>
+              <div className="flex items-center gap-4">
+                <div 
+                  className="relative group cursor-pointer rounded-full" 
+                  onClick={() => canEdit && fileInputRef.current?.click()}
+                  title={canEdit ? "Click to change photo" : ""}
+                >
+                  {selectedEmployee.photoPath ? (
+                    <AuthImage 
+                      src={`/Thumbnail?employeeId=${selectedEmployee.employeeId}&t=${new Date(selectedEmployee.photoPath.includes('&t=') ? parseInt(selectedEmployee.photoPath.split('&t=')[1]) : 0).getTime()}`} 
+                      alt={selectedEmployee.employeeName} 
+                      className={`w-16 h-16 rounded-full object-cover bg-[var(--paper)] border border-[var(--rule)] ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`} 
+                      fallbackInitial={selectedEmployee.employeeName.charAt(0)}
+                      fallbackClassName={`w-16 h-16 rounded-full font-display text-2xl shrink-0 ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`}
+                    />
+                  ) : (
+                    <div className={`w-16 h-16 rounded-full bg-[var(--navy-900)] text-[var(--gold-500)] font-display text-2xl flex items-center justify-center shrink-0 ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`}>
+                      {selectedEmployee.employeeName.charAt(0)}
+                    </div>
+                  )}
+                  
+                  {canEdit && (
+                    <>
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera size={20} className="text-white drop-shadow-md" />
+                      </div>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/jpeg,image/png,image/gif,image/webp" 
+                        onChange={handlePhotoUpload} 
+                      />
+                    </>
+                  )}
+
+                  {uploadingPhoto && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full">
+                      <Loader2 size={20} className="text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-semibold text-[var(--gold-500)] font-data">
+                    Employee Profile
+                  </span>
+                  <h2 className="font-display text-2xl font-semibold text-[var(--ink)] mt-0.5">
+                    {selectedEmployee.employeeName}
+                  </h2>
+                  <p className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wide font-semibold mt-1 flex items-center justify-center gap-1.5 opacity-80 font-ui">
+                    ID: #{selectedEmployee.employeeId} &nbsp;|&nbsp; Joined: {formatDate(selectedEmployee.joiningDate)}
+                  </p>
+                </div>
               </div>
 
               <button
@@ -528,18 +666,30 @@ export const Employees: React.FC = () => {
               >
                 Documents
               </button>
+              <button
+                onClick={() => setProfileTab('idcard')}
+                className={`pb-2 px-2 font-semibold transition-colors cursor-pointer ${
+                  profileTab === 'idcard'
+                    ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
+                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                }`}
+              >
+                ID Card
+              </button>
             </div>
 
             {/* Tab 1: Details */}
             {profileTab === 'details' && (
               <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-1">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Department & Designation</span>
-                  <p className="font-semibold text-[var(--ink)] text-sm">{selectedEmployee.department || 'General'}</p>
-                  <p className="text-[var(--ink-muted)]">{selectedEmployee.designation || 'Staff Member'}</p>
-                </div>
-
                 <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Department</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.department || 'General'}</p>
+                  </div>
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Designation</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.designation || 'Staff Member'}</p>
+                  </div>
                   <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
                     <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Reporting Manager</span>
                     <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.reportingManager || 'None'}</p>
@@ -558,22 +708,46 @@ export const Employees: React.FC = () => {
                   </div>
                   <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
                     <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Date of Birth</span>
-                    <p className="font-data font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.dateOfBirth ? new Date(selectedEmployee.dateOfBirth).toLocaleDateString() : '-'}</p>
+                    <p className="font-data font-semibold text-[var(--ink)] mt-0.5">{formatDate(selectedEmployee.dateOfBirth)}</p>
                   </div>
                   <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Gender & Blood</span>
-                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.gender || '-'} / {selectedEmployee.bloodGroup || '-'}</p>
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Gender</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.gender || '-'}</p>
                   </div>
                   <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Marital & Nationality</span>
-                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.maritalStatus || '-'} / {selectedEmployee.nationality || '-'}</p>
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Blood Group</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.bloodGroup || '-'}</p>
                   </div>
                   <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Emails</span>
-                    <p className="font-semibold text-[var(--ink)] mt-0.5 truncate" title={selectedEmployee.workEmail}>{selectedEmployee.workEmail || 'No work email'}</p>
-                    <p className="text-[var(--ink-muted)] truncate" title={selectedEmployee.personalEmail}>{selectedEmployee.personalEmail || 'No personal email'}</p>
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Marital Status</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.maritalStatus || '-'}</p>
                   </div>
-                  <div className="col-span-2 p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Nationality</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5">{selectedEmployee.nationality || '-'}</p>
+                  </div>
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] overflow-hidden">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Work Email</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5 truncate" title={selectedEmployee.workEmail}>{selectedEmployee.workEmail || '-'}</p>
+                  </div>
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] overflow-hidden">
+                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Personal Email</span>
+                    <p className="font-semibold text-[var(--ink)] mt-0.5 truncate" title={selectedEmployee.personalEmail}>{selectedEmployee.personalEmail || '-'}</p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Current Address</span>
+                  <p className="font-semibold text-[var(--ink)] mt-0.5 whitespace-pre-wrap">{selectedEmployee.currentAddress || '-'}</p>
+                </div>
+                
+                <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
+                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Permanent Address</span>
+                  <p className="font-semibold text-[var(--ink)] mt-0.5 whitespace-pre-wrap">{selectedEmployee.permanentAddress || '-'}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
                     <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Probation Details</span>
                     <p className="font-semibold text-[var(--ink)] mt-0.5">
                       {selectedEmployee.hasProbation ? `Yes, ${selectedEmployee.probationDays} days` : 'No Probation'}
@@ -586,43 +760,9 @@ export const Employees: React.FC = () => {
                     <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Assigned Branch / Location</span>
                     <MapPin size={13} className="text-[var(--gold-500)]" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={selectedEmployee.branchId || ''}
-                      onChange={async (e) => {
-                        const newBranchId = e.target.value ? parseInt(e.target.value) : null;
-                        try {
-                          await apiClient.put(`/employees/${selectedEmployee.employeeId}`, {
-                            employeeName: selectedEmployee.employeeName,
-                            phone: selectedEmployee.phone,
-                            departmentId: selectedEmployee.departmentId,
-                            designationId: selectedEmployee.designationId,
-                            reportingManagerId: selectedEmployee.reportingManagerId,
-                            branchId: newBranchId,
-                            weekoff: selectedEmployee.weekoff,
-                          });
-                          const matchedBranch = branches.find((b: any) => String(b.id) === String(newBranchId));
-                          setSelectedEmployee((prev: any) => ({
-                            ...prev,
-                            branchId: newBranchId,
-                            branch: matchedBranch?.name || null,
-                          }));
-                          showSuccess('Branch Updated', `Employee assigned to ${matchedBranch?.name || 'Unassigned'}.`);
-                          fetchEmployees();
-                        } catch (err: any) {
-                          showError('Update Failed', err.response?.data?.message || 'Could not update branch');
-                        }
-                      }}
-                      className="register-input w-full font-semibold text-xs"
-                    >
-                      <option value="">-- No Branch Assigned (All Branches) --</option>
-                      {branches?.map((b: any) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name} ({b.city || b.code || 'Branch'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <p className="font-semibold text-[var(--ink)] mt-0.5">
+                    {selectedEmployee.branch || 'No Branch Assigned (All Branches)'}
+                  </p>
                 </div>
 
                 <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between">
@@ -637,39 +777,41 @@ export const Employees: React.FC = () => {
 
             {/* Tab 2: Attendance */}
             {profileTab === 'attendance' && (
-              <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs space-y-2">
-                <div className="flex items-center gap-2 font-semibold text-[var(--ink)]">
-                  <Calendar size={14} className="text-[var(--gold-500)]" />
-                  <span>Attendance Overview</span>
-                </div>
-                <p className="text-xs text-[var(--ink-muted)] font-ui">
-                  Attendance is computed automatically via the backend attendance service.
-                </p>
-              </div>
+              <EmployeeAttendanceTab employeeId={selectedEmployee.employeeId} />
             )}
 
             {/* Tab 3: Documents */}
             {profileTab === 'records' && (
-              <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs space-y-2">
-                <div className="flex items-center gap-2 font-semibold text-[var(--ink)]">
-                  <FileText size={14} className="text-[var(--gold-500)]" />
-                  <span>Employee Documents</span>
-                </div>
-                <p className="text-[var(--ink-muted)] font-data text-xs">
-                  No electronic documents uploaded.
-                </p>
-              </div>
+              <EmployeeDocumentsTab employeeId={selectedEmployee.employeeId} />
+            )}
+
+            {/* Tab 4: ID Card */}
+            {profileTab === 'idcard' && (
+              <EmployeeIdCardTab employee={selectedEmployee} />
             )}
 
             {/* Action Bar */}
             {canEdit && (
-              <div className="pt-3 border-t border-[var(--rule)]">
+              <div className="pt-3 border-t border-[var(--rule)] space-y-2">
                 <button
-                  onClick={() => handleToggleStatus(selectedEmployee.employeeId)}
-                  className="btn-outline w-full text-center cursor-pointer"
+                  onClick={async () => {
+                    try {
+                      setUpdating(true);
+                      const res = await apiClient.get(`/employees/${selectedEmployee.employeeId}`);
+                      setSelectedEmployee(res.data);
+                      setEditModalOpen(true);
+                    } catch (err) {
+                      showError('Error', 'Failed to fetch full employee details.');
+                    } finally {
+                      setUpdating(false);
+                    }
+                  }}
+                  className="btn-primary w-full text-center cursor-pointer disabled:opacity-50"
+                  disabled={updating}
                 >
-                  Mark Employee as {selectedEmployee.status === 'Active' ? 'Inactive / Relieved' : 'Active'}
+                  {updating ? 'Loading...' : 'Edit Employee Details'}
                 </button>
+
               </div>
             )}
           </div>
@@ -696,204 +838,55 @@ export const Employees: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5">
-              <form id="addEmployeeForm" onSubmit={handleCreateEmployee} className="space-y-6">
-                {/* 1. Personal Details */}
-                <section className="space-y-3">
-                  <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">1. Personal Details</h4>
-                  
-                  {/* Auto ID */}
-                  <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between mb-3">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] font-ui block">
-                        Employee Code &amp; ID
-                      </span>
-                      <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                        System-generated with branch prefix
-                      </p>
-                    </div>
-                    <span className="font-mono text-xs font-bold text-[var(--gold-600)] px-2.5 py-1 rounded-[3px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
-                      {branches?.find((b: any) => String(b.id) === String(createForm.branchId || currentBranch?.id))?.code || 'EMP#'}00X (Auto)
-                    </span>
-                  </div>
+              <EmployeeForm 
+                lookups={lookups}
+                onSubmit={handleCreateEmployee}
+                onCancel={() => setCreateModalOpen(false)}
+                isSubmitting={creating}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Full Legal Name *</label>
-                      <input type="text" required value={createForm.employeeName} onChange={(e) => setCreateForm({ ...createForm, employeeName: e.target.value })} placeholder="e.g. Ramesh Patel" className="register-input w-full" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Date of Birth</label>
-                      <input type="date" value={createForm.dateOfBirth} onChange={(e) => setCreateForm({ ...createForm, dateOfBirth: e.target.value })} className="register-input w-full" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Gender</label>
-                      <select value={createForm.gender} onChange={(e) => setCreateForm({ ...createForm, gender: e.target.value })} className="register-input w-full">
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Blood Group</label>
-                      <select value={createForm.bloodGroup} onChange={(e) => setCreateForm({ ...createForm, bloodGroup: e.target.value })} className="register-input w-full">
-                        <option value="">Select</option>
-                        <option value="A+">A+</option><option value="A-">A-</option>
-                        <option value="B+">B+</option><option value="B-">B-</option>
-                        <option value="O+">O+</option><option value="O-">O-</option>
-                        <option value="AB+">AB+</option><option value="AB-">AB-</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Marital Status</label>
-                      <select value={createForm.maritalStatus} onChange={(e) => setCreateForm({ ...createForm, maritalStatus: e.target.value })} className="register-input w-full">
-                        <option value="">Select Status</option>
-                        <option value="Single">Single</option>
-                        <option value="Married">Married</option>
-                        <option value="Divorced">Divorced</option>
-                        <option value="Widowed">Widowed</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Nationality</label>
-                      <input type="text" value={createForm.nationality} onChange={(e) => setCreateForm({ ...createForm, nationality: e.target.value })} placeholder="e.g. Indian" className="register-input w-full" />
-                    </div>
-                  </div>
-                </section>
-
-                {/* 2. Contact Details */}
-                <section className="space-y-3">
-                  <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">2. Contact Details</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Phone Number</label>
-                      <input type="text" value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })} placeholder="9876543210" className="register-input w-full font-data" />
-                    </div>
-                    <div></div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Work Email</label>
-                      <input type="email" value={createForm.workEmail} onChange={(e) => setCreateForm({ ...createForm, workEmail: e.target.value })} placeholder="work@company.com" className="register-input w-full" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Personal Email</label>
-                      <input type="email" value={createForm.personalEmail} onChange={(e) => setCreateForm({ ...createForm, personalEmail: e.target.value })} placeholder="personal@gmail.com" className="register-input w-full" />
-                    </div>
-                  </div>
-                </section>
-
-                {/* 3. Job Assignment */}
-                <section className="space-y-3">
-                  <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">3. Job Assignment</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Branch / Site Location</label>
-                      <div className="register-input w-full bg-[var(--paper)] text-[var(--ink-muted)] flex items-center">
-                        {currentBranch?.name || 'All / Default HQ'}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Employment Type</label>
-                      <select value={createForm.employmentType} onChange={(e) => setCreateForm({ ...createForm, employmentType: e.target.value })} className="register-input w-full">
-                        <option value="">Select Type</option>
-                        <option value="Full-time">Full-time</option>
-                        <option value="Part-time">Part-time</option>
-                        <option value="Contract">Contract</option>
-                        <option value="Intern">Intern</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Department</label>
-                      <select value={createForm.departmentId} onChange={(e) => setCreateForm({ ...createForm, departmentId: e.target.value })} className="register-input w-full">
-                        <option value="">Select Department</option>
-                        {lookups?.departments
-                          ?.filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
-                          .map((d: any) => (<option key={d.departmentId} value={d.departmentId}>{d.departmentName}</option>))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Designation</label>
-                      <select value={createForm.designationId} onChange={(e) => setCreateForm({ ...createForm, designationId: e.target.value })} className="register-input w-full">
-                        <option value="">Select Designation</option>
-                        {lookups?.designations
-                          ?.filter((des: any) => !currentBranch?.id || String(des.branchId) === String(currentBranch.id))
-                          .map((des: any) => (<option key={des.designationId} value={des.designationId}>{des.designationName}</option>))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Reporting Manager</label>
-                      <select value={createForm.reportingManagerId} onChange={(e) => setCreateForm({ ...createForm, reportingManagerId: e.target.value })} className="register-input w-full">
-                        <option value="">None (Top Level)</option>
-                        {lookups?.managers
-                          ?.filter((m: any) => !currentBranch?.id || String(m.branchId) === String(currentBranch.id))
-                          .map((m: any) => (<option key={m.employeeId} value={m.employeeId}>{m.employeeName}</option>))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">User Role (Auto-create account)</label>
-                      <select value={createForm.roleId} onChange={(e) => setCreateForm({ ...createForm, roleId: e.target.value })} className="register-input w-full">
-                        <option value="">No Login Access</option>
-                        {lookups?.roles?.map((r: any) => (<option key={r.id} value={r.id}>{r.name}</option>))}
-                      </select>
-                    </div>
-                  </div>
-                </section>
-
-                {/* 4. Employment Rules */}
-                <section className="space-y-3">
-                  <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">4. Employment Rules</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Joining Date</label>
-                      <input type="date" value={createForm.joiningDate} onChange={(e) => setCreateForm({ ...createForm, joiningDate: e.target.value })} className="register-input w-full font-data" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Weekly Off</label>
-                      <select value={createForm.weekoff} onChange={(e) => setCreateForm({ ...createForm, weekoff: e.target.value })} className="register-input w-full">
-                        <option value="Sunday">Sunday</option>
-                        <option value="Monday">Monday</option>
-                        <option value="Saturday">Saturday</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Attendance Type</label>
-                      <select value={createForm.attendanceType} onChange={(e) => setCreateForm({ ...createForm, attendanceType: e.target.value })} className="register-input w-full">
-                        <option value="Biometric">Biometric</option>
-                        <option value="Web">Web Clock-in</option>
-                        <option value="Manual">Manual</option>
-                        <option value="None">None</option>
-                      </select>
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-[var(--ink)] mb-2">Probation Period?</label>
-                      <div className="flex gap-4 mb-2">
-                        <label className="flex items-center gap-1.5 text-xs text-[var(--ink)] cursor-pointer">
-                          <input type="radio" checked={createForm.hasProbation === true} onChange={() => setCreateForm({ ...createForm, hasProbation: true })} className="accent-[var(--gold-500)]" />
-                          Yes
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs text-[var(--ink)] cursor-pointer">
-                          <input type="radio" checked={createForm.hasProbation === false} onChange={() => setCreateForm({ ...createForm, hasProbation: false })} className="accent-[var(--gold-500)]" />
-                          No
-                        </label>
-                      </div>
-                      {createForm.hasProbation && (
-                        <div className="w-1/2">
-                          <label className="block text-xs font-semibold text-[var(--ink-muted)] mb-1">Probation Length (Days)</label>
-                          <input type="number" min="0" value={createForm.probationDays} onChange={(e) => setCreateForm({ ...createForm, probationDays: Number(e.target.value) })} className="register-input w-full font-data" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </section>
-              </form>
+      {/* 5.5 Edit Employee Modal */}
+      {editModalOpen && selectedEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="w-full max-w-2xl rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="font-display text-lg font-semibold text-[var(--ink)]">
+                  Edit Employee
+                </h3>
+                <p className="text-xs text-[var(--ink-muted)]">Update details for {selectedEmployee.employeeName}</p>
+              </div>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <div className="p-4 border-t border-[var(--rule)] bg-[var(--paper)] shrink-0 flex items-center justify-end gap-2">
-              <button type="button" onClick={() => setCreateModalOpen(false)} className="btn-outline cursor-pointer">
-                Cancel
-              </button>
-              <button form="addEmployeeForm" type="submit" disabled={creating} className="btn-primary disabled:opacity-50 cursor-pointer">
-                {creating ? 'Saving...' : 'Save Employee'}
-              </button>
+            <div className="flex-1 overflow-y-auto p-5">
+              <EmployeeForm 
+                initialData={{
+                  ...selectedEmployee,
+                  employeeId: String(selectedEmployee.employeeId),
+                  departmentId: selectedEmployee.departmentId ? String(selectedEmployee.departmentId) : '',
+                  designationId: selectedEmployee.designationId ? String(selectedEmployee.designationId) : '',
+                  reportingManagerId: selectedEmployee.reportingManagerId ? String(selectedEmployee.reportingManagerId) : '',
+                  branchId: selectedEmployee.branchId ? String(selectedEmployee.branchId) : '',
+                  roleId: selectedEmployee.roleId ? String(selectedEmployee.roleId) : '',
+                  dateOfBirth: selectedEmployee.dateOfBirth ? selectedEmployee.dateOfBirth.split('T')[0] : '',
+                  joiningDate: selectedEmployee.joiningDate ? selectedEmployee.joiningDate.split('T')[0] : '',
+                }}
+                lookups={lookups}
+                onSubmit={handleUpdateEmployee}
+                onCancel={() => setEditModalOpen(false)}
+                isSubmitting={updating}
+                submitLabel="Save Changes"
+              />
             </div>
           </div>
         </div>

@@ -5,6 +5,8 @@ namespace HRDesk.Web.Models;
 public sealed class Employee : IMustHaveTenant
 {
     public int EmployeeId { get; set; }
+    
+    public Guid VerificationId { get; set; } = Guid.NewGuid();
 
     public string EmployeeName { get; set; } = "";
 
@@ -87,6 +89,12 @@ public sealed class Employee : IMustHaveTenant
 
     [System.ComponentModel.DataAnnotations.StringLength(100)]
     public string? PersonalEmail { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(500)]
+    public string? CurrentAddress { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(500)]
+    public string? PermanentAddress { get; set; }
 
     public bool HasProbation { get; set; }
 

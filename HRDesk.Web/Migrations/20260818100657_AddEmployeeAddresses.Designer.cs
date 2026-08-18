@@ -4,6 +4,7 @@ using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HRDesk.Web.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260818100657_AddEmployeeAddresses")]
+    partial class AddEmployeeAddresses
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1143,9 +1146,6 @@ namespace HRDesk.Web.Migrations
                     b.Property<string>("Status")
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("status");
-
-                    b.Property<Guid>("VerificationId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Weekoff")
                         .HasColumnType("nvarchar(max)")
