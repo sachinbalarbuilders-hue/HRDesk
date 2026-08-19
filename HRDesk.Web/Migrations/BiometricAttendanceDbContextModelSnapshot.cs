@@ -219,6 +219,21 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("int")
                         .HasColumnName("employee_id");
 
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool?>("IsGeofenceValid")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsIpValid")
+                        .HasColumnType("bit");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
+
                     b.Property<int>("MachineNumber")
                         .HasColumnType("int")
                         .HasColumnName("machine_number");
@@ -226,6 +241,9 @@ namespace HRDesk.Web.Migrations
                     b.Property<int>("OrganizationId")
                         .HasColumnType("int")
                         .HasColumnName("organization_id");
+
+                    b.Property<string>("PhotoUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("PunchTime")
                         .HasColumnType("datetime2")
@@ -392,6 +410,11 @@ namespace HRDesk.Web.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)")
                         .HasColumnName("address");
+
+                    b.Property<string>("AllowedIPs")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("allowed_ips");
 
                     b.Property<string>("City")
                         .HasMaxLength(100)

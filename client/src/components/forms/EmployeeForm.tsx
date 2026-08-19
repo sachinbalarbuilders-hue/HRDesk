@@ -287,6 +287,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             <select value={formData.attendanceType} onChange={(e) => setFormData({ ...formData, attendanceType: e.target.value })} className="register-input w-full">
               <option value="Biometric">Biometric</option>
               <option value="Web">Web Clock-in</option>
+              <option value="Face + Location">Face Recognition + Location</option>
+              <option value="Geo-Fencing">Geo-Fencing (Location Restricted)</option>
+              <option value="IP Restricted">IP Restricted (Office Network)</option>
               <option value="Manual">Manual</option>
               <option value="None">None</option>
             </select>

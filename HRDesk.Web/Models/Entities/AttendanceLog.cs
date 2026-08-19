@@ -1,4 +1,4 @@
-﻿namespace HRDesk.Web.Models;
+namespace HRDesk.Web.Models;
 
 public sealed class AttendanceLog : IMustHaveTenant
 {
@@ -24,5 +24,19 @@ public sealed class AttendanceLog : IMustHaveTenant
     public int OrganizationId { get; set; }
 
     public Organization? Organization { get; set; }
+
+    public double? Latitude { get; set; }
+    
+    public double? Longitude { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column(TypeName = "nvarchar(50)")]
+    public string? IpAddress { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column(TypeName = "nvarchar(max)")]
+    public string? PhotoUrl { get; set; }
+
+    public bool? IsGeofenceValid { get; set; }
+    
+    public bool? IsIpValid { get; set; }
 }
 

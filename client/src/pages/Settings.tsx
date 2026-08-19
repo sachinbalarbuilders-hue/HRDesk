@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useOrganization } from '../context/CompanyContext';
@@ -23,6 +23,7 @@ import {
   Edit2,
   Layers,
   Award,
+  Eye,
   Shield,
 } from 'lucide-react';
 
@@ -30,6 +31,7 @@ export const Settings: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const { currentOrganization, currentBranch } = useOrganization();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'company' | 'departments' | 'designations' | 'leaves' | 'shifts' | 'attendance'>('company');
   const [selectedBranchForPermissions, setSelectedBranchForPermissions] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
@@ -66,7 +68,7 @@ export const Settings: React.FC = () => {
   const [companyForm, setCompanyForm] = useState({ ...company });
 
   // Modals
-  const [orgModalOpen, setOrgModalOpen] = useState(false);
+
   const [deptModalOpen, setDeptModalOpen] = useState(false);
   const [desigModalOpen, setDesigModalOpen] = useState(false);
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
@@ -76,37 +78,10 @@ export const Settings: React.FC = () => {
 
   // 1. Organizations (parent company sites / legal entities)
   const [organizations, setOrganizations] = useState<any[]>([]);
-  const [editingOrgId, setEditingOrgId] = useState<number | null>(null);
-  const [orgForm, setOrgForm] = useState({
-    name: '',
-    code: '',
-    address: '',
-    whatsAppGroupId: '',
-    latitude: 21.1702,
-    longitude: 72.8311,
-    radiusMeters: 100,
-    isActive: true,
-  });
 
   // 1b. Branches (sub-locations under an organization)
   const [branches, setBranches] = useState<any[]>([]);
-  const [editingBranchId, setEditingBranchId] = useState<number | null>(null);
-  const [branchModalOpen, setBranchModalOpen] = useState(false);
   const [expandedOrgId, setExpandedOrgId] = useState<number | null>(null);
-  const [branchForm, setBranchForm] = useState({
-    organizationId: 0, // which org this branch belongs to
-    name: '',
-    code: '',
-    address: '',
-    city: '',
-    state: '',
-    pincode: '',
-    whatsAppGroupId: '',
-    latitude: 21.1702,
-    longitude: 72.8311,
-    radiusMeters: 100,
-    isActive: true,
-  });
 
   // 2. Attendance Policy State
   const [attendancePolicy, setAttendancePolicy] = useState({
@@ -244,102 +219,33 @@ export const Settings: React.FC = () => {
 
   // --- Handlers ---
   const handleOpenCreateOrg = () => {
-    setEditingOrgId(null);
-    setOrgForm({
-      name: '',
-      code: '',
-      address: '',
-      whatsAppGroupId: '',
-      latitude: 17.4483,
-      longitude: 78.3742,
-      radiusMeters: 100,
-      isActive: true,
-    });
-    setOrgModalOpen(true);
+    navigate('/settings/organizations/new');
   };
 
   const handleOpenEditOrg = (org: any) => {
-    setEditingOrgId(org.id);
-    setOrgForm({
-      name: org.name,
-      code: org.code || '',
-      address: org.address || '',
-      whatsAppGroupId: org.whatsAppGroupId || '',
-      latitude: org.latitude || 17.4483,
-      longitude: org.longitude || 78.3742,
-      radiusMeters: org.radiusMeters || 100,
-      isActive: org.isActive !== false,
-    });
-    setOrgModalOpen(true);
+    navigate(`/settings/organizations/${org.id}`);
   };
 
-  const handleSaveOrg = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orgForm.name.trim()) {
-      showError('Validation Error', 'Organisation name is required.');
-      return;
-    }
-
-    try {
-      if (editingOrgId) {
-        await apiClient.put(`/masters/organizations/${editingOrgId}`, orgForm);
-        showSuccess('Organisation Updated', `${orgForm.name} profile saved.`);
-      } else {
-        await apiClient.post('/masters/organizations', orgForm);
-        showSuccess('Organisation Registered', `${orgForm.name} added to workspace.`);
-      }
-      setOrgModalOpen(false);
-      fetchOverview();
-    } catch (err: any) {
-      showError('Failed', err.response?.data?.message || 'Server error');
-    }
-  };
 
   const handleDeleteOrg = (id: number) => {
     if (organizations.length <= 1) {
-      showError('Cannot Delete', 'At least one primary organisation is required.');
+      showError('Cannot Delete', 'At least one primary Organization is required.');
       return;
     }
     setOrganizations(organizations.filter(o => o.id !== id));
-    showSuccess('Organisation Deleted', 'Organisation profile removed.');
+    showSuccess('Organization Deleted', 'Organization profile removed.');
   };
 
 
   // Branch handlers
-  const handleOpenCreateBranch = (orgId: number) => {
-    setEditingBranchId(null);
-    setBranchForm({ organizationId: orgId, name: '', code: '', address: '', city: '', state: '', pincode: '', whatsAppGroupId: '', latitude: 21.1702, longitude: 72.8311, radiusMeters: 100, isActive: true });
-    setBranchModalOpen(true);
+  const handleOpenCreateBranch = () => {
+    navigate('/settings/branches/add');
   };
 
   const handleOpenEditBranch = (b: any) => {
-    setEditingBranchId(b.id);
-    setBranchForm({ organizationId: b.organizationId, name: b.name, code: b.code || '', address: b.address || '', city: b.city || '', state: b.state || '', pincode: b.pincode || '', whatsAppGroupId: b.whatsAppGroupId || '', latitude: b.latitude, longitude: b.longitude, radiusMeters: b.radiusMeters || 100, isActive: b.isActive !== false });
-    setBranchModalOpen(true);
+    navigate(`/settings/branches/${b.id}`);
   };
 
-  const handleSaveBranch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!branchForm.name.trim()) { showError('Validation', 'Branch name is required.'); return; }
-    try {
-      if (editingBranchId) {
-        await apiClient.put(`/masters/branches/${editingBranchId}`, branchForm);
-        showSuccess('Branch Updated', `${branchForm.name} saved.`);
-      } else {
-        await apiClient.post('/masters/branches', branchForm);
-        showSuccess('Branch Created', `${branchForm.name} added.`);
-      }
-      setBranchModalOpen(false);
-      if (branchForm.organizationId) {
-        setExpandedOrgId(branchForm.organizationId);
-      }
-      fetchOverview();
-      window.dispatchEvent(new CustomEvent('hrdesk:branch_changed', { detail: { branchId: editingBranchId } }));
-      window.dispatchEvent(new CustomEvent('hrdesk:tenant_changed', { detail: { organizationId: branchForm.organizationId } }));
-    } catch (err: any) {
-      showError('Failed', err.response?.data?.message || 'Server error');
-    }
-  };
 
   const handleDeleteBranch = async (id: number) => {
     try {
@@ -856,7 +762,7 @@ export const Settings: React.FC = () => {
               Settings & Organization Masters
             </h1>
             <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
-              Organisations, departments, designations, leave quotas, shifts & attendance policies
+              Organizations, departments, designations, leave quotas, shifts & attendance policies
             </p>
           </div>
 
@@ -879,7 +785,7 @@ export const Settings: React.FC = () => {
           }`}
         >
           <Building2 size={14} />
-          <span>Organisations</span>
+          <span>Organizations</span>
         </button>
 
         <button
@@ -945,24 +851,24 @@ export const Settings: React.FC = () => {
 
       {/* 3. Tab Views */}
 
-      {/* Tab 1: Organisations → Branches (accordion) */}
+      {/* Tab 1: Organizations → Branches (accordion) */}
       {activeTab === 'company' && (
         <div className="space-y-4">
-          {/* Organisations + nested Branches accordion */}
+          {/* Organizations + nested Branches accordion */}
           <div className="space-y-3">
             {/* Section header + add org button */}
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
                   <Building2 size={15} className="text-[var(--gold-500)]" />
-                  <span>Organisations &amp; Their Branches</span>
+                  <span>Organizations &amp; Their Branches</span>
                 </h3>
                 <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                  Each Organisation can have multiple Branches (offices, sites). Branches inherit their Organisation's settings.
+                  Each Organization can have multiple Branches (offices, sites). Branches inherit their Organization's settings.
                 </p>
               </div>
               <button onClick={handleOpenCreateOrg} className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer">
-                <Plus size={13} /><span>Add Organisation</span>
+                <Plus size={13} /><span>Add Organization</span>
               </button>
             </div>
 
@@ -971,7 +877,7 @@ export const Settings: React.FC = () => {
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Search organisations or branches…"
+              placeholder="Search Organizations or branches…"
               className="input-field w-full max-w-xs text-xs"
             />
 
@@ -980,7 +886,7 @@ export const Settings: React.FC = () => {
               <div className="text-xs text-[var(--ink-muted)] py-6 text-center">Loading…</div>
             ) : filteredOrgs.length === 0 ? (
               <div className="text-xs text-[var(--ink-muted)] py-6 text-center border border-dashed border-[var(--rule)] rounded-[4px]">
-                No organisations found. Add one to get started.
+                No Organizations found. Add one to get started.
               </div>
             ) : (
               <div className="space-y-3">
@@ -1031,20 +937,20 @@ export const Settings: React.FC = () => {
                         <div className="flex items-center gap-1 shrink-0">
                           {/* Add Branch to this org */}
                           <button
-                            onClick={() => { handleOpenCreateBranch(org.id); }}
+                            onClick={() => { handleOpenCreateBranch(); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-[2px] text-[11px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer"
-                            title="Add branch to this organisation"
+                            title="Add branch to this Organization"
                           >
                             <Plus size={11} /><span>Add Branch</span>
                           </button>
-                          <button onClick={() => handleOpenEditOrg(org)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors" title="Edit Organisation"><Edit2 size={13} /></button>
+                          <button onClick={() => handleOpenEditOrg(org)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors" title="Edit Organization"><Edit2 size={13} /></button>
                           <ArchiveActionButton
                             isArchived={org.isActive === false}
                             onArchive={async () => { try { await apiClient.put(`/masters/organizations/${org.id}`, { ...org, isActive: false }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: false } : o)); showSuccess('Archived', `${org.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
                             onRestore={async () => { try { await apiClient.put(`/masters/organizations/${org.id}`, { ...org, isActive: true }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: true } : o)); showSuccess('Restored', `${org.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
                             itemName={org.name}
                           />
-                          <button onClick={() => handleDeleteOrg(org.id)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors" title="Delete Organisation"><Trash2 size={13} /></button>
+                          <button onClick={() => handleDeleteOrg(org.id)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors" title="Delete Organization"><Trash2 size={13} /></button>
                         </div>
                       </div>
 
@@ -1056,7 +962,7 @@ export const Settings: React.FC = () => {
                               <MapPin size={20} className="text-indigo-300" />
                               <span>No branches under <strong>{org.name}</strong> yet.</span>
                               <button
-                                onClick={() => handleOpenCreateBranch(org.id)}
+                                onClick={() => handleOpenCreateBranch()}
                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] bg-indigo-600 text-white text-[11px] font-semibold hover:bg-indigo-700 cursor-pointer transition-colors"
                               >
                                 <Plus size={11} />Add First Branch
@@ -1093,6 +999,7 @@ export const Settings: React.FC = () => {
                                     >
                                       <Shield size={12} />
                                     </button>
+                                    <button onClick={() => navigate(`/settings/branches/${branch.id}`)} className="p-1 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-indigo-600 cursor-pointer transition-colors" title="View Details"><Eye size={12} /></button>
                                     <button onClick={() => handleOpenEditBranch(branch)} className="p-1 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors" title="Edit Branch"><Edit2 size={12} /></button>
                                     <ArchiveActionButton
                                       isArchived={branch.isActive === false}
@@ -1404,235 +1311,7 @@ export const Settings: React.FC = () => {
       {/* MODALS */}
       {/* ========================================================================= */}
 
-      {/* 1. Add / Edit Organisation Modal */}
-      {orgModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-lg w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
-                <Building2 size={16} className="text-[var(--gold-500)]" />
-                <span>{editingOrgId ? 'Edit Organisation Profile' : 'Register New Organisation'}</span>
-              </h3>
-              <button onClick={() => setOrgModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
-                <X size={16} />
-              </button>
-            </div>
 
-            <form onSubmit={handleSaveOrg} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Organisation Name *</label>
-                <input
-                  type="text"
-                  value={orgForm.name}
-                  onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })}
-                  placeholder="e.g. Setu Developers"
-                  className="input-field w-full"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Address</label>
-                <input
-                  type="text"
-                  value={orgForm.address}
-                  onChange={(e) => setOrgForm({ ...orgForm, address: e.target.value })}
-                  placeholder="e.g. Corporate Park, Hyderabad"
-                  className="input-field w-full"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">WhatsApp Group ID</label>
-                <input
-                  type="text"
-                  value={orgForm.whatsAppGroupId}
-                  onChange={(e) => setOrgForm({ ...orgForm, whatsAppGroupId: e.target.value })}
-                  placeholder="e.g. 120363275932360787@g.us"
-                  className="input-field w-full font-mono text-[11px]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Latitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={orgForm.latitude}
-                    onChange={(e) => setOrgForm({ ...orgForm, latitude: Number(e.target.value) })}
-                    className="input-field w-full font-data"
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Longitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={orgForm.longitude}
-                    onChange={(e) => setOrgForm({ ...orgForm, longitude: Number(e.target.value) })}
-                    className="input-field w-full font-data"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
-                <button type="button" onClick={() => setOrgModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
-                  {editingOrgId ? 'Save Changes' : 'Create Organisation'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 1b. Add / Edit Branch Modal */}
-      {branchModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-lg w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
-                <MapPin size={16} className="text-indigo-500" />
-                <span>{editingBranchId ? 'Edit Branch Profile' : 'Register New Branch'}</span>
-              </h3>
-              <button onClick={() => setBranchModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveBranch} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Branch Name *</label>
-                  <input
-                    type="text"
-                    value={branchForm.name}
-                    onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })}
-                    placeholder="e.g. Ville Flora 2"
-                    className="input-field w-full"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">
-                    Employee Code Prefix *
-                  </label>
-                  <input
-                    type="text"
-                    value={branchForm.code}
-                    onChange={(e) => setBranchForm({ ...branchForm, code: e.target.value })}
-                    placeholder="e.g. EMP#, EMP-, VF2-"
-                    className="input-field w-full font-mono text-xs font-bold text-indigo-600"
-                    required
-                  />
-                  <span className="text-[10px] text-[var(--ink-muted)] block mt-0.5">
-                    Used for auto employee codes (e.g. {branchForm.code || 'EMP#'}001)
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">City</label>
-                  <input
-                    type="text"
-                    value={branchForm.city}
-                    onChange={(e) => setBranchForm({ ...branchForm, city: e.target.value })}
-                    placeholder="e.g. Surat"
-                    className="input-field w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">State</label>
-                  <input
-                    type="text"
-                    value={branchForm.state}
-                    onChange={(e) => setBranchForm({ ...branchForm, state: e.target.value })}
-                    placeholder="e.g. Gujarat"
-                    className="input-field w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Pincode</label>
-                  <input
-                    type="text"
-                    value={branchForm.pincode}
-                    onChange={(e) => setBranchForm({ ...branchForm, pincode: e.target.value })}
-                    placeholder="e.g. 395007"
-                    className="input-field w-full font-data"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Street Address</label>
-                <input
-                  type="text"
-                  value={branchForm.address}
-                  onChange={(e) => setBranchForm({ ...branchForm, address: e.target.value })}
-                  placeholder="e.g. Site #4, Vesu Main Road"
-                  className="input-field w-full"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Latitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={branchForm.latitude}
-                    onChange={(e) => setBranchForm({ ...branchForm, latitude: Number(e.target.value) })}
-                    className="input-field w-full font-data"
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Longitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={branchForm.longitude}
-                    onChange={(e) => setBranchForm({ ...branchForm, longitude: Number(e.target.value) })}
-                    className="input-field w-full font-data"
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Radius (Meters)</label>
-                  <input
-                    type="number"
-                    value={branchForm.radiusMeters}
-                    onChange={(e) => setBranchForm({ ...branchForm, radiusMeters: Number(e.target.value) })}
-                    className="input-field w-full font-data"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">WhatsApp Group ID</label>
-                <input
-                  type="text"
-                  value={branchForm.whatsAppGroupId}
-                  onChange={(e) => setBranchForm({ ...branchForm, whatsAppGroupId: e.target.value })}
-                  placeholder="e.g. 120363275932360787@g.us"
-                  className="input-field w-full font-mono text-[11px]"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
-                <button type="button" onClick={() => setBranchModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
-                  {editingBranchId ? 'Save Branch' : 'Create Branch'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* 2. Add Department Modal */}
       {deptModalOpen && (
@@ -1896,7 +1575,7 @@ export const Settings: React.FC = () => {
                       {selectedBranchForPermissions.code}
                     </span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/60">
-                      Branch • {selectedBranchForPermissions.orgName || 'Organisation'}
+                      Branch • {selectedBranchForPermissions.orgName || 'Organization'}
                     </span>
                   </div>
                   <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
@@ -2064,100 +1743,8 @@ export const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* Branch Create / Edit Modal */}
-      {branchModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
-                <MapPin size={16} className="text-indigo-500" />
-                <span>{editingBranchId ? 'Edit Branch' : 'Add New Branch'}</span>
-              </h3>
-              <button onClick={() => setBranchModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"><X size={16} /></button>
-            </div>
 
-            <form onSubmit={handleSaveBranch} className="space-y-3 text-xs overflow-y-auto flex-1 pr-1">
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Parent Organisation *</label>
-                <select
-                  value={branchForm.organizationId || (organizations[0]?.id ?? '')}
-                  onChange={(e) => setBranchForm({ ...branchForm, organizationId: parseInt(e.target.value) })}
-                  className="input-field w-full font-medium"
-                  required
-                >
-                  <option value="" disabled>Select Organisation...</option>
-                  {organizations.map((org) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name} ({org.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block font-medium text-[var(--ink)] mb-1">Branch Name *</label>
-                  <input type="text" value={branchForm.name} onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })} placeholder="e.g. Vesu Project Site" className="input-field w-full" required />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block font-medium text-[var(--ink)] mb-1">Branch Code</label>
-                  <input type="text" value={branchForm.code} onChange={(e) => setBranchForm({ ...branchForm, code: e.target.value })} placeholder="e.g. VES-01" className="input-field w-full font-data" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Address</label>
-                <input type="text" value={branchForm.address} onChange={(e) => setBranchForm({ ...branchForm, address: e.target.value })} placeholder="Street / Area / Landmark" className="input-field w-full" />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">City</label>
-                  <input type="text" value={branchForm.city} onChange={(e) => setBranchForm({ ...branchForm, city: e.target.value })} placeholder="Surat" className="input-field w-full" />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">State</label>
-                  <input type="text" value={branchForm.state} onChange={(e) => setBranchForm({ ...branchForm, state: e.target.value })} placeholder="Gujarat" className="input-field w-full" />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Pincode</label>
-                  <input type="text" value={branchForm.pincode} onChange={(e) => setBranchForm({ ...branchForm, pincode: e.target.value })} placeholder="395007" className="input-field w-full font-data" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Latitude</label>
-                  <input type="number" step="0.0001" value={branchForm.latitude} onChange={(e) => setBranchForm({ ...branchForm, latitude: parseFloat(e.target.value) })} className="input-field w-full font-data" />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Longitude</label>
-                  <input type="number" step="0.0001" value={branchForm.longitude} onChange={(e) => setBranchForm({ ...branchForm, longitude: parseFloat(e.target.value) })} className="input-field w-full font-data" />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Geofence Radius (m)</label>
-                  <input type="number" value={branchForm.radiusMeters} onChange={(e) => setBranchForm({ ...branchForm, radiusMeters: parseInt(e.target.value) })} className="input-field w-full font-data" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">WhatsApp Group ID</label>
-                <input type="text" value={branchForm.whatsAppGroupId} onChange={(e) => setBranchForm({ ...branchForm, whatsAppGroupId: e.target.value })} placeholder="WhatsApp broadcast channel link or group ID" className="input-field w-full font-data" />
-              </div>
-
-              <label className="flex items-center gap-2 cursor-pointer pt-1">
-                <input type="checkbox" checked={branchForm.isActive} onChange={(e) => setBranchForm({ ...branchForm, isActive: e.target.checked })} className="rounded border-[var(--rule)]" />
-                <span className="font-medium text-[var(--ink)]">Branch is Active</span>
-              </label>
-
-              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
-                <button type="button" onClick={() => setBranchModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">Cancel</button>
-                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">{editingBranchId ? 'Update Branch' : 'Create Branch'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

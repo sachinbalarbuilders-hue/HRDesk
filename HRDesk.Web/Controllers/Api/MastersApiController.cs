@@ -134,7 +134,9 @@ public class MastersController : ControllerBase
         double? Longitude,
         double? RadiusMeters,
         string? WhatsAppGroupId,
-        bool IsActive);
+        string? AllowedIPs,
+        bool IsActive,
+        string? OutsideAttendancePolicy = "Block");
 
     [HttpGet("overview")]
     public async Task<IActionResult> GetOverview([FromQuery] int? branchId = null)
@@ -190,6 +192,8 @@ public class MastersController : ControllerBase
                 longitude = b.Longitude,
                 radiusMeters = b.RadiusMeters ?? 100,
                 whatsAppGroupId = b.WhatsAppGroupId,
+                allowedIPs = b.AllowedIPs,
+                outsideAttendancePolicy = b.OutsideAttendancePolicy,
                 isActive = b.IsActive
             }),
             departments = depts.Select(d => new
@@ -654,6 +658,8 @@ public class MastersController : ControllerBase
             longitude = b.Longitude,
             radiusMeters = b.RadiusMeters ?? 100,
             whatsAppGroupId = b.WhatsAppGroupId,
+            allowedIPs = b.AllowedIPs,
+            outsideAttendancePolicy = b.OutsideAttendancePolicy,
             isActive = b.IsActive,
             createdAt = b.CreatedAt
         }));
@@ -681,6 +687,8 @@ public class MastersController : ControllerBase
             Longitude = dto.Longitude,
             RadiusMeters = dto.RadiusMeters ?? 100,
             WhatsAppGroupId = dto.WhatsAppGroupId?.Trim(),
+            AllowedIPs = dto.AllowedIPs?.Trim(),
+            OutsideAttendancePolicy = dto.OutsideAttendancePolicy ?? "Block",
             IsActive = dto.IsActive,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -713,6 +721,9 @@ public class MastersController : ControllerBase
         branch.Longitude = dto.Longitude;
         branch.RadiusMeters = dto.RadiusMeters ?? 100;
         branch.WhatsAppGroupId = dto.WhatsAppGroupId?.Trim();
+        branch.AllowedIPs = dto.AllowedIPs?.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.OutsideAttendancePolicy))
+            branch.OutsideAttendancePolicy = dto.OutsideAttendancePolicy;
         branch.IsActive = dto.IsActive;
         branch.UpdatedAt = DateTime.Now;
 

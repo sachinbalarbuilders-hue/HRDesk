@@ -11,6 +11,9 @@ import { PageSkeleton } from './components/ui/PageSkeleton';
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const Employees = lazy(() => import('./pages/Employees').then(m => ({ default: m.Employees })));
+const AddEmployee = lazy(() => import('./pages/employees/AddEmployee').then(m => ({ default: m.AddEmployee })));
+const EditEmployee = lazy(() => import('./pages/employees/EditEmployee').then(m => ({ default: m.EditEmployee })));
+const ViewEmployee = lazy(() => import('./pages/employees/ViewEmployee').then(m => ({ default: m.ViewEmployee })));
 const Attendance = lazy(() => import('./pages/Attendance').then(m => ({ default: m.Attendance })));
 const Shifts = lazy(() => import('./pages/Shifts').then(m => ({ default: m.Shifts })));
 const Regularizations = lazy(() => import('./pages/Regularizations').then(m => ({ default: m.Regularizations })));
@@ -22,6 +25,8 @@ const Recruitment = lazy(() => import('./pages/Recruitment').then(m => ({ defaul
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const VerifyEmployee = lazy(() => import('./pages/VerifyEmployee').then(m => ({ default: m.VerifyEmployee })));
 const GuardScanner = lazy(() => import('./pages/GuardScanner').then(m => ({ default: m.GuardScanner })));
+const OrganizationDetails = lazy(() => import('./pages/settings/OrganizationDetails').then(m => ({ default: m.OrganizationDetails })));
+const BranchDetails = lazy(() => import('./pages/settings/BranchDetails').then(m => ({ default: m.BranchDetails })));
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string }> = ({
   children,
@@ -74,6 +79,30 @@ export const App: React.FC = () => {
                     element={
                       <ProtectedRoute permission="Employees.View">
                         <Employees />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="employees/add"
+                    element={
+                      <ProtectedRoute permission="Employees.Edit">
+                        <AddEmployee />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="employees/:id"
+                    element={
+                      <ProtectedRoute permission="Employees.View">
+                        <ViewEmployee />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="employees/:id/edit"
+                    element={
+                      <ProtectedRoute permission="Employees.Edit">
+                        <EditEmployee />
                       </ProtectedRoute>
                     }
                   />
@@ -159,6 +188,22 @@ export const App: React.FC = () => {
                     element={
                       <ProtectedRoute>
                         <Settings />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="settings/organizations/:id"
+                    element={
+                      <ProtectedRoute>
+                        <OrganizationDetails />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="settings/branches/:id"
+                    element={
+                      <ProtectedRoute>
+                        <BranchDetails />
                       </ProtectedRoute>
                     }
                   />

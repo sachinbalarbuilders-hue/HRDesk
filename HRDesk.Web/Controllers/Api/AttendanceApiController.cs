@@ -369,9 +369,128 @@ public class AttendanceController : ControllerBase
         var today = DateOnly.FromDateTime(now);
         var timeOnly = TimeOnly.FromDateTime(now);
 
+        // ── Fetch employee + branch for restriction checks ──────────────────
+        var employee = await _db.Employees
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.EmployeeId == targetEmpId);
+
+        if (employee == null)
+            return BadRequest(new { message = "Employee not found." });
+
+        Branch? branch = null;
+        if (employee.BranchId.HasValue)
+        {
+            branch = await _db.Branches
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.Id == employee.BranchId.Value);
+        }
+
+        // ── 1. IP RESTRICTION CHECK ─────────────────────────────────────────
+        bool? isIpValid = null;
+        if (branch != null && !string.IsNullOrWhiteSpace(branch.AllowedIPs))
+        {
+            var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+            // Handle IPv4-mapped IPv6 addresses (::ffff:192.168.x.x)
+            if (remoteIp.StartsWith("::ffff:"))
+                remoteIp = remoteIp[7..];
+
+            var allowedList = branch.AllowedIPs
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            isIpValid = allowedList.Contains(remoteIp);
+
+            if (isIpValid == false)
+            {
+                return BadRequest(new
+                {
+                    message = $"Clock-in rejected: your IP address ({remoteIp}) is not in the list of allowed office IPs for this branch."
+                });
+            }
+        }
+
+        // ── 2. GEO-FENCING CHECK ────────────────────────────────────────────
+        bool? isGeofenceValid = null;
+        if (branch != null &&
+            branch.Latitude.HasValue && branch.Longitude.HasValue &&
+            branch.RadiusMeters.HasValue &&
+            dto.Latitude.HasValue && dto.Longitude.HasValue)
+        {
+            var distanceMeters = HaversineDistanceMeters(
+                dto.Latitude.Value, dto.Longitude.Value,
+                branch.Latitude.Value, branch.Longitude.Value);
+
+            isGeofenceValid = distanceMeters <= branch.RadiusMeters.Value;
+
+            if (isGeofenceValid == false)
+            {
+                var policy = branch.OutsideAttendancePolicy ?? "Block";
+
+                if (policy == "Block")
+                {
+                    return BadRequest(new
+                    {
+                        message = $"Clock-in rejected: you are {distanceMeters:F0}m away from the branch (allowed radius: {branch.RadiusMeters.Value:F0}m).",
+                        distanceMeters,
+                        allowedRadius = branch.RadiusMeters.Value
+                    });
+                }
+                // "AllowAndFlag" → continue but isGeofenceValid = false (saved to log for HR review)
+                // "AlwaysAllow"  → continue, isGeofenceValid = false but no action taken
+            }
+        }
+
+        // ── 3. PHOTO SAVE ────────────────────────────────────────────────────
+        string? photoUrl = null;
+        if (!string.IsNullOrWhiteSpace(dto.PhotoBase64))
+        {
+            try
+            {
+                var base64Data = dto.PhotoBase64.Contains(',')
+                    ? dto.PhotoBase64[(dto.PhotoBase64.IndexOf(',') + 1)..]
+                    : dto.PhotoBase64;
+
+                var photoBytes = Convert.FromBase64String(base64Data);
+                var folderPath = Path.Combine(
+                    Directory.GetCurrentDirectory(), "wwwroot", "attendance_photos",
+                    today.Year.ToString(), today.Month.ToString("D2"), today.Day.ToString("D2"));
+
+                Directory.CreateDirectory(folderPath);
+
+                var fileName = $"emp{targetEmpId}_{now:HHmmss}.jpg";
+                var filePath = Path.Combine(folderPath, fileName);
+                await System.IO.File.WriteAllBytesAsync(filePath, photoBytes);
+
+                photoUrl = $"/attendance_photos/{today.Year}/{today.Month:D2}/{today.Day:D2}/{fileName}";
+            }
+            catch
+            {
+                // Photo saving is non-critical; continue punch without it
+            }
+        }
+
+        // ── 4. RECORD AttendanceLog ──────────────────────────────────────────
+        var punchLog = new AttendanceLog
+        {
+            EmployeeId = targetEmpId,
+            PunchTime = now,
+            OrganizationId = employee.OrganizationId,
+            SyncedAt = now,
+            CreatedAt = now,
+            Latitude = dto.Latitude,
+            Longitude = dto.Longitude,
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            PhotoUrl = photoUrl,
+            IsGeofenceValid = isGeofenceValid,
+            IsIpValid = isIpValid,
+            VerifyType = dto.Source ?? "Web",
+        };
+        _db.AttendanceLogs.Add(punchLog);
+
+        // ── 5. UPDATE DailyAttendance (In / Out) ────────────────────────────
         var existingLog = await _db.DailyAttendance
             .FirstOrDefaultAsync(a => a.EmployeeId == targetEmpId && a.RecordDate == today);
 
+        string punchMessage;
         if (existingLog == null)
         {
             existingLog = new DailyAttendance
@@ -380,9 +499,11 @@ public class AttendanceController : ControllerBase
                 RecordDate = today,
                 InTime = timeOnly,
                 Status = "Present",
-                OrganizationId = 1
+                OrganizationId = employee.OrganizationId,
+                BranchId = employee.BranchId
             };
             _db.DailyAttendance.Add(existingLog);
+            punchMessage = "Clocked in successfully.";
         }
         else
         {
@@ -392,11 +513,42 @@ public class AttendanceController : ControllerBase
                 var workDuration = timeOnly - existingLog.InTime.Value;
                 existingLog.WorkMinutes = (int)workDuration.TotalMinutes;
             }
+            punchMessage = "Clocked out successfully.";
         }
 
         await _db.SaveChangesAsync();
-        return Ok(new { message = "Punch recorded successfully.", inTime = existingLog.InTime?.ToString("HH:mm"), outTime = existingLog.OutTime?.ToString("HH:mm") });
+
+        return Ok(new
+        {
+            message = punchMessage,
+            inTime = existingLog.InTime?.ToString("HH:mm"),
+            outTime = existingLog.OutTime?.ToString("HH:mm"),
+            photoUrl,
+            isGeofenceValid,
+            isIpValid
+        });
+    }
+
+    // ── Haversine formula: returns distance in metres between two GPS points ──
+    private static double HaversineDistanceMeters(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double R = 6371000; // Earth radius in metres
+        var dLat = (lat2 - lat1) * Math.PI / 180.0;
+        var dLon = (lon2 - lon1) * Math.PI / 180.0;
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2)
+              + Math.Cos(lat1 * Math.PI / 180.0) * Math.Cos(lat2 * Math.PI / 180.0)
+              * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        return R * c;
     }
 }
 
-public record PunchRequestDto(int? EmployeeId, string? PunchType, string? Source);
+public record PunchRequestDto(
+    int? EmployeeId,
+    string? PunchType,
+    string? Source,
+    double? Latitude,
+    double? Longitude,
+    string? PhotoBase64
+);
+

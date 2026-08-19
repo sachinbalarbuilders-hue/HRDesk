@@ -53,6 +53,18 @@ public class Branch : IMustHaveTenant
     [StringLength(100)]
     public string? WhatsAppGroupId { get; set; }
 
+    [Column("allowed_ips")]
+    [StringLength(500)]
+    public string? AllowedIPs { get; set; }
+
+    /// <summary>
+    /// Controls what happens when an employee punches from outside the geofence.
+    /// Values: "Block" | "AllowAndFlag" | "AlwaysAllow"
+    /// </summary>
+    [Column("outside_attendance_policy")]
+    [StringLength(50)]
+    public string OutsideAttendancePolicy { get; set; } = "Block";
+
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
 
