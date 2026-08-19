@@ -6,6 +6,37 @@ import { ArchiveActionButton } from '../../components/ui/ArchiveActionButton';
 import { RolesPermissionsTab } from '../../components/settings/RolesPermissionsTab';
 import { Building2, ArrowLeft, Save, Plus, MapPin, Shield, Trash2, Edit2, X } from 'lucide-react';
 
+const MONTHS = [
+  { value: 1, label: 'January' },
+  { value: 2, label: 'February' },
+  { value: 3, label: 'March' },
+  { value: 4, label: 'April' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'June' },
+  { value: 7, label: 'July' },
+  { value: 8, label: 'August' },
+  { value: 9, label: 'September' },
+  { value: 10, label: 'October' },
+  { value: 11, label: 'November' },
+  { value: 12, label: 'December' },
+] as const;
+
+function endMonthFromStart(start: number) {
+  return start === 1 ? 12 : start - 1;
+}
+
+function startMonthFromEnd(end: number) {
+  return end === 12 ? 1 : end + 1;
+}
+
+function monthLabel(month: number) {
+  return MONTHS.find(m => m.value === month)?.label ?? '';
+}
+
+function lastDayOfMonth(month: number) {
+  return new Date(2024, month, 0).getDate();
+}
+
 export const OrganizationDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -25,13 +56,27 @@ export const OrganizationDetails: React.FC = () => {
     isActive: true,
   });
 
+  const [policyForm, setPolicyForm] = useState({
+    yearStartMonth: 11,
+    yearEndMonth: 10,
+    advanceNoticeDays: 2,
+    maxConsecutiveLeaves: 14,
+    sandwichRuleEnabled: true,
+    defaultProbationDays: 90,
+  });
+
   useEffect(() => {
     const fetchOrg = async () => {
       try {
         setLoading(true);
-        const res = await apiClient.get('/masters/overview');
-        const orgs = res.data.organizations || [];
-        const org = orgs.find((o: any) => o.id === parseInt(id || '0', 10));
+        const orgId = parseInt(id || '0', 10);
+        const [overviewRes, policyRes] = await Promise.allSettled([
+          apiClient.get('/masters/overview'),
+          apiClient.get('/masters/company-policy', { params: { organizationId: orgId } }),
+        ]);
+
+        const orgs = (overviewRes.status === 'fulfilled' && overviewRes.value.data?.organizations) || [];
+        const org = orgs.find((o: any) => o.id === orgId);
 
         if (org) {
           setOrgForm({
@@ -40,7 +85,20 @@ export const OrganizationDetails: React.FC = () => {
             address: org.address || '',
             isActive: org.isActive !== false,
           });
-          const orgBranches = (res.data.branches || [])
+          if (policyRes.status === 'fulfilled' && policyRes.value.data) {
+            const p = policyRes.value.data;
+            const start = p.yearStartMonth ?? 11;
+            setPolicyForm({
+              yearStartMonth: start,
+              yearEndMonth: p.yearEndMonth ?? endMonthFromStart(start),
+              advanceNoticeDays: p.advanceNoticeDays ?? 2,
+              maxConsecutiveLeaves: p.maxConsecutiveLeaves ?? 14,
+              sandwichRuleEnabled: p.sandwichRuleEnabled ?? true,
+              defaultProbationDays: p.defaultProbationDays ?? 90,
+            });
+          }
+
+          const orgBranches = (overviewRes.status === 'fulfilled' && overviewRes.value.data?.branches || [])
             .filter((b: any) => b.organizationId === org.id)
             .map((b: any) => ({
               id: b.id,
@@ -98,6 +156,29 @@ export const OrganizationDetails: React.FC = () => {
     }
   };
 
+  const handleSavePolicy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || isNew) return;
+
+    try {
+      setSaving(true);
+      await apiClient.put('/masters/company-policy', {
+        organizationId: parseInt(id, 10),
+        yearStartMonth: policyForm.yearStartMonth,
+        yearEndMonth: policyForm.yearEndMonth,
+        advanceNoticeDays: policyForm.advanceNoticeDays,
+        maxConsecutiveLeaves: policyForm.maxConsecutiveLeaves,
+        sandwichRuleEnabled: policyForm.sandwichRuleEnabled,
+        defaultProbationDays: policyForm.defaultProbationDays,
+      });
+      showSuccess('Saved', 'Company policies saved.');
+    } catch (err: any) {
+      showError('Error', err.response?.data?.message || 'Failed to save company policies.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeleteBranch = async (branchId: number) => {
     try {
       await apiClient.delete(`/masters/branches/${branchId}`);
@@ -124,7 +205,7 @@ export const OrganizationDetails: React.FC = () => {
           </button>
           <div>
             <h1 className="text-2xl font-display font-semibold text-[var(--ink)] flex items-center gap-2">
-              <Building2 className="text-indigo-600" size={24} />
+              <Building2 className="text-[var(--gold-500)]" size={24} />
               {isNew ? 'New Organization' : orgForm.name}
             </h1>
             <p className="text-xs text-[var(--ink-muted)] mt-1">
@@ -138,7 +219,7 @@ export const OrganizationDetails: React.FC = () => {
         <div className="flex border-b border-[var(--rule)] px-4">
           <button
             className={`px-4 py-3 text-xs font-semibold cursor-pointer border-b-2 transition-colors ${
-              activeTab === 'details' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              activeTab === 'details' ? 'border-[var(--gold-500)] text-[var(--gold-500)]' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
             onClick={() => setActiveTab('details')}
           >
@@ -147,7 +228,7 @@ export const OrganizationDetails: React.FC = () => {
           {!isNew && (
             <button
               className={`px-4 py-3 text-xs font-semibold cursor-pointer border-b-2 transition-colors ${
-                activeTab === 'branches' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                activeTab === 'branches' ? 'border-[var(--gold-500)] text-[var(--gold-500)]' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
               onClick={() => setActiveTab('branches')}
             >
@@ -157,7 +238,7 @@ export const OrganizationDetails: React.FC = () => {
           {!isNew && (
             <button
               className={`px-4 py-3 text-xs font-semibold cursor-pointer border-b-2 transition-colors ${
-                activeTab === 'policy' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                activeTab === 'policy' ? 'border-[var(--gold-500)] text-[var(--gold-500)]' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
               onClick={() => setActiveTab('policy')}
             >
@@ -253,7 +334,7 @@ export const OrganizationDetails: React.FC = () => {
                 <div className="border border-[var(--rule)] rounded-md divide-y divide-[var(--rule)]">
                   {branches.map((branch) => (
                     <div key={branch.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--paper)]/60 transition-colors">
-                      <div className="w-8 h-8 rounded-[3px] bg-indigo-600/10 text-indigo-600 flex items-center justify-center shrink-0">
+                      <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center shrink-0">
                         <MapPin size={14} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -273,7 +354,7 @@ export const OrganizationDetails: React.FC = () => {
                       <div className="flex items-center gap-1 shrink-0">
                         <button
                           onClick={() => setSelectedBranchForPermissions({ id: branch.id, name: branch.name, code: branch.code, orgName: orgForm.name })}
-                          className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-indigo-600 cursor-pointer transition-colors"
+                          className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors"
                           title="Branch Roles & Permissions"
                         >
                           <Shield size={13} />
@@ -301,48 +382,127 @@ export const OrganizationDetails: React.FC = () => {
           )}
 
           {activeTab === 'policy' && (
-            <div className="space-y-4 max-w-3xl text-sm">
+            <form onSubmit={handleSavePolicy} className="space-y-4 max-w-3xl text-sm">
+              <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
+                <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Company Year</h4>
+                <p className="text-[var(--ink-muted)] mb-4">
+                  Set the company year cycle used across this organization for rest, payroll, and other company-wide rules.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Year Start Month</label>
+                    <select
+                      value={policyForm.yearStartMonth}
+                      onChange={(e) => {
+                        const start = Number(e.target.value);
+                        setPolicyForm({ ...policyForm, yearStartMonth: start, yearEndMonth: endMonthFromStart(start) });
+                      }}
+                      className="input-field w-full text-sm"
+                    >
+                      {MONTHS.map((m) => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Year End Month</label>
+                    <select
+                      value={policyForm.yearEndMonth}
+                      onChange={(e) => {
+                        const end = Number(e.target.value);
+                        setPolicyForm({ ...policyForm, yearEndMonth: end, yearStartMonth: startMonthFromEnd(end) });
+                      }}
+                      className="input-field w-full text-sm"
+                    >
+                      {MONTHS.map((m) => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <p className="text-xs text-[var(--ink-muted)] mt-3">
+                  Company year runs from <span className="font-medium text-[var(--ink)]">1 {monthLabel(policyForm.yearStartMonth)}</span>
+                  {' '}to{' '}
+                  <span className="font-medium text-[var(--ink)]">{lastDayOfMonth(policyForm.yearEndMonth)} {monthLabel(policyForm.yearEndMonth)}</span>.
+                </p>
+              </div>
+
               <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
                 <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Leave Application Rules</h4>
                 <p className="text-[var(--ink-muted)] mb-4">Configure global constraints for employee leave applications across this organization.</p>
 
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <span className="font-medium text-[var(--ink)] block">Advance Notice Required</span>
                       <span className="text-xs text-[var(--ink-muted)] block">Minimum days in advance an employee must apply for leave.</span>
                     </div>
-                    <input type="number" defaultValue={2} className="input-field w-24 text-center font-data" />
+                    <input
+                      type="number"
+                      min={0}
+                      value={policyForm.advanceNoticeDays}
+                      onChange={(e) => setPolicyForm({ ...policyForm, advanceNoticeDays: Number(e.target.value) })}
+                      className="input-field w-24 text-center font-data"
+                    />
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <span className="font-medium text-[var(--ink)] block">Max Consecutive Leaves</span>
                       <span className="text-xs text-[var(--ink-muted)] block">Maximum number of days an employee can take continuously.</span>
                     </div>
-                    <input type="number" defaultValue={14} className="input-field w-24 text-center font-data" />
+                    <input
+                      type="number"
+                      min={1}
+                      value={policyForm.maxConsecutiveLeaves}
+                      onChange={(e) => setPolicyForm({ ...policyForm, maxConsecutiveLeaves: Number(e.target.value) })}
+                      className="input-field w-24 text-center font-data"
+                    />
                   </div>
                 </div>
               </div>
 
               <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
+                <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Sandwich Leave Rule</h4>
+                <p className="text-[var(--ink-muted)] mb-4">
+                  When enabled, if an employee takes leave on both sides of a weekoff (e.g., Friday &amp; Monday),
+                  the weekoff days in between are automatically counted as leave instead of regular days off.
+                </p>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={policyForm.sandwichRuleEnabled}
+                    onChange={(e) => setPolicyForm({ ...policyForm, sandwichRuleEnabled: e.target.checked })}
+                    className="rounded border-[var(--rule)] w-4 h-4"
+                  />
+                  <span className="font-medium text-[var(--ink)]">Enforce Sandwich Leave Rule</span>
+                </label>
+              </div>
+
+              <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
                 <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Probation & Confirmation</h4>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div>
                       <span className="font-medium text-[var(--ink)] block">Default Probation Period (Days)</span>
                       <span className="text-xs text-[var(--ink-muted)] block">Standard probation length for new hires.</span>
                     </div>
-                    <input type="number" defaultValue={90} className="input-field w-24 text-center font-data" />
+                    <input
+                      type="number"
+                      min={0}
+                      value={policyForm.defaultProbationDays}
+                      onChange={(e) => setPolicyForm({ ...policyForm, defaultProbationDays: Number(e.target.value) })}
+                      className="input-field w-24 text-center font-data"
+                    />
                   </div>
                 </div>
               </div>
 
               <div className="pt-4 flex justify-end">
-                <button className="btn-primary py-2 px-6 flex items-center gap-2">
-                  <Save size={16} /> Save Policies
+                <button type="submit" disabled={saving} className="btn-primary py-2 px-6 flex items-center gap-2">
+                  <Save size={16} /> {saving ? 'Saving...' : 'Save Policies'}
                 </button>
               </div>
-            </div>
+            </form>
           )}
         </div>
       </div>

@@ -8,6 +8,7 @@ import { PageSkeleton } from '../../components/ui/PageSkeleton';
 import { AuthImage } from '../../components/ui/AuthImage';
 import { EmployeeDocumentsTab } from '../../components/employees/EmployeeDocumentsTab';
 import { EmployeeAttendanceTab } from '../../components/employees/EmployeeAttendanceTab';
+import { EmployeeLeavesTab } from '../../components/employees/EmployeeLeavesTab';
 import { EmployeeIdCardTab } from '../../components/employees/EmployeeIdCardTab';
 
 const formatDate = (dateStr: string | null | undefined) => {
@@ -33,7 +34,7 @@ export const ViewEmployee: React.FC = () => {
   const [sidebarPage, setSidebarPage] = useState(1);
   const [hasMoreSidebar, setHasMoreSidebar] = useState(true);
   const [loadingSidebar, setLoadingSidebar] = useState(false);
-  const [profileTab, setProfileTab] = useState<'details' | 'attendance' | 'records' | 'idcard'>('details');
+  const [profileTab, setProfileTab] = useState<'details' | 'attendance' | 'leaves' | 'records' | 'idcard'>('details');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -324,6 +325,16 @@ export const ViewEmployee: React.FC = () => {
             Attendance Summary
           </button>
           <button
+            onClick={() => setProfileTab('leaves')}
+            className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
+              profileTab === 'leaves'
+                ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
+                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+            }`}
+          >
+            Leaves
+          </button>
+          <button
             onClick={() => setProfileTab('records')}
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'records'
@@ -444,6 +455,10 @@ export const ViewEmployee: React.FC = () => {
 
           {profileTab === 'attendance' && (
             <EmployeeAttendanceTab employeeId={employee.employeeId} />
+          )}
+
+          {profileTab === 'leaves' && (
+            <EmployeeLeavesTab employeeId={employee.employeeId} />
           )}
 
           {profileTab === 'records' && (

@@ -95,6 +95,7 @@ export const BranchDetails: React.FC = () => {
               fullDayThresholdHours: p.fullDayThresholdHours ?? 8.0,
               autoSyncIntervalMinutes: p.autoSyncIntervalMinutes ?? 5,
               defaultWeekoff: p.defaultWeekoff ?? 'Sunday',
+              sandwichRuleEnabled: p.sandwichRuleEnabled ?? true,
             });
           }
         } else if (orgs.length > 0) {
@@ -174,7 +175,7 @@ export const BranchDetails: React.FC = () => {
           </button>
           <div>
             <h1 className="text-2xl font-display font-semibold text-[var(--ink)] flex items-center gap-2">
-              <MapPin className="text-indigo-600" size={24} />
+              <MapPin className="text-[var(--gold-500)]" size={24} />
               {id === 'add' ? 'New Branch' : branchForm.name}
             </h1>
             <p className="text-xs text-[var(--ink-muted)] mt-1">
@@ -188,7 +189,7 @@ export const BranchDetails: React.FC = () => {
         <div className="flex border-b border-[var(--rule)] px-4">
           <button
             className={`px-4 py-3 text-xs font-semibold cursor-pointer border-b-2 transition-colors ${
-              activeTab === 'details' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              activeTab === 'details' ? 'border-[var(--gold-500)] text-[var(--gold-500)]' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
             onClick={() => setActiveTab('details')}
           >
@@ -197,7 +198,7 @@ export const BranchDetails: React.FC = () => {
           {id !== 'add' && (
             <button
               className={`px-4 py-3 text-xs font-semibold cursor-pointer border-b-2 transition-colors ${
-                activeTab === 'policy' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                activeTab === 'policy' ? 'border-[var(--gold-500)] text-[var(--gold-500)]' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
               onClick={() => setActiveTab('policy')}
             >
@@ -279,7 +280,7 @@ export const BranchDetails: React.FC = () => {
                 <div className="space-y-6">
                   <div className="bg-[var(--surface-sunken)] p-4 rounded-md border border-[var(--rule)]">
                      <h4 className="font-semibold text-[13px] text-[var(--ink)] mb-3 flex items-center gap-2">
-                       <Clock size={14} className="text-indigo-600" />
+                       <Clock size={14} className="text-[var(--gold-500)]" />
                        IP Restrictions (Web Clock-in)
                      </h4>
                      <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Allowed Office IPs</label>
@@ -295,7 +296,7 @@ export const BranchDetails: React.FC = () => {
 
                   <div className="bg-[var(--surface-sunken)] p-4 rounded-md border border-[var(--rule)]">
                      <h4 className="font-semibold text-[13px] text-[var(--ink)] mb-3 flex items-center gap-2">
-                       <MapIcon size={14} className="text-indigo-600" />
+                       <MapIcon size={14} className="text-[var(--gold-500)]" />
                        Geofencing (Mobile App)
                      </h4>
                      <div className="grid grid-cols-3 gap-3 mb-3">
@@ -355,7 +356,7 @@ export const BranchDetails: React.FC = () => {
               {/* Work Hours & Thresholds */}
               <div className="bg-[var(--surface-sunken)] p-5 rounded-lg border border-[var(--rule)] space-y-4">
                 <div className="flex items-center gap-2">
-                  <Clock size={16} className="text-indigo-600" />
+                  <Clock size={16} className="text-[var(--gold-500)]" />
                   <h4 className="font-semibold text-[var(--ink)] text-sm">Working Hours & Late-In Rules</h4>
                 </div>
                 <p className="text-xs text-[var(--ink-muted)]">

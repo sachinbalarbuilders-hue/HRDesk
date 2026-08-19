@@ -38,6 +38,7 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         public Dictionary<int, List<DayHistoryItem>> MonthHistory { get; set; } = new();
         public Dictionary<int, DateOnly?> InactiveLastPunches { get; set; } = new();
         public List<AttendanceLog> AllLogs { get; set; } = new();
+        public HashSet<int> SandwichDisabledBranches { get; set; } = new();
     }
 
     public async Task ProcessDailyAttendanceAsync(DateOnly date, int? employeeId = null)
@@ -166,11 +167,33 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         context.Leaves = leavesList.GroupBy(l => l.EmployeeId).ToDictionary(g => g.Key, g => g.ToList());
 
         // Pre-load Leave Allocations for Leave Year (tracked for UsedCount increment if cross-app sandwich)
-        var leaveYear = GetLeaveYear(date);
+        var startMonthRows = await _db.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.SettingKey == "LeaveYearStartMonth" && s.BranchId == null)
+            .ToListAsync();
+        var startMonthByOrg = startMonthRows
+            .Where(s => int.TryParse(s.SettingValue, out var m) && m is >= 1 and <= 12)
+            .GroupBy(s => s.OrganizationId)
+            .ToDictionary(g => g.Key, g => int.Parse(g.First().SettingValue!));
+
+        var leaveYears = employees
+            .Select(e => GetLeaveYear(date, startMonthByOrg.GetValueOrDefault(e.OrganizationId, 11)))
+            .Distinct()
+            .ToList();
+        if (leaveYears.Count == 0) leaveYears.Add(GetLeaveYear(date));
+
         var allocList = await _db.LeaveAllocations
-            .Where(a => a.Year == leaveYear && (employeeId == null || a.EmployeeId == employeeId.Value))
+            .Where(a => leaveYears.Contains(a.Year) && (employeeId == null || a.EmployeeId == employeeId.Value))
             .ToListAsync();
         context.Allocations = allocList.GroupBy(a => (a.EmployeeId, a.LeaveTypeId)).ToDictionary(g => g.Key, g => g.First());
+
+        // Pre-load branches where sandwich rule is explicitly disabled
+        var sandwichDisabledBranches = await _db.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.SettingKey == "SandwichRuleEnabled" && s.SettingValue == "False" && s.BranchId != null)
+            .Select(s => s.BranchId!.Value)
+            .ToListAsync();
+        context.SandwichDisabledBranches = new HashSet<int>(sandwichDisabledBranches);
 
         // Pre-load Month History for Lates/Early frequency counts (lightweight projection)
         var startOfMonthDate = new DateOnly(date.Year, date.Month, 1);
@@ -394,7 +417,8 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             }
             else 
             {
-                var sandwichingLeave = GetSandwichingLeaveFromContext(emp.EmployeeId, date, context.Leaves);
+                var sandwichEnabled = emp.BranchId == null || !context.SandwichDisabledBranches.Contains(emp.BranchId.Value);
+                var sandwichingLeave = sandwichEnabled ? GetSandwichingLeaveFromContext(emp.EmployeeId, date, context.Leaves) : null;
                 if (sandwichingLeave != null)
                 {
                     existingRecord.InTime = null;
@@ -963,15 +987,17 @@ public class AttendanceProcessorService : IAttendanceProcessorService
         return $"{existing}, {newRemark}";
     }
 
-    public static int GetLeaveYear(DateOnly date)
+    public static int GetLeaveYear(DateOnly date, int startMonth = 11)
     {
-        return date.Month >= 11 ? date.Year : date.Year - 1;
+        if (startMonth is < 1 or > 12) startMonth = 11;
+        return date.Month >= startMonth ? date.Year : date.Year - 1;
     }
 
-    public static decimal CalculateProRataQuota(decimal yearlyQuota, DateOnly probationEnd, int leaveYear)
+    public static decimal CalculateProRataQuota(decimal yearlyQuota, DateOnly probationEnd, int leaveYear, int startMonth = 11)
     {
-        var cycleStart = new DateOnly(leaveYear, 11, 1);
-        var cycleEnd = new DateOnly(leaveYear + 1, 10, 31);
+        if (startMonth is < 1 or > 12) startMonth = 11;
+        var cycleStart = new DateOnly(leaveYear, startMonth, 1);
+        var cycleEnd = cycleStart.AddMonths(12).AddDays(-1);
 
         if (probationEnd <= cycleStart) return yearlyQuota;
         if (probationEnd > cycleEnd) return 0;

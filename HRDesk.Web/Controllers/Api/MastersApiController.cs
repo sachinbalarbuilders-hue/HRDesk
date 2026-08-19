@@ -36,7 +36,15 @@ public class MastersController : ControllerBase
     public record OrganizationDto(string Name, string? Code, string? Address, string? WhatsAppGroupId, double? Latitude, double? Longitude, double? RadiusMeters, bool IsActive);
     public record LeaveTypeDto(string Name, string Code, decimal DefaultYearlyQuota, bool IsPaid, bool ApplicableAfterProbation, bool AllowCarryForward, string Status, int? BranchId = null);
     public record ShiftDto(string Name, string? Code, string StartTime, string EndTime, int? BreakMinutes, string? ColorCode, int? BranchId = null);
-    public record AttendancePolicyDto(int GracePeriodMinutes, decimal HalfDayThresholdHours, decimal FullDayThresholdHours, int AutoSyncIntervalMinutes, string DefaultWeekoff, int? BranchId = null);
+    public record AttendancePolicyDto(int GracePeriodMinutes, decimal HalfDayThresholdHours, decimal FullDayThresholdHours, int AutoSyncIntervalMinutes, string DefaultWeekoff, bool SandwichRuleEnabled = true, int? BranchId = null);
+    public record CompanyPolicyDto(
+        int OrganizationId,
+        int YearStartMonth = 11,
+        int YearEndMonth = 10,
+        int AdvanceNoticeDays = 2,
+        int MaxConsecutiveLeaves = 14,
+        bool SandwichRuleEnabled = true,
+        int DefaultProbationDays = 90);
     public record CompanyDto(
         string LegalName,
         string? TradeName,
@@ -497,6 +505,7 @@ public class MastersController : ControllerBase
         decimal fullDay = 8.0m;
         int autoSync = 5;
         string weekoff = "Sunday";
+        bool sandwichRule = true;
 
         foreach (var s in settings)
         {
@@ -505,6 +514,7 @@ public class MastersController : ControllerBase
             if (s.SettingKey == "FullDayThresholdHours" && decimal.TryParse(s.SettingValue, out var fd)) fullDay = fd;
             if (s.SettingKey == "AutoSyncIntervalMinutes" && int.TryParse(s.SettingValue, out var asy)) autoSync = asy;
             if (s.SettingKey == "DefaultWeekoff" && !string.IsNullOrWhiteSpace(s.SettingValue)) weekoff = s.SettingValue;
+            if (s.SettingKey == "SandwichRuleEnabled" && bool.TryParse(s.SettingValue, out var sr)) sandwichRule = sr;
         }
 
         return Ok(new
@@ -514,6 +524,7 @@ public class MastersController : ControllerBase
             fullDayThresholdHours = fullDay,
             autoSyncIntervalMinutes = autoSync,
             defaultWeekoff = weekoff,
+            sandwichRuleEnabled = sandwichRule,
             branchId = activeBranch
         });
     }
@@ -554,9 +565,115 @@ public class MastersController : ControllerBase
         await UpsertSetting("FullDayThresholdHours", dto.FullDayThresholdHours.ToString(), "Minimum work hours required for full day");
         await UpsertSetting("AutoSyncIntervalMinutes", dto.AutoSyncIntervalMinutes.ToString(), "Biometric auto sync interval in minutes");
         await UpsertSetting("DefaultWeekoff", dto.DefaultWeekoff, "Default weekly off day");
+        await UpsertSetting("SandwichRuleEnabled", dto.SandwichRuleEnabled.ToString(), "Whether sandwich leave rule is enforced on weekoffs between leaves");
 
         await _db.SaveChangesAsync();
         return Ok(new { message = "Attendance policy updated successfully." });
+    }
+
+    // ==========================================
+    // COMPANY POLICY (organization-level)
+    // ==========================================
+    [HttpGet("company-policy")]
+    public async Task<IActionResult> GetCompanyPolicy([FromQuery] int organizationId)
+    {
+        if (organizationId <= 0) return BadRequest(new { message = "Organization is required." });
+
+        _db.BypassTenantId = true;
+        var settings = await _db.SystemSettings
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == organizationId && s.BranchId == null)
+            .ToListAsync();
+
+        int yearStart = 11;
+        int yearEnd = 10;
+        int advanceNotice = 2;
+        int maxConsecutive = 14;
+        bool sandwichRule = true;
+        int probationDays = 90;
+
+        foreach (var s in settings)
+        {
+            if (s.SettingKey == "LeaveYearStartMonth" && int.TryParse(s.SettingValue, out var ys) && ys is >= 1 and <= 12) yearStart = ys;
+            if (s.SettingKey == "LeaveYearEndMonth" && int.TryParse(s.SettingValue, out var ye) && ye is >= 1 and <= 12) yearEnd = ye;
+            if (s.SettingKey == "AdvanceNoticeDays" && int.TryParse(s.SettingValue, out var an)) advanceNotice = an;
+            if (s.SettingKey == "MaxConsecutiveLeaves" && int.TryParse(s.SettingValue, out var mc)) maxConsecutive = mc;
+            if (s.SettingKey == "SandwichRuleEnabled" && bool.TryParse(s.SettingValue, out var sr)) sandwichRule = sr;
+            if (s.SettingKey == "DefaultProbationDays" && int.TryParse(s.SettingValue, out var pd)) probationDays = pd;
+        }
+
+        yearEnd = yearStart == 1 ? 12 : yearStart - 1;
+
+        return Ok(new
+        {
+            organizationId,
+            yearStartMonth = yearStart,
+            yearEndMonth = yearEnd,
+            advanceNoticeDays = advanceNotice,
+            maxConsecutiveLeaves = maxConsecutive,
+            sandwichRuleEnabled = sandwichRule,
+            defaultProbationDays = probationDays
+        });
+    }
+
+    [HttpPut("company-policy")]
+    public async Task<IActionResult> UpdateCompanyPolicy([FromBody] CompanyPolicyDto dto)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+            return Forbid();
+
+        if (dto.OrganizationId <= 0) return BadRequest(new { message = "Organization is required." });
+        if (dto.YearStartMonth is < 1 or > 12) return BadRequest(new { message = "Year start month must be between 1 and 12." });
+        if (dto.YearEndMonth is < 1 or > 12) return BadRequest(new { message = "Year end month must be between 1 and 12." });
+
+        var expectedEnd = dto.YearStartMonth == 1 ? 12 : dto.YearStartMonth - 1;
+        var yearEnd = dto.YearEndMonth;
+        if (yearEnd != expectedEnd)
+            yearEnd = expectedEnd;
+
+        _db.BypassTenantId = true;
+
+        async Task UpsertOrgSetting(string key, string value, string description)
+        {
+            var setting = await _db.SystemSettings
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(s => s.SettingKey == key && s.OrganizationId == dto.OrganizationId && s.BranchId == null);
+
+            if (setting == null)
+            {
+                setting = new SystemSetting
+                {
+                    SettingKey = key,
+                    SettingValue = value,
+                    Description = description,
+                    OrganizationId = dto.OrganizationId,
+                    BranchId = null,
+                    UpdatedAt = DateTime.Now
+                };
+                _db.SystemSettings.Add(setting);
+            }
+            else
+            {
+                setting.SettingValue = value;
+                setting.UpdatedAt = DateTime.Now;
+            }
+        }
+
+        await UpsertOrgSetting("LeaveYearStartMonth", dto.YearStartMonth.ToString(), "Company year start month (1-12)");
+        await UpsertOrgSetting("LeaveYearEndMonth", yearEnd.ToString(), "Company year end month (1-12)");
+        await UpsertOrgSetting("AdvanceNoticeDays", dto.AdvanceNoticeDays.ToString(), "Minimum days in advance to apply for leave");
+        await UpsertOrgSetting("MaxConsecutiveLeaves", dto.MaxConsecutiveLeaves.ToString(), "Maximum consecutive leave days allowed");
+        await UpsertOrgSetting("SandwichRuleEnabled", dto.SandwichRuleEnabled.ToString(), "Whether sandwich leave rule is enforced");
+        await UpsertOrgSetting("DefaultProbationDays", dto.DefaultProbationDays.ToString(), "Default probation period in days for new hires");
+
+        await _db.SaveChangesAsync();
+        return Ok(new
+        {
+            message = "Company policy updated successfully.",
+            yearStartMonth = dto.YearStartMonth,
+            yearEndMonth = yearEnd
+        });
     }
 
     // ==========================================
