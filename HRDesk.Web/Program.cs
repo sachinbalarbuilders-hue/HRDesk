@@ -296,9 +296,24 @@ using (var scope = app.Services.CreateScope())
                     ALTER TABLE roles ADD branch_id INT NULL;
                 END;
 
-                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('daily_attendance') AND name = 'branch_id')
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('branches') AND name = 'allowed_ips')
                 BEGIN
-                    ALTER TABLE daily_attendance ADD branch_id INT NULL;
+                    ALTER TABLE branches ADD allowed_ips NVARCHAR(500) NULL;
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('branches') AND name = 'outside_attendance_policy')
+                BEGIN
+                    ALTER TABLE branches ADD outside_attendance_policy NVARCHAR(50) NOT NULL DEFAULT 'Block';
+                END;
+
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'Latitude')
+                BEGIN
+                    ALTER TABLE attendance_logs ADD Latitude FLOAT NULL;
+                    ALTER TABLE attendance_logs ADD Longitude FLOAT NULL;
+                    ALTER TABLE attendance_logs ADD IpAddress NVARCHAR(50) NULL;
+                    ALTER TABLE attendance_logs ADD PhotoUrl NVARCHAR(MAX) NULL;
+                    ALTER TABLE attendance_logs ADD IsGeofenceValid BIT NULL;
+                    ALTER TABLE attendance_logs ADD IsIpValid BIT NULL;
                 END;
             ");
 

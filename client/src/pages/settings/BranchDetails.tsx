@@ -38,19 +38,30 @@ export const BranchDetails: React.FC = () => {
     longitude: 72.8311,
     radiusMeters: 100,
     isActive: true,
-    outsideAttendancePolicy: 'Block' as 'Block' | 'AllowAndFlag' | 'AlwaysAllow',
+  });
+
+  const [policyForm, setPolicyForm] = useState({
+    gracePeriodMinutes: 15,
+    halfDayThresholdHours: 4.5,
+    fullDayThresholdHours: 8.0,
+    autoSyncIntervalMinutes: 5,
+    defaultWeekoff: 'Sunday',
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await apiClient.get('/masters/overview');
-        const orgs = res.data.organizations || [];
+        const [overviewRes, policyRes] = await Promise.allSettled([
+          apiClient.get('/masters/overview'),
+          id && id !== 'add' ? apiClient.get('/masters/attendance-policy', { params: { branchId: id } }) : Promise.reject()
+        ]);
+        
+        const orgs = (overviewRes.status === 'fulfilled' && overviewRes.value.data?.organizations) || [];
         setOrganizations(orgs);
         
         if (id && id !== 'add') {
-          const branches = res.data.branches || [];
+          const branches = (overviewRes.status === 'fulfilled' && overviewRes.value.data?.branches) || [];
           const branch = branches.find((b: any) => b.id === parseInt(id, 10));
           
           if (branch) {
@@ -68,11 +79,21 @@ export const BranchDetails: React.FC = () => {
               longitude: branch.longitude || 72.8311,
               radiusMeters: branch.radiusMeters || 100,
               isActive: branch.isActive !== false,
-              outsideAttendancePolicy: branch.outsideAttendancePolicy || 'Block',
             });
           } else {
             showError('Not Found', 'Branch not found.');
             navigate('/settings?tab=company');
+          }
+
+          if (policyRes.status === 'fulfilled' && policyRes.value.data) {
+            const p = policyRes.value.data;
+            setPolicyForm({
+              gracePeriodMinutes: p.gracePeriodMinutes ?? 15,
+              halfDayThresholdHours: p.halfDayThresholdHours ?? 4.5,
+              fullDayThresholdHours: p.fullDayThresholdHours ?? 8.0,
+              autoSyncIntervalMinutes: p.autoSyncIntervalMinutes ?? 5,
+              defaultWeekoff: p.defaultWeekoff ?? 'Sunday',
+            });
           }
         } else if (orgs.length > 0) {
            setBranchForm(prev => ({ ...prev, organizationId: orgs[0].id }));
@@ -106,6 +127,27 @@ export const BranchDetails: React.FC = () => {
       navigate('/settings?tab=company');
     } catch (err: any) {
       showError('Error', err.response?.data?.message || 'Failed to save branch.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePolicy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || id === 'add') return;
+
+    try {
+      setSaving(true);
+      await Promise.all([
+        apiClient.put(`/masters/branches/${id}`, { ...branchForm, id: parseInt(id, 10) }),
+        apiClient.put('/masters/attendance-policy', {
+          ...policyForm,
+          branchId: parseInt(id, 10),
+        })
+      ]);
+      showSuccess('Saved', 'Branch attendance policies saved.');
+    } catch (err: any) {
+      showError('Error', err.response?.data?.message || 'Failed to save policies.');
     } finally {
       setSaving(false);
     }
@@ -300,69 +342,80 @@ export const BranchDetails: React.FC = () => {
           )}
 
           {activeTab === 'policy' && (
-            <form onSubmit={handleSave} className="space-y-6 max-w-2xl">
-              {/* Outside Attendance Policy */}
-              <div>
-                <h4 className="font-semibold text-[var(--ink)] text-sm mb-1">Outside Attendance Policy</h4>
-                <p className="text-xs text-[var(--ink-muted)] mb-4">
-                  Controls what happens when an employee punches from <strong>outside the configured geofence</strong> for this branch.
-                  This policy only applies when Latitude, Longitude and Radius are set.
+            <form onSubmit={handleSavePolicy} className="space-y-6 max-w-3xl">
+              {/* Work Hours & Thresholds */}
+              <div className="bg-[var(--surface-sunken)] p-5 rounded-lg border border-[var(--rule)] space-y-4">
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-indigo-600" />
+                  <h4 className="font-semibold text-[var(--ink)] text-sm">Working Hours & Late-In Rules</h4>
+                </div>
+                <p className="text-xs text-[var(--ink-muted)]">
+                  Configure branch-specific grace periods and minimum hours for Present / Half-Day credit.
                 </p>
 
-                <div className="space-y-3">
-                  {([
-                    {
-                      value: 'Block',
-                      label: 'Block — Reject the punch',
-                      desc: 'The clock-in is rejected outright. Employee sees an error: "You are Xm away from branch."',
-                      color: 'border-rose-400 bg-rose-50',
-                      dot: 'bg-rose-500',
-                    },
-                    {
-                      value: 'AllowAndFlag',
-                      label: 'Allow & Flag — Accept but mark for review',
-                      desc: 'The punch goes through but is flagged (IsGeofenceValid = false) in the attendance log. HR can review flagged punches.',
-                      color: 'border-amber-400 bg-amber-50',
-                      dot: 'bg-amber-500',
-                    },
-                    {
-                      value: 'AlwaysAllow',
-                      label: 'Always Allow — No restrictions',
-                      desc: 'Location is recorded for reference only. Any punch is accepted regardless of distance.',
-                      color: 'border-emerald-400 bg-emerald-50',
-                      dot: 'bg-emerald-500',
-                    },
-                  ] as const).map(opt => (
-                    <label
-                      key={opt.value}
-                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        branchForm.outsideAttendancePolicy === opt.value
-                          ? opt.color
-                          : 'border-[var(--rule)] bg-[var(--surface)] hover:border-[var(--ink-muted)]/40'
-                      }`}
+                <div className="grid grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--ink)] mb-1">Grace Period for Late In (Minutes)</label>
+                    <input
+                      type="number"
+                      value={policyForm.gracePeriodMinutes}
+                      onChange={(e) => setPolicyForm({ ...policyForm, gracePeriodMinutes: Number(e.target.value) })}
+                      className="input-field w-full text-xs font-data"
+                      min={0}
+                      max={120}
+                    />
+                    <p className="text-[10px] text-[var(--ink-muted)] mt-1">Punches within this buffer are marked On-Time.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--ink)] mb-1">Half-Day Threshold (Hours)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={policyForm.halfDayThresholdHours}
+                      onChange={(e) => setPolicyForm({ ...policyForm, halfDayThresholdHours: Number(e.target.value) })}
+                      className="input-field w-full text-xs font-data"
+                      min={1}
+                      max={12}
+                    />
+                    <p className="text-[10px] text-[var(--ink-muted)] mt-1">Work duration below this triggers Half-Day deduction.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--ink)] mb-1">Full-Day Working Hours Requirement</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={policyForm.fullDayThresholdHours}
+                      onChange={(e) => setPolicyForm({ ...policyForm, fullDayThresholdHours: Number(e.target.value) })}
+                      className="input-field w-full text-xs font-data"
+                      min={1}
+                      max={16}
+                    />
+                    <p className="text-[10px] text-[var(--ink-muted)] mt-1">Minimum productive hours for full Present credit.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--ink)] mb-1">Biometric Device Auto-Sync Frequency</label>
+                    <select
+                      value={policyForm.autoSyncIntervalMinutes}
+                      onChange={(e) => setPolicyForm({ ...policyForm, autoSyncIntervalMinutes: Number(e.target.value) })}
+                      className="input-field w-full text-xs"
                     >
-                      <input
-                        type="radio"
-                        name="outsideAttendancePolicy"
-                        value={opt.value}
-                        checked={branchForm.outsideAttendancePolicy === opt.value}
-                        onChange={() => setBranchForm({ ...branchForm, outsideAttendancePolicy: opt.value })}
-                        className="mt-0.5 hidden"
-                      />
-                      <span className={`mt-1.5 w-3 h-3 rounded-full shrink-0 ${opt.dot} ${branchForm.outsideAttendancePolicy === opt.value ? 'ring-2 ring-offset-2 ring-current' : 'opacity-40'}`} />
-                      <div>
-                        <span className="font-semibold text-[var(--ink)] text-sm block">{opt.label}</span>
-                        <span className="text-xs text-[var(--ink-muted)] mt-0.5 block">{opt.desc}</span>
-                      </div>
-                    </label>
-                  ))}
+                      <option value={1}>Every 1 Minute (High Precision)</option>
+                      <option value={5}>Every 5 Minutes (Standard Recommended)</option>
+                      <option value={15}>Every 15 Minutes</option>
+                      <option value={30}>Every 30 Minutes</option>
+                    </select>
+                    <p className="text-[10px] text-[var(--ink-muted)] mt-1">Cloud sync frequency from biometric hardware.</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-[var(--rule)] flex justify-end">
+              <div className="pt-2 flex justify-end">
                 <button type="submit" disabled={saving} className="btn-primary py-2 px-6 flex items-center gap-2">
                   <Save size={16} />
-                  {saving ? 'Saving...' : 'Save Policy'}
+                  {saving ? 'Saving Policies...' : 'Save Branch Policies'}
                 </button>
               </div>
             </form>

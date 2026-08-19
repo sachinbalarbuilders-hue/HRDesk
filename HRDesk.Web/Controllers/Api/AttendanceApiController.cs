@@ -423,19 +423,12 @@ public class AttendanceController : ControllerBase
 
             if (isGeofenceValid == false)
             {
-                var policy = branch.OutsideAttendancePolicy ?? "Block";
-
-                if (policy == "Block")
+                return BadRequest(new
                 {
-                    return BadRequest(new
-                    {
-                        message = $"Clock-in rejected: you are {distanceMeters:F0}m away from the branch (allowed radius: {branch.RadiusMeters.Value:F0}m).",
-                        distanceMeters,
-                        allowedRadius = branch.RadiusMeters.Value
-                    });
-                }
-                // "AllowAndFlag" → continue but isGeofenceValid = false (saved to log for HR review)
-                // "AlwaysAllow"  → continue, isGeofenceValid = false but no action taken
+                    message = $"Clock-in rejected: you are {distanceMeters:F0}m away from the branch (allowed radius: {branch.RadiusMeters.Value:F0}m).",
+                    distanceMeters,
+                    allowedRadius = branch.RadiusMeters.Value
+                });
             }
         }
 

@@ -12,10 +12,8 @@ import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import { RolesPermissionsTab } from '../components/settings/RolesPermissionsTab';
 import {
   Building2,
-  Clock,
   CalendarCheck,
   FolderTree,
-  Save,
   Plus,
   Trash2,
   MapPin,
@@ -32,14 +30,14 @@ export const Settings: React.FC = () => {
   const { currentOrganization, currentBranch } = useOrganization();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'company' | 'departments' | 'designations' | 'leaves' | 'shifts' | 'attendance'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'departments' | 'designations' | 'leaves' | 'shifts'>('company');
   const [selectedBranchForPermissions, setSelectedBranchForPermissions] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['company', 'branches', 'departments', 'designations', 'leaves', 'shifts', 'attendance'].includes(tabParam)) {
+    if (tabParam && ['company', 'branches', 'departments', 'designations', 'leaves', 'shifts'].includes(tabParam)) {
       setActiveTab(tabParam as any);
     }
   }, [searchParams]);
@@ -83,14 +81,7 @@ export const Settings: React.FC = () => {
   const [branches, setBranches] = useState<any[]>([]);
   const [expandedOrgId, setExpandedOrgId] = useState<number | null>(null);
 
-  // 2. Attendance Policy State
-  const [attendancePolicy, setAttendancePolicy] = useState({
-    gracePeriodMinutes: 15,
-    halfDayThresholdHours: 4.5,
-    fullDayThresholdHours: 8.0,
-    autoSyncIntervalMinutes: 5,
-    defaultWeekoff: 'Sunday',
-  });
+
 
   // 3. Departments Master
   const [departments, setDepartments] = useState<any[]>([]);
@@ -115,30 +106,16 @@ export const Settings: React.FC = () => {
   const fetchOverview = async () => {
     try {
       setLoading(true);
-      const [overviewRes, companyRes, policyRes] = await Promise.allSettled([
+      const [overviewRes, companyRes] = await Promise.allSettled([
         apiClient.get('/masters/overview', {
           params: { branchId: currentBranch?.id || undefined }
         }),
         apiClient.get('/masters/company'),
-        apiClient.get('/masters/attendance-policy', {
-          params: { branchId: currentBranch?.id || undefined }
-        }),
       ]);
 
       if (companyRes.status === 'fulfilled' && companyRes.value.data) {
         setCompany(companyRes.value.data);
         setCompanyForm(companyRes.value.data);
-      }
-
-      if (policyRes.status === 'fulfilled' && policyRes.value.data) {
-        const pol = policyRes.value.data;
-        setAttendancePolicy({
-          gracePeriodMinutes: pol.gracePeriodMinutes ?? 15,
-          halfDayThresholdHours: pol.halfDayThresholdHours ?? 4.5,
-          fullDayThresholdHours: pol.fullDayThresholdHours ?? 8.0,
-          autoSyncIntervalMinutes: pol.autoSyncIntervalMinutes ?? 5,
-          defaultWeekoff: pol.defaultWeekoff ?? 'Sunday',
-        });
       }
 
       if (overviewRes.status === 'fulfilled' && overviewRes.value.data) {
@@ -272,21 +249,7 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleSaveAttendancePolicy = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setSaving(true);
-      await apiClient.put('/masters/attendance-policy', {
-        ...attendancePolicy,
-        branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
-      });
-      showSuccess('Policy Saved', 'Attendance counting and late rules updated.');
-    } catch (err: any) {
-      showError('Failed', err.response?.data?.message || 'Could not save attendance policy');
-    } finally {
-      setSaving(false);
-    }
-  };
+
 
   const handleAddDept = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -836,17 +799,7 @@ export const Settings: React.FC = () => {
           <span>Work Shifts</span>
         </button>
 
-        <button
-          onClick={() => handleTabSwitch('attendance')}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 ${
-            activeTab === 'attendance'
-              ? 'bg-[var(--navy-900)] text-[var(--gold-500)]'
-              : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-          }`}
-        >
-          <Clock size={14} />
-          <span>Attendance Policy</span>
-        </button>
+
       </div>
 
       {/* 3. Tab Views */}
@@ -1228,84 +1181,7 @@ export const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 6: Attendance Policy */}
-      {activeTab === 'attendance' && (
-        <form onSubmit={handleSaveAttendancePolicy} className="card p-6 space-y-6 max-w-3xl">
-          <div>
-            <h3 className="font-display font-semibold text-sm text-[var(--ink)]">Attendance & Work Hours Policy</h3>
-            <p className="text-xs text-[var(--ink-muted)]">Configure grace periods, half-day cutoffs, and device auto-sync intervals.</p>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-[var(--ink)] mb-1">Grace Period for Late In (Minutes)</label>
-              <input
-                type="number"
-                value={attendancePolicy.gracePeriodMinutes}
-                onChange={(e) => setAttendancePolicy({ ...attendancePolicy, gracePeriodMinutes: Number(e.target.value) })}
-                className="input-field w-full font-data text-xs"
-                min={0}
-                max={60}
-              />
-              <p className="text-[10px] text-[var(--ink-muted)] mt-1">Punches within this buffer are marked On-Time.</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[var(--ink)] mb-1">Half-Day Threshold (Hours)</label>
-              <input
-                type="number"
-                step="0.5"
-                value={attendancePolicy.halfDayThresholdHours}
-                onChange={(e) => setAttendancePolicy({ ...attendancePolicy, halfDayThresholdHours: Number(e.target.value) })}
-                className="input-field w-full font-data text-xs"
-                min={1}
-                max={8}
-              />
-              <p className="text-[10px] text-[var(--ink-muted)] mt-1">Work duration below this triggers Half-Day deduction.</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[var(--ink)] mb-1">Full-Day Working Hours Requirement</label>
-              <input
-                type="number"
-                step="0.5"
-                value={attendancePolicy.fullDayThresholdHours}
-                onChange={(e) => setAttendancePolicy({ ...attendancePolicy, fullDayThresholdHours: Number(e.target.value) })}
-                className="input-field w-full font-data text-xs"
-                min={4}
-                max={12}
-              />
-              <p className="text-[10px] text-[var(--ink-muted)] mt-1">Minimum total productive hours for full Present credit.</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[var(--ink)] mb-1">Biometric Device Auto-Sync Frequency</label>
-              <select
-                value={attendancePolicy.autoSyncIntervalMinutes}
-                onChange={(e) => setAttendancePolicy({ ...attendancePolicy, autoSyncIntervalMinutes: Number(e.target.value) })}
-                className="input-field w-full text-xs"
-              >
-                <option value={1}>Every 1 Minute (High Precision)</option>
-                <option value={5}>Every 5 Minutes (Standard Recommended)</option>
-                <option value={15}>Every 15 Minutes</option>
-                <option value={30}>Every 30 Minutes</option>
-              </select>
-              <p className="text-[10px] text-[var(--ink-muted)] mt-1">Background cloud sync frequency from eTimeOffice / TeamOffice.</p>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-[var(--rule)] flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1.5"
-            >
-              <Save size={13} />
-              <span>{saving ? 'Updating Policies...' : 'Save Attendance Policy'}</span>
-            </button>
-          </div>
-        </form>
-      )}
 
       {/* ========================================================================= */}
       {/* MODALS */}
