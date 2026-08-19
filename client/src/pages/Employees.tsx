@@ -13,9 +13,15 @@ import {
   Sliders,
   Sparkles,
   MapPin,
+  Trash2,
+  Eye,
+  Pencil,
+  Archive,
+  RotateCcw,
 } from 'lucide-react';
 import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
+import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { AuthImage } from '../components/ui/AuthImage';
@@ -208,6 +214,17 @@ export const Employees: React.FC = () => {
     }
   };
 
+  const handleDeleteEmployee = async (id: number, name: string) => {
+    if (!confirm(`PERMANENT DELETE: Are you sure you want to permanently delete "${name}" and ALL their records (attendance, leaves, documents, loans)? This cannot be undone.`)) return;
+    try {
+      await apiClient.delete(`/employees/${id}`);
+      showSuccess('Employee Deleted', `${name} permanently deleted with all related records.`);
+      fetchEmployees();
+    } catch (err: any) {
+      showError('Delete Failed', err.response?.data?.message || 'Could not delete employee');
+    }
+  };
+
 
 
   const canCreate = isAdmin || hasPermission('Employees.Create');
@@ -378,12 +395,20 @@ export const Employees: React.FC = () => {
                       </span>
                     </td>
                     <td className="text-right">
-                      <ArchiveActionButton
-                        isArchived={!isActive}
-                        onArchive={() => handleToggleStatus(emp.employeeId)}
-                        onRestore={() => handleToggleStatus(emp.employeeId)}
-                        itemName={emp.employeeName}
-                      />
+                      <RowActionMenu actions={[
+                        { label: 'View', icon: <Eye size={14} />, onClick: () => navigate(`/employees/${emp.employeeId}`) },
+                        ...(canEdit ? [
+                          { label: 'Edit', icon: <Pencil size={14} />, onClick: () => navigate(`/employees/${emp.employeeId}/edit`) },
+                        ] : []),
+                        ...(canEdit ? [
+                          isActive
+                            ? { label: 'Archive', icon: <Archive size={14} />, onClick: () => handleToggleStatus(emp.employeeId), variant: 'danger' as const, dividerBefore: true }
+                            : { label: 'Restore', icon: <RotateCcw size={14} />, onClick: () => handleToggleStatus(emp.employeeId), variant: 'success' as const, dividerBefore: true },
+                        ] : []),
+                        ...(!isActive && canEdit ? [
+                          { label: 'Permanently Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteEmployee(emp.employeeId, emp.employeeName), variant: 'danger' as const },
+                        ] : []),
+                      ] as RowAction[]} />
                     </td>
                   </tr>
                 );

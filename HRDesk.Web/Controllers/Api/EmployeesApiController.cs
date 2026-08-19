@@ -491,6 +491,72 @@ public class EmployeesController : ControllerBase
         return Ok(new { status = employee.Status, message = $"Employee status set to {employee.Status}." });
     }
 
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteEmployee(int id)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
+        {
+            return Forbid();
+        }
+
+        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id);
+        if (employee == null) return NotFound(new { message = "Employee not found." });
+
+        if (employee.Status?.ToLower() == "active")
+        {
+            return BadRequest(new { message = "Cannot permanently delete an active employee. Archive them first by setting status to inactive." });
+        }
+
+        // Check if employee has related records that block deletion
+        var hasAttendance = await _db.DailyAttendance.AnyAsync(a => a.EmployeeId == id);
+        var hasPayroll = await _db.PayrollMasters.AnyAsync(p => p.EmployeeId == id);
+        var hasLoans = await _db.EmployeeLoans.AnyAsync(l => l.EmployeeId == id && (l.Status == "Disbursed" || l.Status == "Active"));
+
+        if (hasPayroll)
+        {
+            return BadRequest(new { message = "Cannot delete employee with processed payroll records. Remove payroll history first." });
+        }
+
+        if (hasLoans)
+        {
+            return BadRequest(new { message = "Cannot delete employee with active/disbursed loans. Close or foreclose the loans first." });
+        }
+
+        // Remove related records
+        var leaves = await _db.LeaveApplications.Where(l => l.EmployeeId == id).ToListAsync();
+        _db.LeaveApplications.RemoveRange(leaves);
+
+        var attendance = await _db.DailyAttendance.Where(a => a.EmployeeId == id).ToListAsync();
+        _db.DailyAttendance.RemoveRange(attendance);
+
+        var documents = await _db.EmployeeDocuments.Where(d => d.EmployeeId == id).ToListAsync();
+        _db.EmployeeDocuments.RemoveRange(documents);
+
+        var loans = await _db.EmployeeLoans.Include(l => l.LoanInstallments).Where(l => l.EmployeeId == id).ToListAsync();
+        foreach (var loan in loans)
+        {
+            _db.LoanInstallments.RemoveRange(loan.LoanInstallments);
+        }
+        _db.EmployeeLoans.RemoveRange(loans);
+
+        var shiftAssignments = await _db.EmployeeShiftAssignments.Where(s => s.EmployeeId == id).ToListAsync();
+        _db.EmployeeShiftAssignments.RemoveRange(shiftAssignments);
+
+        // Remove the user account if linked
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.EmployeeId == id);
+        if (user != null)
+        {
+            _db.Users.Remove(user);
+        }
+
+        _db.Employees.Remove(employee);
+        await _db.SaveChangesAsync();
+
+        _permissionService.ClearCache();
+
+        return Ok(new { message = $"Employee '{employee.EmployeeName}' permanently deleted along with all related records." });
+    }
+
     [HttpGet("prefix-settings")]
     public async Task<IActionResult> GetPrefixSettings([FromQuery] int? branchId = null)
     {

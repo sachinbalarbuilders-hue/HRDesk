@@ -40,6 +40,106 @@ public class LoansController : ControllerBase
 
     public record LoanStatusDto(string? Remarks);
 
+    public record LoanPrefixSettingsDto(
+        string? SeriesCode,
+        string? Connector,
+        int PaddingDigits = 3,
+        int StartSequence = 1
+    );
+
+    [HttpGet("prefix-settings")]
+    public async Task<IActionResult> GetPrefixSettings([FromQuery] int? branchId = null)
+    {
+        var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var targetBranch = branchId ?? _tenantProvider.BranchId;
+
+        var settings = await _db.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == targetOrgId && (s.BranchId == targetBranch || s.BranchId == null))
+            .ToListAsync();
+
+        string series = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Series")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Series")?.SettingValue
+            ?? "LN";
+
+        string connector = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Connector")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Connector")?.SettingValue
+            ?? "-";
+
+        int padding = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Padding")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Padding")?.SettingValue, out var p) ? p : 3;
+
+        int startSeq = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_StartSeq")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_StartSeq")?.SettingValue, out var sSeq) ? sSeq : 1;
+
+        var maxCount = await _db.EmployeeLoans.Where(l => l.OrganizationId == targetOrgId).CountAsync();
+        var nextSeq = Math.Max(maxCount + 1, startSeq);
+
+        var preview = $"{series}{connector}{nextSeq.ToString($"D{padding}")}";
+
+        return Ok(new
+        {
+            seriesCode = series,
+            connector = connector,
+            paddingDigits = padding,
+            startSequence = startSeq,
+            nextSequence = nextSeq,
+            preview = preview,
+            sample1 = $"{series}{connector}{nextSeq.ToString($"D{padding}")}",
+            sample2 = $"{series}{connector}{(nextSeq + 1).ToString($"D{padding}")}",
+            sample3 = $"{series}{connector}{(nextSeq + 2).ToString($"D{padding}")}"
+        });
+    }
+
+    [HttpPost("prefix-settings")]
+    public async Task<IActionResult> SavePrefixSettings([FromBody] LoanPrefixSettingsDto dto, [FromQuery] int? branchId = null)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageLoans))
+        {
+            return Forbid();
+        }
+
+        var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var targetBranch = branchId ?? _tenantProvider.BranchId;
+
+        async Task UpsertSetting(string key, string value, string desc)
+        {
+            var existing = await _db.SystemSettings
+                .FirstOrDefaultAsync(s => s.OrganizationId == targetOrgId && s.BranchId == targetBranch && s.SettingKey == key);
+            if (existing != null)
+            {
+                existing.SettingValue = value;
+                existing.UpdatedAt = DateTime.Now;
+            }
+            else
+            {
+                _db.SystemSettings.Add(new SystemSetting
+                {
+                    OrganizationId = targetOrgId,
+                    BranchId = targetBranch,
+                    SettingKey = key,
+                    SettingValue = value,
+                    Description = desc,
+                    UpdatedAt = DateTime.Now
+                });
+            }
+        }
+
+        var series = string.IsNullOrWhiteSpace(dto.SeriesCode) ? "LN" : dto.SeriesCode.Trim().ToUpper();
+        var connector = dto.Connector ?? "-";
+        var padding = dto.PaddingDigits > 0 ? dto.PaddingDigits : 3;
+        var startSeq = dto.StartSequence > 0 ? dto.StartSequence : 1;
+
+        await UpsertSetting("Loan_Prefix_Series", series, "Loan Application Number Series Prefix");
+        await UpsertSetting("Loan_Prefix_Connector", connector, "Loan Application Number Connector / Delimiter");
+        await UpsertSetting("Loan_Prefix_Padding", padding.ToString(), "Loan Application Number Sequence Padding");
+        await UpsertSetting("Loan_Prefix_StartSeq", startSeq.ToString(), "Loan Application Number Starting Sequence");
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Loan prefix settings saved successfully." });
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetLoans(
         [FromQuery] string? status = null,
@@ -76,7 +176,18 @@ public class LoansController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
-            query = query.Where(l => l.Status == status);
+            if (status.Equals("active", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(l => l.Status == "Pending" || l.Status == "Manager Approved" || l.Status == "Approved" || l.Status == "Disbursed");
+            }
+            else if (status.Equals("archived", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(l => l.Status == "Closed" || l.Status == "Rejected");
+            }
+            else
+            {
+                query = query.Where(l => l.Status == status);
+            }
         }
 
         if (loanTypeId.HasValue && loanTypeId.Value > 0)
@@ -117,12 +228,20 @@ public class LoansController : ControllerBase
                 monthlyEmi = l.InstallmentAmount,
                 tenureMonths = l.Installments,
                 paidMonths = l.Installments - l.RemainingInstallments,
+                remainingInstallments = l.RemainingInstallments,
                 remainingAmount = l.RemainingAmount,
                 startMonth = l.StartDate.ToString("yyyy-MM"),
+                startDate = l.StartDate.ToString("yyyy-MM-dd"),
                 status = l.Status,
                 reason = l.Reason ?? "",
                 approvedBy = l.ApprovedBy,
-                approvedDate = l.ApprovedDate
+                approvedDate = l.ApprovedDate,
+                managerApprovedBy = l.ManagerApprovedBy ?? "",
+                managerApprovedDate = l.ManagerApprovedDate,
+                assignedManagerId = l.AssignedManagerId,
+                foreclosureRemark = l.ForeclosureRemark ?? "",
+                startingPaidInstallments = l.StartingPaidInstallments,
+                createdAt = l.CreatedAt.ToString("yyyy-MM-dd HH:mm")
             })
             .ToListAsync();
 
@@ -200,14 +319,37 @@ public class LoansController : ControllerBase
             if (dto.TenureMonths <= 0) return BadRequest(new { message = "Tenure must be at least 1 month." });
 
             var emi = Math.Round(dto.PrincipalAmount / dto.TenureMonths, 2);
-            var count = await _db.EmployeeLoans.CountAsync(l => l.OrganizationId == employee.OrganizationId);
-            var appNo = $"LN-{dto.StartDate:yyyyMM}-{(count + 1):D3}";
 
+            // Generate ApplicationNumber using prefix settings
+            var targetOrgId = employee.OrganizationId;
             var targetBranch = employee.BranchId ?? dto.BranchId ?? _tenantProvider.BranchId;
+
+            var prefixSettings = await _db.SystemSettings
+                .AsNoTracking()
+                .Where(s => s.OrganizationId == targetOrgId && (s.BranchId == targetBranch || s.BranchId == null))
+                .ToListAsync();
+
+            string series = prefixSettings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Series")?.SettingValue
+                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Series")?.SettingValue
+                ?? "LN";
+
+            string connector = prefixSettings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Connector")?.SettingValue
+                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Connector")?.SettingValue
+                ?? "-";
+
+            int padding = int.TryParse(prefixSettings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Padding")?.SettingValue
+                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Padding")?.SettingValue, out var pd) ? pd : 3;
+
+            int startSeq = int.TryParse(prefixSettings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_StartSeq")?.SettingValue
+                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_StartSeq")?.SettingValue, out var ss) ? ss : 1;
+
+            var count = await _db.EmployeeLoans.CountAsync(l => l.OrganizationId == targetOrgId);
+            var nextSeq = Math.Max(count + 1, startSeq);
+            var appNo = $"{series}{connector}{nextSeq.ToString($"D{padding}")}";
 
             var loan = new EmployeeLoan
             {
-                OrganizationId = employee.OrganizationId,
+                OrganizationId = targetOrgId,
                 BranchId = targetBranch,
                 EmployeeId = dto.EmployeeId,
                 LoanTypeId = dto.LoanTypeId,
@@ -221,7 +363,8 @@ public class LoansController : ControllerBase
                 ApplicationDate = DateOnly.FromDateTime(DateTime.Today),
                 Reason = dto.Reason?.Trim(),
                 Status = "Pending",
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                AssignedManagerId = employee.ReportingManagerId
             };
 
             // Create installment schedule
@@ -230,7 +373,7 @@ public class LoansController : ControllerBase
                 var instDate = dto.StartDate.AddMonths(i);
                 loan.LoanInstallments.Add(new LoanInstallment
                 {
-                    OrganizationId = employee.OrganizationId,
+                    OrganizationId = targetOrgId,
                     BranchId = targetBranch,
                     InstallmentNumber = i + 1,
                     DueMonth = instDate.ToString("yyyy-MM"),
@@ -254,20 +397,51 @@ public class LoansController : ControllerBase
     [HttpPost("{id}/approve")]
     public async Task<IActionResult> ApproveLoan(int id)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageLoans))
-        {
-            return Forbid();
-        }
-
-        var loan = await _db.EmployeeLoans.FindAsync(id);
+        var loan = await _db.EmployeeLoans
+            .Include(l => l.Employee)
+            .FirstOrDefaultAsync(l => l.Id == id);
         if (loan == null) return NotFound(new { message = "Loan not found." });
 
-        loan.Status = "Approved";
-        loan.ApprovedBy = User.Identity?.Name ?? "Admin";
-        loan.ApprovedDate = DateTime.Now;
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        var isAdmin = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageLoans);
 
-        await _db.SaveChangesAsync();
-        return Ok(new { message = "Loan application approved.", id = loan.Id });
+        if (loan.Status == "Pending")
+        {
+            // Level 1: Manager Approval
+            // Check if the current user is the assigned manager (reporting manager)
+            var isAssignedManager = loan.AssignedManagerId.HasValue && currentEmpId.HasValue && loan.AssignedManagerId.Value == currentEmpId.Value;
+
+            if (!isAssignedManager && !isAdmin)
+            {
+                return StatusCode(403, new { message = "Only the assigned reporting manager or an admin can approve at this level." });
+            }
+
+            loan.Status = "Manager Approved";
+            loan.ManagerApprovedBy = User.Identity?.Name ?? "Manager";
+            loan.ManagerApprovedDate = DateTime.Now;
+
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Loan approved by manager (Level 1). Awaiting HR/Admin approval.", id = loan.Id, level = 1 });
+        }
+        else if (loan.Status == "Manager Approved")
+        {
+            // Level 2: HR/Admin Approval
+            if (!isAdmin)
+            {
+                return Forbid();
+            }
+
+            loan.Status = "Approved";
+            loan.ApprovedBy = User.Identity?.Name ?? "Admin";
+            loan.ApprovedDate = DateTime.Now;
+
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Loan approved by HR/Admin (Level 2). Ready for disbursement.", id = loan.Id, level = 2 });
+        }
+        else
+        {
+            return BadRequest(new { message = $"Loan cannot be approved in its current status: {loan.Status}" });
+        }
     }
 
     [HttpPost("{id}/disburse")]
@@ -307,5 +481,230 @@ public class LoansController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(new { message = "Loan application rejected.", id = loan.Id });
+    }
+
+    public record ForecloseLoanDto(string? Remark, bool IncludeCurrentMonth = true);
+
+    [HttpPost("{id}/foreclose")]
+    public async Task<IActionResult> ForecloseLoan(int id, [FromBody] ForecloseLoanDto? dto)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageLoans))
+        {
+            return Forbid();
+        }
+
+        var loan = await _db.EmployeeLoans
+            .Include(l => l.LoanInstallments)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (loan == null) return NotFound(new { message = "Loan not found." });
+
+        if (loan.Status != "Disbursed" && loan.Status != "Active")
+        {
+            return BadRequest(new { message = $"Only disbursed/active loans can be foreclosed. Current status: {loan.Status}" });
+        }
+
+        var currentMonth = DateTime.Now.ToString("yyyy-MM");
+        var includeCurrentMonth = dto?.IncludeCurrentMonth ?? true;
+
+        var pendingInstallments = loan.LoanInstallments
+            .Where(i => i.Status == "Pending")
+            .AsEnumerable();
+
+        if (!includeCurrentMonth)
+        {
+            pendingInstallments = pendingInstallments.Where(i => i.DueMonth != currentMonth);
+        }
+
+        foreach (var inst in pendingInstallments)
+        {
+            inst.Status = "Settled";
+            inst.PaidAmount = inst.Amount;
+            inst.PaidDate = DateOnly.FromDateTime(DateTime.Now);
+            inst.Remarks = "Settled via Foreclosure";
+        }
+
+        loan.RemainingAmount = 0;
+        loan.RemainingInstallments = 0;
+        loan.Status = "Closed";
+
+        var foreclosedBy = User.Identity?.Name ?? "Admin";
+        var remark = dto?.Remark?.Trim() ?? "No remark provided";
+        loan.ForeclosureRemark = $"{remark} (By {foreclosedBy} on {DateTime.Now:dd MMM yyyy})";
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Loan foreclosed successfully. All pending installments settled.", id = loan.Id });
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteLoan(int id)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageLoans))
+        {
+            return Forbid();
+        }
+
+        var loan = await _db.EmployeeLoans
+            .Include(l => l.LoanInstallments)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (loan == null) return NotFound(new { message = "Loan not found." });
+
+        if (loan.Status == "Disbursed")
+        {
+            return BadRequest(new { message = "Cannot delete an active disbursed loan. Use foreclosure to close it first." });
+        }
+
+        if (loan.LoanInstallments.Any(i => i.PayrollId != null))
+        {
+            return BadRequest(new { message = "Cannot delete loan because one or more installments are linked to processed payroll." });
+        }
+
+        _db.LoanInstallments.RemoveRange(loan.LoanInstallments);
+        _db.EmployeeLoans.Remove(loan);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Loan application deleted successfully." });
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateLoan(int id, [FromBody] LoanApplyDto dto)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageLoans))
+        {
+            return Forbid();
+        }
+
+        var loan = await _db.EmployeeLoans
+            .Include(l => l.LoanInstallments)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (loan == null) return NotFound(new { message = "Loan not found." });
+
+        if (loan.Status != "Pending" && loan.Status != "Manager Approved")
+        {
+            return BadRequest(new { message = $"Cannot edit a loan in '{loan.Status}' status. Only Pending or Manager Approved loans can be edited." });
+        }
+
+        if (loan.LoanInstallments.Any(i => i.Status == "Paid" || i.Status == "Settled" || i.PayrollId != null))
+        {
+            return BadRequest(new { message = "Cannot edit loan because one or more installments are already processed." });
+        }
+
+        if (dto.PrincipalAmount <= 0) return BadRequest(new { message = "Principal amount must be greater than zero." });
+        if (dto.TenureMonths <= 0) return BadRequest(new { message = "Tenure must be at least 1 month." });
+
+        var emi = Math.Round(dto.PrincipalAmount / dto.TenureMonths, 2);
+
+        // Update loan fields
+        loan.LoanTypeId = dto.LoanTypeId;
+        loan.LoanAmount = dto.PrincipalAmount;
+        loan.Installments = dto.TenureMonths;
+        loan.InstallmentAmount = emi;
+        loan.RemainingAmount = dto.PrincipalAmount;
+        loan.RemainingInstallments = dto.TenureMonths;
+        loan.StartDate = dto.StartDate;
+        loan.Reason = dto.Reason?.Trim();
+
+        // Rebuild installment schedule
+        _db.LoanInstallments.RemoveRange(loan.LoanInstallments);
+
+        for (int i = 0; i < dto.TenureMonths; i++)
+        {
+            var instDate = dto.StartDate.AddMonths(i);
+            loan.LoanInstallments.Add(new LoanInstallment
+            {
+                OrganizationId = loan.OrganizationId,
+                BranchId = loan.BranchId,
+                InstallmentNumber = i + 1,
+                DueMonth = instDate.ToString("yyyy-MM"),
+                Amount = emi,
+                PaidAmount = 0,
+                Status = "Pending"
+            });
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Loan application updated successfully.", id = loan.Id });
+    }
+
+    [HttpGet("{id}/installments")]
+    public async Task<IActionResult> GetLoanInstallments(int id)
+    {
+        var loan = await _db.EmployeeLoans
+            .AsNoTracking()
+            .Include(l => l.Employee)
+                .ThenInclude(e => e!.Department)
+            .Include(l => l.LoanType)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (loan == null) return NotFound(new { message = "Loan not found." });
+
+        // RBAC check
+        var empScopedQuery = _db.Employees.AsNoTracking().AsQueryable();
+        empScopedQuery = await _permissionService.ApplyEmployeeScopeAsync(empScopedQuery, User, AppPermissions.Keys.PayrollView);
+        var hasAccess = await empScopedQuery.AnyAsync(e => e.EmployeeId == loan.EmployeeId);
+        if (!hasAccess) return Forbid();
+
+        var installments = await _db.LoanInstallments
+            .AsNoTracking()
+            .Where(i => i.LoanId == id)
+            .OrderBy(i => i.InstallmentNumber)
+            .Select(i => new
+            {
+                id = i.Id,
+                installmentNumber = i.InstallmentNumber,
+                dueMonth = i.DueMonth,
+                amount = i.Amount,
+                paidAmount = i.PaidAmount,
+                status = i.Status,
+                paidDate = i.PaidDate != null ? i.PaidDate.Value.ToString("yyyy-MM-dd") : (string?)null,
+                payrollId = i.PayrollId,
+                remarks = i.Remarks ?? ""
+            })
+            .ToListAsync();
+
+        var totalPaid = installments.Where(i => i.status == "Paid" || i.status == "Settled").Sum(i => i.paidAmount);
+        var totalPending = installments.Where(i => i.status == "Pending").Sum(i => i.amount);
+
+        return Ok(new
+        {
+            loan = new
+            {
+                id = loan.Id,
+                applicationNumber = loan.ApplicationNumber ?? $"LN-{loan.Id}",
+                applicationDate = loan.ApplicationDate.ToString("yyyy-MM-dd"),
+                employeeId = loan.EmployeeId,
+                employeeName = loan.Employee?.EmployeeName ?? "Employee",
+                department = loan.Employee?.Department?.DepartmentName ?? "General",
+                loanType = loan.LoanType?.TypeName ?? "Loan",
+                loanTypeId = loan.LoanTypeId,
+                loanAmount = loan.LoanAmount,
+                installmentAmount = loan.InstallmentAmount,
+                totalInstallments = loan.Installments,
+                remainingInstallments = loan.RemainingInstallments,
+                remainingAmount = loan.RemainingAmount,
+                startDate = loan.StartDate.ToString("yyyy-MM-dd"),
+                status = loan.Status,
+                reason = loan.Reason ?? "",
+                assignedManagerId = loan.AssignedManagerId,
+                managerApprovedBy = loan.ManagerApprovedBy ?? "",
+                managerApprovedDate = loan.ManagerApprovedDate?.ToString("yyyy-MM-dd HH:mm"),
+                approvedBy = loan.ApprovedBy ?? "",
+                approvedDate = loan.ApprovedDate?.ToString("yyyy-MM-dd HH:mm"),
+                foreclosureRemark = loan.ForeclosureRemark ?? "",
+                startingPaidInstallments = loan.StartingPaidInstallments,
+                createdAt = loan.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+            },
+            installments,
+            summary = new
+            {
+                totalPaid,
+                totalPending,
+                paidCount = installments.Count(i => i.status == "Paid" || i.status == "Settled"),
+                pendingCount = installments.Count(i => i.status == "Pending"),
+                totalCount = installments.Count
+            }
+        });
     }
 }

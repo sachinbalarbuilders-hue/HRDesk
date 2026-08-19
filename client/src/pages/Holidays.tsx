@@ -16,6 +16,7 @@ import {
   Globe,
   Building,
 } from 'lucide-react';
+import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 
 interface Holiday {
   id: number;
@@ -293,22 +294,10 @@ export const Holidays: React.FC = () => {
                     </td>
 
                     <td className="p-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenEdit(h)}
-                          title="Edit Holiday"
-                          className="p-1.5 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(h.id)}
-                          title="Delete Holiday"
-                          className="p-1.5 rounded hover:bg-rose-50 text-rose-600 dark:hover:bg-rose-950/50 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <RowActionMenu actions={[
+                        { label: 'Edit', icon: <Edit2 className="w-3.5 h-3.5" />, onClick: () => handleOpenEdit(h) },
+                        { label: 'Delete', icon: <Trash2 className="w-3.5 h-3.5" />, onClick: () => handleDelete(h.id), variant: 'danger', dividerBefore: true },
+                      ]} />
                     </td>
                   </tr>
                 ))}

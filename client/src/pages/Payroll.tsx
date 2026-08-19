@@ -22,6 +22,7 @@ import {
   Sparkles,
   Calculator,
 } from 'lucide-react';
+import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 
 export const Payroll: React.FC = () => {
   const { hasPermission, isAdmin } = useAuth();
@@ -484,36 +485,11 @@ export const Payroll: React.FC = () => {
                   </td>
 
                   <td className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => handleViewPayslip(r.id)}
-                        className="btn-outline py-1 px-2.5 text-xs flex items-center gap-1"
-                        title="View Formal Payslip"
-                      >
-                        <FileText className="w-3.5 h-3.5 text-[var(--accent)]" />
-                        <span>Payslip</span>
-                      </button>
-
-                      {canManage && r.status === 'Draft' && (
-                        <button
-                          onClick={() => handleUpdateStatus(r.id, 'Approved')}
-                          className="p-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 transition-colors"
-                          title="Approve Salary"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-
-                      {canManage && r.status === 'Approved' && (
-                        <button
-                          onClick={() => handleUpdateStatus(r.id, 'Paid')}
-                          className="p-1 rounded bg-indigo-50 hover:bg-indigo-100 text-[var(--accent)] transition-colors text-[10px] font-semibold px-2"
-                          title="Mark Disbursed / Paid"
-                        >
-                          Disburse
-                        </button>
-                      )}
-                    </div>
+                    <RowActionMenu actions={[
+                      { label: 'View Payslip', icon: <FileText className="w-3.5 h-3.5" />, onClick: () => handleViewPayslip(r.id) },
+                      ...(canManage && r.status === 'Draft' ? [{ label: 'Approve', icon: <Check className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Approved'), variant: 'success' as const }] : []),
+                      ...(canManage && r.status === 'Approved' ? [{ label: 'Disburse', icon: <CreditCard className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Paid'), variant: 'success' as const }] : []),
+                    ]} />
                   </td>
                 </tr>
               ))}

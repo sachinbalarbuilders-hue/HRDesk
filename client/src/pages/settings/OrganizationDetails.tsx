@@ -4,7 +4,8 @@ import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { ArchiveActionButton } from '../../components/ui/ArchiveActionButton';
 import { RolesPermissionsTab } from '../../components/settings/RolesPermissionsTab';
-import { Building2, ArrowLeft, Save, Plus, MapPin, Shield, Trash2, Edit2, X } from 'lucide-react';
+import { Building2, ArrowLeft, Save, Plus, MapPin, Shield, Trash2, Edit2, X, Archive, RotateCcw } from 'lucide-react';
+import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 
 const MONTHS = [
   { value: 1, label: 'January' },
@@ -352,27 +353,14 @@ export const OrganizationDetails: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => setSelectedBranchForPermissions({ id: branch.id, name: branch.name, code: branch.code, orgName: orgForm.name })}
-                          className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors"
-                          title="Branch Roles & Permissions"
-                        >
-                          <Shield size={13} />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/settings/branches/${branch.id}`)}
-                          className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors"
-                          title="Branch Settings"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <ArchiveActionButton
-                          isArchived={branch.isActive === false}
-                          onArchive={async () => { try { await apiClient.put(`/masters/branches/${branch.id}`, { ...branch, isActive: false }); setBranches(branches.map(b => b.id === branch.id ? { ...b, isActive: false } : b)); showSuccess('Archived', `${branch.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
-                          onRestore={async () => { try { await apiClient.put(`/masters/branches/${branch.id}`, { ...branch, isActive: true }); setBranches(branches.map(b => b.id === branch.id ? { ...b, isActive: true } : b)); showSuccess('Restored', `${branch.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
-                          itemName={branch.name}
-                        />
-                        <button onClick={() => handleDeleteBranch(branch.id)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors" title="Delete Branch"><Trash2 size={13} /></button>
+                        <RowActionMenu actions={[
+                          { label: 'Permissions', icon: <Shield size={14} />, onClick: () => setSelectedBranchForPermissions({ id: branch.id, name: branch.name, code: branch.code, orgName: orgForm.name }) },
+                          { label: 'Edit Branch', icon: <Edit2 size={14} />, onClick: () => navigate(`/settings/branches/${branch.id}`) },
+                          branch.isActive === false
+                            ? { label: 'Restore', icon: <RotateCcw size={14} />, onClick: async () => { try { await apiClient.put(`/masters/branches/${branch.id}`, { ...branch, isActive: true }); setBranches(branches.map(b => b.id === branch.id ? { ...b, isActive: true } : b)); showSuccess('Restored', `${branch.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }, variant: 'success', dividerBefore: true }
+                            : { label: 'Archive', icon: <Archive size={14} />, onClick: async () => { try { await apiClient.put(`/masters/branches/${branch.id}`, { ...branch, isActive: false }); setBranches(branches.map(b => b.id === branch.id ? { ...b, isActive: false } : b)); showSuccess('Archived', `${branch.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }, dividerBefore: true },
+                          { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteBranch(branch.id), variant: 'danger' },
+                        ] as RowAction[]} />
                       </div>
                     </div>
                   ))}

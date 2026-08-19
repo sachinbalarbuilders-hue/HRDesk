@@ -20,6 +20,7 @@ import {
   XCircle,
   Building2,
 } from 'lucide-react';
+import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 
 interface CompOffItem {
   id: number;
@@ -726,22 +727,10 @@ export const Attendance: React.FC = () => {
 
                       <td className="p-3.5 text-right">
                         {c.status === 'Pending' && canManageCompOff ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => handleApproveCompOff(c.id)}
-                              title="Approve Comp Off"
-                              className="p-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 transition-colors"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenRejectCompOff(c.id)}
-                              title="Reject Comp Off"
-                              className="p-1.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:hover:bg-rose-900 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
+                          <RowActionMenu actions={[
+                            { label: 'Approve', icon: <Check className="w-4 h-4" />, onClick: () => handleApproveCompOff(c.id), variant: 'success' },
+                            { label: 'Reject', icon: <X className="w-4 h-4" />, onClick: () => handleOpenRejectCompOff(c.id), variant: 'danger' },
+                          ]} />
                         ) : (
                           <div className="text-[10px] text-[var(--ink-muted)] font-mono">
                             {c.approvedBy ? `by ${c.approvedBy}` : '—'}

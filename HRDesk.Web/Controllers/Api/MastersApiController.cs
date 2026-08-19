@@ -35,7 +35,7 @@ public class MastersController : ControllerBase
     public record DesignationDto(string DesignationName, string? Status, int? BranchId = null);
     public record OrganizationDto(string Name, string? Code, string? Address, string? WhatsAppGroupId, double? Latitude, double? Longitude, double? RadiusMeters, bool IsActive);
     public record LeaveTypeDto(string Name, string Code, decimal DefaultYearlyQuota, bool IsPaid, bool ApplicableAfterProbation, bool AllowCarryForward, string Status, int? BranchId = null);
-    public record ShiftDto(string Name, string? Code, string StartTime, string EndTime, int? BreakMinutes, string? ColorCode, int? BranchId = null);
+    public record ShiftDto(string Name, string? Code, string StartTime, string EndTime, string? LunchBreakStart, string? LunchBreakEnd, int? BreakMinutes, int? LateComingGraceMinutes, int? EarlyLeaveGraceMinutes, string? ColorCode, int? BranchId = null);
     public record AttendancePolicyDto(int GracePeriodMinutes, decimal HalfDayThresholdHours, decimal FullDayThresholdHours, int AutoSyncIntervalMinutes, string DefaultWeekoff, bool SandwichRuleEnabled = true, int? BranchId = null);
     public record CompanyPolicyDto(
         int OrganizationId,
@@ -424,31 +424,48 @@ public class MastersController : ControllerBase
     [HttpPost("shifts")]
     public async Task<IActionResult> CreateShift([FromBody] ShiftDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name)) return BadRequest(new { message = "Shift name is required." });
-
-        var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
-        var targetBranch = dto.BranchId ?? _tenantProvider.BranchId;
-
-        TimeOnly.TryParse(dto.StartTime, out var startTime);
-        TimeOnly.TryParse(dto.EndTime, out var endTime);
-
-        var shift = new Shift
+        try
         {
-            ShiftName = dto.Name.Trim(),
-            ShiftCode = dto.Code?.Trim() ?? "SHF",
-            StartTime = startTime,
-            EndTime = endTime,
-            LunchBreakDuration = dto.BreakMinutes ?? 60,
-            ColorCode = dto.ColorCode ?? "#4e73df",
-            Status = "Active",
-            OrganizationId = orgId,
-            BranchId = targetBranch
-        };
+            if (string.IsNullOrWhiteSpace(dto.Name)) return BadRequest(new { message = "Shift name is required." });
 
-        _db.Shifts.Add(shift);
-        await _db.SaveChangesAsync();
+            var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+            var targetBranch = dto.BranchId ?? _tenantProvider.BranchId;
 
-        return Ok(new { message = "Shift created successfully.", id = shift.Id });
+            TimeOnly.TryParse(dto.StartTime, out var startTime);
+            TimeOnly.TryParse(dto.EndTime, out var endTime);
+
+            var totalMinutes = (endTime.ToTimeSpan() - startTime.ToTimeSpan()).TotalMinutes;
+            var breakMins = dto.BreakMinutes ?? 60;
+            var workingHours = Math.Round((decimal)(totalMinutes - breakMins) / 60m, 2);
+
+            var shift = new Shift
+            {
+                ShiftName = dto.Name.Trim(),
+                ShiftCode = dto.Code?.Trim() ?? "SHF",
+                StartTime = startTime,
+                EndTime = endTime,
+                LunchBreakStart = TimeOnly.TryParse(dto.LunchBreakStart, out var lbStart) ? lbStart : null,
+                LunchBreakEnd = TimeOnly.TryParse(dto.LunchBreakEnd, out var lbEnd) ? lbEnd : null,
+                LunchBreakDuration = breakMins,
+                WorkingHours = workingHours > 0 ? workingHours : 8m,
+                HalfTime = TimeOnly.FromTimeSpan(startTime.ToTimeSpan() + TimeSpan.FromMinutes(totalMinutes / 2)),
+                LateComingGraceMinutes = dto.LateComingGraceMinutes ?? 15,
+                EarlyLeaveGraceMinutes = dto.EarlyLeaveGraceMinutes ?? 15,
+                ColorCode = dto.ColorCode ?? "#4e73df",
+                Status = "Active",
+                OrganizationId = orgId,
+                BranchId = targetBranch
+            };
+
+            _db.Shifts.Add(shift);
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Shift created successfully.", id = shift.Id });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Failed to create shift: {ex.InnerException?.Message ?? ex.Message}" });
+        }
     }
 
     [HttpPut("shifts/{id}")]

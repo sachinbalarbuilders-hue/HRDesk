@@ -241,8 +241,8 @@ public sealed class BiometricAttendanceDbContext : DbContext
             entity.Property(e => e.EarlyLeaveGraceMinutes).HasColumnName("early_leave_grace_minutes");
             entity.Property(e => e.EarlyGoAllowedTime).HasColumnName("early_go_allowed_time");
             entity.Property(e => e.EarlyGoFrequencyPerMonth).HasColumnName("early_go_frequency_per_month");
-            entity.Property(e => e.LunchBreakDuration).HasColumnName("lunch_break_duration").ValueGeneratedOnAddOrUpdate();
-            entity.Property(e => e.WorkingHours).HasColumnName("working_hours").ValueGeneratedOnAddOrUpdate();
+            entity.Property(e => e.LunchBreakDuration).HasColumnName("lunch_break_duration");
+            entity.Property(e => e.WorkingHours).HasColumnName("working_hours");
             entity.Property(e => e.Status).HasColumnName("status");
         });
 

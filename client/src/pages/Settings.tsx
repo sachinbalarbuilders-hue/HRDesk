@@ -9,6 +9,7 @@ import { DataTable, type ColumnDef } from '../components/ui/DataTable';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
+import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import {
   Building2,
   CalendarCheck,
@@ -20,6 +21,9 @@ import {
   Edit2,
   Layers,
   Award,
+  Archive,
+  RotateCcw,
+  Eye,
 } from 'lucide-react';
 
 export const Settings: React.FC = () => {
@@ -81,18 +85,21 @@ export const Settings: React.FC = () => {
   // 3. Departments Master
   const [departments, setDepartments] = useState<any[]>([]);
   const [newDept, setNewDept] = useState({ name: '', code: '', head: '' });
+  const [editingDeptId, setEditingDeptId] = useState<number | null>(null);
 
   // 4. Designations Master
   const [designations, setDesignations] = useState<any[]>([]);
   const [newDesignation, setNewDesignation] = useState({ title: '', code: '', department: 'Engineering & Technology', level: 'L2 (Mid)' });
+  const [editingDesigId, setEditingDesigId] = useState<number | null>(null);
 
   // 5. Leave Types Master
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [newLeaveType, setNewLeaveType] = useState({ name: '', code: '', quota: 12, isPaid: true });
+  const [editingLeaveTypeId, setEditingLeaveTypeId] = useState<number | null>(null);
 
   // 6. Work Shifts Master
   const [shifts, setShifts] = useState<any[]>([]);
-  const [newShift, setNewShift] = useState({ name: '', code: '', startTime: '09:00', endTime: '18:00', breakMinutes: 60 });
+  const [newShift, setNewShift] = useState({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df' });
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -227,13 +234,22 @@ export const Settings: React.FC = () => {
     e.preventDefault();
     if (!newDept.name.trim()) return;
     try {
-      await apiClient.post('/masters/departments', {
-        departmentName: newDept.name,
-        branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
-      });
+      if (editingDeptId) {
+        await apiClient.put(`/masters/departments/${editingDeptId}`, {
+          departmentName: newDept.name,
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+        });
+        showSuccess('Department Updated', `${newDept.name} updated.`);
+      } else {
+        await apiClient.post('/masters/departments', {
+          departmentName: newDept.name,
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+        });
+        showSuccess('Department Added', `${newDept.name} registered.`);
+      }
       setNewDept({ name: '', code: '', head: '' });
+      setEditingDeptId(null);
       setDeptModalOpen(false);
-      showSuccess('Department Added', `${newDept.name} registered.`);
       fetchOverview();
     } catch (err: any) {
       showError('Failed', err.response?.data?.message || 'Server error');
@@ -244,13 +260,22 @@ export const Settings: React.FC = () => {
     e.preventDefault();
     if (!newDesignation.title.trim()) return;
     try {
-      await apiClient.post('/masters/designations', {
-        designationName: newDesignation.title,
-        branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
-      });
+      if (editingDesigId) {
+        await apiClient.put(`/masters/designations/${editingDesigId}`, {
+          designationName: newDesignation.title,
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+        });
+        showSuccess('Designation Updated', `${newDesignation.title} updated.`);
+      } else {
+        await apiClient.post('/masters/designations', {
+          designationName: newDesignation.title,
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+        });
+        showSuccess('Designation Added', `${newDesignation.title} registered.`);
+      }
       setNewDesignation({ title: '', code: '', department: 'Engineering & Technology', level: 'L2 (Mid)' });
+      setEditingDesigId(null);
       setDesigModalOpen(false);
-      showSuccess('Designation Added', `${newDesignation.title} registered.`);
       fetchOverview();
     } catch (err: any) {
       showError('Failed', err.response?.data?.message || 'Server error');
@@ -261,17 +286,29 @@ export const Settings: React.FC = () => {
     e.preventDefault();
     if (!newLeaveType.name.trim()) return;
     try {
-      await apiClient.post('/masters/leave-types', {
-        name: newLeaveType.name,
-        code: newLeaveType.code || 'LV',
-        defaultYearlyQuota: newLeaveType.quota,
-        isPaid: newLeaveType.isPaid,
-        status: 'Active',
-        branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
-      });
+      if (editingLeaveTypeId) {
+        await apiClient.put(`/masters/leave-types/${editingLeaveTypeId}`, {
+          name: newLeaveType.name,
+          code: newLeaveType.code || 'LV',
+          defaultYearlyQuota: newLeaveType.quota,
+          isPaid: newLeaveType.isPaid,
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+        });
+        showSuccess('Leave Type Updated', `${newLeaveType.name} updated.`);
+      } else {
+        await apiClient.post('/masters/leave-types', {
+          name: newLeaveType.name,
+          code: newLeaveType.code || 'LV',
+          defaultYearlyQuota: newLeaveType.quota,
+          isPaid: newLeaveType.isPaid,
+          status: 'Active',
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+        });
+        showSuccess('Leave Category Added', `${newLeaveType.name} configured.`);
+      }
       setNewLeaveType({ name: '', code: '', quota: 12, isPaid: true });
+      setEditingLeaveTypeId(null);
       setLeaveModalOpen(false);
-      showSuccess('Leave Category Added', `${newLeaveType.name} configured.`);
       fetchOverview();
     } catch (err: any) {
       showError('Failed', err.response?.data?.message || 'Server error');
@@ -287,10 +324,15 @@ export const Settings: React.FC = () => {
         code: newShift.code || 'SHF',
         startTime: newShift.startTime,
         endTime: newShift.endTime,
+        lunchBreakStart: newShift.lunchStart,
+        lunchBreakEnd: newShift.lunchEnd,
         breakMinutes: newShift.breakMinutes,
+        lateComingGraceMinutes: newShift.lateGrace,
+        earlyLeaveGraceMinutes: newShift.earlyLeaveGrace,
+        colorCode: newShift.colorCode,
         branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
       });
-      setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', breakMinutes: 60 });
+      setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df' });
       setShiftModalOpen(false);
       showSuccess('Shift Registered', `${newShift.name} added to roster.`);
       fetchOverview();
@@ -434,32 +476,18 @@ export const Settings: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (item) => (
-        <div className="flex items-center justify-end gap-1">
-          <ArchiveActionButton
-            isArchived={item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived'}
-            onArchive={() => {
-              setDepartments(departments.map(d => d.id === item.id ? { ...d, status: 'inactive' } : d));
-              showSuccess('Department Archived', `${item.name} moved to archive.`);
-            }}
-            onRestore={() => {
-              setDepartments(departments.map(d => d.id === item.id ? { ...d, status: 'active' } : d));
-              showSuccess('Department Restored', `${item.name} restored.`);
-            }}
-            itemName={item.name}
-          />
-          <button
-            onClick={() => {
-              setDepartments(departments.filter(d => d.id !== item.id));
-              showSuccess('Department Deleted', 'Department removed.');
-            }}
-            className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors"
-            title="Delete Department"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-      ),
+      render: (item) => {
+        const isArchived = item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived';
+        return (
+          <RowActionMenu actions={[
+            { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingDeptId(item.id); setNewDept({ name: item.name, code: item.code || '', head: item.head || '' }); setDeptModalOpen(true); } },
+            isArchived
+              ? { label: 'Restore', icon: <RotateCcw size={14} />, onClick: () => { setDepartments(departments.map(d => d.id === item.id ? { ...d, status: 'active' } : d)); showSuccess('Department Restored', `${item.name} restored.`); }, variant: 'success', dividerBefore: true }
+              : { label: 'Archive', icon: <Archive size={14} />, onClick: () => { setDepartments(departments.map(d => d.id === item.id ? { ...d, status: 'inactive' } : d)); showSuccess('Department Archived', `${item.name} moved to archive.`); }, dividerBefore: true },
+            { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => { setDepartments(departments.filter(d => d.id !== item.id)); showSuccess('Department Deleted', 'Department removed.'); }, variant: 'danger' },
+          ] as RowAction[]} />
+        );
+      },
     },
   ];
 
@@ -525,32 +553,18 @@ export const Settings: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (item) => (
-        <div className="flex items-center justify-end gap-1">
-          <ArchiveActionButton
-            isArchived={item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived'}
-            onArchive={() => {
-              setDesignations(designations.map(d => d.id === item.id ? { ...d, status: 'inactive' } : d));
-              showSuccess('Designation Archived', `${item.title} moved to archive.`);
-            }}
-            onRestore={() => {
-              setDesignations(designations.map(d => d.id === item.id ? { ...d, status: 'active' } : d));
-              showSuccess('Designation Restored', `${item.title} restored.`);
-            }}
-            itemName={item.title}
-          />
-          <button
-            onClick={() => {
-              setDesignations(designations.filter(d => d.id !== item.id));
-              showSuccess('Designation Deleted', 'Designation removed.');
-            }}
-            className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors"
-            title="Delete Designation"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-      ),
+      render: (item) => {
+        const isArchived = item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived';
+        return (
+          <RowActionMenu actions={[
+            { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingDesigId(item.id); setNewDesignation({ title: item.title || item.name || '', code: item.code || '', department: item.department || '', level: item.level || '' }); setDesigModalOpen(true); } },
+            isArchived
+              ? { label: 'Restore', icon: <RotateCcw size={14} />, onClick: () => { setDesignations(designations.map(d => d.id === item.id ? { ...d, status: 'active' } : d)); showSuccess('Designation Restored', `${item.title} restored.`); }, variant: 'success', dividerBefore: true }
+              : { label: 'Archive', icon: <Archive size={14} />, onClick: () => { setDesignations(designations.map(d => d.id === item.id ? { ...d, status: 'inactive' } : d)); showSuccess('Designation Archived', `${item.title} moved to archive.`); }, dividerBefore: true },
+            { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => { setDesignations(designations.filter(d => d.id !== item.id)); showSuccess('Designation Deleted', 'Designation removed.'); }, variant: 'danger' },
+          ] as RowAction[]} />
+        );
+      },
     },
   ];
 
@@ -609,16 +623,10 @@ export const Settings: React.FC = () => {
       header: 'Actions',
       align: 'right',
       render: (item) => (
-        <button
-          onClick={() => {
-            setLeaveTypes(leaveTypes.filter(l => l.id !== item.id));
-            showSuccess('Leave Type Removed', 'Category deleted.');
-          }}
-          className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors"
-          title="Delete Leave Type"
-        >
-          <Trash2 size={13} />
-        </button>
+        <RowActionMenu actions={[
+          { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingLeaveTypeId(item.id); setNewLeaveType({ name: item.name, code: item.code || '', quota: item.quota || 12, isPaid: item.isPaid !== false }); setLeaveModalOpen(true); } },
+          { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => { setLeaveTypes(leaveTypes.filter(l => l.id !== item.id)); showSuccess('Leave Type Removed', 'Category deleted.'); }, variant: 'danger', dividerBefore: true },
+        ] as RowAction[]} />
       ),
     },
   ];
@@ -838,14 +846,14 @@ export const Settings: React.FC = () => {
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => handleOpenEditOrg(org)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors" title="Open Organization"><Edit2 size={13} /></button>
-                          <ArchiveActionButton
-                            isArchived={org.isActive === false}
-                            onArchive={async () => { try { await apiClient.put(`/masters/organizations/${org.id}`, { ...org, isActive: false }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: false } : o)); showSuccess('Archived', `${org.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
-                            onRestore={async () => { try { await apiClient.put(`/masters/organizations/${org.id}`, { ...org, isActive: true }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: true } : o)); showSuccess('Restored', `${org.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
-                            itemName={org.name}
-                          />
-                          <button onClick={() => handleDeleteOrg(org.id)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors" title="Delete Organization"><Trash2 size={13} /></button>
+                          <RowActionMenu actions={[
+                            { label: 'View', icon: <Eye size={14} />, onClick: () => navigate(`/settings/organizations/${org.id}`) },
+                            { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => handleOpenEditOrg(org) },
+                            org.isActive === false
+                              ? { label: 'Restore', icon: <RotateCcw size={14} />, onClick: async () => { try { await apiClient.put(`/masters/organizations/${org.id}`, { ...org, isActive: true }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: true } : o)); showSuccess('Restored', `${org.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }, variant: 'success', dividerBefore: true }
+                              : { label: 'Archive', icon: <Archive size={14} />, onClick: async () => { try { await apiClient.put(`/masters/organizations/${org.id}`, { ...org, isActive: false }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: false } : o)); showSuccess('Archived', `${org.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }, dividerBefore: true },
+                            { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteOrg(org.id), variant: 'danger' },
+                          ] as RowAction[]} />
                         </div>
                       </div>
                     </div>
@@ -1076,9 +1084,9 @@ export const Settings: React.FC = () => {
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
               <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
                 <FolderTree size={16} className="text-[var(--gold-500)]" />
-                <span>Create Department</span>
+                <span>{editingDeptId ? 'Edit Department' : 'Create Department'}</span>
               </h3>
-              <button onClick={() => setDeptModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => { setDeptModalOpen(false); setEditingDeptId(null); }} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -1097,7 +1105,7 @@ export const Settings: React.FC = () => {
               </div>
 
               <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
-                <button type="button" onClick={() => setDeptModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
+                <button type="button" onClick={() => { setDeptModalOpen(false); setEditingDeptId(null); }} className="btn-secondary py-1.5 px-3 text-xs">
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
@@ -1116,9 +1124,9 @@ export const Settings: React.FC = () => {
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
               <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
                 <Award size={16} className="text-[var(--gold-500)]" />
-                <span>Create Designation</span>
+                <span>{editingDesigId ? 'Edit Designation' : 'Create Designation'}</span>
               </h3>
-              <button onClick={() => setDesigModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => { setDesigModalOpen(false); setEditingDesigId(null); }} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -1153,7 +1161,7 @@ export const Settings: React.FC = () => {
               </div>
 
               <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
-                <button type="button" onClick={() => setDesigModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
+                <button type="button" onClick={() => { setDesigModalOpen(false); setEditingDesigId(null); }} className="btn-secondary py-1.5 px-3 text-xs">
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
@@ -1172,9 +1180,9 @@ export const Settings: React.FC = () => {
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
               <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
                 <CalendarCheck size={16} className="text-[var(--gold-500)]" />
-                <span>Configure Leave Category</span>
+                <span>{editingLeaveTypeId ? 'Edit Leave Category' : 'Configure Leave Category'}</span>
               </h3>
-              <button onClick={() => setLeaveModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => { setLeaveModalOpen(false); setEditingLeaveTypeId(null); }} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -1225,7 +1233,7 @@ export const Settings: React.FC = () => {
               </label>
 
               <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
-                <button type="button" onClick={() => setLeaveModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
+                <button type="button" onClick={() => { setLeaveModalOpen(false); setEditingLeaveTypeId(null); }} className="btn-secondary py-1.5 px-3 text-xs">
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
@@ -1252,16 +1260,28 @@ export const Settings: React.FC = () => {
             </div>
 
             <form onSubmit={handleAddShift} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Shift Name *</label>
-                <input
-                  type="text"
-                  value={newShift.name}
-                  onChange={(e) => setNewShift({ ...newShift, name: e.target.value })}
-                  placeholder="e.g. Night Shift"
-                  className="input-field w-full"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Shift Name *</label>
+                  <input
+                    type="text"
+                    value={newShift.name}
+                    onChange={(e) => setNewShift({ ...newShift, name: e.target.value })}
+                    placeholder="e.g. Night Shift"
+                    className="register-input w-full"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Shift Code</label>
+                  <input
+                    type="text"
+                    value={newShift.code}
+                    onChange={(e) => setNewShift({ ...newShift, code: e.target.value.toUpperCase() })}
+                    placeholder="e.g. NS, GEN"
+                    className="register-input w-full font-data uppercase"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1271,7 +1291,7 @@ export const Settings: React.FC = () => {
                     type="time"
                     value={newShift.startTime}
                     onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })}
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
                 <div>
@@ -1280,16 +1300,99 @@ export const Settings: React.FC = () => {
                     type="time"
                     value={newShift.endTime}
                     onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })}
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Lunch Start</label>
+                  <input
+                    type="time"
+                    value={newShift.lunchStart}
+                    onChange={(e) => setNewShift({ ...newShift, lunchStart: e.target.value })}
+                    className="register-input w-full font-data"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Lunch End</label>
+                  <input
+                    type="time"
+                    value={newShift.lunchEnd}
+                    onChange={(e) => setNewShift({ ...newShift, lunchEnd: e.target.value })}
+                    className="register-input w-full font-data"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Break (mins)</label>
+                  <input
+                    type="number"
+                    value={newShift.breakMinutes}
+                    onChange={(e) => setNewShift({ ...newShift, breakMinutes: Number(e.target.value) })}
+                    className="register-input w-full font-data"
+                    min={0}
+                    max={120}
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Late Grace (mins)</label>
+                  <input
+                    type="number"
+                    value={newShift.lateGrace}
+                    onChange={(e) => setNewShift({ ...newShift, lateGrace: Number(e.target.value) })}
+                    className="register-input w-full font-data"
+                    min={0}
+                    max={60}
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Early Leave Grace (mins)</label>
+                  <input
+                    type="number"
+                    value={newShift.earlyLeaveGrace}
+                    onChange={(e) => setNewShift({ ...newShift, earlyLeaveGrace: Number(e.target.value) })}
+                    className="register-input w-full font-data"
+                    min={0}
+                    max={60}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">Color Code</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={newShift.colorCode}
+                    onChange={(e) => setNewShift({ ...newShift, colorCode: e.target.value })}
+                    className="w-8 h-8 rounded-[4px] border border-[var(--rule)] cursor-pointer"
+                  />
+                  <span className="font-data text-[var(--ink-muted)]">{newShift.colorCode}</span>
+                </div>
+              </div>
+
+              {/* Working Hours Preview */}
+              <div className="p-2.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between">
+                <span className="text-[var(--ink-muted)]">Working Hours:</span>
+                <span className="font-data font-bold text-[var(--gold-500)]">
+                  {(() => {
+                    const [sh, sm] = newShift.startTime.split(':').map(Number);
+                    const [eh, em] = newShift.endTime.split(':').map(Number);
+                    const totalMins = (eh * 60 + em) - (sh * 60 + sm) - newShift.breakMinutes;
+                    return `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`;
+                  })()}
+                </span>
+              </div>
+
               <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
-                <button type="button" onClick={() => setShiftModalOpen(false)} className="btn-secondary py-1.5 px-3 text-xs">
+                <button type="button" onClick={() => setShiftModalOpen(false)} className="btn-outline cursor-pointer">
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
+                <button type="submit" className="btn-primary cursor-pointer">
                   Save Shift
                 </button>
               </div>

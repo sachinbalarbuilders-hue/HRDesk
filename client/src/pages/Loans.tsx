@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -7,6 +8,8 @@ import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
+import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
+import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 import {
   DollarSign,
@@ -19,32 +22,46 @@ import {
   TrendingDown,
   Building2,
   Check,
+  Eye,
+  Sliders,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
 
 interface LoanRecord {
   id: number;
   appNumber: string;
+  applicationNumber: string;
   appDate: string;
+  applicationDate: string;
   employeeId: number;
   employeeName: string;
   department: string;
   loanType: string;
   loanTypeId: number;
+  loanTypeName: string;
   principalAmount: number;
   monthlyEmi: number;
   tenureMonths: number;
   paidMonths: number;
+  remainingInstallments: number;
   remainingAmount: number;
   startMonth: string;
-  status: 'Pending' | 'Approved' | 'Disbursed' | 'Closed' | 'Rejected';
+  startDate: string;
+  status: 'Pending' | 'Manager Approved' | 'Approved' | 'Disbursed' | 'Closed' | 'Rejected';
   reason: string;
   approvedBy: string | null;
+  approvedDate: string | null;
+  foreclosureRemark: string;
+  startingPaidInstallments: number;
+  createdAt: string;
 }
 
 export const Loans: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const { hasPermission, isAdmin } = useAuth();
   const { currentOrganization, currentBranch } = useOrganization();
+  const navigate = useNavigate();
 
   const [loans, setLoans] = useState<LoanRecord[]>([]);
   const [loanTypes, setLoanTypes] = useState<Array<{ id: number; name: string }>>([]);
@@ -61,6 +78,7 @@ export const Loans: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [totalCount, setTotalCount] = useState(0);
@@ -73,6 +91,14 @@ export const Loans: React.FC = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [prefixModalOpen, setPrefixModalOpen] = useState(false);
+  const [savingPrefix, setSavingPrefix] = useState(false);
+  const [prefixForm, setPrefixForm] = useState({
+    seriesCode: 'LN',
+    connector: '-',
+    paddingDigits: 3,
+    startSequence: 1,
+  });
 
   const [form, setForm] = useState({
     employeeId: 0,
@@ -82,6 +108,51 @@ export const Loans: React.FC = () => {
     startDate: new Date().toISOString().split('T')[0],
     reason: '',
   });
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingLoanId, setEditingLoanId] = useState<number | null>(null);
+
+  const fetchPrefixSettings = async () => {
+    try {
+      const res = await apiClient.get('/loans/prefix-settings', {
+        params: { branchId: currentBranch?.id || undefined }
+      });
+      if (res.data) {
+        setPrefixForm({
+          seriesCode: res.data.seriesCode || 'LN',
+          connector: res.data.connector ?? '-',
+          paddingDigits: res.data.paddingDigits || 3,
+          startSequence: res.data.nextSequence || 1,
+        });
+      }
+    } catch (e) {
+      console.error('Failed to load loan prefix settings', e);
+    }
+  };
+
+  const handleSavePrefixSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSavingPrefix(true);
+      await apiClient.post('/loans/prefix-settings', {
+        seriesCode: prefixForm.seriesCode.trim(),
+        connector: prefixForm.connector,
+        paddingDigits: Number(prefixForm.paddingDigits),
+        startSequence: Number(prefixForm.startSequence),
+      }, {
+        params: { branchId: currentBranch?.id || undefined }
+      });
+      showSuccess(
+        'Prefix Configured',
+        `Loan number format set to ${prefixForm.seriesCode}${prefixForm.connector}${String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}.`
+      );
+      setPrefixModalOpen(false);
+    } catch (err: any) {
+      showError('Save Failed', err.response?.data?.message || 'Could not save prefix settings');
+    } finally {
+      setSavingPrefix(false);
+    }
+  };
 
   const handleOpenApply = () => {
     setForm({
@@ -129,9 +200,17 @@ export const Loans: React.FC = () => {
   const fetchLoans = async () => {
     try {
       setLoading(true);
+      // Map archive filter to API status
+      let effectiveStatus = statusFilter !== 'all' && statusFilter ? statusFilter : undefined;
+      if (!effectiveStatus && archiveFilter === 'active') {
+        effectiveStatus = 'active'; // Pending, Approved, Disbursed
+      } else if (!effectiveStatus && archiveFilter === 'archived') {
+        effectiveStatus = 'archived'; // Closed, Rejected
+      }
+
       const res = await apiClient.get('/loans', {
         params: {
-          status: statusFilter !== 'all' && statusFilter ? statusFilter : undefined,
+          status: effectiveStatus,
           loanTypeId: typeFilter && typeFilter !== 'all' ? parseInt(typeFilter) : undefined,
           search: search || undefined,
           branchId: currentBranch?.id || undefined,
@@ -154,7 +233,7 @@ export const Loans: React.FC = () => {
 
   useEffect(() => {
     fetchLoans();
-  }, [statusFilter, typeFilter, search, currentOrganization?.id, currentBranch?.id, page, pageSize]);
+  }, [statusFilter, typeFilter, search, archiveFilter, currentOrganization?.id, currentBranch?.id, page, pageSize]);
 
   useEffect(() => {
     const handleReload = () => {
@@ -170,7 +249,7 @@ export const Loans: React.FC = () => {
       window.removeEventListener('hrdesk:tenant_changed', handleReload);
       window.removeEventListener('hrdesk:branch_changed', handleReload);
     };
-  }, [statusFilter, typeFilter, search, currentOrganization?.id, currentBranch?.id]);
+  }, [statusFilter, typeFilter, search, archiveFilter, currentOrganization?.id, currentBranch?.id]);
 
   const handleApprove = async (id: number) => {
     try {
@@ -208,6 +287,54 @@ export const Loans: React.FC = () => {
       fetchLoans();
     } catch (err: any) {
       showError('Rejection Failed', err.response?.data?.message || 'Server error');
+    }
+  };
+
+  const handleOpenEdit = (loan: LoanRecord) => {
+    setEditingLoanId(loan.id);
+    setForm({
+      employeeId: loan.employeeId,
+      loanTypeId: loan.loanTypeId,
+      principalAmount: loan.principalAmount,
+      tenureMonths: loan.tenureMonths,
+      startDate: loan.startDate,
+      reason: loan.reason,
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLoanId) return;
+    try {
+      setSubmitting(true);
+      await apiClient.put(`/loans/${editingLoanId}`, {
+        employeeId: form.employeeId,
+        loanTypeId: form.loanTypeId,
+        principalAmount: form.principalAmount,
+        tenureMonths: form.tenureMonths,
+        startDate: form.startDate,
+        reason: form.reason,
+      });
+      showSuccess('Loan Updated', 'Loan application updated successfully.');
+      setEditModalOpen(false);
+      setEditingLoanId(null);
+      fetchLoans();
+    } catch (err: any) {
+      showError('Update Failed', err.response?.data?.message || 'Server error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to permanently delete this loan application? This action cannot be undone and all associated installment records will be removed.')) return;
+    try {
+      await apiClient.delete(`/loans/${id}`);
+      showSuccess('Loan Deleted', 'Loan application permanently deleted.');
+      fetchLoans();
+    } catch (err: any) {
+      showError('Delete Failed', err.response?.data?.message || 'Server error');
     }
   };
 
@@ -249,17 +376,24 @@ export const Loans: React.FC = () => {
       'Employee_Loans_Ledger',
       loans.map(l => ({
         'App Number': l.appNumber,
-        'App Date': l.appDate,
+        'Application Date': l.appDate,
+        'Employee ID': l.employeeId,
         'Employee Name': l.employeeName,
         Department: l.department,
         'Loan Type': l.loanType,
         'Principal Amount': l.principalAmount,
         'Monthly EMI': l.monthlyEmi,
         'Tenure (Months)': l.tenureMonths,
+        'Paid Months': l.paidMonths,
+        'Remaining Installments': l.remainingInstallments,
         'Remaining Amount': l.remainingAmount,
-        'Start Month': l.startMonth,
+        'Start Date': l.startDate,
+        Reason: l.reason,
         Status: l.status,
         'Approved By': l.approvedBy || '',
+        'Approved Date': l.approvedDate || '',
+        'Foreclosure Remark': l.foreclosureRemark || '',
+        'Created At': l.createdAt,
       }))
     );
   };
@@ -291,6 +425,10 @@ export const Loans: React.FC = () => {
         searchPlaceholder="Search application #, employee, or reason..."
         searchValue={search}
         onSearchChange={setSearch}
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+        }}
         filters={[
           {
             id: 'status',
@@ -300,7 +438,8 @@ export const Loans: React.FC = () => {
             options: [
               { label: 'All Statuses', value: 'all' },
               { label: 'Pending Review', value: 'Pending' },
-              { label: 'Approved', value: 'Approved' },
+              { label: 'Manager Approved', value: 'Manager Approved' },
+              { label: 'HR Approved', value: 'Approved' },
               { label: 'Disbursed / Active', value: 'Disbursed' },
               { label: 'Closed', value: 'Closed' },
               { label: 'Rejected', value: 'Rejected' },
@@ -319,6 +458,22 @@ export const Loans: React.FC = () => {
         ]}
         onExport={handleExport}
         onImport={() => setImportModalOpen(true)}
+        customActions={
+          canManage ? (
+            <button
+              type="button"
+              onClick={() => {
+                fetchPrefixSettings();
+                setPrefixModalOpen(true);
+              }}
+              className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
+              title="Configure Loan Application Number Prefix"
+            >
+              <Sliders size={13} className="text-[var(--gold-500)]" />
+              <span>Prefix Setup</span>
+            </button>
+          ) : undefined
+        }
         primaryAction={{
           label: 'Apply Loan / Advance',
           icon: <Plus className="w-3.5 h-3.5" />,
@@ -348,7 +503,6 @@ export const Loans: React.FC = () => {
                   <th className="p-3.5 font-semibold">Type</th>
                   <th className="p-3.5 font-semibold">Principal</th>
                   <th className="p-3.5 font-semibold">Monthly EMI</th>
-                  <th className="p-3.5 font-semibold">Repayment Progress</th>
                   <th className="p-3.5 font-semibold">Remaining</th>
                   <th className="p-3.5 font-semibold">Status</th>
                   <th className="p-3.5 font-semibold text-right">Actions</th>
@@ -358,7 +512,13 @@ export const Loans: React.FC = () => {
                 {loans.map((l) => (
                   <tr key={l.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
                     <td className="p-3.5 font-mono font-semibold text-[var(--accent)]">
-                      {l.appNumber}
+                      <button
+                        onClick={() => navigate(`/loans/${l.id}`)}
+                        className="hover:underline cursor-pointer text-left"
+                        title="View payment summary"
+                      >
+                        {l.appNumber}
+                      </button>
                       <div className="text-[10px] text-[var(--ink-muted)] font-normal">
                         {l.appDate}
                       </div>
@@ -384,18 +544,6 @@ export const Loans: React.FC = () => {
                       ₹{l.monthlyEmi.toLocaleString()} / mo
                     </td>
 
-                    <td className="p-3.5">
-                      <div className="text-[11px] font-mono mb-1">
-                        <span className="font-bold text-[var(--ink)]">{l.paidMonths}</span> of {l.tenureMonths} EMIs Paid
-                      </div>
-                      <div className="w-28 h-1.5 rounded-full bg-[var(--rule)] overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500 rounded-full"
-                          style={{ width: `${Math.min(100, (l.paidMonths / (l.tenureMonths || 1)) * 100)}%` }}
-                        />
-                      </div>
-                    </td>
-
                     <td className="p-3.5 font-mono font-bold text-amber-700 dark:text-amber-300">
                       ₹{l.remainingAmount.toLocaleString()}
                     </td>
@@ -407,10 +555,16 @@ export const Loans: React.FC = () => {
                           Pending
                         </span>
                       )}
+                      {l.status === 'Manager Approved' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200">
+                          <Check className="w-3 h-3 text-indigo-600" />
+                          Mgr Approved
+                        </span>
+                      )}
                       {l.status === 'Approved' && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
                           <Check className="w-3 h-3 text-blue-600" />
-                          Approved
+                          HR Approved
                         </span>
                       )}
                       {l.status === 'Disbursed' && (
@@ -433,33 +587,21 @@ export const Loans: React.FC = () => {
                     </td>
 
                     <td className="p-3.5 text-right">
-                      {canManage && l.status === 'Pending' && (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleApprove(l.id)}
-                            title="Approve Loan"
-                            className="p-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 transition-colors"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenReject(l.id)}
-                            title="Reject Loan"
-                            className="p-1.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/60 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-
-                      {canManage && l.status === 'Approved' && (
-                        <button
-                          onClick={() => handleDisburse(l.id)}
-                          className="btn-primary text-[11px] py-1 px-2.5 shadow-xs"
-                        >
-                          Disburse
-                        </button>
-                      )}
+                      <RowActionMenu actions={[
+                        { label: 'View Details', icon: <Eye size={14} />, onClick: () => navigate(`/loans/${l.id}`) },
+                        ...(canManage && (l.status === 'Pending' || l.status === 'Manager Approved') ? [
+                          { label: 'Edit', icon: <Pencil size={14} />, onClick: () => handleOpenEdit(l) },
+                          { label: l.status === 'Pending' ? 'Manager Approve' : 'HR Approve', icon: <Check size={14} />, onClick: () => handleApprove(l.id), variant: 'success' as const },
+                          { label: 'Reject', icon: <X size={14} />, onClick: () => handleOpenReject(l.id), variant: 'danger' as const },
+                          { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => handleDelete(l.id), variant: 'danger' as const, dividerBefore: true },
+                        ] : []),
+                        ...(canManage && l.status === 'Approved' ? [
+                          { label: 'Disburse', icon: <Check size={14} />, onClick: () => handleDisburse(l.id), variant: 'success' as const },
+                        ] : []),
+                        ...(canManage && (l.status === 'Closed' || l.status === 'Rejected') ? [
+                          { label: 'Permanently Delete', icon: <Trash2 size={14} />, onClick: () => handleDelete(l.id), variant: 'danger' as const, dividerBefore: true },
+                        ] : []),
+                      ] as RowAction[]} />
                     </td>
                   </tr>
                 ))}
@@ -483,30 +625,35 @@ export const Loans: React.FC = () => {
         )}
       </div>
 
-      {/* 5. Apply Loan Modal */}
+      {/* 5. Apply Loan Slide-in Panel (Left) */}
       {applyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper-subtle)]">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[1px]">
+          <div className="w-full max-w-[480px] bg-[var(--surface)] h-full p-6 shadow-2xl overflow-y-auto space-y-5 border-l border-[var(--rule)]">
+            <div className="flex items-start justify-between pb-3 border-b border-[var(--rule)]">
               <div>
-                <h3 className="font-serif font-bold text-base text-[var(--ink)]">Apply Employee Loan / Advance</h3>
-                <p className="text-[11px] text-[var(--ink-muted)]">Configure repayment tenure and automated monthly EMI deduction.</p>
+                <span className="text-[10px] uppercase font-semibold text-[var(--gold-500)] font-data">
+                  Finance & Advances
+                </span>
+                <h2 className="font-display text-2xl font-semibold text-[var(--ink)] mt-0.5">
+                  Apply Loan / Advance
+                </h2>
+                <p className="text-xs text-[var(--ink-muted)]">Configure repayment tenure and automated monthly EMI deduction.</p>
               </div>
               <button
                 onClick={() => setApplyModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[var(--paper)] text-[var(--ink-muted)]"
+                className="p-1 rounded-[4px] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleApplySubmit} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleApplySubmit} className="space-y-4">
               <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">Select Employee *</label>
+                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Select Employee *</label>
                 <select
                   value={form.employeeId || (employees.length > 0 ? employees[0].employeeId : 0)}
                   onChange={(e) => setForm({ ...form, employeeId: parseInt(e.target.value) || 0 })}
-                  className="input-field w-full font-medium"
+                  className="register-input w-full"
                   required
                 >
                   {employees.length === 0 ? (
@@ -523,11 +670,11 @@ export const Loans: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Loan / Advance Type *</label>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Loan / Advance Type *</label>
                   <select
                     value={form.loanTypeId || (loanTypes.length > 0 ? loanTypes[0].id : 1)}
                     onChange={(e) => setForm({ ...form, loanTypeId: parseInt(e.target.value) || 1 })}
-                    className="input-field w-full"
+                    className="register-input w-full"
                   >
                     {loanTypes.length === 0 ? (
                       <option value={1}>Salary Advance</option>
@@ -541,12 +688,12 @@ export const Loans: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Principal Amount (₹) *</label>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Principal Amount (₹) *</label>
                   <input
                     type="number"
                     value={form.principalAmount}
                     onChange={(e) => setForm({ ...form, principalAmount: parseFloat(e.target.value) || 0 })}
-                    className="input-field w-full font-mono font-bold"
+                    className="register-input w-full font-data"
                     min={1000}
                     step={500}
                     required
@@ -556,61 +703,61 @@ export const Loans: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Repayment Tenure (Months) *</label>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Repayment Tenure (Months) *</label>
                   <input
                     type="number"
                     value={form.tenureMonths}
                     onChange={(e) => setForm({ ...form, tenureMonths: parseInt(e.target.value) || 1 })}
-                    className="input-field w-full font-mono"
+                    className="register-input w-full font-data"
                     min={1}
                     max={60}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Deduction Start Date *</label>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Deduction Start Date *</label>
                   <input
                     type="date"
                     value={form.startDate}
                     onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                    className="input-field w-full font-mono"
+                    className="register-input w-full font-data"
                     required
                   />
                 </div>
               </div>
 
               {/* Calculated EMI preview */}
-              <div className="p-3 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)] flex items-center justify-between font-mono text-xs">
+              <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between text-xs">
                 <span className="text-[var(--ink-muted)]">Calculated Monthly EMI:</span>
-                <span className="text-sm font-bold text-indigo-600">
+                <span className="text-sm font-bold font-data text-[var(--gold-500)]">
                   ₹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
                 </span>
               </div>
 
               <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">Purpose / Reason *</label>
+                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Purpose / Reason *</label>
                 <textarea
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
                   placeholder="State the purpose of loan application (e.g. Medical emergency, housing advance)..."
-                  rows={2}
-                  className="input-field w-full"
+                  rows={3}
+                  className="register-input w-full"
                   required
                 />
               </div>
 
-              <div className="pt-2 border-t border-[var(--rule)] flex items-center justify-end gap-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
                 <button
                   type="button"
                   onClick={() => setApplyModalOpen(false)}
-                  className="btn-secondary py-1.5 px-3"
+                  className="btn-outline cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary py-1.5 px-4 flex items-center gap-1.5"
+                  className="btn-primary disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? 'Submitting...' : 'Submit Application'}
                 </button>
@@ -620,11 +767,126 @@ export const Loans: React.FC = () => {
         </div>
       )}
 
+      {/* 5b. Edit Loan Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[1px]">
+          <div className="w-full max-w-[480px] bg-[var(--surface)] h-full p-6 shadow-2xl overflow-y-auto space-y-5 border-l border-[var(--rule)]">
+            <div className="flex items-start justify-between pb-3 border-b border-[var(--rule)]">
+              <div>
+                <span className="text-[10px] uppercase font-semibold text-[var(--gold-500)] font-data">
+                  Edit Loan
+                </span>
+                <h2 className="font-display text-2xl font-semibold text-[var(--ink)] mt-0.5">
+                  Update Application
+                </h2>
+                <p className="text-xs text-[var(--ink-muted)]">Modify loan details before approval.</p>
+              </div>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="p-1 rounded-[4px] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Loan / Advance Type *</label>
+                  <select
+                    value={form.loanTypeId}
+                    onChange={(e) => setForm({ ...form, loanTypeId: parseInt(e.target.value) || 1 })}
+                    className="register-input w-full"
+                  >
+                    {loanTypes.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Principal Amount (₹) *</label>
+                  <input
+                    type="number"
+                    value={form.principalAmount}
+                    onChange={(e) => setForm({ ...form, principalAmount: parseFloat(e.target.value) || 0 })}
+                    className="register-input w-full font-data"
+                    min={1000}
+                    step={500}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Repayment Tenure (Months) *</label>
+                  <input
+                    type="number"
+                    value={form.tenureMonths}
+                    onChange={(e) => setForm({ ...form, tenureMonths: parseInt(e.target.value) || 1 })}
+                    className="register-input w-full font-data"
+                    min={1}
+                    max={60}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Deduction Start Date *</label>
+                  <input
+                    type="date"
+                    value={form.startDate}
+                    onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                    className="register-input w-full font-data"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between text-xs">
+                <span className="text-[var(--ink-muted)]">Calculated Monthly EMI:</span>
+                <span className="text-sm font-bold font-data text-[var(--gold-500)]">
+                  ₹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Purpose / Reason *</label>
+                <textarea
+                  value={form.reason}
+                  onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                  placeholder="State the purpose of loan application..."
+                  rows={3}
+                  className="register-input w-full"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="btn-outline cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary disabled:opacity-50 cursor-pointer"
+                >
+                  {submitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* 6. Reject Modal */}
       {rejectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-sm w-full p-4 space-y-3">
-            <h3 className="font-serif font-bold text-base text-rose-600 flex items-center gap-1.5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[1px] p-4">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-sm w-full p-4 space-y-3">
+            <h3 className="font-display font-bold text-base text-[var(--err-600)] flex items-center gap-1.5">
               <XCircle className="w-5 h-5" /> Reject Loan Application
             </h3>
             <p className="text-xs text-[var(--ink-muted)]">
@@ -635,21 +897,21 @@ export const Loans: React.FC = () => {
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="e.g. Existing active advance / Exceeds eligibility threshold..."
               rows={3}
-              className="input-field w-full text-xs"
+              className="register-input w-full text-xs"
               required
             />
-            <div className="flex items-center justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--rule)]">
               <button
                 type="button"
                 onClick={() => setRejectModalOpen(false)}
-                className="btn-secondary py-1.5 px-3 text-xs"
+                className="btn-outline cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmReject}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-1.5 px-3.5 rounded-lg text-xs"
+                className="bg-[var(--err-600)] hover:opacity-90 text-white font-semibold py-1.5 px-3.5 rounded-[4px] text-xs cursor-pointer"
               >
                 Confirm Rejection
               </button>
@@ -671,6 +933,176 @@ export const Loans: React.FC = () => {
           fetchLoans();
         }}
       />
+
+      {/* 8. Loan Prefix Setup Modal */}
+      {prefixModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[1px] p-4">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-start justify-between pb-3 border-b border-[var(--rule)]">
+              <div>
+                <h3 className="font-display font-semibold text-sm text-[var(--ink)]">
+                  Loan Application # Prefix Setup
+                </h3>
+                <p className="text-[11px] text-[var(--ink-muted)]">
+                  Configure how loan application numbers are generated for {currentBranch?.name || 'this workspace'}.
+                </p>
+              </div>
+              <button
+                onClick={() => setPrefixModalOpen(false)}
+                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePrefixSettings} className="space-y-4 text-xs">
+              {/* Series Code */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Series Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={prefixForm.seriesCode}
+                    onChange={(e) =>
+                      setPrefixForm({ ...prefixForm, seriesCode: e.target.value.toUpperCase() })
+                    }
+                    placeholder="e.g. LN, ADV, LOAN"
+                    className="register-input w-full font-mono text-xs font-bold uppercase tracking-wider"
+                  />
+                  <span className="text-[10px] text-[var(--ink-muted)] block mt-0.5">e.g. LN, ADV, LOAN</span>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Connector</label>
+                  <input
+                    type="text"
+                    value={prefixForm.connector}
+                    onChange={(e) => setPrefixForm({ ...prefixForm, connector: e.target.value })}
+                    placeholder="e.g. -, #, /"
+                    className="register-input w-full font-mono text-xs font-bold text-center"
+                  />
+                  <div className="flex items-center gap-1 mt-1">
+                    {['-', '#', '/', '_', '.'].map((sym) => (
+                      <button
+                        type="button"
+                        key={sym}
+                        onClick={() => setPrefixForm({ ...prefixForm, connector: sym })}
+                        className={`px-1.5 py-0.5 rounded-[2px] border text-[10px] font-mono font-bold cursor-pointer transition-colors ${
+                          prefixForm.connector === sym
+                            ? 'bg-[var(--gold-500)] text-[var(--navy-900)] border-[var(--gold-500)]'
+                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--gold-500)]'
+                        }`}
+                      >
+                        {sym}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setPrefixForm({ ...prefixForm, connector: '' })}
+                      className={`px-1.5 py-0.5 rounded-[2px] border text-[9px] font-ui cursor-pointer transition-colors ${
+                        prefixForm.connector === ''
+                          ? 'bg-[var(--gold-500)] text-[var(--navy-900)] border-[var(--gold-500)]'
+                          : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink-muted)]'
+                      }`}
+                    >
+                      none
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Padding & Start Sequence */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Padding Digits</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="8"
+                    required
+                    value={prefixForm.paddingDigits}
+                    onChange={(e) =>
+                      setPrefixForm({
+                        ...prefixForm,
+                        paddingDigits: Math.max(1, Math.min(8, parseInt(e.target.value) || 1)),
+                      })
+                    }
+                    className="register-input w-full font-data text-center"
+                  />
+                  <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                    {[
+                      { len: 3, label: '001' },
+                      { len: 4, label: '0001' },
+                      { len: 5, label: '00001' },
+                    ].map((item) => (
+                      <button
+                        type="button"
+                        key={item.len}
+                        onClick={() => setPrefixForm({ ...prefixForm, paddingDigits: item.len })}
+                        className={`px-2 py-0.5 rounded-[2px] border text-[10px] font-mono cursor-pointer transition-colors ${
+                          prefixForm.paddingDigits === item.len
+                            ? 'bg-[var(--gold-500)] text-[var(--navy-900)] border-[var(--gold-500)] font-bold'
+                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--gold-500)]'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Start Sequence</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={prefixForm.startSequence}
+                    onChange={(e) =>
+                      setPrefixForm({ ...prefixForm, startSequence: Math.max(1, parseInt(e.target.value) || 1) })
+                    }
+                    className="register-input w-full font-data text-center"
+                  />
+                </div>
+              </div>
+
+              {/* Live Preview */}
+              <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[var(--ink-muted)]">Next Generated #:</span>
+                  <span className="font-mono text-base font-bold text-[var(--gold-500)] tracking-wide">
+                    {prefixForm.seriesCode || 'LN'}{prefixForm.connector}{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-[var(--ink-muted)] font-data">
+                  <span>Series Samples:</span>
+                  <span className="font-bold text-[var(--ink)]">
+                    {prefixForm.seriesCode || 'LN'}{prefixForm.connector}{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}&nbsp;&rarr;&nbsp;
+                    {prefixForm.seriesCode || 'LN'}{prefixForm.connector}{String(prefixForm.startSequence + 1).padStart(prefixForm.paddingDigits, '0')}&nbsp;&rarr;&nbsp;
+                    {prefixForm.seriesCode || 'LN'}{prefixForm.connector}{String(prefixForm.startSequence + 2).padStart(prefixForm.paddingDigits, '0')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
+                <button
+                  type="button"
+                  onClick={() => setPrefixModalOpen(false)}
+                  className="btn-outline cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPrefix}
+                  className="btn-primary disabled:opacity-50 cursor-pointer"
+                >
+                  {savingPrefix ? 'Saving...' : 'Save Prefix'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

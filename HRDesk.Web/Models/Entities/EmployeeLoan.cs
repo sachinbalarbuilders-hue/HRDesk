@@ -61,6 +61,16 @@ public class EmployeeLoan : IMustHaveTenant
     [Column("approved_date")]
     public DateTime? ApprovedDate { get; set; }
 
+    [Column("manager_approved_by")]
+    [StringLength(100)]
+    public string? ManagerApprovedBy { get; set; }
+
+    [Column("manager_approved_date")]
+    public DateTime? ManagerApprovedDate { get; set; }
+
+    [Column("assigned_manager_id")]
+    public int? AssignedManagerId { get; set; }
+
     [Column("foreclosure_remark")]
     [StringLength(500)]
     public string? ForeclosureRemark { get; set; }

@@ -20,6 +20,7 @@ const Regularizations = lazy(() => import('./pages/Regularizations').then(m => (
 const Leaves = lazy(() => import('./pages/Leaves').then(m => ({ default: m.Leaves })));
 const Holidays = lazy(() => import('./pages/Holidays').then(m => ({ default: m.Holidays })));
 const Loans = lazy(() => import('./pages/Loans').then(m => ({ default: m.Loans })));
+const ViewLoan = lazy(() => import('./pages/loans/ViewLoan').then(m => ({ default: m.ViewLoan })));
 const Payroll = lazy(() => import('./pages/Payroll').then(m => ({ default: m.Payroll })));
 const Recruitment = lazy(() => import('./pages/Recruitment').then(m => ({ default: m.Recruitment })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
@@ -160,6 +161,14 @@ export const App: React.FC = () => {
                     element={
                       <ProtectedRoute>
                         <Loans />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="loans/:id"
+                    element={
+                      <ProtectedRoute>
+                        <ViewLoan />
                       </ProtectedRoute>
                     }
                   />

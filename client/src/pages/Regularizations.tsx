@@ -20,6 +20,7 @@ import {
   Building2,
   Info,
 } from 'lucide-react';
+import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 
 interface RegularizationItem {
   id: number;
@@ -520,22 +521,10 @@ export const Regularizations: React.FC = () => {
 
                       <td className="p-3.5 text-right">
                         {r.status === 'Pending' && canManage ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => handleApprove(r.id)}
-                              title="Approve Request"
-                              className="p-1.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 transition-colors"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenReject(r.id)}
-                              title="Reject Request"
-                              className="p-1.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:hover:bg-rose-900 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
+                          <RowActionMenu actions={[
+                            { label: 'Approve', icon: <Check className="w-4 h-4" />, onClick: () => handleApprove(r.id), variant: 'success' },
+                            { label: 'Reject', icon: <X className="w-4 h-4" />, onClick: () => handleOpenReject(r.id), variant: 'danger' },
+                          ]} />
                         ) : (
                           <div className="text-[10px] text-[var(--ink-muted)] font-mono">
                             {r.approvedBy ? `by ${r.approvedBy}` : '—'}

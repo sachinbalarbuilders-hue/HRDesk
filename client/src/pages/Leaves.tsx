@@ -12,6 +12,7 @@ import {
   CalendarCheck2,
   Check,
 } from 'lucide-react';
+import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 
@@ -273,22 +274,10 @@ export const Leaves: React.FC = () => {
                         </td>
                         <td className="text-right text-xs">
                           {canApprove && isPending ? (
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                onClick={() => handleStatusUpdate(app.id, 'Approved')}
-                                className="btn-primary py-0.5 px-2 text-[11px] flex items-center gap-1 cursor-pointer"
-                                title="Approve"
-                              >
-                                <Check size={11} /> Approve
-                              </button>
-                              <button
-                                onClick={() => handleStatusUpdate(app.id, 'Rejected')}
-                                className="btn-outline py-0.5 px-2 text-[11px] flex items-center gap-1 text-[var(--err-600)] cursor-pointer"
-                                title="Reject"
-                              >
-                                <X size={11} /> Reject
-                              </button>
-                            </div>
+                            <RowActionMenu actions={[
+                              { label: 'Approve', icon: <Check size={14} />, onClick: () => handleStatusUpdate(app.id, 'Approved'), variant: 'success' },
+                              { label: 'Reject', icon: <X size={14} />, onClick: () => handleStatusUpdate(app.id, 'Rejected'), variant: 'danger' },
+                            ]} />
                           ) : (
                             <span className={`font-data text-xs font-bold ${isApproved ? 'text-[var(--ok-600)]' : isRejected ? 'text-[var(--err-600)]' : 'text-[var(--warn-600)]'}`}>
                               {app.status}
