@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { MapPin, ArrowLeft, Save, Clock, Map as MapIcon } from 'lucide-react';
@@ -16,8 +16,10 @@ L.Icon.Default.mergeOptions({
 
 export const BranchDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
+  const parentOrgFromQuery = parseInt(searchParams.get('organizationId') || '0', 10);
   
   const [activeTab, setActiveTab] = useState<'details' | 'policy'>('details');
   const [loading, setLoading] = useState(true);
@@ -82,7 +84,7 @@ export const BranchDetails: React.FC = () => {
             });
           } else {
             showError('Not Found', 'Branch not found.');
-            navigate('/settings?tab=company');
+            navigate(parentOrgFromQuery ? `/settings/organizations/${parentOrgFromQuery}` : '/settings?tab=company');
           }
 
           if (policyRes.status === 'fulfilled' && policyRes.value.data) {
@@ -96,7 +98,10 @@ export const BranchDetails: React.FC = () => {
             });
           }
         } else if (orgs.length > 0) {
-           setBranchForm(prev => ({ ...prev, organizationId: orgs[0].id }));
+           const presetOrg = parentOrgFromQuery > 0 && orgs.some((o: any) => o.id === parentOrgFromQuery)
+             ? parentOrgFromQuery
+             : orgs[0].id;
+           setBranchForm(prev => ({ ...prev, organizationId: presetOrg }));
         }
       } catch (err) {
         showError('Error', 'Failed to load branch data.');
@@ -124,7 +129,7 @@ export const BranchDetails: React.FC = () => {
         await apiClient.put(`/masters/branches/${id}`, { ...branchForm, id: parseInt(id!, 10) });
         showSuccess('Updated', 'Branch updated successfully.');
       }
-      navigate('/settings?tab=company');
+      navigate(`/settings/organizations/${branchForm.organizationId}`);
     } catch (err: any) {
       showError('Error', err.response?.data?.message || 'Failed to save branch.');
     } finally {
@@ -162,7 +167,7 @@ export const BranchDetails: React.FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => navigate('/settings?tab=company')}
+            onClick={() => navigate(branchForm.organizationId ? `/settings/organizations/${branchForm.organizationId}` : '/settings?tab=company')}
             className="p-1.5 rounded-md hover:bg-[var(--surface)] text-[var(--ink-muted)] transition-colors cursor-pointer"
           >
             <ArrowLeft size={18} />
@@ -209,28 +214,32 @@ export const BranchDetails: React.FC = () => {
                 <div className="space-y-5">
                   <div>
                     <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Parent Organization <span className="text-rose-500">*</span></label>
-                    <select
-                      value={branchForm.organizationId}
-                      onChange={(e) => setBranchForm({ ...branchForm, organizationId: parseInt(e.target.value, 10) })}
-                      className="input-field w-full text-sm"
-                      required
-                    >
-                      <option value={0} disabled>Select Organization</option>
-                      {organizations.map(org => (
-                        <option key={org.id} value={org.id}>{org.name}</option>
-                      ))}
-                    </select>
+                    {id === 'add' && parentOrgFromQuery <= 0 ? (
+                      <select
+                        value={branchForm.organizationId}
+                        onChange={(e) => setBranchForm({ ...branchForm, organizationId: parseInt(e.target.value, 10) })}
+                        className="input-field w-full text-sm"
+                        required
+                      >
+                        <option value={0} disabled>Select Organization</option>
+                        {organizations.map(org => (
+                          <option key={org.id} value={org.id}>{org.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={organizations.find(org => org.id === branchForm.organizationId)?.name || ''}
+                        className="input-field w-full text-sm bg-[var(--surface-sunken)] text-[var(--ink-muted)] cursor-not-allowed"
+                        readOnly
+                        disabled
+                      />
+                    )}
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Branch Name <span className="text-rose-500">*</span></label>
-                      <input type="text" value={branchForm.name} onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })} className="input-field w-full text-sm" required />
-                    </div>
-                    <div>
-                      <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Branch Code</label>
-                      <input type="text" value={branchForm.code} onChange={(e) => setBranchForm({ ...branchForm, code: e.target.value })} className="input-field w-full font-data text-sm" />
-                    </div>
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Branch Name <span className="text-rose-500">*</span></label>
+                    <input type="text" value={branchForm.name} onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })} className="input-field w-full text-sm" required />
                   </div>
 
                   <div>
@@ -324,7 +333,7 @@ export const BranchDetails: React.FC = () => {
               <div className="pt-4 border-t border-[var(--rule)] flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => navigate('/settings?tab=company')}
+                  onClick={() => navigate(branchForm.organizationId ? `/settings/organizations/${branchForm.organizationId}` : '/settings?tab=company')}
                   className="btn-secondary py-2 px-4"
                 >
                   Cancel

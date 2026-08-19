@@ -2,17 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { Building2, ArrowLeft, Save } from 'lucide-react';
+import { ArchiveActionButton } from '../../components/ui/ArchiveActionButton';
+import { RolesPermissionsTab } from '../../components/settings/RolesPermissionsTab';
+import { Building2, ArrowLeft, Save, Plus, MapPin, Shield, Trash2, Edit2, X } from 'lucide-react';
 
 export const OrganizationDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  
-  const [activeTab, setActiveTab] = useState<'details' | 'policy'>('details');
+  const isNew = id === 'new';
+
+  const [activeTab, setActiveTab] = useState<'details' | 'branches' | 'policy'>(isNew ? 'details' : 'branches');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranchForPermissions, setSelectedBranchForPermissions] = useState<any | null>(null);
+
   const [orgForm, setOrgForm] = useState({
     name: '',
     code: '',
@@ -27,7 +32,7 @@ export const OrganizationDetails: React.FC = () => {
         const res = await apiClient.get('/masters/overview');
         const orgs = res.data.organizations || [];
         const org = orgs.find((o: any) => o.id === parseInt(id || '0', 10));
-        
+
         if (org) {
           setOrgForm({
             name: org.name,
@@ -35,6 +40,22 @@ export const OrganizationDetails: React.FC = () => {
             address: org.address || '',
             isActive: org.isActive !== false,
           });
+          const orgBranches = (res.data.branches || [])
+            .filter((b: any) => b.organizationId === org.id)
+            .map((b: any) => ({
+              id: b.id,
+              organizationId: b.organizationId,
+              name: b.name,
+              code: b.code || '',
+              address: b.address || '',
+              city: b.city || '',
+              state: b.state || '',
+              latitude: b.latitude,
+              longitude: b.longitude,
+              radiusMeters: b.radiusMeters || 100,
+              isActive: b.isActive !== false,
+            }));
+          setBranches(orgBranches);
         } else {
           showError('Not Found', 'Organization not found.');
           navigate('/settings?tab=company');
@@ -45,7 +66,7 @@ export const OrganizationDetails: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     if (id && id !== 'new') {
       fetchOrg();
     } else {
@@ -65,15 +86,25 @@ export const OrganizationDetails: React.FC = () => {
       if (id === 'new') {
         await apiClient.post('/masters/organizations', orgForm);
         showSuccess('Created', 'Organization created successfully.');
+        navigate('/settings?tab=company');
       } else {
         await apiClient.put(`/masters/organizations/${id}`, { ...orgForm, id: parseInt(id!, 10) });
         showSuccess('Updated', 'Organization updated successfully.');
       }
-      navigate('/settings?tab=company');
     } catch (err: any) {
       showError('Error', err.response?.data?.message || 'Failed to save organization.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteBranch = async (branchId: number) => {
+    try {
+      await apiClient.delete(`/masters/branches/${branchId}`);
+      setBranches(branches.filter(b => b.id !== branchId));
+      showSuccess('Branch Deleted', 'Branch removed.');
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Server error');
     }
   };
 
@@ -85,7 +116,7 @@ export const OrganizationDetails: React.FC = () => {
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => navigate('/settings?tab=company')}
             className="p-1.5 rounded-md hover:bg-[var(--surface)] text-[var(--ink-muted)] transition-colors cursor-pointer"
           >
@@ -94,10 +125,10 @@ export const OrganizationDetails: React.FC = () => {
           <div>
             <h1 className="text-2xl font-display font-semibold text-[var(--ink)] flex items-center gap-2">
               <Building2 className="text-indigo-600" size={24} />
-              {id === 'new' ? 'New Organization' : orgForm.name}
+              {isNew ? 'New Organization' : orgForm.name}
             </h1>
             <p className="text-xs text-[var(--ink-muted)] mt-1">
-              Manage organization details and overarching company policies.
+              Manage organization details, branches, and company policies.
             </p>
           </div>
         </div>
@@ -113,7 +144,17 @@ export const OrganizationDetails: React.FC = () => {
           >
             Organization Details
           </button>
-          {id !== 'new' && (
+          {!isNew && (
+            <button
+              className={`px-4 py-3 text-xs font-semibold cursor-pointer border-b-2 transition-colors ${
+                activeTab === 'branches' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              }`}
+              onClick={() => setActiveTab('branches')}
+            >
+              Branches
+            </button>
+          )}
+          {!isNew && (
             <button
               className={`px-4 py-3 text-xs font-semibold cursor-pointer border-b-2 transition-colors ${
                 activeTab === 'policy' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
@@ -128,30 +169,18 @@ export const OrganizationDetails: React.FC = () => {
         <div className="p-6">
           {activeTab === 'details' && (
             <form onSubmit={handleSave} className="space-y-6 max-w-2xl">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Organization Name <span className="text-rose-500">*</span></label>
-                  <input
-                    type="text"
-                    value={orgForm.name}
-                    onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })}
-                    placeholder="e.g. Acme Corp"
-                    className="input-field w-full text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Organization Code</label>
-                  <input
-                    type="text"
-                    value={orgForm.code}
-                    onChange={(e) => setOrgForm({ ...orgForm, code: e.target.value })}
-                    placeholder="e.g. ACME"
-                    className="input-field w-full font-data text-sm"
-                  />
-                </div>
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Organization Name <span className="text-rose-500">*</span></label>
+                <input
+                  type="text"
+                  value={orgForm.name}
+                  onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })}
+                  placeholder="e.g. Acme Corp"
+                  className="input-field w-full text-sm"
+                  required
+                />
               </div>
-              
+
               <div>
                 <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Registered Address</label>
                 <textarea
@@ -192,12 +221,91 @@ export const OrganizationDetails: React.FC = () => {
             </form>
           )}
 
+          {activeTab === 'branches' && !isNew && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-sm text-[var(--ink)]">Branches</h3>
+                  <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+                    Sites and offices under this organization. Open a branch to edit details and attendance policy.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate(`/settings/branches/add?organizationId=${id}`)}
+                  className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={13} /><span>Add Branch</span>
+                </button>
+              </div>
+
+              {branches.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-10 text-xs text-[var(--ink-muted)] border border-dashed border-[var(--rule)] rounded-md">
+                  <MapPin size={20} className="text-indigo-300" />
+                  <span>No branches under <strong>{orgForm.name}</strong> yet.</span>
+                  <button
+                    onClick={() => navigate(`/settings/branches/add?organizationId=${id}`)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] bg-indigo-600 text-white text-[11px] font-semibold hover:bg-indigo-700 cursor-pointer transition-colors"
+                  >
+                    <Plus size={11} />Add First Branch
+                  </button>
+                </div>
+              ) : (
+                <div className="border border-[var(--rule)] rounded-md divide-y divide-[var(--rule)]">
+                  {branches.map((branch) => (
+                    <div key={branch.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--paper)]/60 transition-colors">
+                      <div className="w-8 h-8 rounded-[3px] bg-indigo-600/10 text-indigo-600 flex items-center justify-center shrink-0">
+                        <MapPin size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-[var(--ink)]">{branch.name}</span>
+                          {branch.isActive !== false
+                            ? <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Active</span>
+                            : <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-800">Archived</span>
+                          }
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5 text-[10px] text-[var(--ink-muted)]">
+                          {branch.city && <span>{branch.city}{branch.state ? ', ' + branch.state : ''}</span>}
+                          {branch.address && <span className="truncate max-w-xs">{branch.address}</span>}
+                          {branch.latitude && <span className="font-data flex items-center gap-0.5"><MapPin size={9} className="text-indigo-400" />{Number(branch.latitude).toFixed(4)}, {Number(branch.longitude).toFixed(4)} ({branch.radiusMeters}m)</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => setSelectedBranchForPermissions({ id: branch.id, name: branch.name, code: branch.code, orgName: orgForm.name })}
+                          className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-indigo-600 cursor-pointer transition-colors"
+                          title="Branch Roles & Permissions"
+                        >
+                          <Shield size={13} />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/settings/branches/${branch.id}`)}
+                          className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors"
+                          title="Branch Settings"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <ArchiveActionButton
+                          isArchived={branch.isActive === false}
+                          onArchive={async () => { try { await apiClient.put(`/masters/branches/${branch.id}`, { ...branch, isActive: false }); setBranches(branches.map(b => b.id === branch.id ? { ...b, isActive: false } : b)); showSuccess('Archived', `${branch.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
+                          onRestore={async () => { try { await apiClient.put(`/masters/branches/${branch.id}`, { ...branch, isActive: true }); setBranches(branches.map(b => b.id === branch.id ? { ...b, isActive: true } : b)); showSuccess('Restored', `${branch.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
+                          itemName={branch.name}
+                        />
+                        <button onClick={() => handleDeleteBranch(branch.id)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors" title="Delete Branch"><Trash2 size={13} /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'policy' && (
             <div className="space-y-4 max-w-3xl text-sm">
               <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
                 <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Leave Application Rules</h4>
                 <p className="text-[var(--ink-muted)] mb-4">Configure global constraints for employee leave applications across this organization.</p>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -215,7 +323,7 @@ export const OrganizationDetails: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
                 <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Probation & Confirmation</h4>
                 <div className="space-y-4">
@@ -228,7 +336,7 @@ export const OrganizationDetails: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="pt-4 flex justify-end">
                 <button className="btn-primary py-2 px-6 flex items-center gap-2">
                   <Save size={16} /> Save Policies
@@ -238,6 +346,43 @@ export const OrganizationDetails: React.FC = () => {
           )}
         </div>
       </div>
+
+      {selectedBranchForPermissions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 sm:p-6 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--rule)] bg-[var(--paper)]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center font-bold text-xs shrink-0">
+                  <Shield size={16} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display font-semibold text-base text-[var(--ink)]">
+                      {selectedBranchForPermissions.name}
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/60">
+                      Branch • {selectedBranchForPermissions.orgName || 'Organization'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
+                    Branch-level Roles, Custom Profiles & Granular Data Scopes
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedBranchForPermissions(null)}
+                className="p-1.5 rounded text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer hover:bg-[var(--surface)] transition-colors"
+                title="Close Modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 bg-[var(--surface)]">
+              <RolesPermissionsTab />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

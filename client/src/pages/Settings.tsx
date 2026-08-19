@@ -9,7 +9,6 @@ import { DataTable, type ColumnDef } from '../components/ui/DataTable';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
-import { RolesPermissionsTab } from '../components/settings/RolesPermissionsTab';
 import {
   Building2,
   CalendarCheck,
@@ -21,8 +20,6 @@ import {
   Edit2,
   Layers,
   Award,
-  Eye,
-  Shield,
 } from 'lucide-react';
 
 export const Settings: React.FC = () => {
@@ -31,7 +28,6 @@ export const Settings: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'company' | 'departments' | 'designations' | 'leaves' | 'shifts'>('company');
-  const [selectedBranchForPermissions, setSelectedBranchForPermissions] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -79,7 +75,6 @@ export const Settings: React.FC = () => {
 
   // 1b. Branches (sub-locations under an organization)
   const [branches, setBranches] = useState<any[]>([]);
-  const [expandedOrgId, setExpandedOrgId] = useState<number | null>(null);
 
 
 
@@ -134,9 +129,6 @@ export const Settings: React.FC = () => {
             status: o.isActive !== false ? 'Active' : 'Inactive',
           }));
           setOrganizations(orgList);
-          if (orgList.length > 0) {
-            setExpandedOrgId(prev => prev ?? orgList[0].id);
-          }
         }
         if (res.data.branches) {
           setBranches(res.data.branches.map((b: any) => ({
@@ -213,26 +205,6 @@ export const Settings: React.FC = () => {
     showSuccess('Organization Deleted', 'Organization profile removed.');
   };
 
-
-  // Branch handlers
-  const handleOpenCreateBranch = () => {
-    navigate('/settings/branches/add');
-  };
-
-  const handleOpenEditBranch = (b: any) => {
-    navigate(`/settings/branches/${b.id}`);
-  };
-
-
-  const handleDeleteBranch = async (id: number) => {
-    try {
-      await apiClient.delete(`/masters/branches/${id}`);
-      setBranches(branches.filter(b => b.id !== id));
-      showSuccess('Branch Deleted', 'Branch removed.');
-    } catch (err: any) {
-      showError('Failed', err.response?.data?.message || 'Server error');
-    }
-  };
 
   const handleSaveCompany = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -804,20 +776,18 @@ export const Settings: React.FC = () => {
 
       {/* 3. Tab Views */}
 
-      {/* Tab 1: Organizations → Branches (accordion) */}
+      {/* Tab 1: Organizations list */}
       {activeTab === 'company' && (
         <div className="space-y-4">
-          {/* Organizations + nested Branches accordion */}
           <div className="space-y-3">
-            {/* Section header + add org button */}
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
                   <Building2 size={15} className="text-[var(--gold-500)]" />
-                  <span>Organizations &amp; Their Branches</span>
+                  <span>Organizations</span>
                 </h3>
                 <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                  Each Organization can have multiple Branches (offices, sites). Branches inherit their Organization's settings.
+                  Open an organization to manage its branches and branch settings.
                 </p>
               </div>
               <button onClick={handleOpenCreateOrg} className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer">
@@ -825,16 +795,14 @@ export const Settings: React.FC = () => {
               </button>
             </div>
 
-            {/* Search */}
             <input
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Search Organizations or branches…"
+              placeholder="Search organizations…"
               className="input-field w-full max-w-xs text-xs"
             />
 
-            {/* Accordion list */}
             {loading ? (
               <div className="text-xs text-[var(--ink-muted)] py-6 text-center">Loading…</div>
             ) : filteredOrgs.length === 0 ? (
@@ -845,33 +813,19 @@ export const Settings: React.FC = () => {
               <div className="space-y-3">
                 {filteredOrgs.map((org) => {
                   const orgBranches = branches.filter(b => b.organizationId === org.id);
-                  const isExpanded = expandedOrgId === org.id;
                   return (
                     <div key={org.id} className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-                      {/* Org row header */}
-                      <div className="flex items-center gap-3 px-4 py-3 bg-[var(--paper)]">
-                        {/* Expand/collapse toggle */}
-                        <button
-                          onClick={() => setExpandedOrgId(isExpanded ? null : org.id)}
-                          className="text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
-                          title={isExpanded ? 'Collapse branches' : 'Expand branches'}
-                        >
-                          {isExpanded
-                            ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            : <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                          }
-                        </button>
-
-                        {/* Org icon */}
+                      <div
+                        className="flex items-center gap-3 px-4 py-3 bg-[var(--paper)] cursor-pointer hover:bg-[var(--surface)] transition-colors"
+                        onClick={() => handleOpenEditOrg(org)}
+                      >
                         <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center shrink-0">
                           <Building2 size={14} />
                         </div>
 
-                        {/* Org info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm text-[var(--ink)]">{org.name}</span>
-                            <span className="font-data text-[10px] px-1.5 py-0.5 rounded-[2px] bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink-muted)]">{org.code}</span>
                             {org.isActive !== false
                               ? <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Active</span>
                               : <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">Archived</span>
@@ -879,24 +833,12 @@ export const Settings: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[var(--ink-muted)]">
                             {org.address && <span className="flex items-center gap-1"><MapPin size={10} />{org.address}</span>}
-                            <span className="flex items-center gap-1">
-                              <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="1" stroke="currentColor" strokeWidth="1.5"/><path d="M1 6h12" stroke="currentColor" strokeWidth="1.5"/></svg>
-                              {orgBranches.length} {orgBranches.length === 1 ? 'branch' : 'branches'}
-                            </span>
+                            <span>{orgBranches.length} {orgBranches.length === 1 ? 'branch' : 'branches'}</span>
                           </div>
                         </div>
 
-                        {/* Org actions */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          {/* Add Branch to this org */}
-                          <button
-                            onClick={() => { handleOpenCreateBranch(); }}
-                            className="flex items-center gap-1 px-2 py-1 rounded-[2px] text-[11px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors cursor-pointer"
-                            title="Add branch to this Organization"
-                          >
-                            <Plus size={11} /><span>Add Branch</span>
-                          </button>
-                          <button onClick={() => handleOpenEditOrg(org)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors" title="Edit Organization"><Edit2 size={13} /></button>
+                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => handleOpenEditOrg(org)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors" title="Open Organization"><Edit2 size={13} /></button>
                           <ArchiveActionButton
                             isArchived={org.isActive === false}
                             onArchive={async () => { try { await apiClient.put(`/masters/organizations/${org.id}`, { ...org, isActive: false }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: false } : o)); showSuccess('Archived', `${org.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
@@ -906,68 +848,6 @@ export const Settings: React.FC = () => {
                           <button onClick={() => handleDeleteOrg(org.id)} className="p-1.5 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors" title="Delete Organization"><Trash2 size={13} /></button>
                         </div>
                       </div>
-
-                      {/* Nested branches (only when expanded) */}
-                      {isExpanded && (
-                        <div className="border-t border-[var(--rule)]">
-                          {orgBranches.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center gap-2 py-6 text-xs text-[var(--ink-muted)]">
-                              <MapPin size={20} className="text-indigo-300" />
-                              <span>No branches under <strong>{org.name}</strong> yet.</span>
-                              <button
-                                onClick={() => handleOpenCreateBranch()}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] bg-indigo-600 text-white text-[11px] font-semibold hover:bg-indigo-700 cursor-pointer transition-colors"
-                              >
-                                <Plus size={11} />Add First Branch
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="divide-y divide-[var(--rule)]">
-                              {orgBranches.map((branch) => (
-                                <div key={branch.id} className="flex items-center gap-3 px-4 py-2.5 pl-12 hover:bg-[var(--paper)]/60 transition-colors">
-                                  {/* Branch indent line */}
-                                  <div className="w-5 h-5 rounded-[3px] bg-indigo-600/10 text-indigo-600 flex items-center justify-center shrink-0">
-                                    <MapPin size={11} />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-semibold text-xs text-[var(--ink)]">{branch.name}</span>
-
-                                      {branch.isActive !== false
-                                        ? <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Active</span>
-                                        : <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-800">Archived</span>
-                                      }
-                                    </div>
-                                    <div className="flex items-center gap-3 mt-0.5 text-[10px] text-[var(--ink-muted)]">
-                                      {branch.city && <span>{branch.city}{branch.state ? ', ' + branch.state : ''}</span>}
-                                      {branch.address && <span className="truncate max-w-xs">{branch.address}</span>}
-                                      {branch.latitude && <span className="font-data flex items-center gap-0.5"><MapPin size={9} className="text-indigo-400" />{branch.latitude.toFixed(4)}, {branch.longitude.toFixed(4)} ({branch.radiusMeters}m)</span>}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      onClick={() => setSelectedBranchForPermissions({ id: branch.id, name: branch.name, code: branch.code, orgName: org.name })}
-                                      className="p-1 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-indigo-600 cursor-pointer transition-colors"
-                                      title="Branch Roles & Permissions"
-                                    >
-                                      <Shield size={12} />
-                                    </button>
-                                    <button onClick={() => navigate(`/settings/branches/${branch.id}`)} className="p-1 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-indigo-600 cursor-pointer transition-colors" title="View Details"><Eye size={12} /></button>
-                                    <button onClick={() => handleOpenEditBranch(branch)} className="p-1 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors" title="Edit Branch"><Edit2 size={12} /></button>
-                                    <ArchiveActionButton
-                                      isArchived={branch.isActive === false}
-                                      onArchive={async () => { try { await apiClient.put(`/masters/branches/${branch.id}`, { ...branch, isActive: false }); setBranches(branches.map(b => b.id === branch.id ? { ...b, isActive: false } : b)); showSuccess('Archived', `${branch.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
-                                      onRestore={async () => { try { await apiClient.put(`/masters/branches/${branch.id}`, { ...branch, isActive: true }); setBranches(branches.map(b => b.id === branch.id ? { ...b, isActive: true } : b)); showSuccess('Restored', `${branch.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }}
-                                      itemName={branch.name}
-                                    />
-                                    <button onClick={() => handleDeleteBranch(branch.id)} className="p-1 rounded hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors" title="Delete Branch"><Trash2 size={12} /></button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -1431,51 +1311,6 @@ export const Settings: React.FC = () => {
           fetchOverview();
         }}
       />
-
-      {/* 7. Branch Roles & Permissions Governance Modal */}
-      {selectedBranchForPermissions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 sm:p-6 animate-in fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--rule)] bg-[var(--paper)]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center font-bold text-xs shrink-0">
-                  <Shield size={16} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-display font-semibold text-base text-[var(--ink)]">
-                      {selectedBranchForPermissions.name}
-                    </h3>
-                    <span className="font-data text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink-muted)]">
-                      {selectedBranchForPermissions.code}
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/60">
-                      Branch • {selectedBranchForPermissions.orgName || 'Organization'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
-                    Branch-level Roles, Custom Profiles & Granular Data Scopes
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setSelectedBranchForPermissions(null)}
-                className="p-1.5 rounded text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer hover:bg-[var(--surface)] transition-colors"
-                title="Close Modal"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Scrollable Modal Body */}
-            <div className="p-6 overflow-y-auto flex-1 bg-[var(--surface)]">
-              <RolesPermissionsTab />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 8. Edit Corporate Profile Modal */}
       {companyModalOpen && (

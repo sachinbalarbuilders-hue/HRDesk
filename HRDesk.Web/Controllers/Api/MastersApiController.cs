@@ -707,10 +707,6 @@ public class MastersController : ControllerBase
         var branch = await _db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == id);
         if (branch == null) return NotFound(new { message = "Branch not found." });
 
-        if (dto.OrganizationId.HasValue && dto.OrganizationId.Value > 0)
-        {
-            branch.OrganizationId = dto.OrganizationId.Value;
-        }
         if (!string.IsNullOrWhiteSpace(dto.Name)) branch.Name = dto.Name.Trim();
         branch.Code = dto.Code?.Trim();
         branch.Address = dto.Address?.Trim();
