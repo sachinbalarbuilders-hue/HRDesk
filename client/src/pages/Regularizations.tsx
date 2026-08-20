@@ -5,9 +5,12 @@ import { useToast } from '../context/ToastContext';
 import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
+import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import {
   Clock,
   Plus,
@@ -49,6 +52,7 @@ export const Regularizations: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [totalCount, setTotalCount] = useState(0);
@@ -79,6 +83,7 @@ export const Regularizations: React.FC = () => {
     punchTimeOut: '18:00',
     waivePenalty: true,
     reason: '',
+    document: null as File | null,
   });
 
   // Live Punch Preview State
@@ -96,7 +101,7 @@ export const Regularizations: React.FC = () => {
       setLoading(true);
       const res = await apiClient.get('/regularizations', {
         params: {
-          status: statusFilter !== 'all' ? statusFilter : undefined,
+          status: statusFilter !== 'all' ? statusFilter : (archiveFilter === 'active' ? 'Pending' : archiveFilter === 'archived' ? 'closed' : undefined),
           search: search || undefined,
           branchId: currentBranch?.id || undefined,
           page,
@@ -142,7 +147,7 @@ export const Regularizations: React.FC = () => {
   useEffect(() => {
     setSelectedIds([]);
     fetchData();
-  }, [statusFilter, search, currentOrganization?.id, currentBranch?.id, page, pageSize]);
+  }, [statusFilter, archiveFilter, search, currentOrganization?.id, currentBranch?.id, page, pageSize]);
 
   useEffect(() => {
     const handleReload = () => {
@@ -305,23 +310,8 @@ export const Regularizations: React.FC = () => {
   const canManage = isAdmin || hasPermission('Attendance.Regularize');
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header Section */}
-      <div className="border-b border-[var(--rule)] pb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono tracking-widest text-[var(--accent)] uppercase font-semibold">
-            Time & Attendance Register
-          </span>
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
-          <span className="text-[11px] font-mono text-[var(--ink-muted)]">Official Punch Adjustments</span>
-        </div>
-        <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink)] mt-1">
-          Attendance Regularization Register
-        </h1>
-        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-          Audit and rectify missed biometric punches, waive penalties, and update official muster rolls.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader title="Regularizations" description="Attendance correction requests" />
 
 
       {/* 3. Toolbar & Filters */}
@@ -330,6 +320,10 @@ export const Regularizations: React.FC = () => {
           searchPlaceholder="Search employee, application #, or reason..."
           searchValue={search}
           onSearchChange={setSearch}
+          archiveFilter={{
+            value: archiveFilter,
+            onChange: (v) => { setArchiveFilter(v); setPage(1); },
+          }}
           filters={[
             {
               id: 'status',
@@ -558,29 +552,29 @@ export const Regularizations: React.FC = () => {
       {/* 5. APPLY REGULARIZATION MODAL */}
       {/* ========================================================================= */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper-subtle)]">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-[1px]">
+          <div className="w-full max-w-[480px] bg-[var(--surface)] h-full shadow-[var(--shadow-xl)] flex flex-col border-l border-[var(--border)] animate-slide-in-right">
+            <div className="p-5 pb-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
               <div>
-                <h3 className="font-serif font-bold text-base text-[var(--ink)]">Apply Attendance Regularization</h3>
-                <p className="text-[11px] text-[var(--ink-muted)]">Correct missed punches, early exit, or late arrivals.</p>
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">Apply Attendance Regularization</h3>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Correct missed punches, early exit, or late arrivals.</p>
               </div>
               <button
                 onClick={() => setCreateModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[var(--paper)] text-[var(--ink-muted)]"
+                className="p-1.5 rounded-[var(--radius-md)] hover:bg-[var(--surface-secondary)] text-[var(--text-muted)] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitRegularization} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleSubmitRegularization} className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
               {/* Employee Selection */}
               <div>
                 <label className="block font-semibold text-[var(--ink)] mb-1">Select Employee *</label>
                 <select
                   value={regForm.employeeId}
                   onChange={(e) => setRegForm({ ...regForm, employeeId: parseInt(e.target.value) || 0 })}
-                  className="input-field w-full font-medium"
+                  className="register-input w-full font-medium"
                   required
                 >
                   {employees.map((e) => (
@@ -599,7 +593,7 @@ export const Regularizations: React.FC = () => {
                     type="date"
                     value={regForm.requestDate}
                     onChange={(e) => setRegForm({ ...regForm, requestDate: e.target.value })}
-                    className="input-field w-full font-mono"
+                    className="register-input w-full font-mono"
                     required
                   />
                 </div>
@@ -608,45 +602,44 @@ export const Regularizations: React.FC = () => {
                   <select
                     value={regForm.requestType}
                     onChange={(e) => setRegForm({ ...regForm, requestType: e.target.value })}
-                    className="input-field w-full"
+                    className="register-input w-full"
                   >
                     <option value="Missed Punch">Missed Punch</option>
                     <option value="Late Coming">Late Arrival</option>
                     <option value="Early Go">Early Departure</option>
-                    <option value="On Duty (OD)">Official Duty (OD)</option>
-                    <option value="Machine Issue">Biometric Glitch</option>
                   </select>
                 </div>
               </div>
 
               {/* Live Punch Information Box */}
               {punchPreview && (
-                <div className="bg-[var(--paper-subtle)] border border-[var(--rule)] p-3 rounded-lg text-[11px] space-y-1.5 font-mono">
-                  <div className="flex items-center justify-between text-[var(--ink-muted)]">
-                    <span className="flex items-center gap-1 font-semibold text-[var(--ink)]">
+                <div className="bg-[var(--surface-secondary)] border border-[var(--border)] p-3 rounded-[var(--radius-md)] text-[11px] space-y-1.5 font-data">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 font-semibold text-[var(--text-primary)]">
                       <Info className="w-3.5 h-3.5 text-[var(--accent)]" /> Recorded Status:
                     </span>
-                    <span className="px-1.5 py-0.5 rounded bg-[var(--paper)] font-bold text-[var(--accent)]">
+                    <span className="px-1.5 py-0.5 rounded-[var(--radius-sm)] bg-[var(--surface)] font-bold text-[var(--accent)]">
                       {punchPreview.currentStatus}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[var(--rule)] text-[10px]">
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[var(--border)] text-[10px]">
                     <div>
-                      Existing In: <span className="font-bold text-emerald-600">{punchPreview.existingInTime || 'No punch'}</span>
+                      Existing In: <span className="font-bold text-[var(--success)]">{punchPreview.existingInTime || 'No punch'}</span>
                     </div>
                     <div>
-                      Existing Out: <span className="font-bold text-indigo-600">{punchPreview.existingOutTime || 'No punch'}</span>
+                      Existing Out: <span className="font-bold text-[var(--text-primary)]">{punchPreview.existingOutTime || 'No punch'}</span>
                     </div>
                   </div>
                   {punchPreview.shift && (
-                    <div className="text-[10px] text-[var(--ink-muted)]">
+                    <div className="text-[10px] text-[var(--text-muted)]">
                       Assigned Shift: {punchPreview.shift.name} ({punchPreview.shift.startTime} - {punchPreview.shift.endTime})
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Punch Target */}
+              {/* Punch Target — only for Missed Punch */}
+              {regForm.requestType === 'Missed Punch' && (
               <div>
                 <label className="block font-semibold text-[var(--ink)] mb-1">Correction Target *</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -685,45 +678,38 @@ export const Regularizations: React.FC = () => {
                   </button>
                 </div>
               </div>
+              )}
 
-              {/* Time Inputs */}
+              {/* Time Inputs — only for Missed Punch */}
+              {regForm.requestType === 'Missed Punch' && (
               <div className="grid grid-cols-2 gap-3">
                 {(regForm.punchTarget === 'in' || regForm.punchTarget === 'both') && (
                   <div>
-                    <label className="block font-semibold text-emerald-600 mb-1">Corrected In-Time *</label>
+                    <label className="block font-semibold text-[var(--text-primary)] mb-1">Corrected In-Time *</label>
                     <input
                       type="time"
                       value={regForm.punchTimeIn}
                       onChange={(e) => setRegForm({ ...regForm, punchTimeIn: e.target.value })}
-                      className="input-field w-full font-mono"
+                      className="register-input w-full font-mono"
                       required
                     />
                   </div>
                 )}
                 {(regForm.punchTarget === 'out' || regForm.punchTarget === 'both') && (
                   <div>
-                    <label className="block font-semibold text-indigo-600 mb-1">Corrected Out-Time *</label>
+                    <label className="block font-semibold text-[var(--text-primary)] mb-1">Corrected Out-Time *</label>
                     <input
                       type="time"
                       value={regForm.punchTimeOut}
                       onChange={(e) => setRegForm({ ...regForm, punchTimeOut: e.target.value })}
-                      className="input-field w-full font-mono"
+                      className="register-input w-full font-mono"
                       required
                     />
                   </div>
                 )}
               </div>
+              )}
 
-              {/* Waive Penalty Toggle */}
-              <label className="flex items-center gap-2 cursor-pointer pt-1">
-                <input
-                  type="checkbox"
-                  checked={regForm.waivePenalty}
-                  onChange={(e) => setRegForm({ ...regForm, waivePenalty: e.target.checked })}
-                  className="rounded border-[var(--rule)] text-[var(--accent)]"
-                />
-                <span className="font-medium text-[var(--ink)]">Waive Loss-of-Pay (LOP) penalty for this adjustment</span>
-              </label>
 
               {/* Reason */}
               <div>
@@ -733,9 +719,33 @@ export const Regularizations: React.FC = () => {
                   onChange={(e) => setRegForm({ ...regForm, reason: e.target.value })}
                   placeholder="Explain why the punch was missed or needs adjustment..."
                   rows={2}
-                  className="input-field w-full"
+                  className="register-input w-full"
                   required
                 />
+              </div>
+
+              {/* Document Upload */}
+              <div>
+                <label className="block font-semibold text-[var(--text-primary)] mb-1">Supporting Document</label>
+                <div className="border border-dashed border-[var(--border)] rounded-[var(--radius-md)] p-4 text-center hover:border-[var(--accent)] hover:bg-[var(--surface-secondary)] cursor-pointer transition-colors">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={(e) => setRegForm({ ...regForm, document: e.target.files?.[0] || null })}
+                    className="hidden"
+                    id="reg-doc-upload"
+                  />
+                  <label htmlFor="reg-doc-upload" className="cursor-pointer">
+                    {regForm.document ? (
+                      <div className="text-sm font-medium text-[var(--accent)]">{regForm.document.name}</div>
+                    ) : (
+                      <>
+                        <div className="text-sm text-[var(--text-secondary)]">Click to upload proof</div>
+                        <div className="text-[11px] text-[var(--text-muted)] mt-0.5">PDF, JPG, PNG, DOC (max 5MB)</div>
+                      </>
+                    )}
+                  </label>
+                </div>
               </div>
 
               {/* Buttons */}
@@ -777,7 +787,7 @@ export const Regularizations: React.FC = () => {
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="e.g. Unverified biometric punch / Inadequate documentation..."
               rows={3}
-              className="input-field w-full text-xs"
+              className="register-input w-full text-xs"
               required
             />
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -831,6 +841,6 @@ export const Regularizations: React.FC = () => {
           fetchData();
         }}
       />
-    </div>
+    </PageContainer>
   );
 };

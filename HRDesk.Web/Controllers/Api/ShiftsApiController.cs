@@ -45,6 +45,8 @@ public class ShiftsController : ControllerBase
         DateOnly EndDate,
         int? ShiftId,
         bool IsWeekOff,
+        bool Overwrite = false,
+        bool UpdateMasterShift = false,
         int? BranchId = null
     );
 
@@ -259,32 +261,73 @@ public class ShiftsController : ControllerBase
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var targetBranch = dto.BranchId ?? _tenantProvider.BranchId;
 
+        // Update master shift assignment if requested
+        if (dto.UpdateMasterShift && dto.ShiftId.HasValue)
+        {
+            var currentAssignments = await _db.EmployeeShiftAssignments
+                .Where(a => dto.EmployeeIds.Contains(a.EmployeeId) && a.ToDate == null)
+                .ToListAsync();
+
+            foreach (var empId in dto.EmployeeIds)
+            {
+                var existing = currentAssignments.FirstOrDefault(a => a.EmployeeId == empId);
+                if (existing != null)
+                {
+                    existing.ToDate = dto.StartDate.AddDays(-1);
+                }
+
+                _db.EmployeeShiftAssignments.Add(new EmployeeShiftAssignment
+                {
+                    OrganizationId = orgId,
+                    BranchId = targetBranch,
+                    EmployeeId = empId,
+                    ShiftId = dto.ShiftId.Value,
+                    FromDate = dto.StartDate,
+                    ToDate = null,
+                    CreatedAt = DateTime.Now
+                });
+            }
+        }
+
         var existingRosters = await _db.ShiftRosters
             .Where(r => dto.EmployeeIds.Contains(r.EmployeeId) && r.RosterDate >= dto.StartDate && r.RosterDate <= dto.EndDate)
             .ToListAsync();
 
-        _db.ShiftRosters.RemoveRange(existingRosters);
+        if (dto.Overwrite)
+        {
+            _db.ShiftRosters.RemoveRange(existingRosters);
+        }
+
+        var existingDates = dto.Overwrite
+            ? new HashSet<string>()
+            : existingRosters.Select(r => $"{r.EmployeeId}_{r.RosterDate}").ToHashSet();
 
         var employees = await _db.Employees
             .Where(e => dto.EmployeeIds.Contains(e.EmployeeId))
-            .ToDictionaryAsync(e => e.EmployeeId, e => e.BranchId);
+            .Select(e => new { e.EmployeeId, e.BranchId, e.Weekoff })
+            .ToListAsync();
 
         var newRosters = new List<ShiftRoster>();
-        foreach (var empId in dto.EmployeeIds)
+        foreach (var emp in employees)
         {
-            employees.TryGetValue(empId, out var empBranch);
-            var branchToSet = targetBranch ?? empBranch;
+            var branchToSet = targetBranch ?? emp.BranchId;
 
             for (var d = dto.StartDate; d <= dto.EndDate; d = d.AddDays(1))
             {
+                var key = $"{emp.EmployeeId}_{d}";
+                if (!dto.Overwrite && existingDates.Contains(key)) continue;
+
+                var isWeekoff = dto.IsWeekOff || (!string.IsNullOrWhiteSpace(emp.Weekoff) &&
+                    emp.Weekoff.Trim().Equals(d.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase));
+
                 newRosters.Add(new ShiftRoster
                 {
                     OrganizationId = orgId,
                     BranchId = branchToSet,
-                    EmployeeId = empId,
-                    ShiftId = dto.IsWeekOff ? null : dto.ShiftId,
+                    EmployeeId = emp.EmployeeId,
+                    ShiftId = isWeekoff ? null : dto.ShiftId,
                     RosterDate = d,
-                    IsWeekOff = dto.IsWeekOff,
+                    IsWeekOff = isWeekoff,
                     CreatedAt = DateTime.Now
                 });
             }
@@ -293,6 +336,6 @@ public class ShiftsController : ControllerBase
         _db.ShiftRosters.AddRange(newRosters);
         await _db.SaveChangesAsync();
 
-        return Ok(new { message = $"Successfully assigned roster across {newRosters.Count} date-slots.", count = newRosters.Count });
+        return Ok(new { message = $"Roster generated for {dto.EmployeeIds.Count} employee(s) across {newRosters.Count} date-slots.", count = newRosters.Count });
     }
 }

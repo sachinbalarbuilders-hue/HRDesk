@@ -258,7 +258,7 @@ export const OrganizationDetails: React.FC = () => {
                   value={orgForm.name}
                   onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })}
                   placeholder="e.g. Acme Corp"
-                  className="input-field w-full text-sm"
+                  className="register-input w-full text-sm"
                   required
                 />
               </div>
@@ -269,7 +269,7 @@ export const OrganizationDetails: React.FC = () => {
                   value={orgForm.address}
                   onChange={(e) => setOrgForm({ ...orgForm, address: e.target.value })}
                   placeholder="Full registered address"
-                  className="input-field w-full text-sm min-h-[80px]"
+                  className="register-input w-full text-sm min-h-[80px]"
                 />
               </div>
 
@@ -342,8 +342,8 @@ export const OrganizationDetails: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm text-[var(--ink)]">{branch.name}</span>
                           {branch.isActive !== false
-                            ? <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Active</span>
-                            : <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-800">Archived</span>
+                            ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--ok-600)]"><span className="status-dot-ok" /> Active</span>
+                            : <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--warn-600)]"><span className="status-dot-warn" /> Archived</span>
                           }
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-[10px] text-[var(--ink-muted)]">
@@ -385,7 +385,7 @@ export const OrganizationDetails: React.FC = () => {
                         const start = Number(e.target.value);
                         setPolicyForm({ ...policyForm, yearStartMonth: start, yearEndMonth: endMonthFromStart(start) });
                       }}
-                      className="input-field w-full text-sm"
+                      className="register-input w-full text-sm"
                     >
                       {MONTHS.map((m) => (
                         <option key={m.value} value={m.value}>{m.label}</option>
@@ -400,7 +400,7 @@ export const OrganizationDetails: React.FC = () => {
                         const end = Number(e.target.value);
                         setPolicyForm({ ...policyForm, yearEndMonth: end, yearStartMonth: startMonthFromEnd(end) });
                       }}
-                      className="input-field w-full text-sm"
+                      className="register-input w-full text-sm"
                     >
                       {MONTHS.map((m) => (
                         <option key={m.value} value={m.value}>{m.label}</option>
@@ -430,7 +430,7 @@ export const OrganizationDetails: React.FC = () => {
                       min={0}
                       value={policyForm.advanceNoticeDays}
                       onChange={(e) => setPolicyForm({ ...policyForm, advanceNoticeDays: Number(e.target.value) })}
-                      className="input-field w-24 text-center font-data"
+                      className="register-input w-24 text-center font-data"
                     />
                   </div>
                   <div className="flex items-center justify-between gap-4">
@@ -443,7 +443,7 @@ export const OrganizationDetails: React.FC = () => {
                       min={1}
                       value={policyForm.maxConsecutiveLeaves}
                       onChange={(e) => setPolicyForm({ ...policyForm, maxConsecutiveLeaves: Number(e.target.value) })}
-                      className="input-field w-24 text-center font-data"
+                      className="register-input w-24 text-center font-data"
                     />
                   </div>
                 </div>
@@ -479,7 +479,7 @@ export const OrganizationDetails: React.FC = () => {
                       min={0}
                       value={policyForm.defaultProbationDays}
                       onChange={(e) => setPolicyForm({ ...policyForm, defaultProbationDays: Number(e.target.value) })}
-                      className="input-field w-24 text-center font-data"
+                      className="register-input w-24 text-center font-data"
                     />
                   </div>
                 </div>

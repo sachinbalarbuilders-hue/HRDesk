@@ -219,7 +219,7 @@ export const BranchDetails: React.FC = () => {
                       <select
                         value={branchForm.organizationId}
                         onChange={(e) => setBranchForm({ ...branchForm, organizationId: parseInt(e.target.value, 10) })}
-                        className="input-field w-full text-sm"
+                        className="register-input w-full text-sm"
                         required
                       >
                         <option value={0} disabled>Select Organization</option>
@@ -231,7 +231,7 @@ export const BranchDetails: React.FC = () => {
                       <input
                         type="text"
                         value={organizations.find(org => org.id === branchForm.organizationId)?.name || ''}
-                        className="input-field w-full text-sm bg-[var(--surface-sunken)] text-[var(--ink-muted)] cursor-not-allowed"
+                        className="register-input w-full text-sm bg-[var(--surface-sunken)] text-[var(--ink-muted)] cursor-not-allowed"
                         readOnly
                         disabled
                       />
@@ -240,32 +240,32 @@ export const BranchDetails: React.FC = () => {
                   
                   <div>
                     <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Branch Name <span className="text-rose-500">*</span></label>
-                    <input type="text" value={branchForm.name} onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })} className="input-field w-full text-sm" required />
+                    <input type="text" value={branchForm.name} onChange={(e) => setBranchForm({ ...branchForm, name: e.target.value })} className="register-input w-full text-sm" required />
                   </div>
 
                   <div>
                     <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Full Address</label>
-                    <input type="text" value={branchForm.address} onChange={(e) => setBranchForm({ ...branchForm, address: e.target.value })} className="input-field w-full text-sm" />
+                    <input type="text" value={branchForm.address} onChange={(e) => setBranchForm({ ...branchForm, address: e.target.value })} className="register-input w-full text-sm" />
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">City</label>
-                      <input type="text" value={branchForm.city} onChange={(e) => setBranchForm({ ...branchForm, city: e.target.value })} className="input-field w-full text-sm" />
+                      <input type="text" value={branchForm.city} onChange={(e) => setBranchForm({ ...branchForm, city: e.target.value })} className="register-input w-full text-sm" />
                     </div>
                     <div>
                       <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">State</label>
-                      <input type="text" value={branchForm.state} onChange={(e) => setBranchForm({ ...branchForm, state: e.target.value })} className="input-field w-full text-sm" />
+                      <input type="text" value={branchForm.state} onChange={(e) => setBranchForm({ ...branchForm, state: e.target.value })} className="register-input w-full text-sm" />
                     </div>
                     <div>
                       <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Pincode</label>
-                      <input type="text" value={branchForm.pincode} onChange={(e) => setBranchForm({ ...branchForm, pincode: e.target.value })} className="input-field w-full font-data text-sm" />
+                      <input type="text" value={branchForm.pincode} onChange={(e) => setBranchForm({ ...branchForm, pincode: e.target.value })} className="register-input w-full font-data text-sm" />
                     </div>
                   </div>
 
                   <div>
                     <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">WhatsApp Group ID</label>
-                    <input type="text" value={branchForm.whatsAppGroupId} onChange={(e) => setBranchForm({ ...branchForm, whatsAppGroupId: e.target.value })} className="input-field w-full font-data text-sm" placeholder="Optional" />
+                    <input type="text" value={branchForm.whatsAppGroupId} onChange={(e) => setBranchForm({ ...branchForm, whatsAppGroupId: e.target.value })} className="register-input w-full font-data text-sm" placeholder="Optional" />
                   </div>
                   
                   <div className="pt-2">
@@ -289,7 +289,7 @@ export const BranchDetails: React.FC = () => {
                        value={branchForm.allowedIPs}
                        onChange={(e) => setBranchForm({ ...branchForm, allowedIPs: e.target.value })}
                        placeholder="e.g. 192.168.1.100, 203.0.113.50"
-                       className="input-field w-full font-mono text-sm"
+                       className="register-input w-full font-mono text-sm"
                      />
                      <span className="text-[10px] text-[var(--ink-muted)] block mt-1">Comma-separated list of IP addresses allowed. Leave blank for no restriction.</span>
                   </div>
@@ -302,15 +302,15 @@ export const BranchDetails: React.FC = () => {
                      <div className="grid grid-cols-3 gap-3 mb-3">
                        <div>
                          <label className="block font-medium text-[var(--ink)] mb-1 text-xs">Latitude</label>
-                         <input type="number" step="0.0001" value={branchForm.latitude} onChange={(e) => setBranchForm({ ...branchForm, latitude: parseFloat(e.target.value) })} className="input-field w-full font-data text-xs" />
+                         <input type="number" step="0.0001" value={branchForm.latitude} onChange={(e) => setBranchForm({ ...branchForm, latitude: parseFloat(e.target.value) })} className="register-input w-full font-data text-xs" />
                        </div>
                        <div>
                          <label className="block font-medium text-[var(--ink)] mb-1 text-xs">Longitude</label>
-                         <input type="number" step="0.0001" value={branchForm.longitude} onChange={(e) => setBranchForm({ ...branchForm, longitude: parseFloat(e.target.value) })} className="input-field w-full font-data text-xs" />
+                         <input type="number" step="0.0001" value={branchForm.longitude} onChange={(e) => setBranchForm({ ...branchForm, longitude: parseFloat(e.target.value) })} className="register-input w-full font-data text-xs" />
                        </div>
                        <div>
                          <label className="block font-medium text-[var(--ink)] mb-1 text-xs">Radius (m)</label>
-                         <input type="number" value={branchForm.radiusMeters} onChange={(e) => setBranchForm({ ...branchForm, radiusMeters: parseInt(e.target.value) })} className="input-field w-full font-data text-xs" />
+                         <input type="number" value={branchForm.radiusMeters} onChange={(e) => setBranchForm({ ...branchForm, radiusMeters: parseInt(e.target.value) })} className="register-input w-full font-data text-xs" />
                        </div>
                      </div>
                      <div className="w-full h-[200px] bg-slate-100 rounded border border-[var(--rule)] overflow-hidden relative">
@@ -370,7 +370,7 @@ export const BranchDetails: React.FC = () => {
                       type="number"
                       value={policyForm.gracePeriodMinutes}
                       onChange={(e) => setPolicyForm({ ...policyForm, gracePeriodMinutes: Number(e.target.value) })}
-                      className="input-field w-full text-xs font-data"
+                      className="register-input w-full text-xs font-data"
                       min={0}
                       max={120}
                     />
@@ -384,7 +384,7 @@ export const BranchDetails: React.FC = () => {
                       step="0.5"
                       value={policyForm.halfDayThresholdHours}
                       onChange={(e) => setPolicyForm({ ...policyForm, halfDayThresholdHours: Number(e.target.value) })}
-                      className="input-field w-full text-xs font-data"
+                      className="register-input w-full text-xs font-data"
                       min={1}
                       max={12}
                     />
@@ -398,7 +398,7 @@ export const BranchDetails: React.FC = () => {
                       step="0.5"
                       value={policyForm.fullDayThresholdHours}
                       onChange={(e) => setPolicyForm({ ...policyForm, fullDayThresholdHours: Number(e.target.value) })}
-                      className="input-field w-full text-xs font-data"
+                      className="register-input w-full text-xs font-data"
                       min={1}
                       max={16}
                     />
@@ -410,7 +410,7 @@ export const BranchDetails: React.FC = () => {
                     <select
                       value={policyForm.autoSyncIntervalMinutes}
                       onChange={(e) => setPolicyForm({ ...policyForm, autoSyncIntervalMinutes: Number(e.target.value) })}
-                      className="input-field w-full text-xs"
+                      className="register-input w-full text-xs"
                     >
                       <option value={1}>Every 1 Minute (High Precision)</option>
                       <option value={5}>Every 5 Minutes (Standard Recommended)</option>

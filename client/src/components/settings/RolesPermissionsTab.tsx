@@ -417,7 +417,7 @@ export const RolesPermissionsTab: React.FC = () => {
                   value={newRoleName}
                   onChange={(e) => setNewRoleName(e.target.value)}
                   placeholder="e.g. Site Supervisor"
-                  className="input-field w-full"
+                  className="register-input w-full"
                   required
                 />
               </div>
@@ -429,7 +429,7 @@ export const RolesPermissionsTab: React.FC = () => {
                   onChange={(e) => setNewRoleDesc(e.target.value)}
                   placeholder="Describe the permissions & access scope for this role..."
                   rows={3}
-                  className="input-field w-full"
+                  className="register-input w-full"
                 />
               </div>
 

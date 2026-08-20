@@ -7,6 +7,8 @@ import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { DataToolbar } from '../components/ui/DataToolbar';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import {
   Plus,
   X,
@@ -231,27 +233,8 @@ export const Employees: React.FC = () => {
   const canEdit = isAdmin || hasPermission('Employees.Edit');
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header with Display Serif and Divider */}
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">
-              Employees
-            </h1>
-            <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
-              Manage employee directory, profiles & reporting structure
-            </p>
-          </div>
-
-          <span className="text-xs font-data text-[var(--ink-muted)]">
-            {totalCount} Total Employees
-          </span>
-        </div>
-
-        {/* Signature Divider */}
-        <div className="register-rule pt-1" />
-      </div>
+    <PageContainer>
+      <PageHeader title="Employee Directory" description="Manage your organization's workforce" />
 
       {/* 2. Unified Common Action Toolbar */}
       <DataToolbar
@@ -641,6 +624,6 @@ export const Employees: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };

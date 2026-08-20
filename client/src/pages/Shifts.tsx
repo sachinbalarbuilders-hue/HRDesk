@@ -7,6 +7,9 @@ import { DataToolbar } from '../components/ui/DataToolbar';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
+import { EmployeeMultiSelect } from '../components/ui/EmployeeMultiSelect';
 import {
   ChevronLeft,
   ChevronRight,
@@ -62,11 +65,14 @@ export const Shifts: React.FC = () => {
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [empVisibleCount, setEmpVisibleCount] = useState(20);
 
   const [assignForm, setAssignForm] = useState({
     employeeIds: [] as number[],
     shiftId: 1,
     isWeekOff: false,
+    overwrite: false,
+    updateMasterShift: false,
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
   });
@@ -238,23 +244,8 @@ export const Shifts: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header Section */}
-      <div className="border-b border-[var(--rule)] pb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono tracking-widest text-[var(--accent)] uppercase font-semibold">
-            Shift & Roster Register
-          </span>
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
-          <span className="text-[11px] font-mono text-[var(--ink-muted)]">Weekly Roster Scheduling</span>
-        </div>
-        <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink)] mt-1">
-          Shift Roster & Master Register
-        </h1>
-        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-          Assign shift timings, grace periods, rotating weekly rosters, and designated week-offs.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader title="Shift Management" description="Configure shifts and assign rosters" />
 
       {/* 2. Unified Data Toolbar with Week Navigation */}
       <DataToolbar
@@ -281,15 +272,6 @@ export const Shifts: React.FC = () => {
           onClick: () => setAssignModalOpen(true),
         }}
       >
-        <button
-          type="button"
-          onClick={() => setShiftModalOpen(true)}
-          className="btn-outline text-xs flex items-center gap-1 py-1.5 px-2.5 cursor-pointer"
-        >
-          <Plus className="w-3 h-3 text-[var(--accent)]" />
-          <span>New Shift</span>
-        </button>
-
         <div className="flex items-center gap-1.5 bg-[var(--paper)] border border-[var(--rule)] rounded-lg p-1">
           <button
             onClick={handlePrevWeek}
@@ -344,39 +326,50 @@ export const Shifts: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-[var(--rule)] bg-[var(--paper-subtle)] text-[var(--ink-muted)] font-mono text-[11px] uppercase tracking-wider">
-                  <th className="p-3.5 font-semibold min-w-[200px]">Employee</th>
-                  {weekDays.map((d, i) => (
-                    <th key={i} className="p-3.5 text-center font-semibold">
-                      <div>{d.toLocaleDateString(undefined, { weekday: 'short' })}</div>
-                      <div className="text-[10px] text-[var(--ink-muted)] font-normal">{d.getDate()}</div>
-                    </th>
-                  ))}
+                <tr className="border-b border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--text-secondary)] text-[11px] uppercase tracking-wider">
+                  <th className="p-3.5 font-semibold min-w-[200px] text-left">Employee</th>
+                  {weekDays.map((d, i) => {
+                    const isToday = d.toDateString() === new Date().toDateString();
+                    const isSunday = d.getDay() === 0;
+                    return (
+                      <th key={i} className={`p-3.5 text-center font-semibold ${isToday ? 'bg-[var(--accent-light)]' : ''} ${isSunday ? 'text-[var(--danger)]' : ''}`}>
+                        <div>{d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}</div>
+                        <div className="text-[10px] font-data font-normal mt-0.5">{d.getDate()}</div>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--rule)]">
+              <tbody className="divide-y divide-[var(--border)]">
                 {roster.map((r) => (
-                  <tr key={r.employeeId} className="hover:bg-[var(--paper-subtle)] transition-colors">
+                  <tr key={r.employeeId} className="hover:bg-[var(--surface-hover)]">
                     <td className="p-3.5">
-                      <div className="font-semibold text-[var(--ink)]">{r.employeeName}</div>
-                      <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
+                      <div className="font-semibold text-sm text-[var(--text-primary)]">{r.employeeName}</div>
+                      <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
                         <Building2 className="w-3 h-3" />
                         <span>{r.department} • {r.designation}</span>
                       </div>
                     </td>
 
-                    {weekDays.map((_, i) => {
+                    {weekDays.map((d, i) => {
                       const code = r.schedule[String(i)] || 'GEN';
                       const isWo = code === 'W/O' || code === 'WO';
+                      const isToday = d.toDateString() === new Date().toDateString();
+                      const shift = shifts.find(s => s.shiftCode === code);
 
                       return (
-                        <td key={i} className="p-3.5 text-center font-mono">
+                        <td key={i} className={`p-2 text-center ${isToday ? 'bg-[var(--accent-light)]/30' : ''}`}>
                           <span
-                            className={`inline-block px-2.5 py-1 rounded text-xs font-bold ${
+                            className={`inline-flex items-center justify-center px-2.5 py-1 rounded-[var(--radius-md)] text-[11px] font-semibold min-w-[48px] ${
                               isWo
-                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                                : 'bg-indigo-50 dark:bg-indigo-950/60 text-[var(--accent)] border border-indigo-200 dark:border-indigo-800'
+                                ? 'bg-[var(--surface-secondary)] text-[var(--text-muted)] border border-[var(--border)]'
+                                : ''
                             }`}
+                            style={!isWo ? {
+                              backgroundColor: `${shift?.colorCode || '#0D9488'}15`,
+                              color: shift?.colorCode || 'var(--accent)',
+                              border: `1px solid ${shift?.colorCode || 'var(--accent)'}40`,
+                            } : undefined}
                           >
                             {code}
                           </span>
@@ -407,73 +400,61 @@ export const Shifts: React.FC = () => {
 
       {/* 5. Assign Shift / Week-Off Modal */}
       {assignModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper-subtle)]">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-[1px]">
+          <div className="w-full max-w-[480px] bg-[var(--surface)] h-full shadow-[var(--shadow-xl)] flex flex-col border-l border-[var(--border)] animate-slide-in-right">
+            <div className="p-5 pb-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
               <div>
-                <h3 className="font-serif font-bold text-base text-[var(--ink)]">Assign Shift Schedule</h3>
-                <p className="text-[11px] text-[var(--ink-muted)]">Assign duty shifts or designate weekly off for employee(s).</p>
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">Assign Shift Schedule</h3>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Assign duty shifts or designate weekly off for employee(s).</p>
               </div>
               <button
                 onClick={() => setAssignModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[var(--paper)] text-[var(--ink-muted)]"
+                className="p-1.5 rounded-[var(--radius-md)] hover:bg-[var(--surface-secondary)] text-[var(--text-muted)] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleAssignSubmit} className="p-5 space-y-4 text-xs">
-              <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">Select Employees *</label>
-                <select
-                  multiple
-                  value={assignForm.employeeIds.map(String)}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions, o => parseInt(o.value));
-                    setAssignForm({ ...assignForm, employeeIds: selected });
-                  }}
-                  className="input-field w-full font-medium h-28"
-                  required
-                >
-                  {employees.map((e) => (
-                    <option key={e.employeeId} value={e.employeeId}>
-                      {e.employeeName} (#{e.employeeId})
-                    </option>
-                  ))}
-                </select>
-                <span className="text-[10px] text-[var(--ink-muted)] mt-1 block">Hold Ctrl (Windows) / Cmd (Mac) to select multiple.</span>
-              </div>
+            <form onSubmit={handleAssignSubmit} className="flex-1 overflow-y-auto p-5 space-y-4 text-sm">
+              <EmployeeMultiSelect
+                label="Select Employees"
+                selectedIds={assignForm.employeeIds}
+                onChange={(ids) => setAssignForm({ ...assignForm, employeeIds: ids })}
+                required
+                pageSize={20}
+                branchId={currentBranch?.id}
+              />
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Start Date *</label>
+                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Start Date *</label>
                   <input
                     type="date"
                     value={assignForm.startDate}
                     onChange={(e) => setAssignForm({ ...assignForm, startDate: e.target.value, endDate: e.target.value >= assignForm.endDate ? e.target.value : assignForm.endDate })}
-                    className="input-field w-full font-mono"
+                    className="register-input font-data"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">End Date *</label>
+                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">End Date *</label>
                   <input
                     type="date"
                     value={assignForm.endDate}
                     onChange={(e) => setAssignForm({ ...assignForm, endDate: e.target.value })}
-                    className="input-field w-full font-mono"
+                    className="register-input font-data"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">Target Shift *</label>
+                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Target Shift *</label>
                 <select
                   disabled={assignForm.isWeekOff}
                   value={assignForm.shiftId}
                   onChange={(e) => setAssignForm({ ...assignForm, shiftId: parseInt(e.target.value) || 1 })}
-                  className="input-field w-full font-medium disabled:opacity-50"
+                  className="register-input disabled:opacity-50"
                 >
                   {shifts.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -488,23 +469,44 @@ export const Shifts: React.FC = () => {
                   type="checkbox"
                   checked={assignForm.isWeekOff}
                   onChange={(e) => setAssignForm({ ...assignForm, isWeekOff: e.target.checked })}
-                  className="rounded border-[var(--rule)] text-[var(--accent)]"
+                  className="rounded border-[var(--border)] text-[var(--accent)]"
                 />
-                <span className="font-medium text-[var(--ink)]">Designate as Weekly Off (W/O)</span>
+                <span className="text-sm font-medium text-[var(--text-primary)]">Designate as Weekly Off (W/O)</span>
               </label>
 
-              <div className="pt-2 border-t border-[var(--rule)] flex items-center justify-end gap-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={assignForm.overwrite}
+                  onChange={(e) => setAssignForm({ ...assignForm, overwrite: e.target.checked })}
+                  className="rounded border-[var(--border)] text-[var(--accent)]"
+                />
+                <span className="text-sm font-medium text-[var(--text-primary)]">Overwrite existing roster entries</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={assignForm.updateMasterShift}
+                  onChange={(e) => setAssignForm({ ...assignForm, updateMasterShift: e.target.checked })}
+                  className="rounded border-[var(--border)] text-[var(--accent)]"
+                />
+                <span className="text-sm font-medium text-[var(--text-primary)]">Update master shift assignment</span>
+              </label>
+              <p className="text-[11px] text-[var(--text-muted)] -mt-2 ml-6">Changes the employee's default shift going forward.</p>
+
+              <div className="pt-3 border-t border-[var(--border)] flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setAssignModalOpen(false)}
-                  className="btn-secondary py-1.5 px-3"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary py-1.5 px-4 flex items-center gap-1.5"
+                  className="btn-primary"
                 >
                   {submitting ? 'Saving...' : 'Apply Assignment'}
                 </button>
@@ -516,42 +518,42 @@ export const Shifts: React.FC = () => {
 
       {/* 6. New Shift Master Modal */}
       {shiftModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper-subtle)]">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-[1px]">
+          <div className="w-full max-w-[480px] bg-[var(--surface)] h-full shadow-[var(--shadow-xl)] flex flex-col border-l border-[var(--border)] animate-slide-in-right">
+            <div className="p-5 pb-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
               <div>
-                <h3 className="font-serif font-bold text-base text-[var(--ink)]">Create Shift Master</h3>
-                <p className="text-[11px] text-[var(--ink-muted)]">Configure start/end timings and grace periods.</p>
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">Create Shift Master</h3>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Configure start/end timings and grace periods.</p>
               </div>
               <button
                 onClick={() => setShiftModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[var(--paper)] text-[var(--ink-muted)]"
+                className="p-1.5 rounded-[var(--radius-md)] hover:bg-[var(--surface-secondary)] text-[var(--text-muted)] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateShift} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleCreateShift} className="flex-1 overflow-y-auto p-5 space-y-4 text-sm">
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Shift Name *</label>
+                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Shift Name *</label>
                   <input
                     type="text"
                     value={shiftForm.shiftName}
                     onChange={(e) => setShiftForm({ ...shiftForm, shiftName: e.target.value })}
                     placeholder="e.g. General Shift, Night Shift"
-                    className="input-field w-full font-medium"
+                    className="register-input"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Code *</label>
+                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Code *</label>
                   <input
                     type="text"
                     value={shiftForm.shiftCode}
                     onChange={(e) => setShiftForm({ ...shiftForm, shiftCode: e.target.value.toUpperCase() })}
                     placeholder="GEN"
-                    className="input-field w-full font-mono uppercase"
+                    className="register-input font-data uppercase"
                     required
                   />
                 </div>
@@ -559,22 +561,22 @@ export const Shifts: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Start Time *</label>
+                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Start Time *</label>
                   <input
                     type="time"
                     value={shiftForm.startTime}
                     onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
-                    className="input-field w-full font-mono"
+                    className="register-input font-data"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">End Time *</label>
+                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">End Time *</label>
                   <input
                     type="time"
                     value={shiftForm.endTime}
                     onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
-                    className="input-field w-full font-mono"
+                    className="register-input font-data"
                     required
                   />
                 </div>
@@ -582,37 +584,37 @@ export const Shifts: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Late Grace (Mins)</label>
+                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Late Grace (Mins)</label>
                   <input
                     type="number"
                     value={shiftForm.lateComingGraceMinutes}
                     onChange={(e) => setShiftForm({ ...shiftForm, lateComingGraceMinutes: parseInt(e.target.value) || 0 })}
-                    className="input-field w-full font-mono"
+                    className="register-input font-data"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Early Grace (Mins)</label>
+                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Early Grace (Mins)</label>
                   <input
                     type="number"
                     value={shiftForm.earlyLeaveGraceMinutes}
                     onChange={(e) => setShiftForm({ ...shiftForm, earlyLeaveGraceMinutes: parseInt(e.target.value) || 0 })}
-                    className="input-field w-full font-mono"
+                    className="register-input font-data"
                   />
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-[var(--rule)] flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-[var(--border)] flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShiftModalOpen(false)}
-                  className="btn-secondary py-1.5 px-3"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary py-1.5 px-4 flex items-center gap-1.5"
+                  className="btn-primary"
                 >
                   {submitting ? 'Creating...' : 'Create Shift'}
                 </button>
@@ -635,7 +637,7 @@ export const Shifts: React.FC = () => {
           fetchRoster();
         }}
       />
-    </div>
+    </PageContainer>
   );
 };
 

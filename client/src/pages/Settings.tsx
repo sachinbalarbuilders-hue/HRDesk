@@ -10,6 +10,8 @@ import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import {
   Building2,
   CalendarCheck,
@@ -696,26 +698,8 @@ export const Settings: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 font-ui">
-      {/* 1. Header */}
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">
-              Settings & Organization Masters
-            </h1>
-            <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
-              Organizations, departments, designations, leave quotas, shifts & attendance policies
-            </p>
-          </div>
-
-          <span className="text-xs font-data text-[var(--ink-muted)]">
-            Workspace Configuration
-          </span>
-        </div>
-
-        <div className="register-rule pt-1" />
-      </div>
+    <PageContainer className="font-ui">
+      <PageHeader title="Settings" description="Organization masters and configuration" />
 
       {/* 2. Navigation Tabs */}
       <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-[4px] border border-[var(--rule)] overflow-x-auto">
@@ -808,7 +792,7 @@ export const Settings: React.FC = () => {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search organizations…"
-              className="input-field w-full max-w-xs text-xs"
+              className="register-input w-full max-w-xs text-xs"
             />
 
             {loading ? (
@@ -835,8 +819,8 @@ export const Settings: React.FC = () => {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm text-[var(--ink)]">{org.name}</span>
                             {org.isActive !== false
-                              ? <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Active</span>
-                              : <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">Archived</span>
+                              ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--ok-600)]"><span className="status-dot-ok" /> Active</span>
+                              : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--warn-600)]"><span className="status-dot-warn" /> Archived</span>
                             }
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[var(--ink-muted)]">
@@ -1099,7 +1083,7 @@ export const Settings: React.FC = () => {
                   value={newDept.name}
                   onChange={(e) => setNewDept({ ...newDept, name: e.target.value })}
                   placeholder="e.g. Civil Engineering"
-                  className="input-field w-full"
+                  className="register-input w-full"
                   required
                 />
               </div>
@@ -1139,7 +1123,7 @@ export const Settings: React.FC = () => {
                   value={newDesignation.title}
                   onChange={(e) => setNewDesignation({ ...newDesignation, title: e.target.value })}
                   placeholder="e.g. Senior Project Manager"
-                  className="input-field w-full"
+                  className="register-input w-full"
                   required
                 />
               </div>
@@ -1149,7 +1133,7 @@ export const Settings: React.FC = () => {
                 <select
                   value={newDesignation.department}
                   onChange={(e) => setNewDesignation({ ...newDesignation, department: e.target.value })}
-                  className="input-field w-full text-xs"
+                  className="register-input w-full text-xs"
                 >
                   <option value="General">General / All Departments</option>
                   {departments.map((d) => (
@@ -1195,7 +1179,7 @@ export const Settings: React.FC = () => {
                   value={newLeaveType.name}
                   onChange={(e) => setNewLeaveType({ ...newLeaveType, name: e.target.value })}
                   placeholder="e.g. Paternity Leave"
-                  className="input-field w-full"
+                  className="register-input w-full"
                   required
                 />
               </div>
@@ -1208,7 +1192,7 @@ export const Settings: React.FC = () => {
                     value={newLeaveType.code}
                     onChange={(e) => setNewLeaveType({ ...newLeaveType, code: e.target.value.toUpperCase() })}
                     placeholder="e.g. PAT"
-                    className="input-field w-full font-mono"
+                    className="register-input w-full font-mono"
                   />
                 </div>
                 <div>
@@ -1217,7 +1201,7 @@ export const Settings: React.FC = () => {
                     type="number"
                     value={newLeaveType.quota}
                     onChange={(e) => setNewLeaveType({ ...newLeaveType, quota: Number(e.target.value) })}
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
               </div>
@@ -1438,7 +1422,7 @@ export const Settings: React.FC = () => {
                     value={companyForm.legalName}
                     onChange={(e) => setCompanyForm({ ...companyForm, legalName: e.target.value })}
                     placeholder="e.g. Sachin Balar Builders Pvt. Ltd."
-                    className="input-field w-full"
+                    className="register-input w-full"
                     required
                   />
                 </div>
@@ -1449,7 +1433,7 @@ export const Settings: React.FC = () => {
                     value={companyForm.tradeName || ''}
                     onChange={(e) => setCompanyForm({ ...companyForm, tradeName: e.target.value })}
                     placeholder="e.g. Hue Builders"
-                    className="input-field w-full"
+                    className="register-input w-full"
                   />
                 </div>
               </div>
@@ -1462,7 +1446,7 @@ export const Settings: React.FC = () => {
                     value={companyForm.code || ''}
                     onChange={(e) => setCompanyForm({ ...companyForm, code: e.target.value })}
                     placeholder="SBB"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
                 <div>
@@ -1472,7 +1456,7 @@ export const Settings: React.FC = () => {
                     value={companyForm.gstin || ''}
                     onChange={(e) => setCompanyForm({ ...companyForm, gstin: e.target.value })}
                     placeholder="24AAAAA0000A1Z5"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
                 <div>
@@ -1482,7 +1466,7 @@ export const Settings: React.FC = () => {
                     value={companyForm.pan || ''}
                     onChange={(e) => setCompanyForm({ ...companyForm, pan: e.target.value })}
                     placeholder="AAAAA0000A"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
               </div>
@@ -1495,7 +1479,7 @@ export const Settings: React.FC = () => {
                     value={companyForm.cin || ''}
                     onChange={(e) => setCompanyForm({ ...companyForm, cin: e.target.value })}
                     placeholder="U45200GJ2015PTC085123"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
                 <div>
@@ -1505,7 +1489,7 @@ export const Settings: React.FC = () => {
                     value={companyForm.website || ''}
                     onChange={(e) => setCompanyForm({ ...companyForm, website: e.target.value })}
                     placeholder="https://sachinbalarbuilders.com"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
               </div>
@@ -1518,7 +1502,7 @@ export const Settings: React.FC = () => {
                     value={companyForm.email || ''}
                     onChange={(e) => setCompanyForm({ ...companyForm, email: e.target.value })}
                     placeholder="contact@sachinbalar.com"
-                    className="input-field w-full"
+                    className="register-input w-full"
                   />
                 </div>
                 <div>
@@ -1528,7 +1512,7 @@ export const Settings: React.FC = () => {
                     value={companyForm.phone || ''}
                     onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })}
                     placeholder="+91 98765 43210"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
               </div>
@@ -1540,7 +1524,7 @@ export const Settings: React.FC = () => {
                   onChange={(e) => setCompanyForm({ ...companyForm, headquartersAddress: e.target.value })}
                   placeholder="Full Corporate Headquarters Address..."
                   rows={2}
-                  className="input-field w-full resize-none"
+                  className="register-input w-full resize-none"
                 />
               </div>
 
@@ -1559,6 +1543,6 @@ export const Settings: React.FC = () => {
 
 
 
-    </div>
+    </PageContainer>
   );
 };

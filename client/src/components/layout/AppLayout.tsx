@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useOrganization } from '../../context/CompanyContext';
 import { useToast } from '../../context/ToastContext';
+import { Avatar } from '../ui/Avatar';
 import {
   LayoutDashboard,
   Users,
@@ -26,11 +27,10 @@ import {
   Banknote,
   UserPlus,
   MapPin,
-  Globe,
-  Wallet,
-  Landmark,
-  PiggyBank,
+  Search,
+  Bell,
   Camera,
+  PiggyBank,
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
@@ -44,260 +44,136 @@ export const AppLayout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
   const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
-  const [switchingWorkspace, setSwitchingWorkspace] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const navigation = [
     {
       group: 'Overview',
       items: [
-        {
-          name: 'Dashboard',
-          href: '/',
-          icon: LayoutDashboard,
-          show: true,
-        },
-        {
-          name: 'Employees',
-          href: '/employees',
-          icon: Users,
-          show: isAdmin || hasPermission('Employees.View'),
-        },
+        { name: 'Dashboard', href: '/', icon: LayoutDashboard, show: true },
+        { name: 'Employees', href: '/employees', icon: Users, show: isAdmin || hasPermission('Employees.View') },
       ],
     },
     {
-      group: 'Talent & Hiring',
+      group: 'Talent',
       items: [
-        {
-          name: 'Recruitment ATS',
-          href: '/recruitment',
-          icon: UserPlus,
-          show: true,
-        },
+        { name: 'Recruitment', href: '/recruitment', icon: UserPlus, show: true },
       ],
     },
     {
       group: 'Time & Attendance',
       items: [
-        {
-          name: 'Attendance',
-          href: '/attendance',
-          icon: CalendarCheck,
-          show: isAdmin || hasPermission('Attendance.View') || hasPermission('Attendance.MonthlySheet'),
-        },
-        {
-          name: 'Regularization',
-          href: '/regularizations',
-          icon: Clock,
-          show: isAdmin || hasPermission('Attendance.View') || hasPermission('Attendance.Regularize'),
-        },
-        {
-          name: 'Shift Roster',
-          href: '/shifts',
-          icon: Layers,
-          show: isAdmin || hasPermission('Attendance.View'),
-        },
-        {
-          name: 'Leaves',
-          href: '/leaves',
-          icon: CalendarOff,
-          show: isAdmin || hasPermission('Leaves.View'),
-        },
-        {
-          name: 'Holidays',
-          href: '/holidays',
-          icon: Sparkles,
-          show: true,
-        },
+        { name: 'Attendance', href: '/attendance', icon: CalendarCheck, show: isAdmin || hasPermission('Attendance.View') || hasPermission('Attendance.MonthlySheet') },
+        { name: 'Regularization', href: '/regularizations', icon: Clock, show: isAdmin || hasPermission('Attendance.View') || hasPermission('Attendance.Regularize') },
+        { name: 'Shifts', href: '/shifts', icon: Layers, show: isAdmin || hasPermission('Attendance.View') },
+        { name: 'Leaves', href: '/leaves', icon: CalendarOff, show: isAdmin || hasPermission('Leaves.View') },
+        { name: 'Holidays', href: '/holidays', icon: Sparkles, show: true },
       ],
     },
     {
-      group: 'Finance & Advances',
+      group: 'Finance',
       items: [
-        {
-          name: 'Monthly Payroll',
-          href: '/payroll',
-          icon: Banknote,
-          show: isAdmin || hasPermission('Payroll.View') || hasPermission('Payroll.Process'),
-        },
-        {
-          name: 'Loans & Advances',
-          href: '/loans',
-          icon: Banknote,
-          show: isAdmin || hasPermission('Payroll.View'),
-        },
+        { name: 'Payroll', href: '/payroll', icon: Banknote, show: isAdmin || hasPermission('Payroll.View') || hasPermission('Payroll.Process') },
+        { name: 'Loans', href: '/loans', icon: PiggyBank, show: isAdmin || hasPermission('Payroll.View') },
       ],
     },
     {
-      group: 'Administration & Governance',
+      group: 'Settings',
       items: [
-        {
-          name: 'Settings & Masters',
-          href: '/settings',
-          icon: SettingsIcon,
-          show: isAdmin,
-        },
-        {
-          name: 'ID Scanner',
-          href: '/scanner',
-          icon: Camera,
-          show: true,
-        },
+        { name: 'Settings', href: '/settings', icon: SettingsIcon, show: isAdmin },
+        { name: 'Scanner', href: '/scanner', icon: Camera, show: true },
       ],
     },
   ];
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const handleLogout = () => { logout(); navigate('/login'); };
 
   const handleOrgSelect = (orgId: string, orgName: string) => {
     switchOrganization(orgId);
     setOrgDropdownOpen(false);
-    setSwitchingWorkspace(true);
-    setTimeout(() => setSwitchingWorkspace(false), 500);
-    showSuccess('Organisation Switched', `Active organisation: ${orgName}`);
+    showSuccess('Workspace Switched', `Active: ${orgName}`);
   };
 
   const handleBranchSelect = (branchId: string | null, branchName: string) => {
     switchBranch(branchId);
     setBranchDropdownOpen(false);
-    setSwitchingWorkspace(true);
-    setTimeout(() => setSwitchingWorkspace(false), 500);
-    showSuccess('Branch Switched', `Active branch: ${branchName}`);
+    showSuccess('Branch Switched', `Active: ${branchName}`);
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--paper)] text-[var(--ink)] font-ui relative">
-      {/* Global Workspace Switching Overlay */}
-      {switchingWorkspace && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[var(--surface)]/80 backdrop-blur-sm transition-all duration-300">
-          <div className="flex flex-col items-center p-8 bg-[var(--surface)] rounded-[8px] shadow-2xl border border-[var(--rule)] animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 border-4 border-[var(--rule)] border-t-[var(--gold-500)] rounded-full animate-spin mb-4 shadow-sm" />
-            <h3 className="font-display font-semibold text-xl text-[var(--ink)]">
-              Switching Workspace...
-            </h3>
-            <p className="text-sm text-[var(--ink-muted)] font-data mt-1.5 text-center">
-              Loading global context and records
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile Drawer Overlay */}
+    <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text-primary)]">
+      {/* Mobile Overlay */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
+        <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px] lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Fixed Navy Sidebar */}
+      {/* ═══════════════════════════════════════════
+          SIDEBAR
+          ═══════════════════════════════════════════ */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-[var(--navy-900)] text-white border-r border-[var(--navy-700)] transition-all duration-200 lg:static lg:translate-x-0 ${
-          mobileOpen ? 'translate-x-0 w-60' : '-translate-x-full lg:translate-x-0'
-        } ${collapsed ? 'lg:w-[68px]' : 'lg:w-60'}`}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-[var(--sidebar-bg)] border-r border-[var(--sidebar-border)] lg:static lg:translate-x-0 ${
+          mobileOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full lg:translate-x-0'
+        } ${collapsed ? 'lg:w-[72px]' : 'lg:w-[260px]'}`}
+        style={{ transition: 'width 200ms ease, transform 200ms ease' }}
       >
-        {/* Sidebar Brand Header */}
-        <div
-          className={`flex items-center h-14 border-b border-[var(--navy-700)] bg-[var(--navy-900)] ${
-            collapsed ? 'justify-center px-2' : 'justify-between px-4'
-          }`}
-        >
+        {/* Brand */}
+        <div className={`flex items-center h-[60px] border-b border-[var(--sidebar-border)] ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
           {collapsed ? (
-            /* Collapsed Brand Icon */
-            <button
-              onClick={() => setCollapsed(false)}
-              className="flex items-center justify-center w-8 h-8 rounded-[4px] bg-[var(--gold-500)] text-[var(--navy-900)] font-bold text-xs hover:opacity-90 transition-opacity cursor-pointer"
-              title="Expand Sidebar"
-            >
-              <Building2 size={16} />
+            <button onClick={() => setCollapsed(false)} className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent)] text-white flex items-center justify-center cursor-pointer" title="Expand">
+              <Building2 size={18} />
             </button>
           ) : (
-            /* Expanded Brand */
             <>
-              <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="flex items-center justify-center w-7 h-7 rounded-[4px] bg-[var(--gold-500)] text-[var(--navy-900)] font-bold text-xs flex-shrink-0">
-                  <Building2 size={15} />
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent)] text-white flex items-center justify-center flex-shrink-0">
+                  <Building2 size={18} />
                 </div>
                 <div>
-                  <span className="font-bold text-sm tracking-tight text-white block leading-none">
-                    HRDesk
-                  </span>
-                  <span className="text-[9px] uppercase tracking-wider text-[var(--gold-500)] font-data block mt-0.5">
-                    HRMS Portal
-                  </span>
+                  <span className="font-bold text-[15px] text-white block leading-tight">HRDesk</span>
+                  <span className="text-[10px] text-[var(--sidebar-text)] font-medium">People Platform</span>
                 </div>
               </div>
-
-              <button
-                onClick={() => setCollapsed(true)}
-                className="hidden lg:flex items-center justify-center w-6 h-6 rounded text-slate-400 hover:text-white hover:bg-[var(--navy-700)] transition-colors cursor-pointer"
-                title="Collapse Sidebar"
-              >
+              <button onClick={() => setCollapsed(true)} className="hidden lg:flex w-7 h-7 items-center justify-center rounded-[var(--radius-md)] text-[var(--sidebar-text)] hover:text-white hover:bg-[var(--sidebar-hover)] cursor-pointer">
                 <ChevronLeft size={14} />
               </button>
             </>
           )}
-
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="lg:hidden text-slate-400 hover:text-white p-1 cursor-pointer"
-          >
+          <button onClick={() => setMobileOpen(false)} className="lg:hidden text-[var(--sidebar-text)] hover:text-white p-1 cursor-pointer">
             <X size={18} />
           </button>
         </div>
 
-        {/* Sidebar Navigation */}
-        <nav className={`flex-1 py-4 space-y-4 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'}`}>
+        {/* Nav */}
+        <nav className={`flex-1 py-4 space-y-5 overflow-y-auto ${collapsed ? 'px-3' : 'px-3'}`}>
           {navigation.map((group) => {
             const visible = group.items.filter((i) => i.show);
             if (visible.length === 0) return null;
-
             return (
-              <div key={group.group} className="space-y-1">
+              <div key={group.group} className="space-y-0.5">
                 {!collapsed && (
-                  <p className="px-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider font-ui truncate">
+                  <p className="px-3 mb-1.5 text-[10px] font-semibold text-[var(--sidebar-text)] uppercase tracking-wider">
                     {group.group}
                   </p>
                 )}
-
                 {visible.map((item) => {
-                  const isActive =
-                    location.pathname === item.href ||
-                    (item.href !== '/' && location.pathname.startsWith(item.href));
+                  const isActive = location.pathname === item.href || (item.href !== '/' && location.pathname.startsWith(item.href));
                   const Icon = item.icon;
-
                   return (
                     <Link
                       key={item.href}
                       to={item.href}
                       onClick={() => setMobileOpen(false)}
-                      className={`flex items-center rounded-[4px] text-xs transition-colors relative ${
-                        collapsed
-                          ? 'justify-center p-2.5'
-                          : 'gap-2.5 px-2.5 py-2'
+                      className={`flex items-center rounded-[var(--radius-md)] text-[13px] font-medium ${
+                        collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2'
                       } ${
                         isActive
-                          ? 'bg-[var(--navy-700)] text-white font-semibold'
-                          : 'text-slate-300 hover:bg-[var(--navy-700)]/60 hover:text-white'
+                          ? 'bg-[var(--sidebar-active)] text-white'
+                          : 'text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] hover:text-white'
                       }`}
                       title={collapsed ? item.name : undefined}
                     >
-                      {/* Active gold tick indicator */}
-                      {isActive && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-[var(--gold-500)] rounded-r" />
-                      )}
-
-                      <Icon
-                        size={16}
-                        className={`flex-shrink-0 ${
-                          isActive ? 'text-[var(--gold-500)]' : 'text-slate-400'
-                        }`}
-                      />
-                      {!collapsed && (
-                        <span className="truncate">{item.name}</span>
-                      )}
+                      <Icon size={18} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--sidebar-text)]'} />
+                      {!collapsed && <span>{item.name}</span>}
                     </Link>
                   );
                 })}
@@ -306,46 +182,25 @@ export const AppLayout: React.FC = () => {
           })}
         </nav>
 
-        {/* Operator Profile Footer */}
-        <div className={`border-t border-[var(--navy-700)] bg-[var(--navy-900)] ${collapsed ? 'p-2' : 'p-3'}`}>
-          <div
-            className={`flex items-center gap-2.5 ${
-              collapsed ? 'justify-center' : 'p-1'
-            }`}
-          >
-            <div className="w-7 h-7 rounded-[4px] bg-[var(--navy-700)] border border-[var(--gold-500)]/40 text-[var(--gold-500)] font-semibold font-data flex items-center justify-center text-xs flex-shrink-0">
-              {user?.fullName?.charAt(0) || user?.username?.charAt(0) || 'U'}
-            </div>
-
+        {/* User Footer */}
+        <div className={`border-t border-[var(--sidebar-border)] ${collapsed ? 'p-3' : 'p-4'}`}>
+          <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
+            <Avatar name={user?.fullName || user?.username || 'User'} size="sm" />
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-white truncate">
-                  {user?.fullName || user?.username}
-                </p>
-                <p className="text-[10px] text-slate-400 font-data truncate">
-                  {user?.roleName || user?.role}
-                </p>
+                <p className="text-xs font-semibold text-white truncate">{user?.fullName || user?.username}</p>
+                <p className="text-[10px] text-[var(--sidebar-text)] truncate">{user?.roleName || user?.role}</p>
               </div>
             )}
-
             {!collapsed && (
-              <button
-                onClick={handleLogout}
-                className="text-slate-400 hover:text-[var(--gold-500)] p-1 rounded hover:bg-[var(--navy-700)] transition-colors cursor-pointer"
-                title="Sign Out"
-              >
-                <LogOut size={14} />
+              <button onClick={handleLogout} className="text-[var(--sidebar-text)] hover:text-white p-1.5 rounded-[var(--radius-md)] hover:bg-[var(--sidebar-hover)] cursor-pointer" title="Sign Out">
+                <LogOut size={15} />
               </button>
             )}
           </div>
-
           {collapsed && (
-            <div className="mt-2 pt-2 border-t border-[var(--navy-700)] flex justify-center">
-              <button
-                onClick={() => setCollapsed(false)}
-                className="text-slate-400 hover:text-[var(--gold-500)] p-1 transition-colors cursor-pointer"
-                title="Expand Sidebar"
-              >
+            <div className="mt-2 pt-2 border-t border-[var(--sidebar-border)] flex justify-center">
+              <button onClick={() => setCollapsed(false)} className="text-[var(--sidebar-text)] hover:text-white p-1 cursor-pointer" title="Expand">
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -353,72 +208,57 @@ export const AppLayout: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content Pane */}
+      {/* ═══════════════════════════════════════════
+          MAIN CONTENT
+          ═══════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Bar with Single Organisation Switcher */}
-        <header className="h-14 flex items-center justify-between px-6 border-b border-[var(--rule)] bg-[var(--surface)] z-20">
+        {/* Top Bar */}
+        <header className="h-[60px] flex items-center justify-between px-6 border-b border-[var(--border)] bg-[var(--surface)] z-30 flex-shrink-0 relative">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-1 rounded text-[var(--ink-muted)] hover:bg-[var(--paper)] cursor-pointer"
-            >
-              <Menu size={18} />
+            {/* Mobile menu trigger */}
+            <button onClick={() => setMobileOpen(true)} className="lg:hidden p-1.5 rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] cursor-pointer">
+              <Menu size={20} />
             </button>
 
-            {/* Breadcrumb */}
-            <div className="hidden sm:flex items-center gap-2 text-xs">
-              <span className="font-semibold text-[var(--ink)]">HRDesk</span>
-              <span className="text-[var(--ink-muted)]">/</span>
-              <span className="text-[var(--ink-muted)] font-ui capitalize">
-                {location.pathname.replace('/', '') || 'Dashboard'}
-              </span>
+            {/* Search */}
+            <div className={`relative hidden sm:flex items-center ${searchFocused ? 'w-80' : 'w-64'}`} style={{ transition: 'width 200ms ease' }}>
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none z-10" />
+              <input
+                type="text"
+                placeholder="Search employees, loans..."
+                className="w-full bg-[var(--surface-secondary)] border border-[var(--border)] rounded-[var(--radius-md)] py-1.5 pl-9 pr-12 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:bg-[var(--surface)]"
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+              />
+              <kbd className="absolute right-3 text-[10px] font-medium text-[var(--text-muted)] bg-[var(--surface-secondary)] border border-[var(--border)] px-1.5 py-0.5 rounded">
+                ⌘K
+              </kbd>
             </div>
+          </div>
 
-            {/* --- Global Organisation Switcher --- */}
+          <div className="flex items-center gap-2">
+            {/* Org Switcher */}
             <div className="relative">
               <button
                 onClick={() => { setOrgDropdownOpen(!orgDropdownOpen); setBranchDropdownOpen(false); }}
-                className="flex items-center gap-2 px-2.5 py-1 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] hover:border-[var(--gold-500)] text-xs font-semibold text-[var(--ink)] transition-colors cursor-pointer"
-                title="Switch Active Organisation"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border)] hover:border-[var(--accent)] text-xs font-medium text-[var(--text-primary)] cursor-pointer"
               >
-                <Building2 size={13} className="text-[var(--gold-500)] flex-shrink-0" />
-                <span className="truncate max-w-[140px] sm:max-w-[200px]">
-                  {currentOrganization?.name || 'Select Organisation'}
-                </span>
-                <ChevronDown size={12} className="text-[var(--ink-muted)]" />
+                <Building2 size={14} className="text-[var(--accent)]" />
+                <span className="truncate max-w-[120px] hidden sm:inline">{currentOrganization?.name || 'Select Org'}</span>
+                <ChevronDown size={12} className="text-[var(--text-muted)]" />
               </button>
-
-              {/* Organisation Dropdown Popover */}
               {orgDropdownOpen && (
                 <>
-                  <div
-                    className="fixed inset-0 z-30"
-                    onClick={() => setOrgDropdownOpen(false)}
-                  />
-                  <div className="absolute left-0 mt-1.5 w-72 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-xl z-40 py-1.5 animate-in fade-in slide-in-from-top-1">
-                    <div className="px-3 py-1 text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider border-b border-[var(--rule)] mb-1">
-                      Active Organisation
-                    </div>
-
+                  <div className="fixed inset-0 z-30" onClick={() => setOrgDropdownOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-64 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-lg)] z-40 py-1 animate-slide-down">
+                    <div className="px-3 py-2 text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider">Organizations</div>
                     {organizations.map((org) => {
                       const isSelected = String(currentOrganization?.id) === String(org.id);
                       return (
-                        <button
-                          key={org.id}
-                          onClick={() => handleOrgSelect(String(org.id), org.name)}
-                          className={`w-full px-3 py-2 text-left flex items-center justify-between text-xs hover:bg-[var(--paper)] transition-colors cursor-pointer ${
-                            isSelected ? 'font-bold text-[var(--gold-500)] bg-[var(--gold-100)]/30' : 'text-[var(--ink)]'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            <Building2 size={13} className={isSelected ? 'text-[var(--gold-500)]' : 'text-[var(--ink-muted)]'} />
-                            <div className="truncate">
-                              <p className="truncate leading-none">{org.name}</p>
-                              {org.code && <p className="text-[10px] font-data text-[var(--ink-muted)] mt-0.5">{org.code}</p>}
-                            </div>
-                          </div>
-
-                          {isSelected && <Check size={13} className="text-[var(--gold-500)] flex-shrink-0 ml-1" />}
+                        <button key={org.id} onClick={() => handleOrgSelect(String(org.id), org.name)}
+                          className={`w-full px-3 py-2 text-left flex items-center justify-between text-sm hover:bg-[var(--surface-secondary)] cursor-pointer ${isSelected ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-primary)]'}`}>
+                          <span className="truncate">{org.name}</span>
+                          {isSelected && <Check size={14} className="text-[var(--accent)]" />}
                         </button>
                       );
                     })}
@@ -427,54 +267,29 @@ export const AppLayout: React.FC = () => {
               )}
             </div>
 
-            {/* --- Branch Switcher (when branches exist) --- */}
+            {/* Branch Switcher */}
             {branches.length > 0 && (
               <div className="relative">
                 <button
                   onClick={() => { setBranchDropdownOpen(!branchDropdownOpen); setOrgDropdownOpen(false); }}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] hover:border-[var(--gold-500)] text-xs font-semibold text-[var(--ink)] transition-colors cursor-pointer"
-                  title="Switch Active Branch"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border)] hover:border-[var(--accent)] text-xs font-medium text-[var(--text-primary)] cursor-pointer"
                 >
-                  <MapPin size={12} className="text-[var(--gold-500)] flex-shrink-0" />
-                  <span className="truncate max-w-[130px] sm:max-w-[180px]">
-                    {currentBranch?.name || 'All Branches'}
-                  </span>
-                  <ChevronDown size={12} className="text-[var(--ink-muted)]" />
+                  <MapPin size={13} className="text-[var(--accent)]" />
+                  <span className="truncate max-w-[100px] hidden sm:inline">{currentBranch?.name || 'All'}</span>
+                  <ChevronDown size={12} className="text-[var(--text-muted)]" />
                 </button>
-
-                {/* Branch Dropdown Popover */}
                 {branchDropdownOpen && (
                   <>
-                    <div
-                      className="fixed inset-0 z-30"
-                      onClick={() => setBranchDropdownOpen(false)}
-                    />
-                    <div className="absolute left-0 mt-1.5 w-72 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-xl z-40 py-1.5 animate-in fade-in slide-in-from-top-1">
-                      <div className="px-3 py-1 text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider border-b border-[var(--rule)] mb-1">
-                        Branches ({currentOrganization?.name})
-                      </div>
-
-                      {/* Individual Branches */}
+                    <div className="fixed inset-0 z-30" onClick={() => setBranchDropdownOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-56 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-lg)] z-40 py-1 animate-slide-down">
+                      <div className="px-3 py-2 text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider">Branches</div>
                       {branches.map((b) => {
                         const isSelected = String(currentBranch?.id) === String(b.id);
                         return (
-                          <button
-                            key={b.id}
-                            onClick={() => handleBranchSelect(String(b.id), b.name)}
-                            className={`w-full px-3 py-2 text-left flex items-center justify-between text-xs hover:bg-[var(--paper)] transition-colors cursor-pointer ${
-                              isSelected ? 'font-bold text-[var(--gold-500)] bg-[var(--gold-100)]/30' : 'text-[var(--ink)]'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <MapPin size={13} className={isSelected ? 'text-[var(--gold-500)]' : 'text-[var(--ink-muted)]'} />
-                              <div className="truncate">
-                                <p className="truncate leading-none">{b.name}</p>
-                                <p className="text-[10px] font-data text-[var(--ink-muted)] mt-0.5">
-                                  {b.code ? `${b.code} · ` : ''}{b.city || 'Office'}
-                                </p>
-                              </div>
-                            </div>
-                            {isSelected && <Check size={13} className="text-[var(--gold-500)] flex-shrink-0 ml-1" />}
+                          <button key={b.id} onClick={() => handleBranchSelect(String(b.id), b.name)}
+                            className={`w-full px-3 py-2 text-left flex items-center justify-between text-sm hover:bg-[var(--surface-secondary)] cursor-pointer ${isSelected ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-primary)]'}`}>
+                            <span className="truncate">{b.name}</span>
+                            {isSelected && <Check size={14} className="text-[var(--accent)]" />}
                           </button>
                         );
                       })}
@@ -483,31 +298,28 @@ export const AppLayout: React.FC = () => {
                 )}
               </div>
             )}
-          </div>
 
-          <div className="flex items-center gap-3">
-
-
-            {/* Theme Toggle Button */}
-            <button
-              onClick={toggleTheme}
-              className="p-1.5 rounded-[4px] text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] border border-[var(--rule)] transition-colors cursor-pointer"
-              title="Toggle Theme (Dark / Light)"
-            >
-              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            {/* Notifications */}
+            <button className="relative p-2 rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
+              <Bell size={18} />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--danger)] rounded-full" />
             </button>
 
-            {/* Current Date Time */}
-            <div className="hidden lg:flex items-center gap-1 text-[11px] font-data text-[var(--ink-muted)]">
-              <Clock size={12} />
-              <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            {/* Theme Toggle */}
+            <button onClick={toggleTheme} className="p-2 rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] cursor-pointer" title="Toggle theme">
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            {/* User Avatar (mobile) */}
+            <div className="lg:hidden">
+              <Avatar name={user?.fullName || user?.username || 'U'} size="sm" />
             </div>
           </div>
         </header>
 
-        {/* Content Viewport */}
+        {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-[1280px] mx-auto space-y-6">
+          <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>

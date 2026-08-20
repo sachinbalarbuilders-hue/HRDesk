@@ -6,6 +6,9 @@ import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { DataToolbar } from '../components/ui/DataToolbar';
+import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import {
   Plus,
   X,
@@ -26,6 +29,7 @@ export const Leaves: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
@@ -49,7 +53,7 @@ export const Leaves: React.FC = () => {
       const [appsRes, typesRes] = await Promise.all([
         apiClient.get('/leaves/applications', {
           params: {
-            status: statusFilter !== 'all' ? statusFilter : undefined,
+            status: statusFilter !== 'all' ? statusFilter : (archiveFilter === 'active' ? 'Pending' : archiveFilter === 'archived' ? 'closed' : undefined),
             search: search || undefined,
             branchId: currentBranch?.id || undefined,
             page,
@@ -81,7 +85,7 @@ export const Leaves: React.FC = () => {
 
   useEffect(() => {
     fetchLeavesData();
-  }, [statusFilter, search, currentOrganization?.id, currentBranch?.id, page, pageSize]);
+  }, [statusFilter, archiveFilter, search, currentOrganization?.id, currentBranch?.id, page, pageSize]);
 
   useEffect(() => {
     const handleReload = () => {
@@ -165,27 +169,8 @@ export const Leaves: React.FC = () => {
   const canApprove = isAdmin || hasPermission('Leaves.Approve');
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header with Display Serif and Divider */}
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">
-              Leaves
-            </h1>
-            <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
-              Leave balances, requests & approval history
-            </p>
-          </div>
-
-          <span className="text-xs font-data text-[var(--ink-muted)]">
-            {totalCount} Total Requests
-          </span>
-        </div>
-
-        {/* Signature Divider */}
-        <div className="register-rule pt-1" />
-      </div>
+    <PageContainer>
+      <PageHeader title="Leave Management" description="Track and approve employee leave applications" />
 
       {/* 2. Unified Common Action Toolbar with Search, Status Filters, Export, Import, and Primary Action */}
       <DataToolbar
@@ -195,6 +180,10 @@ export const Leaves: React.FC = () => {
           setPage(1);
         }}
         searchPlaceholder="Search leaves by employee name, reason or ID..."
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+        }}
         filters={[
           {
             id: 'status',
@@ -382,23 +371,36 @@ export const Leaves: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                <label className="block text-xs font-semibold text-[var(--ink)] mb-2">
                   Duration
                 </label>
-                <select
-                  value={applyForm.dayType}
-                  onChange={(e) => setApplyForm({ ...applyForm, dayType: e.target.value })}
-                  className="register-input w-full"
-                >
-                  <option value="Full Day">Full Day</option>
-                  <option value="First Half">First Half (0.5)</option>
-                  <option value="Second Half">Second Half (0.5)</option>
-                </select>
+                <div className="flex items-center gap-2">
+                  {['Full Day', 'First Half', 'Second Half'].map((opt) => (
+                    <label
+                      key={opt}
+                      className={`flex-1 text-center py-2 px-3 rounded-[var(--radius-md)] border cursor-pointer text-xs font-medium transition-colors ${
+                        applyForm.dayType === opt
+                          ? 'border-[var(--accent)] bg-[var(--accent-light)] text-[var(--accent)]'
+                          : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:bg-[var(--surface-secondary)]'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="dayType"
+                        value={opt}
+                        checked={applyForm.dayType === opt}
+                        onChange={(e) => setApplyForm({ ...applyForm, dayType: e.target.value })}
+                        className="hidden"
+                      />
+                      {opt === 'Full Day' ? 'Full Day' : opt === 'First Half' ? '1st Half' : '2nd Half'}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-                  Reason
+                  Reason *
                 </label>
                 <textarea
                   rows={4}
@@ -406,7 +408,34 @@ export const Leaves: React.FC = () => {
                   onChange={(e) => setApplyForm({ ...applyForm, reason: e.target.value })}
                   placeholder="Enter reason for leave..."
                   className="register-input w-full"
+                  required
                 />
+              </div>
+
+              {/* Document Upload */}
+              <div>
+                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                  Supporting Document
+                </label>
+                <div className="border border-dashed border-[var(--border)] rounded-[var(--radius-md)] p-4 text-center hover:border-[var(--accent)] hover:bg-[var(--surface-secondary)] cursor-pointer transition-colors">
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={(e) => setApplyForm({ ...applyForm, document: e.target.files?.[0] || null } as any)}
+                    className="hidden"
+                    id="leave-doc-upload"
+                  />
+                  <label htmlFor="leave-doc-upload" className="cursor-pointer">
+                    {(applyForm as any).document ? (
+                      <div className="text-sm font-medium text-[var(--accent)]">{(applyForm as any).document.name}</div>
+                    ) : (
+                      <>
+                        <div className="text-sm text-[var(--text-secondary)]">Click to upload proof</div>
+                        <div className="text-[11px] text-[var(--text-muted)] mt-0.5">PDF, JPG, PNG (max 5MB)</div>
+                      </>
+                    )}
+                  </label>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
@@ -443,6 +472,6 @@ export const Leaves: React.FC = () => {
           fetchLeavesData();
         }}
       />
-    </div>
+    </PageContainer>
   );
 };

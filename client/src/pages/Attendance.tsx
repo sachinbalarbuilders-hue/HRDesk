@@ -8,6 +8,8 @@ import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../context/CompanyContext';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import {
   ChevronLeft,
   ChevronRight,
@@ -383,63 +385,45 @@ export const Attendance: React.FC = () => {
   const canManageCompOff = isAdmin || hasPermission('CompOff.Approve') || hasPermission('Attendance.Regularize');
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header with Tab Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--rule)] pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono tracking-widest text-[var(--accent)] uppercase font-semibold">
-              Time & Attendance Register
-            </span>
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
-            <span className="text-[11px] font-mono text-[var(--ink-muted)]">
-              {activeTab === 'matrix' ? 'Muster Roll' : activeTab === 'daily_logs' ? 'Punch Feed' : 'Overtime & Credits'}
-            </span>
-          </div>
-          <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink)] mt-1">
-            Official Attendance Register
-          </h1>
-          <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-            Single Source of Truth ledger powered by biometric punch engine and auto comp-off credits.
-          </p>
-        </div>
+    <PageContainer>
+      <PageHeader title="Attendance" description="Daily attendance records and biometric logs" />
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="inline-flex rounded-lg border border-[var(--rule)] p-0.5 bg-[var(--paper-subtle)]">
-            <button
-              onClick={() => { setActiveTab('matrix'); setPage(1); }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-all ${
-                activeTab === 'matrix'
-                  ? 'bg-[var(--paper)] text-[var(--accent)] shadow-xs border border-[var(--rule)]'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Monthly Matrix</span>
-            </button>
-            <button
-              onClick={() => { setActiveTab('daily_logs'); setPage(1); }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-all ${
-                activeTab === 'daily_logs'
-                  ? 'bg-[var(--paper)] text-[var(--accent)] shadow-xs border border-[var(--rule)]'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Daily Punch Feed</span>
-            </button>
-            <button
-              onClick={() => { setActiveTab('compoff'); setPage(1); }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-all ${
-                activeTab === 'compoff'
-                  ? 'bg-[var(--paper)] text-[var(--accent)] shadow-xs border border-[var(--rule)]'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              <span>Comp-Off Credits</span>
-            </button>
-          </div>
+      {/* Tab Switcher */}
+      <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="inline-flex rounded-lg border border-[var(--rule)] p-0.5 bg-[var(--paper-subtle)]">
+          <button
+            onClick={() => { setActiveTab('matrix'); setPage(1); }}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-all ${
+              activeTab === 'matrix'
+                ? 'bg-[var(--paper)] text-[var(--accent)] shadow-xs border border-[var(--rule)]'
+                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Monthly Matrix</span>
+          </button>
+          <button
+            onClick={() => { setActiveTab('daily_logs'); setPage(1); }}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-all ${
+              activeTab === 'daily_logs'
+                ? 'bg-[var(--paper)] text-[var(--accent)] shadow-xs border border-[var(--rule)]'
+                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span>Daily Punch Feed</span>
+          </button>
+          <button
+            onClick={() => { setActiveTab('compoff'); setPage(1); }}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-all ${
+              activeTab === 'compoff'
+                ? 'bg-[var(--paper)] text-[var(--accent)] shadow-xs border border-[var(--rule)]'
+                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            <span>Comp-Off Credits</span>
+          </button>
         </div>
       </div>
 
@@ -509,7 +493,7 @@ export const Attendance: React.FC = () => {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="input-field text-xs font-mono py-1.5"
+              className="register-input text-xs font-mono py-1.5"
             />
           </div>
         )}
@@ -785,7 +769,7 @@ export const Attendance: React.FC = () => {
                 <select
                   value={compOffForm.employeeId}
                   onChange={(e) => setCompOffForm({ ...compOffForm, employeeId: parseInt(e.target.value) || 0 })}
-                  className="input-field w-full font-medium"
+                  className="register-input w-full font-medium"
                   required
                 >
                   {employees.map((e) => (
@@ -803,7 +787,7 @@ export const Attendance: React.FC = () => {
                     type="date"
                     value={compOffForm.workedDate}
                     onChange={(e) => setCompOffForm({ ...compOffForm, workedDate: e.target.value })}
-                    className="input-field w-full font-mono"
+                    className="register-input w-full font-mono"
                     required
                   />
                 </div>
@@ -812,7 +796,7 @@ export const Attendance: React.FC = () => {
                   <select
                     value={compOffForm.compOffDays}
                     onChange={(e) => setCompOffForm({ ...compOffForm, compOffDays: parseFloat(e.target.value) || 1.0 })}
-                    className="input-field w-full font-mono font-bold"
+                    className="register-input w-full font-mono font-bold"
                   >
                     <option value={1.0}>1.0 Full Day</option>
                     <option value={0.5}>0.5 Half Day</option>
@@ -827,7 +811,7 @@ export const Attendance: React.FC = () => {
                     type="time"
                     value={compOffForm.inTime}
                     onChange={(e) => setCompOffForm({ ...compOffForm, inTime: e.target.value })}
-                    className="input-field w-full font-mono"
+                    className="register-input w-full font-mono"
                   />
                 </div>
                 <div>
@@ -836,7 +820,7 @@ export const Attendance: React.FC = () => {
                     type="time"
                     value={compOffForm.outTime}
                     onChange={(e) => setCompOffForm({ ...compOffForm, outTime: e.target.value })}
-                    className="input-field w-full font-mono"
+                    className="register-input w-full font-mono"
                   />
                 </div>
               </div>
@@ -848,7 +832,7 @@ export const Attendance: React.FC = () => {
                   onChange={(e) => setCompOffForm({ ...compOffForm, reason: e.target.value })}
                   placeholder="Details of official task or overtime performed on week-off/holiday..."
                   rows={2}
-                  className="input-field w-full"
+                  className="register-input w-full"
                 />
               </div>
 
@@ -890,7 +874,7 @@ export const Attendance: React.FC = () => {
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="e.g. Inadequate justification / Punch unverified..."
               rows={3}
-              className="input-field w-full text-xs"
+              className="register-input w-full text-xs"
               required
             />
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -930,7 +914,7 @@ export const Attendance: React.FC = () => {
           else fetchCompOff();
         }}
       />
-    </div>
+    </PageContainer>
   );
 };
 

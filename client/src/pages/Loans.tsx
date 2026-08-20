@@ -11,6 +11,8 @@ import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import {
   DollarSign,
   Plus,
@@ -401,23 +403,8 @@ export const Loans: React.FC = () => {
   const canManage = isAdmin || hasPermission('Payroll.ManageLoans');
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header Section */}
-      <div className="border-b border-[var(--rule)] pb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono tracking-widest text-[var(--accent)] uppercase font-semibold">
-            Finance & Advances
-          </span>
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
-          <span className="text-[11px] font-mono text-[var(--ink-muted)]">Salary Advances & EMIs</span>
-        </div>
-        <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink)] mt-1">
-          Employee Loans & Advances Register
-        </h1>
-        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-          Manage company advances, emergency aid, installment schedules, and payroll auto-deductions.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader title="Loans & Advances" description="Manage company advances, EMI schedules, and payroll deductions" />
 
 
       {/* 3. Toolbar & Filters */}
@@ -1103,6 +1090,6 @@ export const Loans: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };

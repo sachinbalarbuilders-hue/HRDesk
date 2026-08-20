@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useOrganization } from '../context/CompanyContext';
+import { Link } from 'react-router-dom';
 import {
   Users,
   UserCheck,
@@ -11,9 +13,17 @@ import {
   X,
   ArrowRight,
   TrendingUp,
+  CreditCard,
+  FileText,
+  AlertCircle,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useOrganization } from '../context/CompanyContext';
+import { PageHeader } from '../components/layout/PageHeader';
+import { PageContainer } from '../components/layout/PageContainer';
+import { Card, CardHeader, CardTitle } from '../components/ui/Card';
+import { StatCard } from '../components/ui/StatCard';
+import { Badge } from '../components/ui/Badge';
+import { Avatar } from '../components/ui/Avatar';
+import { EmptyState } from '../components/ui/EmptyState';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
 
 export const Dashboard: React.FC = () => {
@@ -38,20 +48,15 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [currentOrganization?.id, currentBranch?.id]);
+  useEffect(() => { fetchDashboardData(); }, [currentOrganization?.id, currentBranch?.id]);
 
   useEffect(() => {
-    const handleTenantChange = () => fetchDashboardData();
-    const handleBranchChange = () => fetchDashboardData();
-
-    window.addEventListener('hrdesk:tenant_changed', handleTenantChange);
-    window.addEventListener('hrdesk:branch_changed', handleBranchChange);
-
+    const handleReload = () => fetchDashboardData();
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
     return () => {
-      window.removeEventListener('hrdesk:tenant_changed', handleTenantChange);
-      window.removeEventListener('hrdesk:branch_changed', handleBranchChange);
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
     };
   }, [currentOrganization?.id, currentBranch?.id]);
 
@@ -82,9 +87,7 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return <PageSkeleton />;
-  }
+  if (loading) return <PageSkeleton />;
 
   const isPersonal = stats?.isPersonal;
   const metrics = stats?.metrics || {};
@@ -92,298 +95,210 @@ export const Dashboard: React.FC = () => {
   const presentCount = metrics.presentToday || 0;
   const leaveCount = metrics.onLeaveToday || 0;
   const absentCount = Math.max(0, totalStaff - (presentCount + leaveCount));
+  const attendanceRate = totalStaff > 0 ? Math.round((presentCount / totalStaff) * 100) : 0;
 
   return (
-    <div className="space-y-6">
-      {/* 1. Page Header with Display Serif and Accent Rule */}
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">
-              Dashboard
-            </h1>
-            <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
-              Real-time attendance overview, live punches & pending approvals
-            </p>
-          </div>
+    <PageContainer>
+      {/* Header */}
+      <PageHeader
+        title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${user?.fullName?.split(' ')[0] || 'there'}`}
+        description={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+      />
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-data text-[var(--ink-muted)]">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-            </span>
-          </div>
-        </div>
-
-        {/* Hairline Divider with Ticks */}
-        <div className="register-rule pt-1" />
-      </div>
-
-      {/* 2. Horizontal Headcount Overview Strip */}
+      {/* KPI Stats Grid */}
       {!isPersonal ? (
-        <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-6 sm:gap-8 w-full md:w-auto">
-            {/* Total Staff */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-center text-[var(--navy-900)] dark:text-[var(--gold-500)]">
-                <Users size={16} />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">
-                  Total Staff
-                </p>
-                <p className="text-lg font-bold font-data text-[var(--ink)]">
-                  {totalStaff}
-                </p>
-              </div>
-            </div>
-
-            <div className="h-7 w-[1px] bg-[var(--rule)] hidden sm:block" />
-
-            {/* Present Today */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-[4px] bg-[var(--ok-600)]/10 flex items-center justify-center text-[var(--ok-600)]">
-                <UserCheck size={16} />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">
-                  Present Today
-                </p>
-                <p className="text-lg font-bold font-data text-[var(--ok-600)]">
-                  {presentCount}
-                </p>
-              </div>
-            </div>
-
-            <div className="h-7 w-[1px] bg-[var(--rule)] hidden sm:block" />
-
-            {/* On Leave */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-[4px] bg-[var(--warn-600)]/10 flex items-center justify-center text-[var(--warn-600)]">
-                <CalendarOff size={16} />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">
-                  On Leave
-                </p>
-                <p className="text-lg font-bold font-data text-[var(--warn-600)]">
-                  {leaveCount}
-                </p>
-              </div>
-            </div>
-
-            <div className="h-7 w-[1px] bg-[var(--rule)] hidden sm:block" />
-
-            {/* Absent */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-[4px] bg-[var(--err-600)]/10 flex items-center justify-center text-[var(--err-600)]">
-                <UserX size={16} />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">
-                  Absent / Unverified
-                </p>
-                <p className="text-lg font-bold font-data text-[var(--err-600)]">
-                  {absentCount}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-xs font-data text-[var(--gold-500)] font-semibold flex items-center gap-1.5 self-end md:self-center">
-            <TrendingUp size={14} />
-            <span>{totalStaff > 0 ? Math.round((presentCount / totalStaff) * 100) : 0}% Attendance Rate</span>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Total Employees"
+            value={totalStaff}
+            icon={<Users size={20} />}
+            variant="default"
+            subtitle="Active headcount"
+          />
+          <StatCard
+            label="Present Today"
+            value={presentCount}
+            icon={<UserCheck size={20} />}
+            variant="success"
+            trend={{ value: attendanceRate, label: 'rate' }}
+          />
+          <StatCard
+            label="On Leave"
+            value={leaveCount}
+            icon={<CalendarOff size={20} />}
+            variant="warning"
+          />
+          <StatCard
+            label="Absent"
+            value={absentCount}
+            icon={<UserX size={20} />}
+            variant="danger"
+          />
         </div>
       ) : (
-        /* Personal Attendance Summary */
-        <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-4 flex flex-wrap items-center gap-6">
-          <div>
-            <p className="text-[10px] uppercase font-semibold text-[var(--ink-muted)]">Payable Days (This Month)</p>
-            <p className="text-xl font-bold font-data text-[var(--gold-500)]">{stats?.myAttendance?.payableDays || 0}</p>
-          </div>
-          <div className="h-8 w-[1px] bg-[var(--rule)]" />
-          <div>
-            <p className="text-[10px] uppercase font-semibold text-[var(--ink-muted)]">Present Days</p>
-            <p className="text-xl font-bold font-data text-[var(--ok-600)]">{stats?.myAttendance?.presentDays || 0}</p>
-          </div>
-          <div className="h-8 w-[1px] bg-[var(--rule)]" />
-          <div>
-            <p className="text-[10px] uppercase font-semibold text-[var(--ink-muted)]">Absences (LOP)</p>
-            <p className="text-xl font-bold font-data text-[var(--err-600)]">{stats?.myAttendance?.absentDays || 0}</p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            label="Payable Days"
+            value={stats?.myAttendance?.payableDays || 0}
+            icon={<TrendingUp size={20} />}
+            variant="default"
+            subtitle="This month"
+          />
+          <StatCard
+            label="Present Days"
+            value={stats?.myAttendance?.presentDays || 0}
+            icon={<UserCheck size={20} />}
+            variant="success"
+          />
+          <StatCard
+            label="Absences (LOP)"
+            value={stats?.myAttendance?.absentDays || 0}
+            icon={<UserX size={20} />}
+            variant="danger"
+          />
         </div>
       )}
 
-      {/* 3. Main Two-Column Layout */}
+      {/* Main Grid: 2/3 + 1/3 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Recent Biometric Punches (2/3) */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-            {/* Table Section Header */}
-            <div className="px-4 py-3 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--surface-header)]">
+        {/* Left: Today's Punch Logs */}
+        <div className="lg:col-span-2">
+          <Card padding="none">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <div>
-                <h3 className="font-semibold text-xs text-[var(--ink)] uppercase tracking-wider font-ui">
-                  Today's Biometric Punch Logs
-                </h3>
-                <p className="text-[11px] text-[var(--ink-muted)]">Real-time terminal device telemetry</p>
+                <CardTitle>Today's Activity</CardTitle>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Real-time biometric logs</p>
               </div>
-              <Link
-                to="/attendance"
-                className="text-xs text-[var(--gold-500)] hover:underline flex items-center gap-1 font-semibold"
-              >
-                <span>Full Sheet</span>
-                <ArrowRight size={12} />
+              <Link to="/attendance" className="text-xs font-medium text-[var(--accent)] hover:underline flex items-center gap-1">
+                View all <ArrowRight size={12} />
               </Link>
             </div>
 
-            {/* Punches Table */}
-            <div className="overflow-x-auto">
-              <table className="register-table">
-                <thead>
-                  <tr>
-                    <th>Employee Name</th>
-                    <th>Department</th>
-                    <th className="text-right font-data">In Time</th>
-                    <th className="text-right font-data">Out Time</th>
-                    <th className="text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats?.recentPunches?.map((punch: any, idx: number) => (
-                    <tr key={idx}>
-                      <td className="font-semibold text-[var(--ink)]">
-                        {punch.employeeName}
-                      </td>
-                      <td className="text-xs text-[var(--ink-muted)]">
-                        {punch.department || 'General'}
-                      </td>
-                      <td className="text-right font-data text-xs text-[var(--ink)]">
-                        {punch.inTime || '--:--'}
-                      </td>
-                      <td className="text-right font-data text-xs text-[var(--ink)]">
-                        {punch.outTime || '--:--'}
-                      </td>
-                      <td className="text-right text-xs">
-                        <span className="inline-flex items-center gap-1.5 justify-end">
-                          <span className={punch.status === 'Present' ? 'status-dot-ok' : 'status-dot-warn'} />
-                          <span className={punch.status === 'Present' ? 'text-[var(--ok-600)]' : 'text-[var(--warn-600)]'}>
-                            {punch.status}
-                          </span>
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-
-                  {(!stats?.recentPunches || stats.recentPunches.length === 0) && (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center text-xs font-data text-[var(--ink-muted)]">
-                        No biometric punches logged yet today.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+            {stats?.recentPunches?.length > 0 ? (
+              <div className="divide-y divide-[var(--border)]">
+                {stats.recentPunches.map((punch: any, idx: number) => (
+                  <div key={idx} className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--surface-hover)]">
+                    <Avatar name={punch.employeeName || 'E'} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--text-primary)] truncate">{punch.employeeName}</p>
+                      <p className="text-xs text-[var(--text-muted)]">{punch.department || 'General'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-data text-[var(--text-primary)]">
+                        {punch.inTime || '--:--'} → {punch.outTime || '--:--'}
+                      </p>
+                    </div>
+                    <Badge variant={punch.status === 'Present' ? 'success' : 'warning'} dot>
+                      {punch.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                title="No punches yet"
+                description="Biometric logs will appear here as employees clock in."
+                icon={<Clock size={24} className="text-[var(--text-muted)]" />}
+              />
+            )}
+          </Card>
         </div>
 
-        {/* Right Column: Pending Approvals & Web Punch (1/3) */}
+        {/* Right Column */}
         <div className="space-y-6">
-          {/* Quick Web Clock-in Widget */}
-          <div className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] space-y-3">
-            <div className="flex items-center justify-between pb-1 border-b border-[var(--rule)]">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--ink)] font-ui">
-                Web Punch Station
-              </h3>
-              <Clock size={14} className="text-[var(--ink-muted)]" />
-            </div>
+          {/* Web Punch Widget */}
+          <Card>
+            <CardTitle>Quick Punch</CardTitle>
+            <p className="text-xs text-[var(--text-secondary)] mt-1 mb-4">Record attendance from browser</p>
 
-            <p className="text-xs text-[var(--ink-muted)]">
-              Record manual attendance timestamp from authorized workstation.
-            </p>
-
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 disabled={punching}
                 onClick={() => handleWebPunch('In')}
-                className="btn-primary py-2 text-center text-xs font-semibold cursor-pointer"
+                className="btn-primary py-3 text-center text-sm font-semibold disabled:opacity-50 cursor-pointer"
               >
                 Punch IN
               </button>
               <button
                 disabled={punching}
                 onClick={() => handleWebPunch('Out')}
-                className="btn-outline py-2 text-center text-xs font-semibold cursor-pointer"
+                className="btn-secondary py-3 text-center text-sm font-semibold disabled:opacity-50 cursor-pointer"
               >
                 Punch OUT
               </button>
             </div>
 
             {punchMessage && (
-              <p className="text-[11px] font-data text-[var(--ok-600)] bg-[var(--ok-600)]/10 p-2 rounded-[2px] text-center">
-                {punchMessage}
-              </p>
+              <p className="text-xs text-[var(--accent)] mt-3 text-center font-medium">{punchMessage}</p>
             )}
-          </div>
+          </Card>
 
-          {/* Pending Leave Authorizations */}
-          {isAdmin && (
-            <div className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] space-y-3">
-              <div className="flex items-center justify-between pb-1 border-b border-[var(--rule)]">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--ink)] font-ui">
-                  Pending Approvals
-                </h3>
-                <span className="font-data text-xs text-[var(--warn-600)] font-bold">
-                  {stats?.pendingLeaves?.length || 0}
-                </span>
+          {/* Pending Approvals */}
+          {isAdmin && stats?.pendingLeaves?.length > 0 && (
+            <Card padding="none">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <CardTitle>Pending Approvals</CardTitle>
+                  <Badge variant="danger">{stats.pendingLeaves.length}</Badge>
+                </div>
+                <Link to="/leaves" className="text-xs font-medium text-[var(--accent)] hover:underline">
+                  View all
+                </Link>
               </div>
 
-              <div className="space-y-2.5">
-                {stats?.pendingLeaves?.map((leave: any) => (
-                  <div
-                    key={leave.id}
-                    className="p-2.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-[var(--ink)]">{leave.employeeName}</p>
-                      <span className="font-data text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] bg-[var(--warn-600)]/10 text-[var(--warn-600)]">
-                        {leave.leaveTypeCode}
-                      </span>
+              <div className="divide-y divide-[var(--border)]">
+                {stats.pendingLeaves.slice(0, 5).map((leave: any) => (
+                  <div key={leave.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar name={leave.employeeName || 'E'} size="xs" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-[var(--text-primary)] truncate">{leave.employeeName}</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">{leave.leaveType} · {leave.days} day(s)</p>
+                      </div>
                     </div>
-
-                    <p className="text-[11px] font-data text-[var(--ink-muted)]">
-                      {leave.startDate} to {leave.endDate} ({leave.totalDays}d)
-                    </p>
-
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button
                         onClick={() => handleLeaveDecision(leave.id, 'Approved')}
-                        className="btn-primary flex-1 py-1 text-[11px] flex items-center justify-center gap-1 cursor-pointer"
+                        className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center hover:opacity-80 cursor-pointer"
                       >
-                        <Check size={12} />
-                        <span>Approve</span>
+                        <Check size={14} />
                       </button>
                       <button
                         onClick={() => handleLeaveDecision(leave.id, 'Rejected')}
-                        className="btn-outline flex-1 py-1 text-[11px] flex items-center justify-center gap-1 text-[var(--err-600)] cursor-pointer"
+                        className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--danger-light)] text-[var(--danger)] flex items-center justify-center hover:opacity-80 cursor-pointer"
                       >
-                        <X size={12} />
-                        <span>Reject</span>
+                        <X size={14} />
                       </button>
                     </div>
                   </div>
                 ))}
-
-                {(!stats?.pendingLeaves || stats.pendingLeaves.length === 0) && (
-                  <p className="text-xs text-[var(--ink-muted)] text-center py-4 font-data">
-                    All leave applications endorsed.
-                  </p>
-                )}
               </div>
-            </div>
+            </Card>
           )}
+
+          {/* Quick Links */}
+          <Card>
+            <CardTitle>Quick Links</CardTitle>
+            <div className="mt-3 space-y-2">
+              {[
+                { label: 'Monthly Payroll', href: '/payroll', icon: <CreditCard size={15} /> },
+                { label: 'Leave Applications', href: '/leaves', icon: <FileText size={15} /> },
+                { label: 'Regularizations', href: '/regularizations', icon: <AlertCircle size={15} /> },
+              ].map((link) => (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] text-sm text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)]"
+                >
+                  <span className="text-[var(--accent)]">{link.icon}</span>
+                  <span className="font-medium">{link.label}</span>
+                  <ArrowRight size={13} className="ml-auto text-[var(--text-muted)]" />
+                </Link>
+              ))}
+            </div>
+          </Card>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };

@@ -7,6 +7,8 @@ import { DataToolbar } from '../components/ui/DataToolbar';
 import { DataTable, type ColumnDef } from '../components/ui/DataTable';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import {
   UserPlus,
   Users,
@@ -824,29 +826,8 @@ export const Recruitment: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 font-ui">
-      {/* 1. Header with Display Serif and Workspace Metrics */}
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">
-              Recruitment & Candidate ATS
-            </h1>
-            <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
-              Applicant Tracking System, hiring pipeline stages, interview scheduler, and 1-click onboarding
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-data text-[var(--ink-muted)]">
-              ATS Pipeline Studio
-            </span>
-          </div>
-        </div>
-
-        {/* Signature Divider */}
-        <div className="register-rule pt-1" />
-      </div>
+    <PageContainer className="font-ui">
+      <PageHeader title="Recruitment" description="Track candidates and hiring pipeline" />
 
       {/* 2. Top Overview Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1223,7 +1204,7 @@ export const Recruitment: React.FC = () => {
                   value={candidateForm.candidateName}
                   onChange={(e) => setCandidateForm({ ...candidateForm, candidateName: e.target.value })}
                   placeholder="e.g. Vikram Sharma"
-                  className="input-field w-full"
+                  className="register-input w-full"
                   required
                 />
               </div>
@@ -1236,7 +1217,7 @@ export const Recruitment: React.FC = () => {
                     value={candidateForm.phone}
                     onChange={(e) => setCandidateForm({ ...candidateForm, phone: e.target.value })}
                     placeholder="e.g. +91 98765 43210"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
                 <div>
@@ -1246,7 +1227,7 @@ export const Recruitment: React.FC = () => {
                     value={candidateForm.email}
                     onChange={(e) => setCandidateForm({ ...candidateForm, email: e.target.value })}
                     placeholder="e.g. vikram@example.com"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
               </div>
@@ -1259,7 +1240,7 @@ export const Recruitment: React.FC = () => {
                     value={candidateForm.appliedFor}
                     onChange={(e) => setCandidateForm({ ...candidateForm, appliedFor: e.target.value })}
                     placeholder="e.g. Senior Civil Engineer"
-                    className="input-field w-full"
+                    className="register-input w-full"
                     required
                   />
                 </div>
@@ -1268,7 +1249,7 @@ export const Recruitment: React.FC = () => {
                   <select
                     value={candidateForm.source}
                     onChange={(e) => setCandidateForm({ ...candidateForm, source: e.target.value })}
-                    className="input-field w-full text-xs"
+                    className="register-input w-full text-xs"
                   >
                     <option value="Direct Portal">Direct Application</option>
                     <option value="LinkedIn">LinkedIn</option>
@@ -1288,7 +1269,7 @@ export const Recruitment: React.FC = () => {
                     value={candidateForm.currentSalary}
                     onChange={(e) => setCandidateForm({ ...candidateForm, currentSalary: e.target.value })}
                     placeholder="e.g. 650000"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
                 <div>
@@ -1298,7 +1279,7 @@ export const Recruitment: React.FC = () => {
                     value={candidateForm.expectedSalary}
                     onChange={(e) => setCandidateForm({ ...candidateForm, expectedSalary: e.target.value })}
                     placeholder="e.g. 850000"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
               </div>
@@ -1309,7 +1290,7 @@ export const Recruitment: React.FC = () => {
                   type="file"
                   accept=".pdf,.doc,.docx"
                   onChange={handleFileUpload}
-                  className="input-field w-full file:mr-3 file:py-1 file:px-2 file:rounded-[2px] file:border-0 file:text-xs file:bg-[var(--navy-900)] file:text-[var(--gold-500)] file:font-semibold cursor-pointer"
+                  className="register-input w-full file:mr-3 file:py-1 file:px-2 file:rounded-[2px] file:border-0 file:text-xs file:bg-[var(--navy-900)] file:text-[var(--gold-500)] file:font-semibold cursor-pointer"
                 />
               </div>
 
@@ -1320,7 +1301,7 @@ export const Recruitment: React.FC = () => {
                   onChange={(e) => setCandidateForm({ ...candidateForm, notes: e.target.value })}
                   placeholder="Key strengths, notice period, domain experience..."
                   rows={2}
-                  className="input-field w-full"
+                  className="register-input w-full"
                 />
               </div>
 
@@ -1364,7 +1345,7 @@ export const Recruitment: React.FC = () => {
                   <select
                     value={interviewForm.round}
                     onChange={(e) => setInterviewForm({ ...interviewForm, round: e.target.value })}
-                    className="input-field w-full text-xs"
+                    className="register-input w-full text-xs"
                   >
                     <option value="Round 1 (Screening)">Round 1 (Screening)</option>
                     <option value="Round 2 (Technical)">Round 2 (Technical)</option>
@@ -1378,7 +1359,7 @@ export const Recruitment: React.FC = () => {
                   <select
                     value={interviewForm.interviewType}
                     onChange={(e) => setInterviewForm({ ...interviewForm, interviewType: e.target.value as any })}
-                    className="input-field w-full text-xs"
+                    className="register-input w-full text-xs"
                   >
                     <option value="In-Person">In-Person (Office)</option>
                     <option value="Video">Video Call (Google Meet / Zoom)</option>
@@ -1393,7 +1374,7 @@ export const Recruitment: React.FC = () => {
                   type="datetime-local"
                   value={interviewForm.interviewDateTime}
                   onChange={(e) => setInterviewForm({ ...interviewForm, interviewDateTime: e.target.value })}
-                  className="input-field w-full font-data"
+                  className="register-input w-full font-data"
                   required
                 />
               </div>
@@ -1406,7 +1387,7 @@ export const Recruitment: React.FC = () => {
                     value={interviewForm.interviewerName}
                     onChange={(e) => setInterviewForm({ ...interviewForm, interviewerName: e.target.value })}
                     placeholder="e.g. Lead Architect"
-                    className="input-field w-full"
+                    className="register-input w-full"
                     required
                   />
                 </div>
@@ -1417,7 +1398,7 @@ export const Recruitment: React.FC = () => {
                     value={interviewForm.interviewerPhone}
                     onChange={(e) => setInterviewForm({ ...interviewForm, interviewerPhone: e.target.value })}
                     placeholder="+91..."
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
               </div>
@@ -1429,7 +1410,7 @@ export const Recruitment: React.FC = () => {
                   value={interviewForm.location}
                   onChange={(e) => setInterviewForm({ ...interviewForm, location: e.target.value })}
                   placeholder="Meeting room / https://meet.google.com/..."
-                  className="input-field w-full font-mono text-[11px]"
+                  className="register-input w-full font-mono text-[11px]"
                 />
               </div>
 
@@ -1472,7 +1453,7 @@ export const Recruitment: React.FC = () => {
                   <select
                     value={feedbackForm.status}
                     onChange={(e) => setFeedbackForm({ ...feedbackForm, status: e.target.value })}
-                    className="input-field w-full text-xs"
+                    className="register-input w-full text-xs"
                   >
                     <option value="Completed">Completed</option>
                     <option value="Cancelled">Cancelled</option>
@@ -1484,7 +1465,7 @@ export const Recruitment: React.FC = () => {
                   <select
                     value={feedbackForm.result}
                     onChange={(e) => setFeedbackForm({ ...feedbackForm, result: e.target.value })}
-                    className="input-field w-full text-xs font-semibold"
+                    className="register-input w-full text-xs font-semibold"
                   >
                     <option value="Pass">Pass (Recommended for next stage)</option>
                     <option value="Hold">On Hold</option>
@@ -1500,7 +1481,7 @@ export const Recruitment: React.FC = () => {
                   onChange={(e) => setFeedbackForm({ ...feedbackForm, feedback: e.target.value })}
                   placeholder="Technical assessment, problem-solving skills, communication, fit..."
                   rows={4}
-                  className="input-field w-full"
+                  className="register-input w-full"
                 />
               </div>
 
@@ -1546,7 +1527,7 @@ export const Recruitment: React.FC = () => {
                     value={hireForm.employeeId}
                     onChange={(e) => setHireForm({ ...hireForm, employeeId: e.target.value })}
                     placeholder="Auto-generated if blank"
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
                 <div>
@@ -1555,7 +1536,7 @@ export const Recruitment: React.FC = () => {
                     type="date"
                     value={hireForm.joiningDate}
                     onChange={(e) => setHireForm({ ...hireForm, joiningDate: e.target.value })}
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                     required
                   />
                 </div>
@@ -1567,7 +1548,7 @@ export const Recruitment: React.FC = () => {
                   <select
                     value={hireForm.departmentId}
                     onChange={(e) => setHireForm({ ...hireForm, departmentId: e.target.value })}
-                    className="input-field w-full text-xs"
+                    className="register-input w-full text-xs"
                   >
                     <option value="">Select Department</option>
                     {departments.map((d) => (
@@ -1582,7 +1563,7 @@ export const Recruitment: React.FC = () => {
                   <select
                     value={hireForm.designationId}
                     onChange={(e) => setHireForm({ ...hireForm, designationId: e.target.value })}
-                    className="input-field w-full text-xs"
+                    className="register-input w-full text-xs"
                   >
                     <option value="">Select Designation</option>
                     {designations.map((d) => (
@@ -1601,7 +1582,7 @@ export const Recruitment: React.FC = () => {
                     type="number"
                     value={hireForm.probationDays}
                     onChange={(e) => setHireForm({ ...hireForm, probationDays: parseInt(e.target.value) || 0 })}
-                    className="input-field w-full font-data"
+                    className="register-input w-full font-data"
                   />
                 </div>
                 <div>
@@ -1609,7 +1590,7 @@ export const Recruitment: React.FC = () => {
                   <select
                     value={hireForm.weekoff}
                     onChange={(e) => setHireForm({ ...hireForm, weekoff: e.target.value })}
-                    className="input-field w-full text-xs"
+                    className="register-input w-full text-xs"
                   >
                     <option value="Sunday">Sunday</option>
                     <option value="Monday">Monday</option>
@@ -1786,7 +1767,7 @@ export const Recruitment: React.FC = () => {
           fetchOverview();
         }}
       />
-    </div>
+    </PageContainer>
   );
 };
 

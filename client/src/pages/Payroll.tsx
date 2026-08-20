@@ -7,6 +7,8 @@ import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import {
   DollarSign,
   CreditCard,
@@ -250,23 +252,8 @@ export const Payroll: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header Section */}
-      <div className="border-b border-[var(--rule)] pb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono tracking-widest text-[var(--accent)] uppercase font-semibold">
-            Finance & Compensation Register
-          </span>
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
-          <span className="text-[11px] font-mono text-[var(--ink-muted)]">Salary & CTC Disbursement</span>
-        </div>
-        <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink)] mt-1">
-          Monthly Payroll Ledger
-        </h1>
-        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-          Process monthly salaries, calculate auto-deductions (PF, ESI, TDS, Loan EMIs, LOP), and generate formal payslips.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader title="Monthly Payroll" description="Process and manage salary disbursements" />
 
       {/* 2. Top Metrics Banner */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -526,73 +513,70 @@ export const Payroll: React.FC = () => {
       {/* 6. PROCESS PAYROLL MODAL */}
       {/* ========================================================================= */}
       {processModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper-subtle)]">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-[1px]">
+          <div className="w-full max-w-[480px] bg-[var(--surface)] h-full shadow-[var(--shadow-xl)] flex flex-col border-l border-[var(--border)] animate-slide-in-right">
+            <div className="p-5 pb-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
               <div>
-                <h3 className="font-serif font-bold text-base text-[var(--ink)] flex items-center gap-1.5">
-                  <Calculator className="w-4 h-4 text-[var(--accent)]" />
-                  <span>Run Monthly Payroll Calculation</span>
-                </h3>
-                <p className="text-[11px] text-[var(--ink-muted)]">Calculates earnings, LOP deductions, and loan installments from single-source attendance.</p>
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">Run Payroll</h3>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Calculate earnings, LOP deductions, and loan installments.</p>
               </div>
               <button
                 onClick={() => setProcessModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[var(--paper)] text-[var(--ink-muted)]"
+                className="p-1.5 rounded-[var(--radius-md)] hover:bg-[var(--surface-secondary)] text-[var(--text-muted)] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleProcessPayroll} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleProcessPayroll} className="flex-1 overflow-y-auto p-5 space-y-4 text-sm">
               <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">Processing Month *</label>
+                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Processing Month *</label>
                 <input
                   type="month"
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="input-field w-full font-mono font-bold"
+                  className="register-input font-data"
                   required
                 />
               </div>
 
-              <div className="p-3 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)] space-y-2">
+              <div className="p-3 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] space-y-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={!skipLoans}
                     onChange={(e) => setSkipLoans(!e.target.checked)}
-                    className="rounded border-[var(--rule)]"
+                    className="rounded border-[var(--border)] text-[var(--accent)]"
                   />
-                  <span className="font-medium text-[var(--ink)]">Include Active Loan & Advance EMI Deductions</span>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">Include Loan EMI Deductions</span>
                 </label>
-                <p className="text-[11px] text-[var(--ink-muted)] pl-5">
-                  Automatically deducts scheduled monthly installment amounts from employee loan accounts.
+                <p className="text-xs text-[var(--text-muted)] pl-6">
+                  Automatically deducts scheduled monthly installments from employee loan accounts.
                 </p>
               </div>
 
-              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-900 dark:text-amber-200 space-y-1">
-                <div className="font-bold flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Single Source Attendance Verification</span>
+              <div className="p-3 rounded-[var(--radius-md)] bg-[var(--warning-light)] border border-[var(--warning)]/20 space-y-1">
+                <div className="font-medium text-sm flex items-center gap-1.5 text-[var(--warning)]">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Attendance Verification</span>
                 </div>
-                <p className="text-[11px]">
-                  All payable days, Loss of Pay (LOP), and Comp-Off credits are strictly validated against `AttendanceSummaryService`.
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Payable days, LOP, and Comp-Off credits are validated against the shared attendance engine.
                 </p>
               </div>
 
-              <div className="pt-2 border-t border-[var(--rule)] flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-[var(--border)] flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setProcessModalOpen(false)}
-                  className="btn-secondary py-1.5 px-3"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
-                  className="btn-primary py-1.5 px-4 flex items-center gap-1.5"
+                  className="btn-primary"
                 >
                   {processing ? 'Calculating...' : 'Start Payroll Run'}
                 </button>
@@ -799,7 +783,7 @@ export const Payroll: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

@@ -7,6 +7,8 @@ import { DataToolbar } from '../components/ui/DataToolbar';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
+import { PageContainer } from '../components/layout/PageContainer';
+import { PageHeader } from '../components/layout/PageHeader';
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -182,23 +184,8 @@ export const Holidays: React.FC = () => {
   const paginatedHolidays = holidays.slice((page - 1) * pageSize, page * pageSize);
 
   return (
-    <div className="space-y-6">
-      {/* 1. Header Section */}
-      <div className="border-b border-[var(--rule)] pb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono tracking-widest text-[var(--accent)] uppercase font-semibold">
-            Time & Attendance Register
-          </span>
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
-          <span className="text-[11px] font-mono text-[var(--ink-muted)]">Official Public Calendar</span>
-        </div>
-        <h1 className="text-2xl font-serif font-bold tracking-tight text-[var(--ink)] mt-1">
-          Company Holiday Calendar
-        </h1>
-        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-          Configure statutory, gazetted, and company-mandated paid non-working holidays.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader title="Holidays" description="Organization holiday calendar" />
 
       {/* 2. Unified Data Toolbar */}
       <DataToolbar
@@ -321,94 +308,94 @@ export const Holidays: React.FC = () => {
         )}
       </div>
 
-      {/* 4. Add / Edit Holiday Modal */}
+      {/* 4. Add / Edit Holiday Panel */}
       {holidayModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
-            <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper-subtle)]">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-[1px]">
+          <div className="w-full max-w-[480px] bg-[var(--surface)] h-full shadow-[var(--shadow-xl)] flex flex-col border-l border-[var(--border)] animate-slide-in-right">
+            <div className="p-5 pb-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
               <div>
-                <h3 className="font-serif font-bold text-base text-[var(--ink)]">
-                  {editingId ? 'Edit Holiday Record' : 'Register Official Holiday'}
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                  {editingId ? 'Edit Holiday' : 'Add Holiday'}
                 </h3>
-                <p className="text-[11px] text-[var(--ink-muted)]">Configure paid non-working calendar days.</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Configure paid non-working calendar days.</p>
               </div>
               <button
                 onClick={() => setHolidayModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[var(--paper)] text-[var(--ink-muted)]"
+                className="p-1.5 rounded-[var(--radius-md)] hover:bg-[var(--surface-secondary)] text-[var(--text-muted)] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveHoliday} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleSaveHoliday} className="flex-1 overflow-y-auto p-5 space-y-4 text-sm">
               <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">Holiday Title *</label>
+                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Holiday Title *</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Independence Day, Diwali, New Year"
-                  className="input-field w-full font-medium"
+                  className="register-input"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Start Date *</label>
+                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Start Date *</label>
                   <input
                     type="date"
                     value={form.startDate}
                     onChange={(e) => setForm({ ...form, startDate: e.target.value, endDate: e.target.value >= form.endDate ? e.target.value : form.endDate })}
-                    className="input-field w-full font-mono"
+                    className="register-input font-data"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">End Date *</label>
+                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">End Date *</label>
                   <input
                     type="date"
                     value={form.endDate}
                     onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className="input-field w-full font-mono"
+                    className="register-input font-data"
                     required
                   />
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer pt-1">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={form.isGlobal}
                   onChange={(e) => setForm({ ...form, isGlobal: e.target.checked })}
-                  className="rounded border-[var(--rule)] text-[var(--accent)]"
+                  className="rounded border-[var(--border)] text-[var(--accent)]"
                 />
-                <span className="font-medium text-[var(--ink)]">Global holiday applicable to all employees across company</span>
+                <span className="text-sm font-medium text-[var(--text-primary)]">Global holiday (all employees)</span>
               </label>
 
               <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">Description / Notes</label>
+                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Description / Notes</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Details regarding holiday observance or festival..."
-                  rows={2}
-                  className="input-field w-full"
+                  rows={3}
+                  className="register-input"
                 />
               </div>
 
-              <div className="pt-2 border-t border-[var(--rule)] flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-[var(--border)] flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setHolidayModalOpen(false)}
-                  className="btn-secondary py-1.5 px-3"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary py-1.5 px-4 flex items-center gap-1.5"
+                  className="btn-primary"
                 >
                   {submitting ? 'Saving...' : editingId ? 'Update Holiday' : 'Save Holiday'}
                 </button>
@@ -431,6 +418,6 @@ export const Holidays: React.FC = () => {
           fetchHolidays();
         }}
       />
-    </div>
+    </PageContainer>
   );
 };
