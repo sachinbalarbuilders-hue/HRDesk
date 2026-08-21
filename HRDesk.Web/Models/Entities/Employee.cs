@@ -5,7 +5,14 @@ namespace HRDesk.Web.Models;
 public sealed class Employee : IMustHaveTenant
 {
     public int EmployeeId { get; set; }
-    
+
+    /// <summary>
+    /// Opaque, non-enumerable identifier used in URLs and API responses instead of the
+    /// internal integer EmployeeId, so employee IDs cannot be guessed/incremented by a client.
+    /// Distinct from VerificationId, which is a stable public QR/ID-card verification token.
+    /// </summary>
+    public Guid PublicId { get; set; } = Guid.NewGuid();
+
     public Guid VerificationId { get; set; } = Guid.NewGuid();
 
     public string EmployeeName { get; set; } = "";

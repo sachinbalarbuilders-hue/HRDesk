@@ -35,6 +35,7 @@ public class RolesController : ControllerBase
             .Select(r => new
             {
                 r.Id,
+                r.PublicId,
                 r.Name,
                 r.Description,
                 r.IsSystemRole,
@@ -68,8 +69,8 @@ public class RolesController : ControllerBase
         return Ok(grouped);
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetRoleById(int id)
+    [HttpGet("{publicId:guid}")]
+    public async Task<IActionResult> GetRoleById(Guid publicId)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.SystemRoles))
         {
@@ -78,7 +79,7 @@ public class RolesController : ControllerBase
 
         var role = await _db.Roles
             .Include(r => r.Permissions)
-            .FirstOrDefaultAsync(r => r.Id == id);
+            .FirstOrDefaultAsync(r => r.PublicId == publicId);
 
         if (role == null)
         {
@@ -91,6 +92,7 @@ public class RolesController : ControllerBase
         return Ok(new
         {
             role.Id,
+            role.PublicId,
             role.Name,
             role.Description,
             role.IsSystemRole,
@@ -150,18 +152,18 @@ public class RolesController : ControllerBase
 
         _permissionService.ClearCache();
 
-        return CreatedAtAction(nameof(GetRoleById), new { id = role.Id }, new { role.Id, message = "Role created successfully." });
+        return CreatedAtAction(nameof(GetRoleById), new { publicId = role.PublicId }, new { role.Id, role.PublicId, message = "Role created successfully." });
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateRole(int id, [FromBody] RoleUpdateDto dto)
+    [HttpPut("{publicId:guid}")]
+    public async Task<IActionResult> UpdateRole(Guid publicId, [FromBody] RoleUpdateDto dto)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.SystemRoles))
         {
             return Forbid();
         }
 
-        var role = await _db.Roles.FindAsync(id);
+        var role = await _db.Roles.FirstOrDefaultAsync(r => r.PublicId == publicId);
         if (role == null)
         {
             return NotFound(new { message = "Role not found." });
@@ -180,19 +182,21 @@ public class RolesController : ControllerBase
         return Ok(new { message = "Role details updated successfully." });
     }
 
-    [HttpPut("{id}/permission")]
-    public async Task<IActionResult> UpdatePermissionLive(int id, [FromBody] PermissionToggleDto dto)
+    [HttpPut("{publicId:guid}/permission")]
+    public async Task<IActionResult> UpdatePermissionLive(Guid publicId, [FromBody] PermissionToggleDto dto)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.SystemRoles))
         {
             return Forbid();
         }
 
-        var role = await _db.Roles.FindAsync(id);
+        var role = await _db.Roles.FirstOrDefaultAsync(r => r.PublicId == publicId);
         if (role == null)
         {
             return NotFound(new { message = "Role not found." });
         }
+
+        var id = role.Id;
 
         var existing = await _db.RolePermissions
             .FirstOrDefaultAsync(p => p.RoleId == id && p.PermissionKey == dto.PermissionKey);

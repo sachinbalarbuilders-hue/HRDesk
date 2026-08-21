@@ -10,6 +10,12 @@ public class Role : IMustHaveTenant
     [Column("id")]
     public int Id { get; set; }
 
+    /// <summary>
+    /// Opaque, non-enumerable identifier used in URLs and API responses instead of the
+    /// internal integer Id, so role IDs cannot be guessed/incremented by a client.
+    /// </summary>
+    public Guid PublicId { get; set; } = Guid.NewGuid();
+
     [Required]
     [Column("name")]
     [StringLength(100)]

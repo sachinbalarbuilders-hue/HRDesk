@@ -97,6 +97,7 @@ public class EmployeesController : ControllerBase
             .Select(e => new
             {
                 e.EmployeeId,
+                e.PublicId,
                 e.EmployeeName,
                 employeeCode = (e.Branch != null && !string.IsNullOrEmpty(e.Branch.Code) ? e.Branch.Code : "EMP#") + e.EmployeeId.ToString("D3"),
                 e.Phone,
@@ -126,8 +127,8 @@ public class EmployeesController : ControllerBase
         });
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetEmployeeById(int id)
+    [HttpGet("{publicId:guid}")]
+    public async Task<IActionResult> GetEmployeeById(Guid publicId)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesView))
         {
@@ -140,7 +141,7 @@ public class EmployeesController : ControllerBase
             .Include(e => e.Designation)
             .Include(e => e.Branch)
             .Include(e => e.ReportingManager)
-            .Where(e => e.EmployeeId == id);
+            .Where(e => e.PublicId == publicId);
 
         query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.EmployeesView);
 
@@ -153,6 +154,7 @@ public class EmployeesController : ControllerBase
         return Ok(new
         {
             employee.EmployeeId,
+            employee.PublicId,
             employee.VerificationId,
             employee.EmployeeName,
             employeeCode = (employee.Branch != null && !string.IsNullOrEmpty(employee.Branch.Code) ? employee.Branch.Code : "EMP#") + employee.EmployeeId.ToString("D3"),
@@ -411,18 +413,18 @@ public class EmployeesController : ControllerBase
 
         _permissionService.ClearCache();
 
-        return CreatedAtAction(nameof(GetEmployeeById), new { id = employee.EmployeeId }, new { employee.EmployeeId, message = "Employee created successfully." });
+        return CreatedAtAction(nameof(GetEmployeeById), new { publicId = employee.PublicId }, new { employee.EmployeeId, employee.PublicId, message = "Employee created successfully." });
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeUpdateDto dto)
+    [HttpPut("{publicId:guid}")]
+    public async Task<IActionResult> UpdateEmployee(Guid publicId, [FromBody] EmployeeUpdateDto dto)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
         {
             return Forbid();
         }
 
-        var query = _db.Employees.Where(e => e.EmployeeId == id);
+        var query = _db.Employees.Where(e => e.PublicId == publicId);
         query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.EmployeesEdit);
 
         var employee = await query.FirstOrDefaultAsync();
@@ -465,15 +467,15 @@ public class EmployeesController : ControllerBase
         return Ok(new { message = "Employee updated successfully." });
     }
 
-    [HttpPost("{id}/toggle-status")]
-    public async Task<IActionResult> ToggleStatus(int id)
+    [HttpPost("{publicId:guid}/toggle-status")]
+    public async Task<IActionResult> ToggleStatus(Guid publicId)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
         {
             return Forbid();
         }
 
-        var query = _db.Employees.Where(e => e.EmployeeId == id);
+        var query = _db.Employees.Where(e => e.PublicId == publicId);
         query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.EmployeesEdit);
 
         var employee = await query.FirstOrDefaultAsync();
@@ -491,16 +493,18 @@ public class EmployeesController : ControllerBase
         return Ok(new { status = employee.Status, message = $"Employee status set to {employee.Status}." });
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteEmployee(int id)
+    [HttpDelete("{publicId:guid}")]
+    public async Task<IActionResult> DeleteEmployee(Guid publicId)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
         {
             return Forbid();
         }
 
-        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id);
+        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.PublicId == publicId);
         if (employee == null) return NotFound(new { message = "Employee not found." });
+
+        var id = employee.EmployeeId;
 
         if (employee.Status?.ToLower() == "active")
         {

@@ -52,7 +52,11 @@ export const OrgBranchesTab: React.FC = () => {
       ) : (
         <div className="border border-[var(--rule)] rounded-md divide-y divide-[var(--rule)]">
           {branches.map((branch) => (
-            <div key={branch.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--paper)]/60 transition-colors">
+            <div
+              key={branch.id}
+              className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--paper)]/60 transition-colors cursor-pointer"
+              onClick={() => navigate(`/settings/organizations/${id}/branches/${branch.publicId}`)}
+            >
               <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center shrink-0">
                 <MapPin size={14} />
               </div>
@@ -70,7 +74,7 @@ export const OrgBranchesTab: React.FC = () => {
                   {branch.latitude && <span className="font-data flex items-center gap-0.5"><MapPin size={9} className="text-indigo-400" />{Number(branch.latitude).toFixed(4)}, {Number(branch.longitude).toFixed(4)} ({branch.radiusMeters}m)</span>}
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                 <RowActionMenu actions={[
                   { label: 'Permissions', icon: <Shield size={14} />, onClick: () => navigate(`/settings/organizations/${id}/branches/${branch.publicId}/permissions`) },
                   { label: 'Edit Branch', icon: <Edit2 size={14} />, onClick: () => navigate(`/settings/organizations/${id}/branches/${branch.publicId}`) },

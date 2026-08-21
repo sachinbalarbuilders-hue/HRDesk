@@ -241,23 +241,23 @@ export const Employees: React.FC = () => {
   };
 
   const handleRowClick = async (emp: any) => {
-    navigate(`/employees/${emp.employeeId}`);
+    navigate(`/employees/${emp.publicId}`);
   };
 
-  const handleToggleStatus = async (id: number) => {
+  const handleToggleStatus = async (publicId: string, employeeId: number) => {
     try {
-      await apiClient.post(`/employees/${id}/toggle-status`);
-      showSuccess('Status Updated', `Employee #${id} status updated.`);
+      await apiClient.post(`/employees/${publicId}/toggle-status`);
+      showSuccess('Status Updated', `Employee #${employeeId} status updated.`);
       fetchEmployees();
     } catch (err: any) {
       showError('Status update failed', err.response?.data?.message || 'Could not update status');
     }
   };
 
-  const handleDeleteEmployee = async (id: number, name: string) => {
+  const handleDeleteEmployee = async (publicId: string, name: string) => {
     if (!confirm(`PERMANENT DELETE: Are you sure you want to permanently delete "${name}" and ALL their records (attendance, leaves, documents, loans)? This cannot be undone.`)) return;
     try {
-      await apiClient.delete(`/employees/${id}`);
+      await apiClient.delete(`/employees/${publicId}`);
       showSuccess('Employee Deleted', `${name} permanently deleted with all related records.`);
       fetchEmployees();
     } catch (err: any) {
@@ -434,17 +434,17 @@ export const Employees: React.FC = () => {
                     </td>
                     <td className="text-right">
                       <RowActionMenu actions={[
-                        { label: 'View', icon: <Eye size={14} />, onClick: () => navigate(`/employees/${emp.employeeId}`) },
+                        { label: 'View', icon: <Eye size={14} />, onClick: () => navigate(`/employees/${emp.publicId}`) },
                         ...(canEdit ? [
-                          { label: 'Edit', icon: <Pencil size={14} />, onClick: () => navigate(`/employees/${emp.employeeId}/edit`) },
+                          { label: 'Edit', icon: <Pencil size={14} />, onClick: () => navigate(`/employees/${emp.publicId}/edit`) },
                         ] : []),
                         ...(canEdit ? [
                           isActive
-                            ? { label: 'Archive', icon: <Archive size={14} />, onClick: () => handleToggleStatus(emp.employeeId), variant: 'danger' as const, dividerBefore: true }
-                            : { label: 'Restore', icon: <RotateCcw size={14} />, onClick: () => handleToggleStatus(emp.employeeId), variant: 'success' as const, dividerBefore: true },
+                            ? { label: 'Archive', icon: <Archive size={14} />, onClick: () => handleToggleStatus(emp.publicId, emp.employeeId), variant: 'danger' as const, dividerBefore: true }
+                            : { label: 'Restore', icon: <RotateCcw size={14} />, onClick: () => handleToggleStatus(emp.publicId, emp.employeeId), variant: 'success' as const, dividerBefore: true },
                         ] : []),
                         ...(!isActive && canEdit ? [
-                          { label: 'Permanently Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteEmployee(emp.employeeId, emp.employeeName), variant: 'danger' as const },
+                          { label: 'Permanently Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteEmployee(emp.publicId, emp.employeeName), variant: 'danger' as const },
                         ] : []),
                       ] as RowAction[]} />
                     </td>

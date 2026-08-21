@@ -90,6 +90,7 @@ export const ViewEmployee: React.FC = () => {
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
+        // `id` here is the opaque PublicId (GUID) used in the URL, not the internal integer EmployeeId.
         const res = await apiClient.get(`/employees/${id}`);
         setEmployee(res.data);
       } catch (err) {
@@ -173,11 +174,11 @@ export const ViewEmployee: React.FC = () => {
           onScroll={handleSidebarScroll}
         >
           {allEmployees.map(emp => {
-            const isSelected = emp.employeeId.toString() === id;
+            const isSelected = emp.publicId === id;
             return (
               <Link 
                 key={emp.employeeId} 
-                to={`/employees/${emp.employeeId}`}
+                to={`/employees/${emp.publicId}`}
                 className={`flex items-center gap-3 p-2 rounded-[4px] transition-colors cursor-pointer ${
                   isSelected 
                     ? 'bg-[var(--gold-500)]/10 border border-[var(--gold-500)]/30' 
@@ -297,7 +298,7 @@ export const ViewEmployee: React.FC = () => {
           <div className="flex items-center gap-3">
             {canEdit && (
               <Link
-                to={`/employees/${employee.employeeId}/edit`}
+                to={`/employees/${employee.publicId}/edit`}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded bg-[var(--navy-900)] text-[var(--gold-500)] hover:bg-[var(--navy-800)] transition-colors"
               >
                 <Pencil size={14} />

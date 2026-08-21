@@ -26,7 +26,17 @@ export const Login: React.FC = () => {
       await login(username, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
+      if (!err.response) {
+        // No response at all: connection refused, DNS failure, timeout, etc. —
+        // the backend is unreachable, not a credentials problem.
+        setError('Cannot reach the server. Please check your connection or try again shortly.');
+      } else if (err.response.status >= 500) {
+        // 5xx (including the Vite dev proxy's 502 when the backend isn't running)
+        // means the server/proxy failed, not that the credentials were wrong.
+        setError('Server is temporarily unavailable. Please try again in a moment.');
+      } else {
+        setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

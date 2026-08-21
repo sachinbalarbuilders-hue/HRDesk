@@ -114,6 +114,8 @@ public sealed class BiometricAttendanceDbContext : DbContext
         // internal integer Id) must be unique so they safely resolve back to one row.
         modelBuilder.Entity<Organization>().HasIndex(o => o.PublicId).IsUnique();
         modelBuilder.Entity<Branch>().HasIndex(b => b.PublicId).IsUnique();
+        modelBuilder.Entity<Employee>().HasIndex(e => e.PublicId).IsUnique();
+        modelBuilder.Entity<Role>().HasIndex(r => r.PublicId).IsUnique();
             
         // Disable cascade delete globally to prevent SQL Server cyclic foreign key errors
         foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))

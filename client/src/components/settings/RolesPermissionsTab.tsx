@@ -16,7 +16,7 @@ export const RolesPermissionsTab: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const [roles, setRoles] = useState<any[]>([]);
   const [definitions, setDefinitions] = useState<any[]>([]);
-  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  const [selectedRolePublicId, setSelectedRolePublicId] = useState<string | null>(null);
   const [roleDetail, setRoleDetail] = useState<any>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [savedSuccessKey, setSavedSuccessKey] = useState<string | null>(null);
@@ -36,17 +36,17 @@ export const RolesPermissionsTab: React.FC = () => {
       setRoles(rolesRes.data || []);
       setDefinitions(defsRes.data || []);
 
-      if (rolesRes.data?.length > 0 && !selectedRoleId) {
-        setSelectedRoleId(rolesRes.data[0].id);
+      if (rolesRes.data?.length > 0 && !selectedRolePublicId) {
+        setSelectedRolePublicId(rolesRes.data[0].publicId);
       }
     } catch (err: any) {
       showError('Failed to load roles', err.response?.data?.message || 'Network error');
     }
   };
 
-  const fetchRoleDetail = async (id: number) => {
+  const fetchRoleDetail = async (publicId: string) => {
     try {
-      const res = await apiClient.get(`/roles/${id}`);
+      const res = await apiClient.get(`/roles/${publicId}`);
       setRoleDetail(res.data);
     } catch (err: any) {
       showError('Failed to load role details', err.response?.data?.message || 'Network error');
@@ -58,10 +58,10 @@ export const RolesPermissionsTab: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedRoleId) {
-      fetchRoleDetail(selectedRoleId);
+    if (selectedRolePublicId) {
+      fetchRoleDetail(selectedRolePublicId);
     }
-  }, [selectedRoleId]);
+  }, [selectedRolePublicId]);
 
   const toggleModule = (moduleName: string) => {
     setExpandedModules((prev) => ({ ...prev, [moduleName]: !prev[moduleName] }));
@@ -78,14 +78,14 @@ export const RolesPermissionsTab: React.FC = () => {
   };
 
   const handleTogglePermission = async (permissionKey: string, currentGranted: boolean, defaultScope: string) => {
-    if (!selectedRoleId || roleDetail?.role?.isSystemRole) return;
+    if (!selectedRolePublicId || roleDetail?.isSystemRole) return;
 
     const newGranted = !currentGranted;
     const currentScope = roleDetail?.scopes?.[permissionKey] || defaultScope;
 
     try {
       setSavingKey(permissionKey);
-      await apiClient.put(`/roles/${selectedRoleId}/permission`, {
+      await apiClient.put(`/roles/${selectedRolePublicId}/permission`, {
         permissionKey,
         isGranted: newGranted,
         scope: currentScope,
@@ -115,11 +115,11 @@ export const RolesPermissionsTab: React.FC = () => {
   };
 
   const handleScopeChange = async (permissionKey: string, newScope: string) => {
-    if (!selectedRoleId || roleDetail?.role?.isSystemRole) return;
+    if (!selectedRolePublicId || roleDetail?.isSystemRole) return;
 
     try {
       setSavingKey(permissionKey);
-      await apiClient.put(`/roles/${selectedRoleId}/permission`, {
+      await apiClient.put(`/roles/${selectedRolePublicId}/permission`, {
         permissionKey,
         isGranted: true,
         scope: newScope,
@@ -161,19 +161,19 @@ export const RolesPermissionsTab: React.FC = () => {
       setNewRoleName('');
       setNewRoleDesc('');
       fetchRolesAndDefinitions();
-      if (res.data?.id) setSelectedRoleId(res.data.id);
+      if (res.data?.publicId) setSelectedRolePublicId(res.data.publicId);
     } catch (err: any) {
       showError('Create Role Failed', err.response?.data?.message || 'Server error');
     }
   };
 
-  const handleDeleteRole = async (id: number, name: string) => {
+  const handleDeleteRole = async (publicId: string, name: string) => {
     if (!window.confirm(`Are you sure you want to delete role "${name}"?`)) return;
     try {
-      await apiClient.delete(`/roles/${id}`);
+      await apiClient.delete(`/roles/${publicId}`);
       showSuccess('Role Deleted', `Role "${name}" removed.`);
       fetchRolesAndDefinitions();
-      setSelectedRoleId(null);
+      setSelectedRolePublicId(null);
     } catch (err: any) {
       showError('Delete Failed', err.response?.data?.message || 'Could not delete role');
     }
@@ -201,12 +201,12 @@ export const RolesPermissionsTab: React.FC = () => {
 
           <div className="space-y-1.5">
             {roles.map((role) => {
-              const isSelected = selectedRoleId === role.id;
+              const isSelected = selectedRolePublicId === role.publicId;
 
               return (
                 <div
                   key={role.id}
-                  onClick={() => setSelectedRoleId(role.id)}
+                  onClick={() => setSelectedRolePublicId(role.publicId)}
                   className={`w-full p-3 rounded-[4px] text-left transition-all flex items-center justify-between cursor-pointer border relative ${
                     isSelected
                       ? 'bg-[var(--surface)] border-[var(--gold-500)] shadow-xs'
@@ -235,7 +235,7 @@ export const RolesPermissionsTab: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteRole(role.id, role.name);
+                          handleDeleteRole(role.publicId, role.name);
                         }}
                         className="p-1 text-[var(--ink-muted)] hover:text-rose-600 rounded"
                         title="Delete Role"
@@ -257,9 +257,9 @@ export const RolesPermissionsTab: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-display text-lg font-semibold text-[var(--ink)]">
-                  {roleDetail?.role?.name || 'Loading role...'}
+                  {roleDetail?.name || 'Loading role...'}
                 </h2>
-                {roleDetail?.role?.isSystemRole && (
+                {roleDetail?.isSystemRole && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[var(--gold-100)] text-[var(--gold-500)] text-[10px] font-data font-bold border border-[var(--gold-500)]/40">
                     <Lock size={10} />
                     System Protected
@@ -267,7 +267,7 @@ export const RolesPermissionsTab: React.FC = () => {
                 )}
               </div>
               <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                {roleDetail?.role?.description || 'All permission and data scope switches auto-save in real time.'}
+                {roleDetail?.description || 'All permission and data scope switches auto-save in real time.'}
               </p>
             </div>
 
@@ -325,7 +325,7 @@ export const RolesPermissionsTab: React.FC = () => {
                         const currentScope = roleDetail?.scopes?.[perm.key] || perm.defaultScope;
                         const isSaving = savingKey === perm.key;
                         const isSuccess = savedSuccessKey === perm.key;
-                        const isSystem = roleDetail?.role?.isSystemRole;
+                        const isSystem = roleDetail?.isSystemRole;
 
                         return (
                           <div

@@ -37,6 +37,7 @@ export const EditEmployee: React.FC = () => {
   const handleSubmit = async (data: EmployeeFormData) => {
     try {
       setSubmitting(true);
+      // `id` here is the opaque PublicId (GUID) used in the URL, not the internal integer EmployeeId.
       await apiClient.put(`/employees/${id}`, data);
       showSuccess('Success', 'Employee updated successfully.');
       navigate(`/employees/${id}`);
