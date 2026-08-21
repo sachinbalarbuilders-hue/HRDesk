@@ -34,7 +34,7 @@ public class MastersController : ControllerBase
     public record DepartmentDto(string DepartmentName, string? Status, int? BranchId = null);
     public record DesignationDto(string DesignationName, string? Status, int? BranchId = null);
     public record OrganizationDto(string Name, string? Code, string? Address, string? WhatsAppGroupId, double? Latitude, double? Longitude, double? RadiusMeters, bool IsActive);
-    public record LeaveTypeDto(string Name, string Code, decimal DefaultYearlyQuota, bool IsPaid, bool ApplicableAfterProbation, bool AllowCarryForward, string Status, int? BranchId = null);
+    public record LeaveTypeDto(string Name, string Code, decimal DefaultYearlyQuota, bool IsPaid, bool ApplicableAfterProbation, bool AllowCarryForward, string GenderApplicability, string MaritalStatusApplicability, string DepartmentIds, string DesignationIds, string RoleIds, string Status, int? BranchId = null);
     public record ShiftDto(string Name, string? Code, string StartTime, string EndTime, string? LunchBreakStart, string? LunchBreakEnd, int? BreakMinutes, int? LateComingGraceMinutes, int? EarlyLeaveGraceMinutes, string? ColorCode, int? BranchId = null);
     public record AttendancePolicyDto(int GracePeriodMinutes, decimal HalfDayThresholdHours, decimal FullDayThresholdHours, int AutoSyncIntervalMinutes, string DefaultWeekoff, bool SandwichRuleEnabled = true, int? BranchId = null);
     public record CompanyPolicyDto(
@@ -229,6 +229,11 @@ public class MastersController : ControllerBase
                 isPaid = l.IsPaid,
                 applicableAfterProbation = l.ApplicableAfterProbation,
                 allowCarryForward = l.AllowCarryForward,
+                genderApplicability = l.GenderApplicability,
+                maritalStatusApplicability = l.MaritalStatusApplicability,
+                departmentIds = l.DepartmentIds,
+                designationIds = l.DesignationIds,
+                roleIds = l.RoleIds,
                 status = l.Status,
                 branchId = l.BranchId,
                 branchName = l.Branch != null ? l.Branch.Name : null
@@ -376,7 +381,12 @@ public class MastersController : ControllerBase
             IsPaid = dto.IsPaid,
             ApplicableAfterProbation = dto.ApplicableAfterProbation,
             AllowCarryForward = dto.AllowCarryForward,
-            Status = dto.Status ?? "Active",
+            GenderApplicability = string.IsNullOrWhiteSpace(dto.GenderApplicability) ? "All" : dto.GenderApplicability,
+            MaritalStatusApplicability = string.IsNullOrWhiteSpace(dto.MaritalStatusApplicability) ? "All" : dto.MaritalStatusApplicability,
+            DepartmentIds = dto.DepartmentIds,
+            DesignationIds = dto.DesignationIds,
+            RoleIds = dto.RoleIds,
+            Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status.Trim(),
             OrganizationId = orgId,
             BranchId = targetBranch,
             CreatedAt = DateTime.Now
@@ -400,6 +410,11 @@ public class MastersController : ControllerBase
         leaveType.IsPaid = dto.IsPaid;
         leaveType.ApplicableAfterProbation = dto.ApplicableAfterProbation;
         leaveType.AllowCarryForward = dto.AllowCarryForward;
+        leaveType.GenderApplicability = string.IsNullOrWhiteSpace(dto.GenderApplicability) ? "All" : dto.GenderApplicability;
+        leaveType.MaritalStatusApplicability = string.IsNullOrWhiteSpace(dto.MaritalStatusApplicability) ? "All" : dto.MaritalStatusApplicability;
+        leaveType.DepartmentIds = dto.DepartmentIds;
+        leaveType.DesignationIds = dto.DesignationIds;
+        leaveType.RoleIds = dto.RoleIds;
         if (!string.IsNullOrWhiteSpace(dto.Status)) leaveType.Status = dto.Status.Trim();
         if (dto.BranchId.HasValue) leaveType.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
 

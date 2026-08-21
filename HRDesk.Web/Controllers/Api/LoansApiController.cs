@@ -290,7 +290,7 @@ public class LoansController : ControllerBase
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
-            query = query.Where(t => t.BranchId == activeBranch.Value || t.BranchId == null);
+            query = query.Where(t => t.BranchId == activeBranch.Value);
         }
 
         var types = await query
@@ -300,11 +300,18 @@ public class LoansController : ControllerBase
                 id = t.Id,
                 name = t.TypeName,
                 maxAmount = t.MaxAmount,
-                maxTenureMonths = t.MaxInstallments
+                maxTenureMonths = t.MaxInstallments,
+                branchId = t.BranchId
             })
             .ToListAsync();
 
-        return Ok(types);
+        var deduplicated = types
+            .GroupBy(t => t.name.ToLower().Trim())
+            .Select(g => g.OrderByDescending(t => t.branchId.HasValue).First())
+            .OrderBy(t => t.name)
+            .ToList();
+
+        return Ok(deduplicated);
     }
 
     [HttpPost]

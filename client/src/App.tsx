@@ -28,6 +28,7 @@ const VerifyEmployee = lazy(() => import('./pages/VerifyEmployee').then(m => ({ 
 const GuardScanner = lazy(() => import('./pages/GuardScanner').then(m => ({ default: m.GuardScanner })));
 const OrganizationDetails = lazy(() => import('./pages/settings/OrganizationDetails').then(m => ({ default: m.OrganizationDetails })));
 const BranchDetails = lazy(() => import('./pages/settings/BranchDetails').then(m => ({ default: m.BranchDetails })));
+const EmployeeOnboarding = lazy(() => import('./pages/public/EmployeeOnboarding').then(m => ({ default: m.EmployeeOnboarding })));
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string }> = ({
   children,
@@ -65,6 +66,7 @@ export const App: React.FC = () => {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/verify/:id" element={<VerifyEmployee />} />
+                <Route path="/onboarding/:token" element={<EmployeeOnboarding />} />
 
                 <Route
                   path="/"

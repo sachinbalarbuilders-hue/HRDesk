@@ -44,6 +44,23 @@ public class LeaveType : IMustHaveTenant
     [Column("background_color")]
     public string BackgroundColor { get; set; } = "transparent";
 
+    [Column("gender_applicability")]
+    [MaxLength(50)]
+    public string GenderApplicability { get; set; } = "All";
+
+    [Column("marital_status_applicability")]
+    [MaxLength(50)]
+    public string MaritalStatusApplicability { get; set; } = "All";
+
+    [Column("department_ids")]
+    public string? DepartmentIds { get; set; }
+
+    [Column("designation_ids")]
+    public string? DesignationIds { get; set; }
+
+    [Column("role_ids")]
+    public string? RoleIds { get; set; }
+
     public ICollection<LeaveTypeEligibility> EligibleEmployees { get; set; } = new List<LeaveTypeEligibility>();
 
     [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]

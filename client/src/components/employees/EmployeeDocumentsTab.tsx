@@ -22,7 +22,7 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
   const [error, setError] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<{ url: string; type: string; name: string } | null>(null);
 
-  const [docType, setDocType] = useState('ID Proof');
+  const [docType, setDocType] = useState('Aadhar Card');
   const [file, setFile] = useState<File | null>(null);
 
   const fetchDocuments = async () => {
@@ -61,7 +61,7 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
       });
 
       setFile(null);
-      setDocType('ID Proof');
+      setDocType('Aadhar Card');
       await fetchDocuments();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to upload document.');
@@ -132,12 +132,17 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
               onChange={(e) => setDocType(e.target.value)}
               className="register-input w-full text-xs"
             >
-              <option value="ID Proof">ID Proof</option>
-              <option value="Address Proof">Address Proof</option>
-              <option value="Resume">Resume</option>
-              <option value="Contract">Contract</option>
-              <option value="Certificate">Certificate</option>
-              <option value="Other">Other</option>
+              <option value="Aadhar Card">Aadhar Card</option>
+              <option value="PAN Card">PAN Card</option>
+              <option value="Passport">Passport</option>
+              <option value="10th Marksheet / Certificate">10th Marksheet / Certificate</option>
+              <option value="12th Marksheet / Certificate">12th Marksheet / Certificate</option>
+              <option value="Degree Certificate">Degree Certificate</option>
+              <option value="Post Graduation Certificate">Post Graduation Certificate</option>
+              <option value="Resume">Resume / CV</option>
+              <option value="Bank Passbook">Bank Passbook / Cheque</option>
+              <option value="Offer Letter Signed">Signed Offer Letter</option>
+              <option value="Others">Others</option>
             </select>
           </div>
           <div className="flex-1">

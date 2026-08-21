@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HRDesk.Web.Models;
 
 [Table("employee_documents")]
-public class EmployeeDocument
+public class EmployeeDocument : IMustHaveTenant
 {
     [Key]
     [Column("document_id")]
@@ -12,6 +12,7 @@ public class EmployeeDocument
 
     [Column("organization_id")]
     public int OrganizationId { get; set; }
+    public Organization? Organization { get; set; }
 
     [Column("employee_id")]
     public int EmployeeId { get; set; }

@@ -7,11 +7,11 @@ import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { DataTable, type ColumnDef } from '../components/ui/DataTable';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
-import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
+import { MultiSelectDropdown } from '../components/ui/MultiSelectDropdown';
 import {
   Building2,
   CalendarCheck,
@@ -96,12 +96,13 @@ export const Settings: React.FC = () => {
 
   // 5. Leave Types Master
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
-  const [newLeaveType, setNewLeaveType] = useState({ name: '', code: '', quota: 12, isPaid: true });
+  const [roles, setRoles] = useState<any[]>([]);
+  const [newLeaveType, setNewLeaveType] = useState<{name: string, code: string, quota: number, isPaid: boolean, applicableAfterProbation: boolean, allowCarryForward: boolean, genderApplicability: string, maritalStatusApplicability: string, departmentIds: string[], designationIds: string[], roleIds: string[]}>({ name: '', code: '', quota: 12, isPaid: true, applicableAfterProbation: true, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
   const [editingLeaveTypeId, setEditingLeaveTypeId] = useState<number | null>(null);
 
   // 6. Work Shifts Master
   const [shifts, setShifts] = useState<any[]>([]);
-  const [newShift, setNewShift] = useState({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df' });
+  const [newShift, setNewShift] = useState({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -110,20 +111,17 @@ export const Settings: React.FC = () => {
   const fetchOverview = async () => {
     try {
       setLoading(true);
-      const [overviewRes, companyRes] = await Promise.allSettled([
+      const [res, rolesRes] = await Promise.all([
         apiClient.get('/masters/overview', {
           params: { branchId: currentBranch?.id || undefined }
+        }).catch(err => {
+          console.error('Failed to load masters overview', err);
+          return null;
         }),
-        apiClient.get('/masters/company'),
+        apiClient.get('/roles').catch(() => ({ data: [] }))
       ]);
 
-      if (companyRes.status === 'fulfilled' && companyRes.value.data) {
-        setCompany(companyRes.value.data);
-        setCompanyForm(companyRes.value.data);
-      }
-
-      if (overviewRes.status === 'fulfilled' && overviewRes.value.data) {
-        const res = overviewRes.value;
+      if (res && res.data) {
         if (res.data.organizations) {
           const orgList = res.data.organizations.map((o: any) => ({
             id: o.id,
@@ -159,8 +157,19 @@ export const Settings: React.FC = () => {
         }
         if (res.data.departments) setDepartments(res.data.departments.map((d: any) => ({ id: d.id, name: d.name, code: `DEP-${d.id}`, head: 'HOD', status: d.status || 'Active', branchId: d.branchId })));
         if (res.data.designations) setDesignations(res.data.designations.map((d: any) => ({ id: d.id, title: d.name, code: `DSG-${d.id}`, department: 'General', level: 'L2 (Mid)', status: d.status || 'Active', branchId: d.branchId })));
-        if (res.data.leaveTypes) setLeaveTypes(res.data.leaveTypes.map((l: any) => ({ id: l.id, name: l.name, code: l.code || 'LV', quota: l.defaultDays, isPaid: l.isPaid, status: l.status || 'Active', branchId: l.branchId })));
+        if (res.data.leaveTypes) setLeaveTypes(res.data.leaveTypes.map((l: any) => ({ 
+          id: l.id, name: l.name, code: l.code || 'LV', quota: l.defaultDays, isPaid: l.isPaid, 
+          applicableAfterProbation: l.applicableAfterProbation, allowCarryForward: l.allowCarryForward, 
+          genderApplicability: l.genderApplicability || 'All',
+          maritalStatusApplicability: l.maritalStatusApplicability || 'All',
+          departmentIds: l.departmentIds ? l.departmentIds.split(',') : [],
+          designationIds: l.designationIds ? l.designationIds.split(',') : [],
+          roleIds: l.roleIds ? l.roleIds.split(',') : [],
+          status: l.status || 'Active', branchId: l.branchId 
+        })));
         if (res.data.shifts) setShifts(res.data.shifts.map((s: any) => ({ id: s.id, name: s.name, code: s.code || 'SHF', startTime: s.startTime, endTime: s.endTime, breakMinutes: 60, status: 'Active', branchId: s.branchId })));
+        
+        if (rolesRes.data) setRoles(rolesRes.data);
       }
     } catch (e) {
       console.error('Failed to load masters overview', e);
@@ -294,6 +303,13 @@ export const Settings: React.FC = () => {
           code: newLeaveType.code || 'LV',
           defaultYearlyQuota: newLeaveType.quota,
           isPaid: newLeaveType.isPaid,
+          applicableAfterProbation: newLeaveType.applicableAfterProbation,
+          allowCarryForward: newLeaveType.allowCarryForward,
+          genderApplicability: newLeaveType.genderApplicability,
+          maritalStatusApplicability: newLeaveType.maritalStatusApplicability,
+          departmentIds: newLeaveType.departmentIds.length > 0 ? newLeaveType.departmentIds.join(',') : null,
+          designationIds: newLeaveType.designationIds.length > 0 ? newLeaveType.designationIds.join(',') : null,
+          roleIds: newLeaveType.roleIds.length > 0 ? newLeaveType.roleIds.join(',') : null,
           branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
         });
         showSuccess('Leave Type Updated', `${newLeaveType.name} updated.`);
@@ -303,12 +319,19 @@ export const Settings: React.FC = () => {
           code: newLeaveType.code || 'LV',
           defaultYearlyQuota: newLeaveType.quota,
           isPaid: newLeaveType.isPaid,
+          applicableAfterProbation: newLeaveType.applicableAfterProbation,
+          allowCarryForward: newLeaveType.allowCarryForward,
+          genderApplicability: newLeaveType.genderApplicability,
+          maritalStatusApplicability: newLeaveType.maritalStatusApplicability,
+          departmentIds: newLeaveType.departmentIds.length > 0 ? newLeaveType.departmentIds.join(',') : null,
+          designationIds: newLeaveType.designationIds.length > 0 ? newLeaveType.designationIds.join(',') : null,
+          roleIds: newLeaveType.roleIds.length > 0 ? newLeaveType.roleIds.join(',') : null,
           status: 'Active',
           branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
         });
         showSuccess('Leave Category Added', `${newLeaveType.name} configured.`);
       }
-      setNewLeaveType({ name: '', code: '', quota: 12, isPaid: true });
+      setNewLeaveType({ name: '', code: '', quota: 12, isPaid: true, applicableAfterProbation: true, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
       setEditingLeaveTypeId(null);
       setLeaveModalOpen(false);
       fetchOverview();
@@ -334,7 +357,7 @@ export const Settings: React.FC = () => {
         colorCode: newShift.colorCode,
         branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
       });
-      setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df' });
+      setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
       setShiftModalOpen(false);
       showSuccess('Shift Registered', `${newShift.name} added to roster.`);
       fetchOverview();
@@ -418,7 +441,12 @@ export const Settings: React.FC = () => {
   });
   const paginatedLeaves = filteredLeaves.slice((page - 1) * pageSize, page * pageSize);
 
-  const filteredShifts = shifts.filter(st => !s || (st.name?.toLowerCase().includes(s)) || (st.code?.toLowerCase().includes(s)));
+  const filteredShifts = shifts.filter(st => {
+    const matchesSearch = !s || (st.name?.toLowerCase().includes(s)) || (st.code?.toLowerCase().includes(s));
+    const isAct = st.status?.toLowerCase() !== 'inactive' && st.status?.toLowerCase() !== 'archived';
+    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+    return matchesSearch && matchesArchive;
+  });
   const paginatedShifts = filteredShifts.slice((page - 1) * pageSize, page * pageSize);
 
   // =========================================================================
@@ -626,7 +654,7 @@ export const Settings: React.FC = () => {
       align: 'right',
       render: (item) => (
         <RowActionMenu actions={[
-          { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingLeaveTypeId(item.id); setNewLeaveType({ name: item.name, code: item.code || '', quota: item.quota || 12, isPaid: item.isPaid !== false }); setLeaveModalOpen(true); } },
+          { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingLeaveTypeId(item.id); setNewLeaveType({ name: item.name, code: item.code || '', quota: item.quota || 12, isPaid: item.isPaid !== false, applicableAfterProbation: item.applicableAfterProbation !== false, allowCarryForward: item.allowCarryForward === true, genderApplicability: item.genderApplicability || 'All', maritalStatusApplicability: item.maritalStatusApplicability || 'All', departmentIds: item.departmentIds || [], designationIds: item.designationIds || [], roleIds: item.roleIds || [] }); setLeaveModalOpen(true); } },
           { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => { setLeaveTypes(leaveTypes.filter(l => l.id !== item.id)); showSuccess('Leave Type Removed', 'Category deleted.'); }, variant: 'danger', dividerBefore: true },
         ] as RowAction[]} />
       ),
@@ -682,18 +710,62 @@ export const Settings: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (item) => (
-        <button
-          onClick={() => {
-            setShifts(shifts.filter(s => s.id !== item.id));
-            showSuccess('Shift Removed', 'Shift removed from roster.');
-          }}
-          className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors"
-          title="Delete Shift"
-        >
-          <Trash2 size={13} />
-        </button>
-      ),
+      render: (item) => {
+        const isArchived = item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived';
+        return (
+          <RowActionMenu actions={[
+            {
+              label: 'Edit',
+              icon: <Edit2 size={14} />,
+              onClick: () => {
+                setNewShift({
+                  name: item.name,
+                  code: item.code,
+                  startTime: item.startTime,
+                  endTime: item.endTime,
+                  lunchStart: item.lunchStart || '13:00',
+                  lunchEnd: item.lunchEnd || '14:00',
+                  breakMinutes: item.breakMinutes || 60,
+                  lateGrace: item.lateGrace || 15,
+                  earlyLeaveGrace: item.earlyLeaveGrace || 15,
+                  colorCode: item.colorCode || '#4e73df',
+                  halfTime: item.halfTime || ''
+                });
+                setShiftModalOpen(true);
+              }
+            },
+            isArchived
+              ? {
+                  label: 'Restore',
+                  icon: <RotateCcw size={14} />,
+                  onClick: () => {
+                    setShifts(shifts.map(s => s.id === item.id ? { ...s, status: 'active' } : s));
+                    showSuccess('Shift Restored', `${item.name} restored.`);
+                  },
+                  variant: 'success',
+                  dividerBefore: true
+                }
+              : {
+                  label: 'Archive',
+                  icon: <Archive size={14} />,
+                  onClick: () => {
+                    setShifts(shifts.map(s => s.id === item.id ? { ...s, status: 'inactive' } : s));
+                    showSuccess('Shift Archived', `${item.name} moved to archive.`);
+                  },
+                  dividerBefore: true
+                },
+            {
+              label: 'Delete',
+              icon: <Trash2 size={14} />,
+              onClick: () => {
+                setShifts(shifts.filter(s => s.id !== item.id));
+                showSuccess('Shift Removed', 'Shift removed from roster.');
+              },
+              variant: 'danger'
+            }
+          ] as RowAction[]} />
+        );
+      },
     },
   ];
 
@@ -989,7 +1061,10 @@ export const Settings: React.FC = () => {
             primaryAction={{
               label: 'Add Leave Category',
               icon: <Plus size={14} />,
-              onClick: () => setLeaveModalOpen(true),
+              onClick: () => {
+                setNewLeaveType({ name: '', code: '', quota: 12, isPaid: true, applicableAfterProbation: true, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
+                setLeaveModalOpen(true);
+              },
             }}
           />
 
@@ -1029,10 +1104,17 @@ export const Settings: React.FC = () => {
               setBulkImportModalOpen(true);
             }}
             importLabel="Import CSV"
+            archiveFilter={{
+              value: archiveFilter,
+              onChange: (v) => { setArchiveFilter(v); setPage(1); },
+            }}
             primaryAction={{
               label: 'Add Work Shift',
               icon: <Plus size={14} />,
-              onClick: () => setShiftModalOpen(true),
+              onClick: () => {
+                setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
+                setShiftModalOpen(true);
+              },
             }}
           />
 
@@ -1160,8 +1242,8 @@ export const Settings: React.FC = () => {
       {/* 4. Add Leave Type Modal */}
       {leaveModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[6px] shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] px-5 py-3.5 shrink-0 bg-[var(--surface)]">
               <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
                 <CalendarCheck size={16} className="text-[var(--gold-500)]" />
                 <span>{editingLeaveTypeId ? 'Edit Leave Category' : 'Configure Leave Category'}</span>
@@ -1171,52 +1253,128 @@ export const Settings: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleAddLeaveType} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Category Name *</label>
-                <input
-                  type="text"
-                  value={newLeaveType.name}
-                  onChange={(e) => setNewLeaveType({ ...newLeaveType, name: e.target.value })}
-                  placeholder="e.g. Paternity Leave"
-                  className="register-input w-full"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleAddLeaveType} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-5 overflow-y-auto space-y-3.5 text-xs flex-1">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Code</label>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Category Name *</label>
                   <input
                     type="text"
-                    value={newLeaveType.code}
-                    onChange={(e) => setNewLeaveType({ ...newLeaveType, code: e.target.value.toUpperCase() })}
-                    placeholder="e.g. PAT"
-                    className="register-input w-full font-mono"
+                    value={newLeaveType.name}
+                    onChange={(e) => setNewLeaveType({ ...newLeaveType, name: e.target.value })}
+                    placeholder="e.g. Paternity Leave"
+                    className="register-input w-full"
+                    required
                   />
                 </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Annual Quota (Days)</label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1">Code</label>
+                    <input
+                      type="text"
+                      value={newLeaveType.code}
+                      onChange={(e) => setNewLeaveType({ ...newLeaveType, code: e.target.value.toUpperCase() })}
+                      placeholder="e.g. PAT"
+                      className="register-input w-full font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1">Annual Quota (Days)</label>
+                    <input
+                      type="number"
+                      value={newLeaveType.quota}
+                      onChange={(e) => setNewLeaveType({ ...newLeaveType, quota: Number(e.target.value) })}
+                      className="register-input w-full font-data"
+                    />
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer pt-1">
                   <input
-                    type="number"
-                    value={newLeaveType.quota}
-                    onChange={(e) => setNewLeaveType({ ...newLeaveType, quota: Number(e.target.value) })}
-                    className="register-input w-full font-data"
+                    type="checkbox"
+                    checked={newLeaveType.isPaid}
+                    onChange={(e) => setNewLeaveType({ ...newLeaveType, isPaid: e.target.checked })}
+                    className="rounded border-[var(--rule)]"
                   />
+                  <span className="font-medium text-[var(--ink)]">Is Paid Leave (No salary deduction)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={newLeaveType.applicableAfterProbation}
+                    onChange={(e) => setNewLeaveType({ ...newLeaveType, applicableAfterProbation: e.target.checked })}
+                    className="rounded border-[var(--rule)]"
+                  />
+                  <span className="font-medium text-[var(--ink)]">Applicable After Probation Only</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={newLeaveType.allowCarryForward}
+                    onChange={(e) => setNewLeaveType({ ...newLeaveType, allowCarryForward: e.target.checked })}
+                    className="rounded border-[var(--rule)]"
+                  />
+                  <span className="font-medium text-[var(--ink)]">Allow Carry Forward to Next Year</span>
+                </label>
+
+                <div className="pt-2 border-t border-[var(--rule)] mt-2">
+                  <h4 className="text-xs font-semibold text-[var(--ink-muted)] mb-2 uppercase tracking-wider">Applicability Scopes</h4>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block font-medium text-[var(--ink)] mb-1">Limit to Gender</label>
+                      <select
+                        value={newLeaveType.genderApplicability}
+                        onChange={(e) => setNewLeaveType({ ...newLeaveType, genderApplicability: e.target.value })}
+                        className="register-input w-full"
+                      >
+                        <option value="All">All Genders</option>
+                        <option value="Male">Male Only</option>
+                        <option value="Female">Female Only</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block font-medium text-[var(--ink)] mb-1">Limit to Marital Status</label>
+                      <select
+                        value={newLeaveType.maritalStatusApplicability}
+                        onChange={(e) => setNewLeaveType({ ...newLeaveType, maritalStatusApplicability: e.target.value })}
+                        className="register-input w-full"
+                      >
+                        <option value="All">All Statuses</option>
+                        <option value="Single">Single Only</option>
+                        <option value="Married">Married Only</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 mb-2">
+                    <MultiSelectDropdown
+                      label="Limit to Departments"
+                      placeholder="All Departments (Select to limit)"
+                      options={departments.filter(d => d.status === 'Active' || d.status === 'active').map(d => ({ label: d.name, value: d.id.toString() }))}
+                      selectedValues={newLeaveType.departmentIds}
+                      onChange={(vals) => setNewLeaveType({ ...newLeaveType, departmentIds: vals as string[] })}
+                    />
+                    <MultiSelectDropdown
+                      label="Limit to Designations"
+                      placeholder="All Designations (Select to limit)"
+                      options={designations.filter(d => d.status === 'Active' || d.status === 'active').map(d => ({ label: d.title, value: d.id.toString() }))}
+                      selectedValues={newLeaveType.designationIds}
+                      onChange={(vals) => setNewLeaveType({ ...newLeaveType, designationIds: vals as string[] })}
+                    />
+                    <MultiSelectDropdown
+                      label="Limit to User Roles"
+                      placeholder="All Roles (Select to limit)"
+                      options={roles.map(r => ({ label: r.name, value: r.id.toString() }))}
+                      selectedValues={newLeaveType.roleIds}
+                      onChange={(vals) => setNewLeaveType({ ...newLeaveType, roleIds: vals as string[] })}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer pt-1">
-                <input
-                  type="checkbox"
-                  checked={newLeaveType.isPaid}
-                  onChange={(e) => setNewLeaveType({ ...newLeaveType, isPaid: e.target.checked })}
-                  className="rounded border-[var(--rule)]"
-                />
-                <span className="font-medium text-[var(--ink)]">Is Paid Leave (No salary deduction)</span>
-              </label>
-
-              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
+              <div className="px-5 py-3 border-t border-[var(--rule)] flex justify-end gap-2 shrink-0 bg-[var(--surface-hover)]">
                 <button type="button" onClick={() => { setLeaveModalOpen(false); setEditingLeaveTypeId(null); }} className="btn-secondary py-1.5 px-3 text-xs">
                   Cancel
                 </button>
@@ -1344,6 +1502,17 @@ export const Settings: React.FC = () => {
                     max={60}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">Half Day Cutoff Time</label>
+                <input
+                  type="time"
+                  value={newShift.halfTime || ''}
+                  onChange={(e) => setNewShift({ ...newShift, halfTime: e.target.value })}
+                  className="register-input w-full font-data"
+                />
+                <p className="text-[10px] text-[var(--ink-muted)] mt-1">If not set, it is calculated automatically as the exact midpoint of the shift.</p>
               </div>
 
               <div>

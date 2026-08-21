@@ -800,6 +800,65 @@ public class EmployeesController : ControllerBase
         }
     }
 
+    [HttpPost("generate-onboarding")]
+    public async Task<IActionResult> GenerateOnboarding([FromBody] GenerateOnboardingDto dto)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesCreate))
+        {
+            return Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.EmployeeName))
+        {
+            return BadRequest(new { message = "Employee name is required." });
+        }
+
+        var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var targetBranchId = dto.BranchId ?? _tenantProvider.BranchId;
+
+        var maxId = await _db.Employees
+            .Where(e => e.OrganizationId == targetOrgId)
+            .Select(e => (int?)e.EmployeeId)
+            .MaxAsync() ?? 0;
+        var targetEmpId = maxId + 1;
+
+        var employee = new Employee
+        {
+            EmployeeId = targetEmpId,
+            EmployeeName = dto.EmployeeName.Trim(),
+            DepartmentId = dto.DepartmentId,
+            DesignationId = dto.DesignationId,
+            BranchId = targetBranchId,
+            Status = "Onboarding", // specific status for onboarding drafts
+            OrganizationId = targetOrgId,
+            WorkEmail = dto.WorkEmail?.Trim(),
+            VerificationId = Guid.NewGuid() // generate a fresh secure token
+        };
+
+        _db.Employees.Add(employee);
+        await _db.SaveChangesAsync();
+        _permissionService.ClearCache();
+
+        var origin = Request.Headers["Origin"].FirstOrDefault() ?? $"{Request.Scheme}://{Request.Host}";
+        var onboardingLink = $"{origin}/onboarding/{employee.VerificationId}";
+
+        return Ok(new
+        {
+            employeeId = employee.EmployeeId,
+            verificationId = employee.VerificationId,
+            onboardingLink = onboardingLink,
+            message = "Onboarding link generated successfully."
+        });
+    }
+
+    public record GenerateOnboardingDto(
+        string EmployeeName,
+        int? BranchId,
+        int? DepartmentId,
+        int? DesignationId,
+        string? WorkEmail
+    );
+
     public record PrefixSettingsDto(
         string SeriesCode,
         string Connector,

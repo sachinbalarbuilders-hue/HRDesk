@@ -36,6 +36,7 @@ public class ShiftsController : ControllerBase
         int? LateComingGraceMinutes,
         int? EarlyLeaveGraceMinutes,
         string? ColorCode,
+        string? HalfTime = null,
         int? BranchId = null
     );
 
@@ -73,6 +74,7 @@ public class ShiftsController : ControllerBase
                 workingHours = s.WorkingHours,
                 lateComingGraceMinutes = s.LateComingGraceMinutes ?? 15,
                 earlyLeaveGraceMinutes = s.EarlyLeaveGraceMinutes ?? 15,
+                halfTime = s.HalfTime.HasValue ? s.HalfTime.Value.ToString("HH:mm") : null,
                 colorCode = s.ColorCode ?? "#4e73df",
                 branchId = s.BranchId
             })
@@ -99,7 +101,9 @@ public class ShiftsController : ControllerBase
             EndTime = eTime,
             LunchBreakDuration = 60,
             WorkingHours = Math.Round((decimal)(eTime.ToTimeSpan() - sTime.ToTimeSpan()).TotalHours - 1m, 2),
-            HalfTime = TimeOnly.FromTimeSpan(sTime.ToTimeSpan() + (eTime.ToTimeSpan() - sTime.ToTimeSpan()) / 2),
+            HalfTime = !string.IsNullOrWhiteSpace(dto.HalfTime) && TimeOnly.TryParse(dto.HalfTime, out var hTime) 
+                ? hTime 
+                : TimeOnly.FromTimeSpan(sTime.ToTimeSpan() + (eTime.ToTimeSpan() - sTime.ToTimeSpan()) / 2),
             LateComingGraceMinutes = dto.LateComingGraceMinutes ?? 15,
             EarlyLeaveGraceMinutes = dto.EarlyLeaveGraceMinutes ?? 15,
             ColorCode = dto.ColorCode ?? "#4e73df",
@@ -127,6 +131,7 @@ public class ShiftsController : ControllerBase
         shift.LateComingGraceMinutes = dto.LateComingGraceMinutes;
         shift.EarlyLeaveGraceMinutes = dto.EarlyLeaveGraceMinutes;
         if (!string.IsNullOrWhiteSpace(dto.ColorCode)) shift.ColorCode = dto.ColorCode;
+        if (!string.IsNullOrWhiteSpace(dto.HalfTime) && TimeOnly.TryParse(dto.HalfTime, out var hTimeEdit)) shift.HalfTime = hTimeEdit;
 
         await _db.SaveChangesAsync();
         return Ok(new { message = "Shift updated successfully.", id = shift.Id });

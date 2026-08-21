@@ -37,6 +37,7 @@ export const ViewEmployee: React.FC = () => {
   const [profileTab, setProfileTab] = useState<'details' | 'attendance' | 'leaves' | 'records' | 'idcard'>('details');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isFetchingRef = useRef(false);
 
   const canEdit = isAdmin || hasPermission('Employees.Edit');
 
@@ -53,6 +54,7 @@ export const ViewEmployee: React.FC = () => {
     setSidebarPage(1);
     setAllEmployees([]);
     setHasMoreSidebar(true);
+    isFetchingRef.current = false;
   }, [debouncedSearch]);
 
   // Fetch employees for sidebar
@@ -61,6 +63,7 @@ export const ViewEmployee: React.FC = () => {
       if (!hasMoreSidebar) return;
       try {
         setLoadingSidebar(true);
+        isFetchingRef.current = true;
         const res = await apiClient.get('/employees', {
           params: { 
             page: sidebarPage, 
@@ -77,6 +80,7 @@ export const ViewEmployee: React.FC = () => {
         console.error('Failed to load employees list for sidebar', err);
       } finally {
         setLoadingSidebar(false);
+        isFetchingRef.current = false;
       }
     };
 
@@ -100,7 +104,8 @@ export const ViewEmployee: React.FC = () => {
 
   const handleSidebarScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
-    if (scrollHeight - scrollTop <= clientHeight + 50 && !loadingSidebar && hasMoreSidebar) {
+    if (scrollHeight - Math.ceil(scrollTop) <= clientHeight + 50 && !isFetchingRef.current && hasMoreSidebar) {
+      isFetchingRef.current = true;
       setSidebarPage(prev => prev + 1);
     }
   };
@@ -147,7 +152,7 @@ export const ViewEmployee: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full bg-[var(--canvas)] overflow-hidden">
+    <div className="flex bg-[var(--canvas)] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--rule)] shadow-sm" style={{ height: 'calc(100vh - 112px)' }}>
       {/* Sidebar Navigation */}
       <div className="w-72 border-r border-[var(--rule)] bg-[var(--surface)] hidden md:flex flex-col shrink-0 z-10">
         <div className="p-4 border-b border-[var(--rule)]">

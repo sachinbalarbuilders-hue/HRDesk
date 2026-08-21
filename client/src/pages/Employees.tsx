@@ -20,6 +20,8 @@ import {
   Pencil,
   Archive,
   RotateCcw,
+  Link,
+  Copy,
 } from 'lucide-react';
 import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
@@ -58,6 +60,10 @@ export const Employees: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [prefixModalOpen, setPrefixModalOpen] = useState(false);
   const [savingPrefix, setSavingPrefix] = useState(false);
+  const [generateLinkModalOpen, setGenerateLinkModalOpen] = useState(false);
+  const [generatingLink, setGeneratingLink] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState('');
+  const [onboardingForm, setOnboardingForm] = useState({ employeeName: '', workEmail: '', departmentId: '', designationId: '' });
 
   // Prefix & Series Setup State (Series Code, Connector, Sequence, Padding)
   const [prefixForm, setPrefixForm] = useState({
@@ -110,6 +116,38 @@ export const Employees: React.FC = () => {
       showError('Save Failed', err.response?.data?.message || 'Could not save series settings');
     } finally {
       setSavingPrefix(false);
+    }
+  };
+
+  const handleGenerateLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onboardingForm.employeeName.trim()) {
+      showError('Error', 'Employee name is required.');
+      return;
+    }
+    try {
+      setGeneratingLink(true);
+      const res = await apiClient.post('/employees/generate-onboarding', {
+        employeeName: onboardingForm.employeeName,
+        workEmail: onboardingForm.workEmail || undefined,
+        departmentId: onboardingForm.departmentId ? parseInt(onboardingForm.departmentId) : undefined,
+        designationId: onboardingForm.designationId ? parseInt(onboardingForm.designationId) : undefined,
+        branchId: currentBranch?.id || undefined
+      });
+      setGeneratedLink(res.data.onboardingLink);
+      showSuccess('Link Generated', 'Onboarding link created successfully.');
+      fetchEmployees();
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Could not generate link.');
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (generatedLink) {
+      navigator.clipboard.writeText(generatedLink);
+      showSuccess('Copied', 'Link copied to clipboard!');
     }
   };
 
@@ -284,20 +322,37 @@ export const Employees: React.FC = () => {
             : undefined
         }
         customActions={
-          canEdit ? (
-            <button
-              type="button"
-              onClick={() => {
-                fetchPrefixSettings();
-                setPrefixModalOpen(true);
-              }}
-              className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
-              title="Configure Series Code, Connector and Sequence"
-            >
-              <Sliders size={13} className="text-[var(--gold-500)]" />
-              <span>Prefix Setup</span>
-            </button>
-          ) : undefined
+          <>
+            {canCreate && (
+              <button
+                type="button"
+                onClick={() => {
+                  setGeneratedLink('');
+                  setOnboardingForm({ employeeName: '', workEmail: '', departmentId: '', designationId: '' });
+                  setGenerateLinkModalOpen(true);
+                }}
+                className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
+                title="Generate Self-Onboarding Link"
+              >
+                <Link size={13} className="text-[var(--gold-500)]" />
+                <span>Generate Onboarding Link</span>
+              </button>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  fetchPrefixSettings();
+                  setPrefixModalOpen(true);
+                }}
+                className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
+                title="Configure Series Code, Connector and Sequence"
+              >
+                <Sliders size={13} className="text-[var(--gold-500)]" />
+                <span>Prefix Setup</span>
+              </button>
+            )}
+          </>
         }
       />
 
@@ -621,6 +676,111 @@ export const Employees: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {generateLinkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center">
+                  <Link size={16} />
+                </div>
+                <div>
+                  <h3 className="font-display font-semibold text-sm text-[var(--ink)]">
+                    Employee Self-Onboarding
+                  </h3>
+                  <p className="text-[11px] text-[var(--ink-muted)] font-ui">
+                    Generate a secure link for the employee to fill their details.
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setGenerateLinkModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+
+            {!generatedLink ? (
+              <form onSubmit={handleGenerateLink} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Employee Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={onboardingForm.employeeName}
+                    onChange={(e) => setOnboardingForm({ ...onboardingForm, employeeName: e.target.value })}
+                    className="register-input w-full"
+                    placeholder="Full Name"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-[var(--ink)] mb-1">Work Email</label>
+                  <input
+                    type="email"
+                    value={onboardingForm.workEmail}
+                    onChange={(e) => setOnboardingForm({ ...onboardingForm, workEmail: e.target.value })}
+                    className="register-input w-full"
+                    placeholder="Optional"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-[var(--ink)] mb-1">Department</label>
+                    <select
+                      className="register-input w-full"
+                      value={onboardingForm.departmentId}
+                      onChange={(e) => setOnboardingForm({ ...onboardingForm, departmentId: e.target.value })}
+                    >
+                      <option value="">Select...</option>
+                      {lookups?.departments?.map((d: any) => (
+                        <option key={d.departmentId} value={d.departmentId}>{d.departmentName}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[var(--ink)] mb-1">Designation</label>
+                    <select
+                      className="register-input w-full"
+                      value={onboardingForm.designationId}
+                      onChange={(e) => setOnboardingForm({ ...onboardingForm, designationId: e.target.value })}
+                    >
+                      <option value="">Select...</option>
+                      {lookups?.designations?.map((d: any) => (
+                        <option key={d.designationId} value={d.designationId}>{d.designationName}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-[var(--rule)]">
+                  <button type="button" onClick={() => setGenerateLinkModalOpen(false)} className="btn-outline">Cancel</button>
+                  <button type="submit" disabled={generatingLink} className="btn-primary disabled:opacity-50">
+                    {generatingLink ? 'Generating...' : 'Generate Link'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded text-center">
+                  <Sparkles className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-emerald-800">Link Generated Successfully!</p>
+                  <p className="text-xs text-emerald-700 mt-1">Send this link to the employee so they can complete their onboarding profile.</p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <input type="text" readOnly value={generatedLink} className="register-input flex-1 font-mono text-[10px]" />
+                  <button onClick={handleCopyLink} className="btn-outline flex items-center gap-1 px-3" title="Copy to clipboard">
+                    <Copy size={14} /> Copy
+                  </button>
+                </div>
+
+                <div className="flex justify-end pt-3">
+                  <button onClick={() => setGenerateLinkModalOpen(false)} className="btn-primary">Done</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

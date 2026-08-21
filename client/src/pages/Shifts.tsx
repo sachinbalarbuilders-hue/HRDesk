@@ -35,6 +35,7 @@ interface ShiftMaster {
   lateComingGraceMinutes: number;
   earlyLeaveGraceMinutes: number;
   colorCode: string;
+  halfTime?: string;
 }
 
 export const Shifts: React.FC = () => {
@@ -84,6 +85,7 @@ export const Shifts: React.FC = () => {
     endTime: '18:00',
     lateComingGraceMinutes: 15,
     earlyLeaveGraceMinutes: 15,
+    halfTime: '13:30',
     colorCode: '#4e73df',
   });
 
@@ -601,6 +603,17 @@ export const Shifts: React.FC = () => {
                     className="register-input font-data"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Half Day Cutoff Time</label>
+                <input
+                  type="time"
+                  value={shiftForm.halfTime || ''}
+                  onChange={(e) => setShiftForm({ ...shiftForm, halfTime: e.target.value })}
+                  className="register-input font-data w-full"
+                />
+                <p className="text-[10px] text-[var(--text-muted)] mt-1">If not set, it is calculated automatically as the exact midpoint of the shift.</p>
               </div>
 
               <div className="pt-3 border-t border-[var(--border)] flex items-center justify-end gap-2">
