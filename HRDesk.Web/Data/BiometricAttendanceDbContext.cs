@@ -109,6 +109,11 @@ public sealed class BiometricAttendanceDbContext : DbContext
         modelBuilder.Entity<CompOffCredit>().HasIndex(c => c.WorkDate);
         modelBuilder.Entity<ShiftRoster>().HasIndex(s => s.RosterDate);
         modelBuilder.Entity<Holiday>().HasIndex(h => new { h.StartDate, h.EndDate });
+
+        // Opaque public-facing identifiers (used in URLs/API responses instead of the
+        // internal integer Id) must be unique so they safely resolve back to one row.
+        modelBuilder.Entity<Organization>().HasIndex(o => o.PublicId).IsUnique();
+        modelBuilder.Entity<Branch>().HasIndex(b => b.PublicId).IsUnique();
             
         // Disable cascade delete globally to prevent SQL Server cyclic foreign key errors
         foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))

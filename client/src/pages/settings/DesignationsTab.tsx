@@ -1,0 +1,327 @@
+import React, { useEffect, useState } from 'react';
+import { apiClient } from '../../api/client';
+import { exportToCSV } from '../../utils/csvHelper';
+import { useOrganization } from '../../context/CompanyContext';
+import { useToast } from '../../context/ToastContext';
+import { DataToolbar } from '../../components/ui/DataToolbar';
+import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
+import { BulkImportModal } from '../../components/ui/BulkImportModal';
+import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
+import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
+import {
+  Award,
+  Plus,
+  Trash2,
+  X,
+  Edit2,
+  Archive,
+  RotateCcw,
+} from 'lucide-react';
+
+export const DesignationsTab: React.FC = () => {
+  const { currentBranch } = useOrganization();
+  const { showSuccess, showError } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
+  const [deptFilter, setDeptFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [designations, setDesignations] = useState<any[]>([]);
+  const [desigModalOpen, setDesigModalOpen] = useState(false);
+  const [newDesignation, setNewDesignation] = useState({ title: '', code: '', department: 'Engineering & Technology', level: 'L2 (Mid)' });
+  const [editingDesigId, setEditingDesigId] = useState<number | null>(null);
+
+  const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/masters/overview', {
+        params: { branchId: currentBranch?.id || undefined }
+      });
+      if (res?.data) {
+        if (res.data.departments) {
+          setDepartments(res.data.departments.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            status: d.status || 'Active',
+          })));
+        }
+        if (res.data.designations) {
+          setDesignations(res.data.designations.map((d: any) => ({
+            id: d.id,
+            title: d.name,
+            code: `DSG-${d.id}`,
+            department: 'General',
+            level: 'L2 (Mid)',
+            status: d.status || 'Active',
+            branchId: d.branchId,
+          })));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load designations', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [currentBranch?.id]);
+
+  useEffect(() => {
+    const handleReload = () => { fetchData(); };
+    window.addEventListener('hrdesk:tenant_changed', handleReload);
+    window.addEventListener('hrdesk:branch_changed', handleReload);
+    return () => {
+      window.removeEventListener('hrdesk:tenant_changed', handleReload);
+      window.removeEventListener('hrdesk:branch_changed', handleReload);
+    };
+  }, []);
+
+  const handleAddDesignation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDesignation.title.trim()) return;
+    try {
+      if (editingDesigId) {
+        await apiClient.put(`/masters/designations/${editingDesigId}`, {
+          designationName: newDesignation.title,
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+        });
+        showSuccess('Designation Updated', `${newDesignation.title} updated.`);
+      } else {
+        await apiClient.post('/masters/designations', {
+          designationName: newDesignation.title,
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
+        });
+        showSuccess('Designation Added', `${newDesignation.title} registered.`);
+      }
+      setNewDesignation({ title: '', code: '', department: 'Engineering & Technology', level: 'L2 (Mid)' });
+      setEditingDesigId(null);
+      setDesigModalOpen(false);
+      fetchData();
+    } catch (err: any) {
+      showError('Failed', err.response?.data?.message || 'Server error');
+    }
+  };
+
+  const handleExport = () => {
+    exportToCSV('HRDesk_Designations', designations, [
+      { key: 'title', label: 'Designation Title' },
+      { key: 'code', label: 'Code' },
+      { key: 'department', label: 'Department' },
+      { key: 'level', label: 'Job Grade' },
+    ]);
+    showSuccess('Exported', 'Designations exported to CSV.');
+  };
+
+  const s = search.trim().toLowerCase();
+  const filteredDesigs = designations.filter(d => {
+    const matchesSearch = !s || (d.title?.toLowerCase().includes(s)) || (d.code?.toLowerCase().includes(s));
+    const matchesDept = !deptFilter || d.department === deptFilter;
+    const isAct = d.status?.toLowerCase() !== 'inactive' && d.status?.toLowerCase() !== 'archived';
+    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+    return matchesSearch && matchesDept && matchesArchive;
+  });
+  const paginatedDesigs = filteredDesigs.slice((page - 1) * pageSize, page * pageSize);
+
+  const desigColumns: ColumnDef<any>[] = [
+    {
+      key: 'id',
+      header: '#',
+      width: '50px',
+      align: 'center',
+      className: 'font-data text-xs text-[var(--ink-muted)]',
+      render: (item) => `#${item.id}`,
+    },
+    {
+      key: 'title',
+      header: 'Designation Title',
+      render: (item) => (
+        <div className="flex items-center gap-2">
+          <Award size={14} className="text-[var(--gold-500)]" />
+          <span className="font-semibold text-xs text-[var(--ink)]">{item.title}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'code',
+      header: 'Code',
+      render: (item) => (
+        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] font-data text-[10px] font-bold text-[var(--ink)]">
+          {item.code}
+        </span>
+      ),
+    },
+    {
+      key: 'department',
+      header: 'Department',
+      className: 'text-xs text-[var(--ink-muted)]',
+      render: (item) => item.department || 'General',
+    },
+    {
+      key: 'level',
+      header: 'Job Grade',
+      render: (item) => (
+        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+          {item.level || 'L2 (Mid)'}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (item) =>
+        item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived' ? (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+            Active
+          </span>
+        ) : (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            Archived
+          </span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (item) => {
+        const isArchived = item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived';
+        return (
+          <RowActionMenu actions={[
+            { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingDesigId(item.id); setNewDesignation({ title: item.title || item.name || '', code: item.code || '', department: item.department || '', level: item.level || '' }); setDesigModalOpen(true); } },
+            isArchived
+              ? { label: 'Restore', icon: <RotateCcw size={14} />, onClick: () => { setDesignations(designations.map(d => d.id === item.id ? { ...d, status: 'active' } : d)); showSuccess('Designation Restored', `${item.title} restored.`); }, variant: 'success', dividerBefore: true }
+              : { label: 'Archive', icon: <Archive size={14} />, onClick: () => { setDesignations(designations.map(d => d.id === item.id ? { ...d, status: 'inactive' } : d)); showSuccess('Designation Archived', `${item.title} moved to archive.`); }, dividerBefore: true },
+            { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => { setDesignations(designations.filter(d => d.id !== item.id)); showSuccess('Designation Deleted', 'Designation removed.'); }, variant: 'danger' },
+          ] as RowAction[]} />
+        );
+      },
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <DataToolbar
+        searchValue={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Search designations by title or code..."
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+        }}
+        filters={[
+          {
+            id: 'department',
+            ariaLabel: 'Department Filter',
+            value: deptFilter,
+            onChange: (v) => { setDeptFilter(v); setPage(1); },
+            options: [
+              { value: '', label: 'All Departments' },
+              ...departments.map(d => ({ value: d.name, label: d.name })),
+            ],
+          },
+        ]}
+        onExport={handleExport}
+        exportLabel="Export CSV"
+        onImport={() => setBulkImportModalOpen(true)}
+        importLabel="Import CSV"
+        primaryAction={{
+          label: 'Add Designation',
+          icon: <Plus size={14} />,
+          onClick: () => setDesigModalOpen(true),
+        }}
+      />
+
+      <DataTable
+        columns={desigColumns}
+        data={paginatedDesigs}
+        loading={loading}
+        emptyMessage="No designations found matching your search."
+        pagination={{
+          page,
+          pageSize,
+          totalCount: filteredDesigs.length,
+          totalPages: Math.ceil(filteredDesigs.length / pageSize),
+          onPageChange: setPage,
+          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+        }}
+      />
+
+      {/* Add/Edit Designation Modal */}
+      {desigModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                <Award size={16} className="text-[var(--gold-500)]" />
+                <span>{editingDesigId ? 'Edit Designation' : 'Create Designation'}</span>
+              </h3>
+              <button onClick={() => { setDesigModalOpen(false); setEditingDesigId(null); }} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddDesignation} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">Designation Title *</label>
+                <input
+                  type="text"
+                  value={newDesignation.title}
+                  onChange={(e) => setNewDesignation({ ...newDesignation, title: e.target.value })}
+                  placeholder="e.g. Senior Project Manager"
+                  className="register-input w-full"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-[var(--ink)] mb-1">Department</label>
+                <select
+                  value={newDesignation.department}
+                  onChange={(e) => setNewDesignation({ ...newDesignation, department: e.target.value })}
+                  className="register-input w-full text-xs"
+                >
+                  <option value="General">General / All Departments</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.name}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
+                <button type="button" onClick={() => { setDesigModalOpen(false); setEditingDesigId(null); }} className="btn-secondary py-1.5 px-3 text-xs">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary py-1.5 px-4 text-xs">
+                  Save Designation
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        isOpen={bulkImportModalOpen}
+        onClose={() => setBulkImportModalOpen(false)}
+        title="Import Designations"
+        templateFilename="HRDesk_Designations_Template"
+        templateHeaders={['Title', 'Code', 'Department', 'Level']}
+        templateSampleRow={['DevOps Specialist', 'DEVOPS', 'Engineering & Technology', 'L3 (Senior)']}
+        onImportComplete={() => {
+          showSuccess('Import Complete', 'Records imported successfully.');
+          fetchData();
+        }}
+      />
+    </div>
+  );
+};

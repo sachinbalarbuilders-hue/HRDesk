@@ -11,6 +11,13 @@ public class Branch : IMustHaveTenant
     [Column("id")]
     public int Id { get; set; }
 
+    /// <summary>
+    /// Opaque, non-enumerable identifier used in URLs and API responses instead of the
+    /// internal integer Id, so IDs cannot be guessed/incremented by a client.
+    /// </summary>
+    [Column("public_id")]
+    public Guid PublicId { get; set; } = Guid.NewGuid();
+
     [Required]
     [Column("organization_id")]
     public int OrganizationId { get; set; }

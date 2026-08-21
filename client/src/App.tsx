@@ -26,8 +26,17 @@ const Recruitment = lazy(() => import('./pages/Recruitment').then(m => ({ defaul
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const VerifyEmployee = lazy(() => import('./pages/VerifyEmployee').then(m => ({ default: m.VerifyEmployee })));
 const GuardScanner = lazy(() => import('./pages/GuardScanner').then(m => ({ default: m.GuardScanner })));
-const OrganizationDetails = lazy(() => import('./pages/settings/OrganizationDetails').then(m => ({ default: m.OrganizationDetails })));
+const OrganizationShell = lazy(() => import('./pages/settings/organization/OrganizationShell').then(m => ({ default: m.OrganizationShell })));
+const OrgDetailsTab = lazy(() => import('./pages/settings/organization/OrgDetailsTab').then(m => ({ default: m.OrgDetailsTab })));
+const OrgBranchesTab = lazy(() => import('./pages/settings/organization/OrgBranchesTab').then(m => ({ default: m.OrgBranchesTab })));
+const OrgPolicyTab = lazy(() => import('./pages/settings/organization/OrgPolicyTab').then(m => ({ default: m.OrgPolicyTab })));
 const BranchDetails = lazy(() => import('./pages/settings/BranchDetails').then(m => ({ default: m.BranchDetails })));
+const BranchPermissions = lazy(() => import('./pages/settings/BranchPermissions').then(m => ({ default: m.BranchPermissions })));
+const OrganizationsTab = lazy(() => import('./pages/settings/OrganizationsTab').then(m => ({ default: m.OrganizationsTab })));
+const DepartmentsTab = lazy(() => import('./pages/settings/DepartmentsTab').then(m => ({ default: m.DepartmentsTab })));
+const DesignationsTab = lazy(() => import('./pages/settings/DesignationsTab').then(m => ({ default: m.DesignationsTab })));
+const LeaveTypesTab = lazy(() => import('./pages/settings/LeaveTypesTab').then(m => ({ default: m.LeaveTypesTab })));
+const WorkShiftsTab = lazy(() => import('./pages/settings/WorkShiftsTab').then(m => ({ default: m.WorkShiftsTab })));
 const EmployeeOnboarding = lazy(() => import('./pages/public/EmployeeOnboarding').then(m => ({ default: m.EmployeeOnboarding })));
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string }> = ({
@@ -192,7 +201,7 @@ export const App: React.FC = () => {
                   />
                   <Route
                     path="roles"
-                    element={<Navigate to="/settings?tab=roles" replace />}
+                    element={<Navigate to="/settings" replace />}
                   />
                   <Route
                     path="settings"
@@ -201,20 +210,39 @@ export const App: React.FC = () => {
                         <Settings />
                       </ProtectedRoute>
                     }
-                  />
+                  >
+                    <Route index element={<Navigate to="organizations" replace />} />
+                    <Route path="organizations" element={<OrganizationsTab />} />
+                    <Route path="departments" element={<DepartmentsTab />} />
+                    <Route path="designations" element={<DesignationsTab />} />
+                    <Route path="leaves" element={<LeaveTypesTab />} />
+                    <Route path="shifts" element={<WorkShiftsTab />} />
+                  </Route>
                   <Route
                     path="settings/organizations/:id"
                     element={
                       <ProtectedRoute>
-                        <OrganizationDetails />
+                        <OrganizationShell />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route index element={<OrgDetailsTab />} />
+                    <Route path="branches" element={<OrgBranchesTab />} />
+                    <Route path="policy" element={<OrgPolicyTab />} />
+                  </Route>
+                  <Route
+                    path="settings/organizations/:orgId/branches/:branchId"
+                    element={
+                      <ProtectedRoute>
+                        <BranchDetails />
                       </ProtectedRoute>
                     }
                   />
                   <Route
-                    path="settings/branches/:id"
+                    path="settings/organizations/:orgId/branches/:branchId/permissions"
                     element={
                       <ProtectedRoute>
-                        <BranchDetails />
+                        <BranchPermissions />
                       </ProtectedRoute>
                     }
                   />

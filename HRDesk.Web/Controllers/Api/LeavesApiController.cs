@@ -131,6 +131,14 @@ public class LeavesController : ControllerBase
         }
 
         var leaveTypes = await _cache.GetLeaveTypesAsync();
+
+        // Filter leave types by employee eligibility
+        var emp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+        if (emp != null)
+        {
+            leaveTypes = leaveTypes.Where(t => IsLeaveTypeEligible(t, emp)).ToList();
+        }
+
         var today = DateOnly.FromDateTime(DateTime.Today);
         var currentYear = today.Year;
 
@@ -181,10 +189,65 @@ public class LeavesController : ControllerBase
     }
 
     [HttpGet("types")]
-    public async Task<IActionResult> GetLeaveTypes()
+    public async Task<IActionResult> GetLeaveTypes([FromQuery] int? employeeId = null)
     {
         var types = await _cache.GetLeaveTypesAsync();
+
+        // If employeeId provided, filter by eligibility
+        if (employeeId.HasValue)
+        {
+            var emp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == employeeId.Value);
+            if (emp != null)
+            {
+                types = types.Where(t => IsLeaveTypeEligible(t, emp)).ToList();
+            }
+        }
+
         return Ok(types.Select(t => new { LeaveTypeId = t.Id, t.Code, t.Name, t.IsPaid, t.TextColor, t.BackgroundColor }));
+    }
+
+    private bool IsLeaveTypeEligible(LeaveType lt, Employee emp)
+    {
+        // Gender check: empty/null/All = no restriction
+        if (!string.IsNullOrEmpty(lt.GenderApplicability) && lt.GenderApplicability != "All")
+        {
+            var allowedGenders = lt.GenderApplicability.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (!allowedGenders.Contains(emp.Gender ?? "", StringComparer.OrdinalIgnoreCase))
+                return false;
+        }
+
+        // Marital status check
+        if (!string.IsNullOrEmpty(lt.MaritalStatusApplicability) && lt.MaritalStatusApplicability != "All")
+        {
+            var allowedStatuses = lt.MaritalStatusApplicability.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (!allowedStatuses.Contains(emp.MaritalStatus ?? "", StringComparer.OrdinalIgnoreCase))
+                return false;
+        }
+
+        // Department check
+        if (!string.IsNullOrEmpty(lt.DepartmentIds))
+        {
+            var allowedDepts = lt.DepartmentIds.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (!allowedDepts.Contains(emp.DepartmentId?.ToString() ?? ""))
+                return false;
+        }
+
+        // Designation check
+        if (!string.IsNullOrEmpty(lt.DesignationIds))
+        {
+            var allowedDesigs = lt.DesignationIds.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (!allowedDesigs.Contains(emp.DesignationId?.ToString() ?? ""))
+                return false;
+        }
+
+        // Role check
+        if (!string.IsNullOrEmpty(lt.RoleIds))
+        {
+            // Role is on User, not Employee — skip if no user linked
+            // This would need a join to Users table; for now skip role filtering here
+        }
+
+        return true;
     }
 
     [HttpPost("apply")]

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { MapPin, ArrowLeft, Save, Clock, Map as MapIcon } from 'lucide-react';
@@ -15,17 +15,21 @@ L.Icon.Default.mergeOptions({
 });
 
 export const BranchDetails: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  // Both segments are opaque PublicIds (GUIDs): orgId identifies the parent
+  // organization, branchId identifies the branch itself (or 'add' for a new branch).
+  const { orgId: orgPublicId, branchId: id } = useParams<{ orgId: string; branchId: string }>();
   const navigate = useNavigate();
   const { showSuccess, showError } = useToast();
-  const parentOrgFromQuery = parseInt(searchParams.get('organizationId') || '0', 10);
+  const parentOrgPublicId = orgPublicId || '';
   
   const [activeTab, setActiveTab] = useState<'details' | 'policy'>('details');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [organizations, setOrganizations] = useState<any[]>([]);
-  
+  // Internal integer branch Id — needed for endpoints not yet migrated to PublicId
+  // (e.g. attendance-policy, which is keyed by numeric branchId).
+  const [branchId, setBranchId] = useState<number | null>(null);
+
   const [branchForm, setBranchForm] = useState({
     organizationId: 0,
     name: '',
@@ -54,19 +58,21 @@ export const BranchDetails: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [overviewRes, policyRes] = await Promise.allSettled([
-          apiClient.get('/masters/overview'),
-          id && id !== 'add' ? apiClient.get('/masters/attendance-policy', { params: { branchId: id } }) : Promise.reject()
-        ]);
-        
+        const overviewRes = await apiClient.get('/masters/overview').then(
+          (res) => ({ status: 'fulfilled' as const, value: res }),
+          (err) => ({ status: 'rejected' as const, reason: err })
+        );
+
         const orgs = (overviewRes.status === 'fulfilled' && overviewRes.value.data?.organizations) || [];
         setOrganizations(orgs);
         
         if (id && id !== 'add') {
           const branches = (overviewRes.status === 'fulfilled' && overviewRes.value.data?.branches) || [];
-          const branch = branches.find((b: any) => b.id === parseInt(id, 10));
+          // The URL param is the opaque PublicId (GUID), not the internal integer Id.
+          const branch = branches.find((b: any) => String(b.publicId) === id);
           
           if (branch) {
+            setBranchId(branch.id);
             setBranchForm({
               organizationId: branch.organizationId || (orgs.length > 0 ? orgs[0].id : 0),
               name: branch.name,
@@ -82,26 +88,29 @@ export const BranchDetails: React.FC = () => {
               radiusMeters: branch.radiusMeters || 100,
               isActive: branch.isActive !== false,
             });
+
+            const policyRes = await apiClient.get('/masters/attendance-policy', { params: { branchId: branch.id } }).then(
+              (res) => ({ status: 'fulfilled' as const, value: res }),
+              (err) => ({ status: 'rejected' as const, reason: err })
+            );
+            if (policyRes.status === 'fulfilled' && policyRes.value.data) {
+              const p = policyRes.value.data;
+              setPolicyForm({
+                gracePeriodMinutes: p.gracePeriodMinutes ?? 15,
+                halfDayThresholdHours: p.halfDayThresholdHours ?? 4.5,
+                fullDayThresholdHours: p.fullDayThresholdHours ?? 8.0,
+                autoSyncIntervalMinutes: p.autoSyncIntervalMinutes ?? 5,
+                defaultWeekoff: p.defaultWeekoff ?? 'Sunday',
+                sandwichRuleEnabled: p.sandwichRuleEnabled ?? true,
+              });
+            }
           } else {
             showError('Not Found', 'Branch not found.');
-            navigate(parentOrgFromQuery ? `/settings/organizations/${parentOrgFromQuery}` : '/settings?tab=company');
-          }
-
-          if (policyRes.status === 'fulfilled' && policyRes.value.data) {
-            const p = policyRes.value.data;
-            setPolicyForm({
-              gracePeriodMinutes: p.gracePeriodMinutes ?? 15,
-              halfDayThresholdHours: p.halfDayThresholdHours ?? 4.5,
-              fullDayThresholdHours: p.fullDayThresholdHours ?? 8.0,
-              autoSyncIntervalMinutes: p.autoSyncIntervalMinutes ?? 5,
-              defaultWeekoff: p.defaultWeekoff ?? 'Sunday',
-              sandwichRuleEnabled: p.sandwichRuleEnabled ?? true,
-            });
+            navigate(parentOrgPublicId ? `/settings/organizations/${parentOrgPublicId}` : '/settings/organizations');
           }
         } else if (orgs.length > 0) {
-           const presetOrg = parentOrgFromQuery > 0 && orgs.some((o: any) => o.id === parentOrgFromQuery)
-             ? parentOrgFromQuery
-             : orgs[0].id;
+           const matchedByQuery = parentOrgPublicId && orgs.find((o: any) => String(o.publicId) === parentOrgPublicId);
+           const presetOrg = matchedByQuery ? matchedByQuery.id : orgs[0].id;
            setBranchForm(prev => ({ ...prev, organizationId: presetOrg }));
         }
       } catch (err) {
@@ -127,10 +136,11 @@ export const BranchDetails: React.FC = () => {
         await apiClient.post('/masters/branches', branchForm);
         showSuccess('Created', 'Branch created successfully.');
       } else {
-        await apiClient.put(`/masters/branches/${id}`, { ...branchForm, id: parseInt(id!, 10) });
+        // `id` here is the opaque PublicId (GUID) used in the URL, not the internal integer Id.
+        await apiClient.put(`/masters/branches/${id}`, branchForm);
         showSuccess('Updated', 'Branch updated successfully.');
       }
-      navigate(`/settings/organizations/${branchForm.organizationId}`);
+      navigate(parentOrgPublicId ? `/settings/organizations/${parentOrgPublicId}/branches` : '/settings/organizations');
     } catch (err: any) {
       showError('Error', err.response?.data?.message || 'Failed to save branch.');
     } finally {
@@ -140,15 +150,15 @@ export const BranchDetails: React.FC = () => {
 
   const handleSavePolicy = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || id === 'add') return;
+    if (!id || id === 'add' || !branchId) return;
 
     try {
       setSaving(true);
       await Promise.all([
-        apiClient.put(`/masters/branches/${id}`, { ...branchForm, id: parseInt(id, 10) }),
+        apiClient.put(`/masters/branches/${id}`, branchForm),
         apiClient.put('/masters/attendance-policy', {
           ...policyForm,
-          branchId: parseInt(id, 10),
+          branchId,
         })
       ]);
       showSuccess('Saved', 'Branch attendance policies saved.');
@@ -168,7 +178,7 @@ export const BranchDetails: React.FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => navigate(branchForm.organizationId ? `/settings/organizations/${branchForm.organizationId}` : '/settings?tab=company')}
+            onClick={() => navigate(parentOrgPublicId ? `/settings/organizations/${parentOrgPublicId}/branches` : '/settings/organizations')}
             className="p-1.5 rounded-md hover:bg-[var(--surface)] text-[var(--ink-muted)] transition-colors cursor-pointer"
           >
             <ArrowLeft size={18} />
@@ -215,7 +225,7 @@ export const BranchDetails: React.FC = () => {
                 <div className="space-y-5">
                   <div>
                     <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Parent Organization <span className="text-rose-500">*</span></label>
-                    {id === 'add' && parentOrgFromQuery <= 0 ? (
+                    {id === 'add' && !parentOrgPublicId ? (
                       <select
                         value={branchForm.organizationId}
                         onChange={(e) => setBranchForm({ ...branchForm, organizationId: parseInt(e.target.value, 10) })}
@@ -334,7 +344,7 @@ export const BranchDetails: React.FC = () => {
               <div className="pt-4 border-t border-[var(--rule)] flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => navigate(branchForm.organizationId ? `/settings/organizations/${branchForm.organizationId}` : '/settings?tab=company')}
+                  onClick={() => navigate(parentOrgPublicId ? `/settings/organizations/${parentOrgPublicId}/branches` : '/settings/organizations')}
                   className="btn-secondary py-2 px-4"
                 >
                   Cancel

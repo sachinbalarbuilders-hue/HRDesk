@@ -4,16 +4,19 @@ using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace HRDesk.Web.Migrations
+namespace HRDesk.Web.Data.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260821175749_AddPublicIdToOrganizationAndBranch")]
+    partial class AddPublicIdToOrganizationAndBranch
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

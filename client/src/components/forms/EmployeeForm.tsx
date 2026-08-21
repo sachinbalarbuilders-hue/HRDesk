@@ -120,7 +120,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               <option value="">Select Gender</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
-              <option value="Other">Other</option>
+              <option value="Non-Binary">Non-Binary</option>
+              <option value="Transgender">Transgender</option>
+              <option value="Undisclosed">Prefer not to say</option>
             </select>
           </div>
           <div>
@@ -141,6 +143,8 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               <option value="Married">Married</option>
               <option value="Divorced">Divorced</option>
               <option value="Widowed">Widowed</option>
+              <option value="Separated">Separated</option>
+              <option value="Domestic Partner">Domestic Partner</option>
             </select>
           </div>
           <div className="col-span-2">

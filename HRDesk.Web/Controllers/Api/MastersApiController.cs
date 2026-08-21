@@ -177,6 +177,7 @@ public class MastersController : ControllerBase
             organizations = orgs.Select(o => new
             {
                 id = o.Id,
+                publicId = o.PublicId,
                 name = o.Name,
                 code = o.Code ?? (o.Name.Length > 3 ? string.Concat(o.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(w => w[0])) : o.Name),
                 address = o.Address,
@@ -189,6 +190,7 @@ public class MastersController : ControllerBase
             branches = branches.Select(b => new
             {
                 id = b.Id,
+                publicId = b.PublicId,
                 organizationId = b.OrganizationId,
                 name = b.Name,
                 code = b.Code ?? "",
@@ -712,7 +714,6 @@ public class MastersController : ControllerBase
     // ORGANIZATIONS
     // ==========================================
     [HttpGet("organizations")]
-    [AllowAnonymous]
     public async Task<IActionResult> GetOrganizations()
     {
         var rawOrgs = await _db.Organizations
@@ -737,6 +738,11 @@ public class MastersController : ControllerBase
     [HttpPost("organizations")]
     public async Task<IActionResult> CreateOrganization([FromBody] OrganizationDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+        {
+            return Forbid();
+        }
+
         if (string.IsNullOrWhiteSpace(dto.Name)) return BadRequest(new { message = "Branch / Organization name is required." });
 
         var defaultCompany = await _db.Companies.FirstOrDefaultAsync();
@@ -758,14 +764,25 @@ public class MastersController : ControllerBase
         _db.Organizations.Add(org);
         await _db.SaveChangesAsync();
 
-        return Ok(new { message = "Branch created successfully.", id = org.Id });
+        return Ok(new { message = "Branch created successfully.", id = org.Id, publicId = org.PublicId });
     }
 
-    [HttpPut("organizations/{id}")]
-    public async Task<IActionResult> UpdateOrganization(int id, [FromBody] OrganizationDto dto)
+    [HttpPut("organizations/{publicId:guid}")]
+    public async Task<IActionResult> UpdateOrganization(Guid publicId, [FromBody] OrganizationDto dto)
     {
-        var org = await _db.Organizations.FindAsync(id);
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+        {
+            return Forbid();
+        }
+
+        var org = await _db.Organizations.FirstOrDefaultAsync(o => o.PublicId == publicId);
         if (org == null) return NotFound(new { message = "Branch not found." });
+
+        bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+        if (!isAdminOrSuper && org.Id != _tenantProvider.TenantId)
+        {
+            return Forbid();
+        }
 
         if (!string.IsNullOrWhiteSpace(dto.Name)) org.Name = dto.Name.Trim();
         if (!string.IsNullOrWhiteSpace(dto.Code)) org.Code = dto.Code.Trim();
@@ -777,14 +794,13 @@ public class MastersController : ControllerBase
         org.IsActive = dto.IsActive;
 
         await _db.SaveChangesAsync();
-        return Ok(new { message = "Organization updated successfully.", id = org.Id });
+        return Ok(new { message = "Organization updated successfully.", id = org.Id, publicId = org.PublicId });
     }
 
     // ==========================================
     // BRANCHES MASTER
     // ==========================================
     [HttpGet("branches")]
-    [AllowAnonymous]
     public async Task<IActionResult> GetBranches()
     {
         var branches = await _db.Branches
@@ -796,6 +812,7 @@ public class MastersController : ControllerBase
         return Ok(branches.Select(b => new
         {
             id = b.Id,
+            publicId = b.PublicId,
             organizationId = b.OrganizationId,
             name = b.Name,
             code = b.Code ?? "",
@@ -817,6 +834,11 @@ public class MastersController : ControllerBase
     [HttpPost("branches")]
     public async Task<IActionResult> CreateBranch([FromBody] BranchDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+        {
+            return Forbid();
+        }
+
         if (string.IsNullOrWhiteSpace(dto.Name)) return BadRequest(new { message = "Branch name is required." });
 
         _db.BypassTenantId = true;
@@ -846,15 +868,26 @@ public class MastersController : ControllerBase
         _db.Branches.Add(branch);
         await _db.SaveChangesAsync();
 
-        return Ok(new { message = "Branch created successfully.", id = branch.Id });
+        return Ok(new { message = "Branch created successfully.", id = branch.Id, publicId = branch.PublicId });
     }
 
-    [HttpPut("branches/{id}")]
-    public async Task<IActionResult> UpdateBranch(int id, [FromBody] BranchDto dto)
+    [HttpPut("branches/{publicId:guid}")]
+    public async Task<IActionResult> UpdateBranch(Guid publicId, [FromBody] BranchDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+        {
+            return Forbid();
+        }
+
         _db.BypassTenantId = true;
-        var branch = await _db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == id);
+        var branch = await _db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.PublicId == publicId);
         if (branch == null) return NotFound(new { message = "Branch not found." });
+
+        bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+        if (!isAdminOrSuper && branch.OrganizationId != _tenantProvider.TenantId)
+        {
+            return Forbid();
+        }
 
         if (!string.IsNullOrWhiteSpace(dto.Name)) branch.Name = dto.Name.Trim();
         branch.Code = dto.Code?.Trim();
@@ -873,15 +906,26 @@ public class MastersController : ControllerBase
         branch.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
-        return Ok(new { message = "Branch updated successfully.", id = branch.Id });
+        return Ok(new { message = "Branch updated successfully.", id = branch.Id, publicId = branch.PublicId });
     }
 
-    [HttpDelete("branches/{id}")]
-    public async Task<IActionResult> DeleteBranch(int id)
+    [HttpDelete("branches/{publicId:guid}")]
+    public async Task<IActionResult> DeleteBranch(Guid publicId)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+        {
+            return Forbid();
+        }
+
         _db.BypassTenantId = true;
-        var branch = await _db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == id);
+        var branch = await _db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.PublicId == publicId);
         if (branch == null) return NotFound(new { message = "Branch not found." });
+
+        bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+        if (!isAdminOrSuper && branch.OrganizationId != _tenantProvider.TenantId)
+        {
+            return Forbid();
+        }
 
         _db.Branches.Remove(branch);
         await _db.SaveChangesAsync();
