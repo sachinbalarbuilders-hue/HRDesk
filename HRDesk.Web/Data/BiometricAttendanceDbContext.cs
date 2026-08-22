@@ -1,5 +1,6 @@
 using HRDesk.Web.Models;
 using HRDesk.Web.Areas.Recruitment.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Data;
@@ -7,14 +8,19 @@ namespace HRDesk.Web.Data;
 public sealed class BiometricAttendanceDbContext : DbContext
 {
     private readonly HRDesk.Web.Services.ICurrentTenantProvider _tenantProvider;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public BiometricAttendanceDbContext(
         DbContextOptions<BiometricAttendanceDbContext> options,
-        HRDesk.Web.Services.ICurrentTenantProvider tenantProvider = null!)
+        HRDesk.Web.Services.ICurrentTenantProvider tenantProvider = null!,
+        IHttpContextAccessor httpContextAccessor = null!)
         : base(options)
     {
         _tenantProvider = tenantProvider;
+        _httpContextAccessor = httpContextAccessor;
     }
+
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<Organization> Organizations => Set<Organization>();
@@ -81,6 +87,10 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<CelebrationLog> CelebrationLogs => Set<CelebrationLog>();
     public DbSet<Candidate> Candidates => Set<Candidate>();
     public DbSet<InterviewSchedule> InterviewSchedules => Set<InterviewSchedule>();
+    public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+    public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
+    public DbSet<SubscriptionPayment> SubscriptionPayments => Set<SubscriptionPayment>();
+    public DbSet<GateActivityLog> GateActivityLogs => Set<GateActivityLog>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -95,6 +105,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
         // Performance Indexes - Tier 1
         modelBuilder.Entity<DailyAttendance>().HasIndex(d => d.RecordDate);
         modelBuilder.Entity<AttendanceLog>().HasIndex(a => a.PunchTime);
+        modelBuilder.Entity<GateActivityLog>().HasIndex(g => new { g.OrganizationId, g.ScannedAt });
         
         // Comprehensive Performance Indexes - Tier 2
         modelBuilder.Entity<Employee>().HasIndex(e => e.Status);
@@ -547,11 +558,46 @@ public sealed class BiometricAttendanceDbContext : DbContext
             entity.HasOne(c => c.Organization).WithMany().HasForeignKey(c => c.OrganizationId);
             entity.HasOne(c => c.HiredEmployee).WithMany().HasForeignKey(c => new { c.OrganizationId, c.HiredEmployeeId });
         });
+
+        modelBuilder.Entity<SubscriptionPlan>(entity =>
+        {
+            entity.ToTable("subscription_plans");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<TenantSubscription>(entity =>
+        {
+            entity.ToTable("tenant_subscriptions");
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Plan).WithMany().HasForeignKey(e => e.PlanId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.OrganizationId);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.ToTable("audit_logs");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.OrganizationId, e.Timestamp }).IsDescending(false, true);
+            entity.HasIndex(e => new { e.OrganizationId, e.EntityName });
+        });
+
+        modelBuilder.Entity<SubscriptionPayment>(entity =>
+        {
+            entity.ToTable("subscription_payments");
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Plan).WithMany().HasForeignKey(e => e.PlanId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.OrganizationId, e.CreatedAt }).IsDescending(false, true);
+            entity.HasIndex(e => e.InvoiceNumber).IsUnique();
+        });
         
         base.OnModelCreating(modelBuilder);
     }
 
     public bool BypassTenantId { get; set; } = false;
+    public bool BypassAudit { get; set; } = false;
 
     private void SetGlobalQueryFilter<T>(ModelBuilder builder) where T : class, IMustHaveTenant
     {
@@ -560,14 +606,124 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     public override int SaveChanges()
     {
-        ApplyTenantId();
-        return base.SaveChanges();
+        var audits = OnBeforeSaveChanges();
+        var result = base.SaveChanges();
+        if (audits.Count > 0)
+        {
+            AuditLogs.AddRange(audits);
+            base.SaveChanges();
+        }
+        return result;
     }
 
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var audits = OnBeforeSaveChanges();
+        var result = await base.SaveChangesAsync(cancellationToken);
+        if (audits.Count > 0)
+        {
+            AuditLogs.AddRange(audits);
+            await base.SaveChangesAsync(cancellationToken);
+        }
+        return result;
+    }
+
+    private List<AuditLog> OnBeforeSaveChanges()
     {
         ApplyTenantId();
-        return base.SaveChangesAsync(cancellationToken);
+
+        var auditEntries = new List<AuditLog>();
+        if (BypassAudit) return auditEntries;
+
+        var httpContext = _httpContextAccessor?.HttpContext;
+        var userName = httpContext?.User?.Identity?.Name ?? "System";
+        var ipAddress = httpContext?.Connection?.RemoteIpAddress?.ToString();
+        var targetOrgId = _tenantProvider?.TenantId > 0 ? _tenantProvider.TenantId : 1;
+
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.Entity is AuditLog || entry.Entity is AttendanceLog || entry.State is EntityState.Detached or EntityState.Unchanged)
+                continue;
+
+            var entityName = entry.Entity.GetType().Name;
+            if (entityName.Contains("Proxy") && entityName.Contains("_"))
+            {
+                entityName = entry.Entity.GetType().BaseType?.Name ?? entityName;
+            }
+
+            var audit = new AuditLog
+            {
+                OrganizationId = targetOrgId,
+                UserName = userName,
+                EntityName = entityName,
+                IpAddress = ipAddress,
+                Timestamp = DateTime.Now
+            };
+
+            var primaryKey = entry.Properties.FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue?.ToString();
+            audit.PrimaryKey = primaryKey;
+
+            var oldValues = new Dictionary<string, object?>();
+            var newValues = new Dictionary<string, object?>();
+            var changedColumns = new List<string>();
+
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    audit.Action = "CREATE";
+                    foreach (var prop in entry.Properties)
+                    {
+                        if (prop.Metadata.IsPrimaryKey() && prop.CurrentValue is int i && i <= 0)
+                            continue;
+                        // Avoid serializing binary photo bytes
+                        if (prop.Metadata.Name == "PhotoData" || prop.Metadata.Name == "ResumeData")
+                            continue;
+                        newValues[prop.Metadata.Name] = prop.CurrentValue;
+                    }
+                    break;
+
+                case EntityState.Deleted:
+                    audit.Action = "DELETE";
+                    foreach (var prop in entry.Properties)
+                    {
+                        if (prop.Metadata.Name == "PhotoData" || prop.Metadata.Name == "ResumeData")
+                            continue;
+                        oldValues[prop.Metadata.Name] = prop.OriginalValue;
+                    }
+                    break;
+
+                case EntityState.Modified:
+                    audit.Action = "UPDATE";
+                    foreach (var prop in entry.Properties)
+                    {
+                        if (prop.IsModified && !Equals(prop.OriginalValue, prop.CurrentValue))
+                        {
+                            if (prop.Metadata.Name == "PhotoData" || prop.Metadata.Name == "ResumeData")
+                                continue;
+                            changedColumns.Add(prop.Metadata.Name);
+                            oldValues[prop.Metadata.Name] = prop.OriginalValue;
+                            newValues[prop.Metadata.Name] = prop.CurrentValue;
+                        }
+                    }
+                    break;
+            }
+
+            if (entry.State == EntityState.Modified && changedColumns.Count == 0)
+                continue;
+
+            if (oldValues.Count > 0)
+                audit.OldValues = System.Text.Json.JsonSerializer.Serialize(oldValues);
+
+            if (newValues.Count > 0)
+                audit.NewValues = System.Text.Json.JsonSerializer.Serialize(newValues);
+
+            if (changedColumns.Count > 0)
+                audit.ChangedColumns = string.Join(", ", changedColumns);
+
+            auditEntries.Add(audit);
+        }
+
+        return auditEntries;
     }
 
     private void ApplyTenantId()

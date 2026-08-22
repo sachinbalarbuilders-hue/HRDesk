@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { ArrowLeft, Camera, Loader2, MapPin, Pencil, Phone, Search } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, Search, Pencil } from 'lucide-react';
 import { PageSkeleton } from '../../components/ui/PageSkeleton';
 import { AuthImage } from '../../components/ui/AuthImage';
+import { EmployeeDetailsTab } from '../../components/employees/EmployeeDetailsTab';
 import { EmployeeDocumentsTab } from '../../components/employees/EmployeeDocumentsTab';
 import { EmployeeAttendanceTab } from '../../components/employees/EmployeeAttendanceTab';
 import { EmployeeLeavesTab } from '../../components/employees/EmployeeLeavesTab';
@@ -34,10 +35,20 @@ export const ViewEmployee: React.FC = () => {
   const [sidebarPage, setSidebarPage] = useState(1);
   const [hasMoreSidebar, setHasMoreSidebar] = useState(true);
   const [loadingSidebar, setLoadingSidebar] = useState(false);
-  const [profileTab, setProfileTab] = useState<'details' | 'attendance' | 'leaves' | 'records' | 'idcard'>('details');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isFetchingRef = useRef(false);
+
+  // Tab state is stored in the URL as ?tab=... for bookmarkability
+  const [searchParams, setSearchParams] = useSearchParams();
+  const VALID_TABS = ['details', 'attendance', 'leaves', 'records', 'idcard'] as const;
+  type TabKey = typeof VALID_TABS[number];
+  const rawTab = searchParams.get('tab') as TabKey | null;
+  const profileTab: TabKey = rawTab && VALID_TABS.includes(rawTab) ? rawTab : 'details';
+
+  const setProfileTab = (tab: TabKey) => {
+    setSearchParams(prev => { prev.set('tab', tab); return prev; }, { replace: true });
+  };
 
   const canEdit = isAdmin || hasPermission('Employees.Edit');
 
@@ -178,7 +189,7 @@ export const ViewEmployee: React.FC = () => {
             return (
               <Link 
                 key={emp.employeeId} 
-                to={`/employees/${emp.publicId}`}
+                to={`/employees/${emp.publicId}${profileTab !== 'details' ? `?tab=${profileTab}` : ''}`}
                 className={`flex items-center gap-3 p-2 rounded-[4px] transition-colors cursor-pointer ${
                   isSelected 
                     ? 'bg-[var(--gold-500)]/10 border border-[var(--gold-500)]/30' 
@@ -365,98 +376,7 @@ export const ViewEmployee: React.FC = () => {
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-[var(--surface)]">
           {profileTab === 'details' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="grid grid-cols-2 gap-3 md:col-span-2">
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Department</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.department || 'Unassigned'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Designation</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.designation || 'Staff Member'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Reporting Manager</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.reportingManager || 'None'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Weekly Off</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.weekoff || 'Sunday'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Employment Type</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.employmentType || '-'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Attendance Type</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.attendanceType || '-'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Date of Birth</span>
-                  <p className="font-data font-semibold text-[var(--ink)] mt-0.5">{formatDate(employee.dateOfBirth)}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Gender</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.gender || '-'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Blood Group</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.bloodGroup || '-'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Marital Status</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.maritalStatus || '-'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Nationality</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.nationality || '-'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] overflow-hidden">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Work Email</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5 truncate" title={employee.workEmail}>{employee.workEmail || '-'}</p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] overflow-hidden">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Personal Email</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5 truncate" title={employee.personalEmail}>{employee.personalEmail || '-'}</p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Current Address</span>
-                <p className="font-semibold text-[var(--ink)] mt-0.5 whitespace-pre-wrap">{employee.currentAddress || '-'}</p>
-              </div>
-              
-              <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Permanent Address</span>
-                <p className="font-semibold text-[var(--ink)] mt-0.5 whitespace-pre-wrap">{employee.permanentAddress || '-'}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 md:col-span-2">
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Probation Details</span>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">
-                    {employee.hasProbation ? `Yes, ${employee.probationDays} days` : 'No Probation'}
-                  </p>
-                </div>
-                <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Assigned Branch</span>
-                    <MapPin size={13} className="text-[var(--gold-500)]" />
-                  </div>
-                  <p className="font-semibold text-[var(--ink)] mt-0.5">
-                    {employee.branch || 'No Branch Assigned'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between md:col-span-2">
-                <div>
-                  <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Phone Number</span>
-                  <p className="font-data font-semibold text-[var(--ink)] mt-0.5">{employee.phone || '-'}</p>
-                </div>
-                <Phone size={16} className="text-[var(--ink-muted)]" />
-              </div>
-            </div>
+            <EmployeeDetailsTab employee={employee} />
           )}
 
           {profileTab === 'attendance' && (

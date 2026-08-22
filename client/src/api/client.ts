@@ -28,10 +28,14 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear token and redirect to login if unauthorized
+      // Clear token if unauthorized
       localStorage.removeItem('hrdesk_token');
       localStorage.removeItem('hrdesk_user');
-      if (window.location.pathname !== '/login') {
+
+      const publicPaths = ['/login', '/register', '/landing', '/verify', '/onboarding'];
+      const isPublicPath = window.location.pathname === '/' || publicPaths.some(p => window.location.pathname.startsWith(p));
+
+      if (!isPublicPath) {
         window.location.href = '/login';
       }
     }

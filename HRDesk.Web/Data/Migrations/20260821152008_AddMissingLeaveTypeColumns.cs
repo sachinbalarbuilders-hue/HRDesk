@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -10,41 +10,43 @@ namespace HRDesk.Web.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_leave_types_departments_department_id",
-                table: "leave_types");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_leave_types_designations_designation_id",
-                table: "leave_types");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_leave_types_roles_role_id",
-                table: "leave_types");
-
-            migrationBuilder.DropIndex(
-                name: "IX_leave_types_department_id",
-                table: "leave_types");
-
-            migrationBuilder.DropIndex(
-                name: "IX_leave_types_designation_id",
-                table: "leave_types");
-
-            migrationBuilder.DropIndex(
-                name: "IX_leave_types_role_id",
-                table: "leave_types");
-
-            migrationBuilder.DropColumn(
-                name: "department_id",
-                table: "leave_types");
-
-            migrationBuilder.DropColumn(
-                name: "designation_id",
-                table: "leave_types");
-
-            migrationBuilder.DropColumn(
-                name: "role_id",
-                table: "leave_types");
+            // Guard drops — safe if already removed
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_leave_types_departments_department_id')
+                    ALTER TABLE leave_types DROP CONSTRAINT FK_leave_types_departments_department_id;
+            ");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_leave_types_designations_designation_id')
+                    ALTER TABLE leave_types DROP CONSTRAINT FK_leave_types_designations_designation_id;
+            ");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_leave_types_roles_role_id')
+                    ALTER TABLE leave_types DROP CONSTRAINT FK_leave_types_roles_role_id;
+            ");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_leave_types_department_id' AND object_id = OBJECT_ID('leave_types'))
+                    DROP INDEX IX_leave_types_department_id ON leave_types;
+            ");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_leave_types_designation_id' AND object_id = OBJECT_ID('leave_types'))
+                    DROP INDEX IX_leave_types_designation_id ON leave_types;
+            ");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_leave_types_role_id' AND object_id = OBJECT_ID('leave_types'))
+                    DROP INDEX IX_leave_types_role_id ON leave_types;
+            ");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('leave_types') AND name = 'department_id')
+                    ALTER TABLE leave_types DROP COLUMN department_id;
+            ");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('leave_types') AND name = 'designation_id')
+                    ALTER TABLE leave_types DROP COLUMN designation_id;
+            ");
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('leave_types') AND name = 'role_id')
+                    ALTER TABLE leave_types DROP COLUMN role_id;
+            ");
 
             migrationBuilder.AlterColumn<string>(
                 name: "role",
@@ -116,37 +118,31 @@ namespace HRDesk.Web.Data.Migrations
                 oldClrType: typeof(string),
                 oldType: "nvarchar(max)");
 
-            migrationBuilder.AddColumn<string>(
-                name: "department_ids",
-                table: "leave_types",
-                type: "nvarchar(max)",
-                nullable: true);
+            // Guard: only add columns if they don't already exist (idempotent re-run safety)
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('leave_types') AND name = 'department_ids')
+                    ALTER TABLE leave_types ADD department_ids nvarchar(max) NULL;
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "designation_ids",
-                table: "leave_types",
-                type: "nvarchar(max)",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('leave_types') AND name = 'designation_ids')
+                    ALTER TABLE leave_types ADD designation_ids nvarchar(max) NULL;
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "gender_applicability",
-                table: "leave_types",
-                type: "nvarchar(50)",
-                maxLength: 50,
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('leave_types') AND name = 'gender_applicability')
+                    ALTER TABLE leave_types ADD gender_applicability nvarchar(50) NULL;
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "marital_status_applicability",
-                table: "leave_types",
-                type: "nvarchar(50)",
-                maxLength: 50,
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('leave_types') AND name = 'marital_status_applicability')
+                    ALTER TABLE leave_types ADD marital_status_applicability nvarchar(50) NULL;
+            ");
 
-            migrationBuilder.AddColumn<string>(
-                name: "role_ids",
-                table: "leave_types",
-                type: "nvarchar(max)",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('leave_types') AND name = 'role_ids')
+                    ALTER TABLE leave_types ADD role_ids nvarchar(max) NULL;
+            ");
 
             migrationBuilder.AlterColumn<string>(
                 name: "status",

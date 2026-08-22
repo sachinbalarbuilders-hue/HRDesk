@@ -31,6 +31,7 @@ import {
   Bell,
   Camera,
   PiggyBank,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
@@ -50,7 +51,7 @@ export const AppLayout: React.FC = () => {
     {
       group: 'Overview',
       items: [
-        { name: 'Dashboard', href: '/', icon: LayoutDashboard, show: true },
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, show: true },
         { name: 'Employees', href: '/employees', icon: Users, show: isAdmin || hasPermission('Employees.View') },
       ],
     },

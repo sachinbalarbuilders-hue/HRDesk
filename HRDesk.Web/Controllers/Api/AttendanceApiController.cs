@@ -59,15 +59,16 @@ public class AttendanceController : ControllerBase
         var daysInMonth = DateTime.DaysInMonth(selectedYear, selectedMonth);
         var endDate = startDate.AddMonths(1);
 
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
         var empQuery = _db.Employees
             .AsNoTracking()
             .Include(e => e.Department)
             .Where(e =>
                 (e.JoiningDate == null || e.JoiningDate < endDate) &&
                 (
-                    (e.Status != null && e.Status.ToLower() == "active") ||
-                    (e.LastWorkingDate != null && e.LastWorkingDate >= startDate) ||
-                    (_db.DailyAttendance.Any(a => a.EmployeeId == e.EmployeeId && a.RecordDate >= startDate && a.RecordDate < endDate && a.InTime != null))
+                    e.Status == "Active" || e.Status == "active" || e.Status == null ||
+                    (e.LastWorkingDate != null && e.LastWorkingDate >= startDate)
                 ));
 
         // Branch Scoping Filter
@@ -91,6 +92,7 @@ public class AttendanceController : ControllerBase
         empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceMonthlySheet);
 
         var totalCount = await empQuery.CountAsync();
+        var tCount = sw.ElapsedMilliseconds;
 
         if (pageSize <= 0) pageSize = 50;
         if (pageSize > 200) pageSize = 200;
@@ -100,14 +102,15 @@ public class AttendanceController : ControllerBase
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+        var tEmps = sw.ElapsedMilliseconds;
 
         var pagedEmpIds = employees.Select(e => e.EmployeeId).ToList();
 
         var logs = await _db.DailyAttendance
             .AsNoTracking()
-            .Include(a => a.Shift)
             .Where(a => a.RecordDate >= startDate && a.RecordDate < endDate && pagedEmpIds.Contains(a.EmployeeId))
             .ToListAsync();
+        var tLogs = sw.ElapsedMilliseconds;
 
         var leaveApps = await _db.LeaveApplications
             .AsNoTracking()
@@ -117,6 +120,7 @@ public class AttendanceController : ControllerBase
                          la.EndDate >= startDate &&
                          pagedEmpIds.Contains(la.EmployeeId))
             .ToListAsync();
+        var tLeaves = sw.ElapsedMilliseconds;
 
         var holidays = await _db.Holidays
             .AsNoTracking()
@@ -127,26 +131,47 @@ public class AttendanceController : ControllerBase
             .AsNoTracking()
             .Where(r => r.RosterDate >= startDate && r.RosterDate <= endDate && pagedEmpIds.Contains(r.EmployeeId))
             .ToListAsync();
+        var tData = sw.ElapsedMilliseconds;
 
-        var items = new List<object>();
+        // O(1) Pre-indexing into Hash Maps for ultra-fast lookup
+        var logsByEmpAndDate = logs
+            .GroupBy(l => l.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.GroupBy(x => x.RecordDate).ToDictionary(d => d.Key, d => d.First()));
+
+        var leavesByEmp = leaveApps
+            .GroupBy(la => la.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var rostersByEmpAndDate = monthRosters
+            .GroupBy(r => r.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.GroupBy(x => x.RosterDate).ToDictionary(d => d.Key, d => d.First()));
+
+        var items = new List<object>(employees.Count);
 
         foreach (var emp in employees)
         {
-            var empLogs = logs.Where(l => l.EmployeeId == emp.EmployeeId).ToList();
-            var dailyRecords = new Dictionary<string, object>();
-            var dailyStatus = new Dictionary<string, string>();
+            logsByEmpAndDate.TryGetValue(emp.EmployeeId, out var empLogsByDate);
+            leavesByEmp.TryGetValue(emp.EmployeeId, out var empLeaves);
+            rostersByEmpAndDate.TryGetValue(emp.EmployeeId, out var empRostersByDate);
+
+            empLogsByDate ??= new Dictionary<DateOnly, DailyAttendance>();
+            empLeaves ??= new List<LeaveApplication>();
+            empRostersByDate ??= new Dictionary<DateOnly, ShiftRoster>();
+
+            var dailyRecords = new Dictionary<string, object>(daysInMonth);
+            var dailyStatus = new Dictionary<string, string>(daysInMonth);
 
             for (int day = 1; day <= daysInMonth; day++)
             {
                 var date = new DateOnly(selectedYear, selectedMonth, day);
-                var log = empLogs.FirstOrDefault(l => l.RecordDate == date);
+                empLogsByDate.TryGetValue(date, out var log);
 
                 bool isDefaultWeekoff = !string.IsNullOrWhiteSpace(emp.Weekoff) &&
                     emp.Weekoff.Trim().Equals(date.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase) &&
                     (emp.JoiningDate == null || date >= emp.JoiningDate) &&
                     (emp.LastWorkingDate == null || date <= emp.LastWorkingDate);
 
-                var rosterOverride = monthRosters.FirstOrDefault(r => r.EmployeeId == emp.EmployeeId && r.RosterDate == date);
+                empRostersByDate.TryGetValue(date, out var rosterOverride);
                 bool isWeekOff = rosterOverride != null ? rosterOverride.IsWeekOff : isDefaultWeekoff;
 
                 string statusChar = "-";
@@ -161,7 +186,7 @@ public class AttendanceController : ControllerBase
                     inTime = log.InTime?.ToString("HH:mm") ?? "";
                     outTime = log.OutTime?.ToString("HH:mm") ?? "";
 
-                    var activeApp = leaveApps.FirstOrDefault(la => la.EmployeeId == emp.EmployeeId && date >= la.StartDate && date <= la.EndDate && la.Status == "Approved");
+                    var activeApp = empLeaves.FirstOrDefault(la => date >= la.StartDate && date <= la.EndDate && la.Status == "Approved");
 
                     if (log.Status == "Holiday")
                     {
@@ -182,10 +207,26 @@ public class AttendanceController : ControllerBase
                     {
                         textColor = activeApp.LeaveType.TextColor ?? "#ffffff";
                         bgColor = activeApp.LeaveType.BackgroundColor ?? "#0288d1";
-                        statusChar = (log.IsHalfDay || activeApp.TotalDays == 0.5m)
-                            ? (activeApp.LeaveType.Code + "HF")
-                            : activeApp.LeaveType.Code;
-                        tooltip = $"{activeApp.LeaveType.Name} (#{activeApp.ApplicationNumber})";
+                        if (activeApp.DayType == "First Half" || log.Status == "FH" || log.Status == "1H" || log.Status == "1HF")
+                        {
+                            statusChar = activeApp.LeaveType.Code + "-1H";
+                            tooltip = $"{activeApp.LeaveType.Name} (First Half Leave) (#{activeApp.ApplicationNumber})";
+                        }
+                        else if (activeApp.DayType == "Second Half" || log.Status == "SH" || log.Status == "2H" || log.Status == "2HF")
+                        {
+                            statusChar = activeApp.LeaveType.Code + "-2H";
+                            tooltip = $"{activeApp.LeaveType.Name} (Second Half Leave) (#{activeApp.ApplicationNumber})";
+                        }
+                        else if (log.IsHalfDay || activeApp.TotalDays == 0.5m)
+                        {
+                            statusChar = activeApp.LeaveType.Code + "HF";
+                            tooltip = $"{activeApp.LeaveType.Name} (Half Day) (#{activeApp.ApplicationNumber})";
+                        }
+                        else
+                        {
+                            statusChar = activeApp.LeaveType.Code;
+                            tooltip = $"{activeApp.LeaveType.Name} (#{activeApp.ApplicationNumber})";
+                        }
                     }
                     else
                     {
@@ -194,9 +235,13 @@ public class AttendanceController : ControllerBase
                             "Present" => "P",
                             "Absent" => "A",
                             "COHF" => "COHF",
-                            "PHF" => "PHF",
-                            "SHF" => "SHF",
-                            "HF" => "HF",
+                            "CO-1H" or "COHF-1" or "CO-FH" => "CO-1H",
+                            "CO-2H" or "COHF-2" or "CO-SH" => "CO-2H",
+                            "PHF" or "PLHF" => "PLHF",
+                            "SHF" or "SLHF" => "SLHF",
+                            "1H" or "FH" or "1HF" or "HF-1" or "First Half" => "1H",
+                            "2H" or "SH" or "2HF" or "HF-2" or "Second Half" => "2H",
+                            "HF" or "Half Day" or "HalfDay" => "HF",
                             "CO" => "CO",
                             _ => log.Status ?? "-"
                         };
@@ -204,7 +249,7 @@ public class AttendanceController : ControllerBase
                         if (statusChar == "P") { textColor = "#2e7d32"; bgColor = "#e8f5e9"; }
                         else if (statusChar == "A") { textColor = "#d32f2f"; bgColor = "#ffebee"; }
                         else if (statusChar == "WO" || statusChar == "W/O") { textColor = "#1976d2"; bgColor = "#e3f2fd"; }
-                        else if (statusChar.EndsWith("HF")) { textColor = "#ef6c00"; bgColor = "#fff3e0"; }
+                        else if (statusChar.EndsWith("HF") || statusChar == "1H" || statusChar == "2H") { textColor = "#ef6c00"; bgColor = "#fff3e0"; }
                     }
                 }
                 else if (isWeekOff)
@@ -268,7 +313,17 @@ public class AttendanceController : ControllerBase
             totalCount,
             page,
             pageSize,
-            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            timings = new
+            {
+                countMs = tCount,
+                empsMs = tEmps - tCount,
+                logsMs = tLogs - tEmps,
+                leavesMs = tLeaves - tLogs,
+                dataMs = tData - tLeaves,
+                loopMs = sw.ElapsedMilliseconds - tData,
+                totalMs = sw.ElapsedMilliseconds
+            }
         });
     }
 
@@ -387,6 +442,20 @@ public class AttendanceController : ControllerBase
 
         // ── 1. IP RESTRICTION CHECK ─────────────────────────────────────────
         bool? isIpValid = null;
+        var attType = employee.AttendanceType?.ToLowerInvariant() ?? "";
+        bool requiresIp = attType.Contains("ip") || attType.Contains("network");
+
+        if (requiresIp)
+        {
+            if (branch == null || string.IsNullOrWhiteSpace(branch.AllowedIPs))
+            {
+                return BadRequest(new
+                {
+                    message = "Allowed office IP addresses have not been configured for your assigned branch. Please contact your HR administrator."
+                });
+            }
+        }
+
         if (branch != null && !string.IsNullOrWhiteSpace(branch.AllowedIPs))
         {
             var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
@@ -397,24 +466,41 @@ public class AttendanceController : ControllerBase
             var allowedList = branch.AllowedIPs
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-            isIpValid = allowedList.Contains(remoteIp);
+            // Allow localhost / loopback during local development if configured or if loopback is present
+            isIpValid = allowedList.Contains(remoteIp) || 
+                        ((remoteIp == "::1" || remoteIp == "127.0.0.1") && (allowedList.Contains("localhost") || allowedList.Contains("127.0.0.1") || allowedList.Contains("::1")));
 
             if (isIpValid == false)
             {
                 return BadRequest(new
                 {
-                    message = $"Clock-in rejected: your IP address ({remoteIp}) is not in the list of allowed office IPs for this branch."
+                    message = $"Clock-in rejected: your IP address ({remoteIp}) is not in the list of allowed office IPs for {branch.Name}."
                 });
             }
         }
 
-        // ── 2. GEO-FENCING CHECK ────────────────────────────────────────────
+        // ── 2. GEO-FENCING & ATTENDANCE TYPE CHECK ───────────────────────────
         bool? isGeofenceValid = null;
-        if (branch != null &&
-            branch.Latitude.HasValue && branch.Longitude.HasValue &&
-            branch.RadiusMeters.HasValue &&
-            dto.Latitude.HasValue && dto.Longitude.HasValue)
+        bool requiresLocation = attType.Contains("geo-fencing") || attType.Contains("location") || attType.Contains("geofence");
+
+        if (requiresLocation)
         {
+            if (!dto.Latitude.HasValue || !dto.Longitude.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message = "GPS location is required for this employee's attendance type. Please enable location access and try again."
+                });
+            }
+
+            if (branch == null || !branch.Latitude.HasValue || !branch.Longitude.HasValue || !branch.RadiusMeters.HasValue)
+            {
+                return BadRequest(new
+                {
+                    message = "Geofence boundary coordinates have not been configured for your assigned branch. Please contact your HR administrator."
+                });
+            }
+
             var distanceMeters = HaversineDistanceMeters(
                 dto.Latitude.Value, dto.Longitude.Value,
                 branch.Latitude.Value, branch.Longitude.Value);
@@ -425,11 +511,22 @@ public class AttendanceController : ControllerBase
             {
                 return BadRequest(new
                 {
-                    message = $"Clock-in rejected: you are {distanceMeters:F0}m away from the branch (allowed radius: {branch.RadiusMeters.Value:F0}m).",
+                    message = $"Clock-in rejected: you are {distanceMeters:F0}m away from {branch.Name} (allowed radius: {branch.RadiusMeters.Value:F0}m).",
                     distanceMeters,
                     allowedRadius = branch.RadiusMeters.Value
                 });
             }
+        }
+        else if (branch != null &&
+            branch.Latitude.HasValue && branch.Longitude.HasValue &&
+            branch.RadiusMeters.HasValue &&
+            dto.Latitude.HasValue && dto.Longitude.HasValue)
+        {
+            var distanceMeters = HaversineDistanceMeters(
+                dto.Latitude.Value, dto.Longitude.Value,
+                branch.Latitude.Value, branch.Longitude.Value);
+
+            isGeofenceValid = distanceMeters <= branch.RadiusMeters.Value;
         }
 
         // ── 3. PHOTO SAVE ────────────────────────────────────────────────────
@@ -484,29 +581,92 @@ public class AttendanceController : ControllerBase
             .FirstOrDefaultAsync(a => a.EmployeeId == targetEmpId && a.RecordDate == today);
 
         string punchMessage;
-        if (existingLog == null)
+        var reqType = dto.PunchType?.Trim().ToLowerInvariant() ?? "";
+
+        if (reqType == "in")
         {
-            existingLog = new DailyAttendance
+            if (existingLog == null)
             {
-                EmployeeId = targetEmpId,
-                RecordDate = today,
-                InTime = timeOnly,
-                Status = "Present",
-                OrganizationId = employee.OrganizationId,
-                BranchId = employee.BranchId
-            };
-            _db.DailyAttendance.Add(existingLog);
-            punchMessage = "Clocked in successfully.";
+                existingLog = new DailyAttendance
+                {
+                    EmployeeId = targetEmpId,
+                    RecordDate = today,
+                    InTime = timeOnly,
+                    Status = "Present",
+                    OrganizationId = employee.OrganizationId,
+                    BranchId = employee.BranchId
+                };
+                _db.DailyAttendance.Add(existingLog);
+                punchMessage = $"Clocked in successfully at {timeOnly:HH:mm}.";
+            }
+            else
+            {
+                if (!existingLog.InTime.HasValue)
+                {
+                    existingLog.InTime = timeOnly;
+                    existingLog.Status = "Present";
+                }
+                punchMessage = $"Clock-in recorded at {existingLog.InTime?.ToString("HH:mm") ?? timeOnly.ToString("HH:mm")}.";
+            }
+        }
+        else if (reqType == "out")
+        {
+            if (existingLog == null)
+            {
+                existingLog = new DailyAttendance
+                {
+                    EmployeeId = targetEmpId,
+                    RecordDate = today,
+                    OutTime = timeOnly,
+                    Status = "Present",
+                    OrganizationId = employee.OrganizationId,
+                    BranchId = employee.BranchId
+                };
+                _db.DailyAttendance.Add(existingLog);
+            }
+            else
+            {
+                existingLog.OutTime = timeOnly;
+                if (existingLog.InTime.HasValue)
+                {
+                    var workDuration = timeOnly - existingLog.InTime.Value;
+                    existingLog.WorkMinutes = Math.Max(0, (int)workDuration.TotalMinutes);
+                }
+            }
+            punchMessage = $"Clocked out successfully at {timeOnly:HH:mm}.";
         }
         else
         {
-            existingLog.OutTime = timeOnly;
-            if (existingLog.InTime.HasValue)
+            // Fallback toggle mode if no punch type specified
+            if (existingLog == null || !existingLog.InTime.HasValue)
             {
-                var workDuration = timeOnly - existingLog.InTime.Value;
-                existingLog.WorkMinutes = (int)workDuration.TotalMinutes;
+                if (existingLog == null)
+                {
+                    existingLog = new DailyAttendance
+                    {
+                        EmployeeId = targetEmpId,
+                        RecordDate = today,
+                        InTime = timeOnly,
+                        Status = "Present",
+                        OrganizationId = employee.OrganizationId,
+                        BranchId = employee.BranchId
+                    };
+                    _db.DailyAttendance.Add(existingLog);
+                }
+                else
+                {
+                    existingLog.InTime = timeOnly;
+                    existingLog.Status = "Present";
+                }
+                punchMessage = $"Clocked in successfully at {timeOnly:HH:mm}.";
             }
-            punchMessage = "Clocked out successfully.";
+            else
+            {
+                existingLog.OutTime = timeOnly;
+                var workDuration = timeOnly - existingLog.InTime.Value;
+                existingLog.WorkMinutes = Math.Max(0, (int)workDuration.TotalMinutes);
+                punchMessage = $"Clocked out successfully at {timeOnly:HH:mm}.";
+            }
         }
 
         await _db.SaveChangesAsync();
@@ -519,6 +679,234 @@ public class AttendanceController : ControllerBase
             photoUrl,
             isGeofenceValid,
             isIpValid
+        });
+    }
+
+    [HttpGet("day-details")]
+    public async Task<IActionResult> GetDayDetails([FromQuery] int employeeId, [FromQuery] string date)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceMonthlySheet))
+        {
+            return Forbid();
+        }
+
+        if (!DateOnly.TryParse(date, out var recordDate))
+        {
+            return BadRequest(new { message = "Invalid date format. Expected YYYY-MM-DD." });
+        }
+
+        var dayStart = recordDate.ToDateTime(TimeOnly.MinValue);
+        var dayEnd = recordDate.ToDateTime(TimeOnly.MaxValue);
+
+        // 1. Employee metadata
+        var employee = await _db.Employees
+            .AsNoTracking()
+            .Where(e => e.EmployeeId == employeeId)
+            .Select(e => new
+            {
+                e.EmployeeId,
+                e.PublicId,
+                name = e.EmployeeName,
+                code = $"EMP#{e.EmployeeId:D3}",
+                department = e.Department != null ? e.Department.DepartmentName : "General",
+                designation = e.Designation != null ? e.Designation.DesignationName : "-",
+                branch = e.Branch != null ? e.Branch.Name : "-",
+                organization = e.Organization != null ? e.Organization.Name : "-"
+            })
+            .FirstOrDefaultAsync();
+
+        if (employee == null)
+        {
+            return NotFound(new { message = "Employee not found." });
+        }
+
+        // 2. Daily Attendance summary for that date
+        var dailySummary = await _db.DailyAttendance
+            .AsNoTracking()
+            .Where(d => d.EmployeeId == employeeId && d.RecordDate == recordDate)
+            .Select(d => new
+            {
+                d.InTime,
+                d.OutTime,
+                d.WorkMinutes,
+                d.BreakMinutes,
+                d.Status,
+                d.IsLate,
+                d.LateMinutes,
+                d.IsEarly,
+                d.EarlyMinutes,
+                d.IsHalfDay,
+                ShiftName = d.Shift != null ? d.Shift.ShiftName : null,
+                ShiftStart = d.Shift != null ? d.Shift.StartTime : (TimeOnly?)null,
+                ShiftEnd = d.Shift != null ? d.Shift.EndTime : (TimeOnly?)null,
+                ShiftColor = d.Shift != null ? d.Shift.ColorCode : null
+            })
+            .FirstOrDefaultAsync();
+
+        // 3. Raw punch logs
+        var rawLogs = await _db.AttendanceLogs
+            .AsNoTracking()
+            .Where(l => l.EmployeeId == employeeId && l.PunchTime >= dayStart && l.PunchTime <= dayEnd)
+            .OrderBy(l => l.PunchTime)
+            .Select(l => new
+            {
+                l.Id,
+                l.PunchTime,
+                l.VerifyMode,
+                l.VerifyType,
+                l.MachineNumber,
+                l.IpAddress,
+                l.Latitude,
+                l.Longitude,
+                l.IsGeofenceValid,
+                l.IsIpValid,
+                l.PhotoUrl
+            })
+            .ToListAsync();
+
+        // 4. Approved leave
+        var leaveApp = await _db.LeaveApplications
+            .AsNoTracking()
+            .Where(l => l.EmployeeId == employeeId && 
+                        l.StartDate <= recordDate && 
+                        l.EndDate >= recordDate && 
+                        (l.Status == "Approved" || l.Status == "Adjusted"))
+            .Select(l => new
+            {
+                l.Id,
+                type = l.LeaveType != null ? l.LeaveType.Name : null,
+                l.Reason,
+                l.Status
+            })
+            .FirstOrDefaultAsync();
+
+        // 5. Holiday
+        var holiday = await _db.Holidays
+            .AsNoTracking()
+            .Where(h => h.StartDate <= recordDate && h.EndDate >= recordDate)
+            .Select(h => new
+            {
+                h.Id,
+                name = h.HolidayName,
+                description = h.Description
+            })
+            .FirstOrDefaultAsync();
+
+        // Format raw punches list
+        var punches = new List<object>();
+        for (int i = 0; i < rawLogs.Count; i++)
+        {
+            var log = rawLogs[i];
+            string punchType = log.VerifyMode switch
+            {
+                1 => "In",
+                2 => "Out",
+                3 => "Break",
+                4 => "Return",
+                _ => (i % 2 == 0 ? "In" : "Out")
+            };
+
+            punches.Add(new
+            {
+                id = log.Id,
+                time = log.PunchTime.ToString("HH:mm:ss"),
+                timeShort = log.PunchTime.ToString("hh:mm tt"),
+                dateTime = log.PunchTime,
+                punchType,
+                verifyType = log.VerifyType ?? "Biometric",
+                machineNumber = log.MachineNumber > 0 ? $"Biometric Device #{log.MachineNumber}" : "Web / Mobile",
+                ipAddress = log.IpAddress,
+                latitude = log.Latitude,
+                longitude = log.Longitude,
+                isGeofenceValid = log.IsGeofenceValid,
+                isIpValid = log.IsIpValid,
+                photoUrl = log.PhotoUrl
+            });
+        }
+
+        // Determine actual distinct In and Out times
+        TimeOnly? effectiveInTime = dailySummary?.InTime;
+        TimeOnly? effectiveOutTime = dailySummary?.OutTime;
+
+        if (rawLogs.Count == 1)
+        {
+            // Only a single punch recorded -> It is First In, Out Time is null/open
+            effectiveInTime = TimeOnly.FromDateTime(rawLogs[0].PunchTime);
+            effectiveOutTime = null;
+        }
+        else if (rawLogs.Count > 1)
+        {
+            effectiveInTime = TimeOnly.FromDateTime(rawLogs.First().PunchTime);
+            effectiveOutTime = TimeOnly.FromDateTime(rawLogs.Last().PunchTime);
+        }
+        else if (effectiveInTime.HasValue && effectiveOutTime.HasValue && effectiveInTime == effectiveOutTime)
+        {
+            // If DB has identical In and Out time, treat Out as missing
+            effectiveOutTime = null;
+        }
+
+        int effectiveWorkMinutes = 0;
+        if (effectiveInTime.HasValue && effectiveOutTime.HasValue && effectiveOutTime > effectiveInTime)
+        {
+            effectiveWorkMinutes = (int)(effectiveOutTime.Value - effectiveInTime.Value).TotalMinutes;
+        }
+        else if (dailySummary?.WorkMinutes > 0 && effectiveOutTime.HasValue)
+        {
+            effectiveWorkMinutes = dailySummary.WorkMinutes;
+        }
+
+        string workDurationFormatted = effectiveWorkMinutes > 0
+            ? $"{effectiveWorkMinutes / 60}h {effectiveWorkMinutes % 60}m"
+            : "--";
+
+        return Ok(new
+        {
+            employee = new
+            {
+                employeeId = employee.EmployeeId,
+                publicId = employee.PublicId,
+                name = employee.name,
+                code = employee.code,
+                department = employee.department,
+                designation = employee.designation,
+                branch = employee.branch,
+                organization = employee.organization
+            },
+            date = recordDate.ToString("yyyy-MM-dd"),
+            formattedDate = recordDate.ToString("dddd, MMMM dd, yyyy"),
+            status = dailySummary?.Status ?? (leaveApp != null ? leaveApp.type : (holiday != null ? "Holiday" : "Absent")),
+            inTime = effectiveInTime?.ToString("HH:mm"),
+            outTime = effectiveOutTime?.ToString("HH:mm"),
+            workMinutes = effectiveWorkMinutes,
+            workDurationFormatted,
+            breakMinutes = dailySummary?.BreakMinutes ?? 0,
+            isLate = dailySummary?.IsLate ?? false,
+            lateMinutes = dailySummary?.LateMinutes ?? 0,
+            isEarly = dailySummary?.IsEarly ?? false,
+            earlyMinutes = dailySummary?.EarlyMinutes ?? 0,
+            isHalfDay = dailySummary?.IsHalfDay ?? false,
+            shift = dailySummary?.ShiftName != null ? new
+            {
+                name = dailySummary.ShiftName,
+                startTime = dailySummary.ShiftStart?.ToString("HH:mm"),
+                endTime = dailySummary.ShiftEnd?.ToString("HH:mm"),
+                colorCode = dailySummary.ShiftColor
+            } : null,
+            leave = leaveApp != null ? new
+            {
+                id = leaveApp.Id,
+                type = leaveApp.type,
+                reason = leaveApp.Reason,
+                status = leaveApp.Status
+            } : null,
+            holiday = holiday != null ? new
+            {
+                id = holiday.Id,
+                name = holiday.name,
+                description = holiday.description
+            } : null,
+            punches,
+            totalPunches = punches.Count
         });
     }
 

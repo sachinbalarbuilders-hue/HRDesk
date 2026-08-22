@@ -64,10 +64,32 @@ export const Dashboard: React.FC = () => {
     try {
       setPunching(true);
       setPunchMessage(null);
+
+      // Attempt to retrieve browser/mobile GPS coordinates for Geo-Fencing
+      let coords: { latitude?: number; longitude?: number } = {};
+      if (navigator.geolocation) {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 4000,
+              maximumAge: 10000,
+            });
+          });
+          coords = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
+        } catch {
+          // GPS optional for standard web punches, but backend will enforce if employee is strictly Geo-Fenced
+        }
+      }
+
       const res = await apiClient.post('/attendance/punch', {
         employeeId: user?.employeeId,
         punchType,
         source: 'Web',
+        ...coords,
       });
       setPunchMessage(res.data.message || 'Punch logged successfully.');
       fetchDashboardData();

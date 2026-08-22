@@ -2,6 +2,8 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -95,8 +97,28 @@ builder.Services.AddAuthentication(options =>
     options.SlidingExpiration = true;
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Events.OnRedirectToLogin = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        }
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 })
-.AddJwtBearer(options =>
+.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
 {
     var jwtKey = builder.Configuration["Jwt:Key"]
         ?? builder.Configuration["JwtSettings:Secret"]
@@ -114,6 +136,17 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
         ValidIssuer = jwtIssuer
     };
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    var defaultPolicy = new AuthorizationPolicyBuilder(
+        CookieAuthenticationDefaults.AuthenticationScheme,
+        JwtBearerDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .Build();
+
+    options.DefaultPolicy = defaultPolicy;
 });
 
 builder.Services.AddDbContext<HRDesk.Web.Data.BiometricAttendanceDbContext>(options =>
@@ -144,6 +177,10 @@ builder.Services.AddHttpClient<HRDesk.Web.Services.Attendance.ITeamOfficeSyncSer
 builder.Services.AddHostedService<HRDesk.Web.Services.Attendance.TeamOfficeBackgroundSyncWorker>();
 
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPermissionService, HRDesk.Web.Services.Infrastructure.PermissionService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPlanEntitlementService, HRDesk.Web.Services.Infrastructure.PlanEntitlementService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.ITenantProvisioningService, HRDesk.Web.Services.Infrastructure.TenantProvisioningService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPaymentGatewayService, HRDesk.Web.Services.Infrastructure.RazorpayPaymentService>();
+builder.Services.AddHostedService<HRDesk.Web.Services.Infrastructure.SubscriptionLifecycleBackgroundWorker>();
 
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowAll", policy => {
@@ -163,6 +200,48 @@ builder.Services.AddHttpClient<HRDesk.Web.Services.Notifications.IWhatsAppProvid
 builder.Services.AddScoped<HRDesk.Web.Services.Notifications.WhatsAppNotificationService>();
 
 var app = builder.Build();
+
+// Ensure startup database schema synchronization
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<HRDesk.Web.Data.BiometricAttendanceDbContext>();
+    try
+    {
+        var ensureSql = @"
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'ContractDurationMonths')
+BEGIN
+    ALTER TABLE employees ADD ContractDurationMonths INT NULL;
+END;
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'ContractEndDate')
+BEGIN
+    ALTER TABLE employees ADD ContractEndDate DATETIME2 NULL;
+END;
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'gate_activity_logs')
+BEGIN
+    CREATE TABLE gate_activity_logs (
+        Id BIGINT IDENTITY(1,1) PRIMARY KEY,
+        organization_id INT NOT NULL,
+        BranchId INT NULL,
+        EmployeeId INT NULL,
+        EmployeeCode NVARCHAR(50) NOT NULL,
+        EmployeeName NVARCHAR(150) NOT NULL,
+        DepartmentName NVARCHAR(100) NULL,
+        DesignationName NVARCHAR(100) NULL,
+        ScanStatus NVARCHAR(30) NOT NULL,
+        ScanMode NVARCHAR(30) NOT NULL,
+        Reason NVARCHAR(255) NULL,
+        ScannedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        ScannedBy NVARCHAR(100) NULL
+    );
+    CREATE INDEX IX_gate_activity_logs_org_scanned ON gate_activity_logs(organization_id, ScannedAt DESC);
+END;";
+        db.Database.ExecuteSqlRaw(ensureSql);
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Schema auto-sync exception on startup");
+    }
+}
 
 // Global Exception Middleware for API routes
 app.Use(async (context, next) =>

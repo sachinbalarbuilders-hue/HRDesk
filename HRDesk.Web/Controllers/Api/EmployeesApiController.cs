@@ -1,6 +1,7 @@
 using HRDesk.Web.Constants;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
+using HRDesk.Web.Models;
 using HRDesk.Web.Services;
 using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
@@ -9,6 +10,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Controllers.Api;
 
+/// <summary>
+/// Core employee CRUD: list, get, create, update, toggle-status, delete, lookups, photo.
+/// Leave data   → EmployeeLeaveController
+/// Prefix settings → EmployeePrefixController
+/// Onboarding / verification → EmployeeOnboardingController
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -18,20 +25,51 @@ public class EmployeesController : ControllerBase
     private readonly IPermissionService _permissionService;
     private readonly IReferenceDataCacheService _cache;
     private readonly ICurrentTenantProvider _tenantProvider;
-    private readonly ICompOffService _compOffService;
+    private readonly IPlanEntitlementService _entitlementService;
+
+    private static bool _contractColumnsEnsured = false;
+    private static readonly object _columnLock = new();
 
     public EmployeesController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         IReferenceDataCacheService cache,
         ICurrentTenantProvider tenantProvider,
-        ICompOffService compOffService)
+        IPlanEntitlementService entitlementService)
     {
         _db = db;
         _permissionService = permissionService;
         _cache = cache;
         _tenantProvider = tenantProvider;
-        _compOffService = compOffService;
+        _entitlementService = entitlementService;
+        EnsureContractColumns();
+    }
+
+    private void EnsureContractColumns()
+    {
+        if (_contractColumnsEnsured) return;
+        lock (_columnLock)
+        {
+            if (_contractColumnsEnsured) return;
+            try
+            {
+                var sql = @"
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'ContractDurationMonths')
+BEGIN
+    ALTER TABLE employees ADD ContractDurationMonths INT NULL;
+END;
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'ContractEndDate')
+BEGIN
+    ALTER TABLE employees ADD ContractEndDate DATETIME2 NULL;
+END;";
+                _db.Database.ExecuteSqlRaw(sql);
+                _contractColumnsEnsured = true;
+            }
+            catch
+            {
+                // Ignored
+            }
+        }
     }
 
     [HttpGet]
@@ -99,7 +137,7 @@ public class EmployeesController : ControllerBase
                 e.EmployeeId,
                 e.PublicId,
                 e.EmployeeName,
-                employeeCode = (e.Branch != null && !string.IsNullOrEmpty(e.Branch.Code) ? e.Branch.Code : "EMP#") + e.EmployeeId.ToString("D3"),
+                employeeCode = $"EMP#{e.EmployeeId:D3}",
                 e.Phone,
                 Department = e.Department != null ? e.Department.DepartmentName : null,
                 DepartmentId = e.DepartmentId,
@@ -140,6 +178,8 @@ public class EmployeesController : ControllerBase
             .Include(e => e.Department)
             .Include(e => e.Designation)
             .Include(e => e.Branch)
+                .ThenInclude(b => b!.Organization)
+            .Include(e => e.Organization)
             .Include(e => e.ReportingManager)
             .Where(e => e.PublicId == publicId);
 
@@ -151,13 +191,23 @@ public class EmployeesController : ControllerBase
             return NotFound(new { message = "Employee not found or access restricted." });
         }
 
+        var orgName = employee.Organization?.Name ?? employee.Branch?.Organization?.Name;
+        var orgAddress = employee.Organization?.Address ?? employee.Branch?.Organization?.Address;
+
+        var user = await _db.Users
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.EmployeeId == employee.EmployeeId && u.OrganizationId == employee.OrganizationId);
+
+        var activeRoleId = user?.RoleId?.ToString() ?? (user != null && user.Role == "SuperAdmin" ? "1" : (user != null && user.Role == "DepartmentManager" ? "2" : (user != null ? "3" : "")));
+
         return Ok(new
         {
             employee.EmployeeId,
             employee.PublicId,
             employee.VerificationId,
             employee.EmployeeName,
-            employeeCode = (employee.Branch != null && !string.IsNullOrEmpty(employee.Branch.Code) ? employee.Branch.Code : "EMP#") + employee.EmployeeId.ToString("D3"),
+            employeeCode = $"EMP#{employee.EmployeeId:D3}",
             employee.Phone,
             employee.DateOfBirth,
             employee.JoiningDate,
@@ -171,6 +221,9 @@ public class EmployeesController : ControllerBase
             employee.BranchId,
             Branch = employee.Branch != null ? employee.Branch.Name : null,
             BranchCode = employee.Branch != null ? employee.Branch.Code : null,
+            BranchAddress = employee.Branch?.Address,
+            OrganizationName = orgName,
+            OrganizationAddress = orgAddress,
             Department = employee.Department != null ? employee.Department.DepartmentName : null,
             employee.DepartmentId,
             Designation = employee.Designation != null ? employee.Designation.DesignationName : null,
@@ -188,116 +241,14 @@ public class EmployeesController : ControllerBase
             employee.CurrentAddress,
             employee.PermanentAddress,
             employee.HasProbation,
-            employee.ProbationDays
+            employee.ProbationDays,
+            employee.ContractDurationMonths,
+            employee.ContractEndDate,
+            roleId = activeRoleId,
+            hasLoginAccess = user != null && user.IsActive
         });
     }
 
-    [HttpGet("{id}/leaves")]
-    public async Task<IActionResult> GetEmployeeLeaves(int id)
-    {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesView))
-        {
-            return Forbid();
-        }
-
-        var empQuery = _db.Employees.AsNoTracking().Where(e => e.EmployeeId == id);
-        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.EmployeesView);
-        var employee = await empQuery.FirstOrDefaultAsync();
-        if (employee == null)
-        {
-            return NotFound(new { message = "Employee not found or access restricted." });
-        }
-
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        var startMonthSetting = await _db.SystemSettings.AsNoTracking()
-            .FirstOrDefaultAsync(s =>
-                s.SettingKey == "LeaveYearStartMonth" &&
-                s.OrganizationId == employee.OrganizationId &&
-                s.BranchId == null);
-
-        var startMonth = 11;
-        if (int.TryParse(startMonthSetting?.SettingValue, out var parsedMonth) && parsedMonth is >= 1 and <= 12)
-            startMonth = parsedMonth;
-
-        var year = AttendanceProcessorService.GetLeaveYear(today, startMonth);
-        var yearEndMonth = startMonth == 1 ? 12 : startMonth - 1;
-
-        var allocations = await _db.LeaveAllocations
-            .AsNoTracking()
-            .Include(a => a.LeaveType)
-            .Where(a => a.EmployeeId == id && a.Year == year)
-            .OrderBy(a => a.LeaveType != null ? a.LeaveType.Name : "")
-            .ToListAsync();
-
-        var allocationDtos = allocations.Select(a => new
-        {
-            leaveTypeId = a.LeaveTypeId,
-            code = a.LeaveType != null ? a.LeaveType.Code : "",
-            name = a.LeaveType != null ? a.LeaveType.Name : "Leave",
-            isPaid = a.LeaveType?.IsPaid ?? true,
-            allocated = a.TotalAllocated,
-            openingBalance = a.OpeningBalance,
-            used = a.UsedCount,
-            remaining = a.RemainingCount,
-            textColor = a.LeaveType?.TextColor,
-            backgroundColor = a.LeaveType?.BackgroundColor
-        }).ToList();
-
-        if (!allocationDtos.Any(a => string.Equals(a.code, "CO", StringComparison.OrdinalIgnoreCase)))
-        {
-            var coType = (await _cache.GetLeaveTypesAsync())
-                .FirstOrDefault(t => string.Equals(t.Code, "CO", StringComparison.OrdinalIgnoreCase));
-            var coBalance = await _compOffService.GetValidBalanceAsync(id, today);
-            if (coType != null && coBalance > 0)
-            {
-                allocationDtos.Add(new
-                {
-                    leaveTypeId = coType.Id,
-                    code = coType.Code,
-                    name = coType.Name,
-                    isPaid = coType.IsPaid,
-                    allocated = coBalance,
-                    openingBalance = 0m,
-                    used = 0m,
-                    remaining = coBalance,
-                    textColor = (string?)coType.TextColor,
-                    backgroundColor = (string?)coType.BackgroundColor
-                });
-            }
-        }
-
-        var history = await _db.LeaveApplications
-            .AsNoTracking()
-            .Include(la => la.LeaveType)
-            .Where(la => la.EmployeeId == id)
-            .OrderByDescending(la => la.StartDate)
-            .ThenByDescending(la => la.Id)
-            .Take(50)
-            .Select(la => new
-            {
-                la.Id,
-                la.ApplicationNumber,
-                leaveTypeName = la.LeaveType != null ? la.LeaveType.Name : "Leave",
-                leaveTypeCode = la.LeaveType != null ? la.LeaveType.Code : "",
-                la.StartDate,
-                la.EndDate,
-                la.TotalDays,
-                la.DayType,
-                la.Reason,
-                la.Status
-            })
-            .ToListAsync();
-
-        return Ok(new
-        {
-            employeeId = id,
-            year,
-            yearStartMonth = startMonth,
-            yearEndMonth,
-            allocations = allocationDtos,
-            history
-        });
-    }
 
     [HttpGet("lookups")]
     public async Task<IActionResult> GetLookups()
@@ -344,19 +295,27 @@ public class EmployeesController : ControllerBase
         var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var targetBranchId = dto.BranchId ?? _tenantProvider.BranchId;
 
+        // SaaS Seat Quota Enforcement
+        var (canAdd, errorMsg) = await _entitlementService.CanAddEmployeeAsync(targetOrgId);
+        if (!canAdd)
+        {
+            return BadRequest(new { message = errorMsg });
+        }
+
+        // Generate next employee ID safely
         int targetEmpId;
         if (dto.EmployeeId.HasValue && dto.EmployeeId.Value > 0)
         {
-            var exists = await _db.Employees.AnyAsync(e => e.OrganizationId == targetOrgId && e.EmployeeId == dto.EmployeeId.Value);
+            var exists = await _db.Employees.IgnoreQueryFilters().AnyAsync(e => e.OrganizationId == targetOrgId && e.EmployeeId == dto.EmployeeId.Value);
             if (exists)
             {
-                return BadRequest(new { message = $"Employee ID #{dto.EmployeeId.Value} already exists in this organization." });
+                return BadRequest(new { message = $"Employee ID {dto.EmployeeId.Value} already exists in this organization." });
             }
             targetEmpId = dto.EmployeeId.Value;
         }
         else
         {
-            var maxId = await _db.Employees
+            var maxId = await _db.Employees.IgnoreQueryFilters()
                 .Where(e => e.OrganizationId == targetOrgId)
                 .Select(e => (int?)e.EmployeeId)
                 .MaxAsync() ?? 0;
@@ -388,22 +347,30 @@ public class EmployeesController : ControllerBase
             CurrentAddress = dto.CurrentAddress?.Trim(),
             PermanentAddress = dto.PermanentAddress?.Trim(),
             HasProbation = dto.HasProbation,
-            ProbationDays = dto.ProbationDays
+            ProbationDays = dto.ProbationDays,
+            ContractDurationMonths = dto.ContractDurationMonths,
+            ContractEndDate = dto.ContractEndDate
         };
 
         if (dto.RoleId.HasValue && dto.RoleId.Value > 0)
         {
+            var username = !string.IsNullOrWhiteSpace(dto.WorkEmail) 
+                ? dto.WorkEmail.Trim() 
+                : (!string.IsNullOrWhiteSpace(dto.PersonalEmail) ? dto.PersonalEmail.Trim() : $"emp{targetEmpId}");
+
+            var roleName = dto.RoleId.Value == 1 ? "SuperAdmin" : (dto.RoleId.Value == 2 ? "DepartmentManager" : "Employee");
+
             var user = new User
             {
-                Username = dto.WorkEmail ?? dto.PersonalEmail ?? $"{dto.EmployeeName.Replace(" ", "").ToLower()}{targetEmpId}",
+                Username = username,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Welcome@123", 12),
                 FullName = dto.EmployeeName.Trim(),
-                RoleId = dto.RoleId,
-                Role = "Employee",
+                RoleId = dto.RoleId.Value,
+                Role = roleName,
                 IsActive = true,
                 BranchId = targetBranchId,
                 OrganizationId = targetOrgId,
-                Employee = employee
+                EmployeeId = targetEmpId
             };
             _db.Users.Add(user);
         }
@@ -459,6 +426,56 @@ public class EmployeesController : ControllerBase
         if (dto.PermanentAddress != null) employee.PermanentAddress = dto.PermanentAddress.Trim();
         employee.HasProbation = dto.HasProbation;
         employee.ProbationDays = dto.ProbationDays;
+        employee.ContractDurationMonths = dto.ContractDurationMonths;
+        employee.ContractEndDate = dto.ContractEndDate;
+
+        // Auto-provision or update user account & role
+        if (dto.RoleId.HasValue)
+        {
+            var user = await _db.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.EmployeeId == employee.EmployeeId && u.OrganizationId == employee.OrganizationId);
+
+            if (dto.RoleId.Value > 0)
+            {
+                var roleName = dto.RoleId.Value == 1 ? "SuperAdmin" : (dto.RoleId.Value == 2 ? "DepartmentManager" : "Employee");
+                if (user != null)
+                {
+                    user.RoleId = dto.RoleId.Value;
+                    user.Role = roleName;
+                    user.FullName = employee.EmployeeName;
+                    if (!string.IsNullOrWhiteSpace(employee.WorkEmail))
+                    {
+                        user.Username = employee.WorkEmail;
+                    }
+                    user.IsActive = true;
+                }
+                else
+                {
+                    var username = !string.IsNullOrWhiteSpace(employee.WorkEmail)
+                        ? employee.WorkEmail
+                        : (!string.IsNullOrWhiteSpace(employee.PersonalEmail) ? employee.PersonalEmail : $"emp{employee.EmployeeId}");
+
+                    user = new User
+                    {
+                        Username = username,
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("Welcome@123", 12),
+                        FullName = employee.EmployeeName,
+                        RoleId = dto.RoleId.Value,
+                        Role = roleName,
+                        IsActive = true,
+                        BranchId = employee.BranchId,
+                        OrganizationId = employee.OrganizationId,
+                        EmployeeId = employee.EmployeeId
+                    };
+                    _db.Users.Add(user);
+                }
+            }
+            else if (dto.RoleId.Value == 0 && user != null)
+            {
+                user.IsActive = false;
+            }
+        }
 
         await _db.SaveChangesAsync();
 
@@ -561,109 +578,6 @@ public class EmployeesController : ControllerBase
         return Ok(new { message = $"Employee '{employee.EmployeeName}' permanently deleted along with all related records." });
     }
 
-    [HttpGet("prefix-settings")]
-    public async Task<IActionResult> GetPrefixSettings([FromQuery] int? branchId = null)
-    {
-        var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
-        var targetBranch = branchId ?? _tenantProvider.BranchId;
-
-        var settings = await _db.SystemSettings
-            .AsNoTracking()
-            .Where(s => s.OrganizationId == targetOrgId && (s.BranchId == targetBranch || s.BranchId == null))
-            .ToListAsync();
-
-        string series = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
-            ?? "EMP";
-
-        string connector = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
-            ?? "#";
-
-        int padding = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue, out var p) ? p : 3;
-
-        int startSeq = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_StartSeq")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_StartSeq")?.SettingValue, out var sSeq) ? sSeq : 1;
-
-        var maxId = await _db.Employees.Where(e => e.OrganizationId == targetOrgId).Select(e => (int?)e.EmployeeId).MaxAsync() ?? 0;
-        var nextSeq = Math.Max(maxId + 1, startSeq);
-
-        var preview = $"{series}{connector}{nextSeq.ToString($"D{padding}")}";
-
-        return Ok(new
-        {
-            seriesCode = series,
-            connector = connector,
-            paddingDigits = padding,
-            startSequence = startSeq,
-            nextSequence = nextSeq,
-            preview = preview,
-            sample1 = $"{series}{connector}{(nextSeq).ToString($"D{padding}")}",
-            sample2 = $"{series}{connector}{(nextSeq + 1).ToString($"D{padding}")}",
-            sample3 = $"{series}{connector}{(nextSeq + 2).ToString($"D{padding}")}"
-        });
-    }
-
-    [HttpPost("prefix-settings")]
-    public async Task<IActionResult> SavePrefixSettings([FromBody] PrefixSettingsDto dto, [FromQuery] int? branchId = null)
-    {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
-        {
-            return Forbid();
-        }
-
-        var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
-        var targetBranch = branchId ?? _tenantProvider.BranchId;
-
-        async Task UpsertSetting(string key, string value, string desc)
-        {
-            var existing = await _db.SystemSettings
-                .FirstOrDefaultAsync(s => s.OrganizationId == targetOrgId && s.BranchId == targetBranch && s.SettingKey == key);
-            if (existing != null)
-            {
-                existing.SettingValue = value;
-                existing.UpdatedAt = DateTime.Now;
-            }
-            else
-            {
-                _db.SystemSettings.Add(new SystemSetting
-                {
-                    OrganizationId = targetOrgId,
-                    BranchId = targetBranch,
-                    SettingKey = key,
-                    SettingValue = value,
-                    Description = desc,
-                    UpdatedAt = DateTime.Now
-                });
-            }
-        }
-
-        var series = string.IsNullOrWhiteSpace(dto.SeriesCode) ? "EMP" : dto.SeriesCode.Trim();
-        var connector = dto.Connector ?? "";
-        var padding = dto.PaddingDigits > 0 ? dto.PaddingDigits : 3;
-        var startSeq = dto.StartSequence > 0 ? dto.StartSequence : 1;
-
-        await UpsertSetting("Employee_Prefix_Series", series, "Employee Code Series Prefix");
-        await UpsertSetting("Employee_Prefix_Connector", connector, "Employee Code Connector / Delimiter");
-        await UpsertSetting("Employee_Prefix_Padding", padding.ToString(), "Employee Code Sequence Padding Length");
-        await UpsertSetting("Employee_Prefix_StartSeq", startSeq.ToString(), "Employee Code Starting Sequence");
-
-        if (targetBranch.HasValue && targetBranch.Value > 0)
-        {
-            var b = await _db.Branches.FirstOrDefaultAsync(br => br.Id == targetBranch.Value);
-            if (b != null)
-            {
-                b.Code = $"{series}{connector}";
-            }
-        }
-
-        await _db.SaveChangesAsync();
-        _permissionService.ClearCache();
-
-        return Ok(new { success = true, message = "Prefix settings saved successfully." });
-    }
-
     [HttpPost("{id}/photo")]
     public async Task<IActionResult> UploadPhoto(int id, IFormFile photo)
     {
@@ -735,141 +649,6 @@ public class EmployeesController : ControllerBase
         return Ok(new { success = true, photoPath = $"/api/Thumbnail?employeeId={id}", message = "Profile picture updated successfully." });
     }
 
-    [AllowAnonymous]
-    [HttpGet("{verificationId}/public-verify")]
-    public async Task<IActionResult> PublicVerifyEmployee(Guid verificationId)
-    {
-        // For public verification, we disable tenant filtering if necessary, or just rely on the standard DB. 
-        // We will just query by ID and ensure no highly sensitive data is returned.
-        var employee = await _db.Employees
-            .IgnoreQueryFilters() // Bypass global tenant/permission filters for public verify
-            .AsNoTracking()
-            .Include(e => e.Department)
-            .Include(e => e.Designation)
-            .Include(e => e.Branch)
-            .FirstOrDefaultAsync(e => e.VerificationId == verificationId);
-
-        if (employee == null)
-            return NotFound(new { message = "Employee not found." });
-
-        var employeeCode = (employee.Branch != null && !string.IsNullOrEmpty(employee.Branch.Code) ? employee.Branch.Code : "EMP#") + employee.EmployeeId.ToString("D3");
-        var isActive = employee.ResignationDate == null && employee.LastWorkingDate == null;
-
-        return Ok(new
-        {
-            employeeId = employee.EmployeeId,
-            employeeCode,
-            employeeName = employee.EmployeeName,
-            designation = employee.Designation?.DesignationName,
-            department = employee.Department?.DepartmentName,
-            branch = employee.Branch?.Name,
-            isActive = isActive,
-            photoPath = $"/api/Employees/{verificationId}/public-photo"
-        });
-    }
-
-    [AllowAnonymous]
-    [HttpGet("{verificationId}/public-photo")]
-    public async Task<IActionResult> PublicVerifyPhoto(Guid verificationId)
-    {
-        var connection = _db.Database.GetDbConnection();
-        bool wasClosed = connection.State == System.Data.ConnectionState.Closed;
-        if (wasClosed) await connection.OpenAsync();
-
-        try
-        {
-            using var cmd = connection.CreateCommand();
-            // Intentionally bypassing organization_id check since this is a public verification route for a specific ID
-            cmd.CommandText = "SELECT PhotoData, PhotoContentType FROM employees WHERE VerificationId = @vid";
-            var idParam = cmd.CreateParameter();
-            idParam.ParameterName = "@vid";
-            idParam.Value = verificationId;
-            cmd.Parameters.Add(idParam);
-
-            using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                if (!reader.IsDBNull(0) && !reader.IsDBNull(1))
-                {
-                    var photoBytes = (byte[])reader.GetValue(0);
-                    var contentType = reader.GetString(1);
-                    return File(photoBytes, contentType);
-                }
-            }
-            return NotFound();
-        }
-        finally
-        {
-            if (wasClosed) await connection.CloseAsync();
-        }
-    }
-
-    [HttpPost("generate-onboarding")]
-    public async Task<IActionResult> GenerateOnboarding([FromBody] GenerateOnboardingDto dto)
-    {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesCreate))
-        {
-            return Forbid();
-        }
-
-        if (string.IsNullOrWhiteSpace(dto.EmployeeName))
-        {
-            return BadRequest(new { message = "Employee name is required." });
-        }
-
-        var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
-        var targetBranchId = dto.BranchId ?? _tenantProvider.BranchId;
-
-        var maxId = await _db.Employees
-            .Where(e => e.OrganizationId == targetOrgId)
-            .Select(e => (int?)e.EmployeeId)
-            .MaxAsync() ?? 0;
-        var targetEmpId = maxId + 1;
-
-        var employee = new Employee
-        {
-            EmployeeId = targetEmpId,
-            EmployeeName = dto.EmployeeName.Trim(),
-            DepartmentId = dto.DepartmentId,
-            DesignationId = dto.DesignationId,
-            BranchId = targetBranchId,
-            Status = "Onboarding", // specific status for onboarding drafts
-            OrganizationId = targetOrgId,
-            WorkEmail = dto.WorkEmail?.Trim(),
-            VerificationId = Guid.NewGuid() // generate a fresh secure token
-        };
-
-        _db.Employees.Add(employee);
-        await _db.SaveChangesAsync();
-        _permissionService.ClearCache();
-
-        var origin = Request.Headers["Origin"].FirstOrDefault() ?? $"{Request.Scheme}://{Request.Host}";
-        var onboardingLink = $"{origin}/onboarding/{employee.VerificationId}";
-
-        return Ok(new
-        {
-            employeeId = employee.EmployeeId,
-            verificationId = employee.VerificationId,
-            onboardingLink = onboardingLink,
-            message = "Onboarding link generated successfully."
-        });
-    }
-
-    public record GenerateOnboardingDto(
-        string EmployeeName,
-        int? BranchId,
-        int? DepartmentId,
-        int? DesignationId,
-        string? WorkEmail
-    );
-
-    public record PrefixSettingsDto(
-        string SeriesCode,
-        string Connector,
-        int PaddingDigits = 3,
-        int StartSequence = 1
-    );
-
     public record EmployeeCreateDto(
         string EmployeeName,
         string? Phone,
@@ -893,6 +672,8 @@ public class EmployeesController : ControllerBase
         string? PermanentAddress = null,
         bool HasProbation = false,
         int? ProbationDays = null,
+        int? ContractDurationMonths = null,
+        DateTime? ContractEndDate = null,
         int? RoleId = null
     );
 
@@ -922,6 +703,8 @@ public class EmployeesController : ControllerBase
         string? PermanentAddress = null,
         bool HasProbation = false,
         int? ProbationDays = null,
+        int? ContractDurationMonths = null,
+        DateTime? ContractEndDate = null,
         int? RoleId = null
     );
 }

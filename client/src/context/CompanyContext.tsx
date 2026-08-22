@@ -23,6 +23,9 @@ export interface Organization {
   code?: string;
   address?: string;
   whatsAppGroupId?: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  customDomain?: string;
   isActive?: boolean;
   branches?: Branch[];
 }
@@ -125,6 +128,12 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const orgBranches = allBranches.filter(b => String(b.organizationId) === activeOrgId);
 
   const fetchOrganizationsAndBranches = async () => {
+    const token = localStorage.getItem('hrdesk_token');
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       const [orgsRes, branchesRes] = await Promise.allSettled([
@@ -140,6 +149,9 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           code: o.code,
           address: o.address,
           whatsAppGroupId: o.whatsAppGroupId,
+          logoUrl: o.logoUrl,
+          primaryColor: o.primaryColor || '#D97706',
+          customDomain: o.customDomain,
           isActive: o.isActive ?? true,
         }));
         setOrganizations(orgList);
@@ -199,6 +211,13 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     fetchOrganizationsAndBranches();
   }, []);
+
+  useEffect(() => {
+    if (currentOrganization?.primaryColor) {
+      document.documentElement.style.setProperty('--gold-500', currentOrganization.primaryColor);
+      document.documentElement.style.setProperty('--gold-600', currentOrganization.primaryColor);
+    }
+  }, [currentOrganization?.primaryColor]);
 
   useEffect(() => {
     if (currentBranch && allBranches.length > 0) {

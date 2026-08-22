@@ -38,7 +38,7 @@ export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Close on click outside
   useEffect(() => {

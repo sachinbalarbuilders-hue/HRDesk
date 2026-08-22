@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -69,10 +69,24 @@ public class AttendanceSummaryService : IAttendanceSummaryService
             result.LeaveTypeCounts[key] = result.LeaveTypeCounts.GetValueOrDefault(key) + amount;
         }
 
+        // Fast O(1) dictionary lookups for this specific employee
+        var empLogsByDate = allLogs
+            .Where(l => l.EmployeeId == employeeId)
+            .GroupBy(l => l.RecordDate)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var empLeaveApps = allLeaveApps
+            .Where(la => la.EmployeeId == employeeId && (la.Status == "Approved" || la.Status == "Adjusted"))
+            .ToList();
+
         for (int day = 1; day <= daysInMonth; day++)
         {
             var date = new DateOnly(year, month, day);
-            ProcessDay(date, employeeId, allLogs, allLeaveApps, result, AddLop, AddLeave);
+            empLogsByDate.TryGetValue(date, out var log);
+            if (log == null) continue;
+
+            var activeApp = empLeaveApps.FirstOrDefault(la => la.StartDate <= date && la.EndDate >= date && la.Status == "Approved");
+            ProcessDayRecord(date, employeeId, log, activeApp, result, AddLop, AddLeave);
         }
 
         result.PayableDays = result.PresentCount + result.WeekoffCount +
@@ -104,10 +118,23 @@ public class AttendanceSummaryService : IAttendanceSummaryService
             result.LeaveTypeCounts[key] = result.LeaveTypeCounts.GetValueOrDefault(key) + amount;
         }
 
+        var empLogsByDate = allLogs
+            .Where(l => l.EmployeeId == employeeId)
+            .GroupBy(l => l.RecordDate)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var empLeaveApps = allLeaveApps
+            .Where(la => la.EmployeeId == employeeId && (la.Status == "Approved" || la.Status == "Adjusted"))
+            .ToList();
+
         for (int i = 0; i < totalDays; i++)
         {
             var date = startDate.AddDays(i);
-            ProcessDay(date, employeeId, allLogs, allLeaveApps, result, AddLop, AddLeave);
+            empLogsByDate.TryGetValue(date, out var log);
+            if (log == null) continue;
+
+            var activeApp = empLeaveApps.FirstOrDefault(la => la.StartDate <= date && la.EndDate >= date && la.Status == "Approved");
+            ProcessDayRecord(date, employeeId, log, activeApp, result, AddLop, AddLeave);
         }
 
         result.PayableDays = result.PresentCount + result.WeekoffCount +
@@ -117,29 +144,19 @@ public class AttendanceSummaryService : IAttendanceSummaryService
         return result;
     }
 
-    private void ProcessDay(
+    private void ProcessDayRecord(
         DateOnly date,
         int employeeId,
-        List<DailyAttendance> allLogs,
-        List<LeaveApplication> allLeaveApps,
+        DailyAttendance log,
+        LeaveApplication? activeApp,
         AttendanceSummaryResult result,
         Action<DateOnly, decimal> AddLop,
         Action<string?, decimal> AddLeave)
     {
-        var log = allLogs.FirstOrDefault(l => l.EmployeeId == employeeId && l.RecordDate == date);
-
-        if (log == null) return;
-
-        // Find the active approved leave application for this day
-        var activeApp = allLeaveApps.FirstOrDefault(la =>
-            la.EmployeeId == employeeId &&
-            la.StartDate <= date && la.EndDate >= date &&
-            la.Status == "Approved");
-
-        // â”€â”€ Holiday takes absolute priority â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Holiday takes absolute priority ──────────────────────────────
         // If the DB record is a Holiday, always count it as HolidayCount
         // regardless of any leave application that may exist on the same date.
-        // (Holiday is already paid â€” leave balance was never deducted for it.)
+        // (Holiday is already paid — leave balance was never deducted for it.)
         if (log.Status == "Holiday")
         {
             result.HolidayCount += 1.0m;

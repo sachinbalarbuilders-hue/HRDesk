@@ -18,22 +18,25 @@ public class MastersController : ControllerBase
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
     private readonly IReferenceDataCacheService _cacheService;
+    private readonly IPlanEntitlementService _entitlementService;
 
     public MastersController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         ICurrentTenantProvider tenantProvider,
-        IReferenceDataCacheService cacheService)
+        IReferenceDataCacheService cacheService,
+        IPlanEntitlementService entitlementService)
     {
         _db = db;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
         _cacheService = cacheService;
+        _entitlementService = entitlementService;
     }
 
     public record DepartmentDto(string DepartmentName, string? Status, int? BranchId = null);
     public record DesignationDto(string DesignationName, string? Status, int? BranchId = null);
-    public record OrganizationDto(string Name, string? Code, string? Address, string? WhatsAppGroupId, double? Latitude, double? Longitude, double? RadiusMeters, bool IsActive);
+    public record OrganizationDto(string Name, string? Code, string? Address, string? WhatsAppGroupId, double? Latitude, double? Longitude, double? RadiusMeters, bool IsActive, string? LogoUrl = null, string? PrimaryColor = null, string? CustomDomain = null);
     public record LeaveTypeDto(string Name, string Code, decimal DefaultYearlyQuota, bool IsPaid, bool ApplicableAfterProbation, bool AllowCarryForward, string GenderApplicability, string MaritalStatusApplicability, string DepartmentIds, string DesignationIds, string RoleIds, string Status, int? BranchId = null);
     public record ShiftDto(string Name, string? Code, string StartTime, string EndTime, string? LunchBreakStart, string? LunchBreakEnd, int? BreakMinutes, int? LateComingGraceMinutes, int? EarlyLeaveGraceMinutes, string? ColorCode, int? BranchId = null);
     public record AttendancePolicyDto(int GracePeriodMinutes, decimal HalfDayThresholdHours, decimal FullDayThresholdHours, int AutoSyncIntervalMinutes, string DefaultWeekoff, bool SandwichRuleEnabled = true, int? BranchId = null);
@@ -185,6 +188,9 @@ public class MastersController : ControllerBase
                 latitude = o.Latitude,
                 longitude = o.Longitude,
                 radiusMeters = o.RadiusMeters ?? 100,
+                logoUrl = o.LogoUrl,
+                primaryColor = o.PrimaryColor ?? "#D97706",
+                customDomain = o.CustomDomain,
                 isActive = o.IsActive
             }),
             branches = branches.Select(b => new
@@ -756,6 +762,9 @@ public class MastersController : ControllerBase
             Latitude = dto.Latitude,
             Longitude = dto.Longitude,
             RadiusMeters = dto.RadiusMeters ?? 100,
+            LogoUrl = dto.LogoUrl?.Trim(),
+            PrimaryColor = string.IsNullOrWhiteSpace(dto.PrimaryColor) ? "#D97706" : dto.PrimaryColor.Trim(),
+            CustomDomain = dto.CustomDomain?.Trim(),
             CompanyId = defaultCompany?.Id,
             IsActive = dto.IsActive,
             CreatedAt = DateTime.Now
@@ -791,10 +800,73 @@ public class MastersController : ControllerBase
         org.Latitude = dto.Latitude;
         org.Longitude = dto.Longitude;
         org.RadiusMeters = dto.RadiusMeters ?? 100;
+        if (dto.LogoUrl != null) org.LogoUrl = string.IsNullOrWhiteSpace(dto.LogoUrl) ? null : dto.LogoUrl.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.PrimaryColor)) org.PrimaryColor = dto.PrimaryColor.Trim();
+        if (dto.CustomDomain != null) org.CustomDomain = string.IsNullOrWhiteSpace(dto.CustomDomain) ? null : dto.CustomDomain.Trim();
         org.IsActive = dto.IsActive;
 
         await _db.SaveChangesAsync();
         return Ok(new { message = "Organization updated successfully.", id = org.Id, publicId = org.PublicId });
+    }
+
+    [HttpPost("organizations/{publicId:guid}/logo")]
+    public async Task<IActionResult> UploadOrganizationLogo(Guid publicId, IFormFile file, [FromServices] IWebHostEnvironment env)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+        {
+            return Forbid();
+        }
+
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No image file uploaded." });
+        }
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+        {
+            return BadRequest(new { message = "Invalid file type. Only PNG, JPG, WEBP, and SVG are supported." });
+        }
+
+        if (file.Length > 5 * 1024 * 1024)
+        {
+            return BadRequest(new { message = "File size cannot exceed 5MB." });
+        }
+
+        var org = await _db.Organizations.FirstOrDefaultAsync(o => o.PublicId == publicId);
+        if (org == null) return NotFound(new { message = "Organization not found." });
+
+        bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+        if (!isAdminOrSuper && org.Id != _tenantProvider.TenantId)
+        {
+            return Forbid();
+        }
+
+        string webRoot = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+        string logosDir = Path.Combine(webRoot, "uploads", "logos");
+        if (!Directory.Exists(logosDir))
+        {
+            Directory.CreateDirectory(logosDir);
+        }
+
+        string ext = Path.GetExtension(file.FileName);
+        string fileName = $"org_{org.Id}_{Guid.NewGuid():N}{ext}";
+        string filePath = Path.Combine(logosDir, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        string logoUrl = $"/uploads/logos/{fileName}";
+        org.LogoUrl = logoUrl;
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Logo uploaded successfully.",
+            logoUrl = logoUrl
+        });
     }
 
     // ==========================================
@@ -843,11 +915,20 @@ public class MastersController : ControllerBase
 
         _db.BypassTenantId = true;
         var defaultOrg = await _db.Organizations.FirstOrDefaultAsync();
+        var targetOrgId = (dto.OrganizationId.HasValue && dto.OrganizationId.Value > 0)
+            ? dto.OrganizationId.Value
+            : (defaultOrg?.Id ?? 1);
+
+        // SaaS Branch Quota Enforcement
+        var (canAdd, errorMsg) = await _entitlementService.CanAddBranchAsync(targetOrgId);
+        if (!canAdd)
+        {
+            return StatusCode(402, new { error = "QUOTA_EXCEEDED", message = errorMsg });
+        }
+
         var branch = new Branch
         {
-            OrganizationId = (dto.OrganizationId.HasValue && dto.OrganizationId.Value > 0)
-                ? dto.OrganizationId.Value
-                : (defaultOrg?.Id ?? 1),
+            OrganizationId = targetOrgId,
             Name = dto.Name.Trim(),
             Code = dto.Code?.Trim(),
             Address = dto.Address?.Trim(),
@@ -931,4 +1012,33 @@ public class MastersController : ControllerBase
         await _db.SaveChangesAsync();
         return Ok(new { message = "Branch deleted successfully." });
     }
+
+    [HttpPost("organization-branding")]
+    public async Task<IActionResult> UpdateOrganizationBranding([FromBody] OrganizationBrandingDto dto)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations) && !User.IsInRole("Admin") && !User.IsInRole("SuperAdmin"))
+        {
+            return Forbid();
+        }
+
+        var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        _db.BypassTenantId = true;
+        var org = await _db.Organizations.IgnoreQueryFilters().FirstOrDefaultAsync(o => o.Id == orgId);
+        if (org == null) return NotFound(new { message = "Organization not found." });
+
+        if (dto.LogoUrl != null) org.LogoUrl = dto.LogoUrl.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.PrimaryColor)) org.PrimaryColor = dto.PrimaryColor.Trim();
+        if (dto.CustomDomain != null) org.CustomDomain = dto.CustomDomain.Trim().ToLowerInvariant();
+
+        await _db.SaveChangesAsync();
+        return Ok(new
+        {
+            message = "Organization branding updated successfully.",
+            logoUrl = org.LogoUrl,
+            primaryColor = org.PrimaryColor,
+            customDomain = org.CustomDomain
+        });
+    }
 }
+
+public record OrganizationBrandingDto(string? LogoUrl, string? PrimaryColor, string? CustomDomain);

@@ -37,11 +37,32 @@ const DepartmentsTab = lazy(() => import('./pages/settings/DepartmentsTab').then
 const DesignationsTab = lazy(() => import('./pages/settings/DesignationsTab').then(m => ({ default: m.DesignationsTab })));
 const LeaveTypesTab = lazy(() => import('./pages/settings/LeaveTypesTab').then(m => ({ default: m.LeaveTypesTab })));
 const WorkShiftsTab = lazy(() => import('./pages/settings/WorkShiftsTab').then(m => ({ default: m.WorkShiftsTab })));
+const SubscriptionTab = lazy(() => import('./pages/settings/SubscriptionTab').then(m => ({ default: m.SubscriptionTab })));
+const AuditLogsTab = lazy(() => import('./pages/settings/AuditLogsTab').then(m => ({ default: m.AuditLogsTab })));
+const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
 const EmployeeOnboarding = lazy(() => import('./pages/public/EmployeeOnboarding').then(m => ({ default: m.EmployeeOnboarding })));
+const RegisterTenant = lazy(() => import('./pages/RegisterTenant').then(m => ({ default: m.RegisterTenant })));
+const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string }> = ({
+const RootRoute: React.FC = () => {
+  const { user, isLoading } = useAuth();
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[var(--paper)] text-[var(--ink)] text-xs font-data">
+        Authenticating muster roll...
+      </div>
+    );
+  }
+  if (!user) {
+    return <LandingPage />;
+  }
+  return <Navigate to="/dashboard" replace />;
+};
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string; superAdminOnly?: boolean }> = ({
   children,
   permission,
+  superAdminOnly,
 }) => {
   const { user, isLoading, hasPermission, isAdmin } = useAuth();
 
@@ -57,8 +78,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string 
     return <Navigate to="/login" replace />;
   }
 
-  if (permission && !isAdmin && !hasPermission(permission)) {
+  if (superAdminOnly && user.role !== 'SuperAdmin' && user.role !== 'Super Admin') {
     return <Navigate to="/" replace />;
+  }
+
+  if (permission && !isAdmin && !hasPermission(permission)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -73,21 +98,31 @@ export const App: React.FC = () => {
             <BrowserRouter>
             <Suspense fallback={<div className="p-8"><PageSkeleton /></div>}>
               <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/landing" element={<LandingPage />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<RegisterTenant />} />
                 <Route path="/verify/:id" element={<VerifyEmployee />} />
                 <Route path="/onboarding/:token" element={<EmployeeOnboarding />} />
+                <Route
+                  path="/superadmin"
+                  element={
+                    <ProtectedRoute superAdminOnly>
+                      <SuperAdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
                 <Route
-                  path="/"
                   element={
                     <ProtectedRoute>
                       <AppLayout />
                     </ProtectedRoute>
                   }
                 >
-                  <Route index element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route
-                    path="employees"
+                    path="/employees"
                     element={
                       <ProtectedRoute permission="Employees.View">
                         <Employees />
@@ -213,6 +248,8 @@ export const App: React.FC = () => {
                   >
                     <Route index element={<Navigate to="organizations" replace />} />
                     <Route path="organizations" element={<OrganizationsTab />} />
+                    <Route path="subscription" element={<SubscriptionTab />} />
+                    <Route path="audit-logs" element={<AuditLogsTab />} />
                     <Route path="departments" element={<DepartmentsTab />} />
                     <Route path="designations" element={<DesignationsTab />} />
                     <Route path="leaves" element={<LeaveTypesTab />} />

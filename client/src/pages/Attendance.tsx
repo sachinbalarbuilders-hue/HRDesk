@@ -20,9 +20,13 @@ import {
   Check,
   X,
   XCircle,
-  Building2,
+  Award,
+  Clock,
+  Calendar,
+  Umbrella,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
+import { DayActivityDrawer } from '../components/attendance/DayActivityDrawer';
 
 interface CompOffItem {
   id: number;
@@ -41,6 +45,68 @@ interface CompOffItem {
   rejectionReason: string | null;
   createdAt: string;
 }
+
+const LeftHalfStar: React.FC<{ size?: number; className?: string }> = ({ size = 14, className = "" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    className={className}
+    style={{ display: 'inline-block', verticalAlign: 'middle' }}
+  >
+    <defs>
+      <clipPath id="star-left-clip">
+        <rect x="0" y="0" width="12" height="24" />
+      </clipPath>
+    </defs>
+    {/* Base Outline Star */}
+    <path
+      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Filled Left Half */}
+    <path
+      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+      fill="currentColor"
+      clipPath="url(#star-left-clip)"
+    />
+  </svg>
+);
+
+const RightHalfStar: React.FC<{ size?: number; className?: string }> = ({ size = 14, className = "" }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    className={className}
+    style={{ display: 'inline-block', verticalAlign: 'middle' }}
+  >
+    <defs>
+      <clipPath id="star-right-clip">
+        <rect x="12" y="0" width="12" height="24" />
+      </clipPath>
+    </defs>
+    {/* Base Outline Star */}
+    <path
+      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Filled Right Half */}
+    <path
+      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+      fill="currentColor"
+      clipPath="url(#star-right-clip)"
+    />
+  </svg>
+);
 
 export const Attendance: React.FC = () => {
   const { showSuccess, showError } = useToast();
@@ -66,6 +132,86 @@ export const Attendance: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [importModalOpen, setImportModalOpen] = useState(false);
+
+  // Day Activity Timeline Drawer state
+  const [dayDrawerOpen, setDayDrawerOpen] = useState(false);
+  const [selectedDayInfo, setSelectedDayInfo] = useState<{ employeeId: number; date: string; initialData?: any } | null>(null);
+
+  const handleOpenDayActivity = (row: any, dayNumber: number) => {
+    const formattedMonth = String(month).padStart(2, '0');
+    const formattedDay = String(dayNumber).padStart(2, '0');
+    const dateStr = `${year}-${formattedMonth}-${formattedDay}`;
+    const dayStr = String(dayNumber);
+    const record = row.dailyRecords?.[dayStr];
+    const status = row.dailyStatus?.[dayStr] || (typeof record === 'object' ? record?.status : record) || '';
+
+    const dDate = new Date(year, month - 1, dayNumber);
+    const formattedDate = dDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    const inTime = typeof record === 'object' ? record?.inTime : null;
+    const outTime = typeof record === 'object' ? record?.outTime : null;
+
+    setSelectedDayInfo({
+      employeeId: row.employee.employeeId,
+      date: dateStr,
+      initialData: {
+        employee: {
+          employeeId: row.employee.employeeId,
+          name: row.employee.employeeName,
+          code: row.employee.employeeCode || `EMP#${String(row.employee.employeeId).padStart(3, '0')}`,
+          department: row.employee.departmentName || row.employee.department || 'General',
+          branch: row.employee.branchName || row.employee.branch || currentBranch?.name || 'Main Branch',
+        },
+        date: dateStr,
+        formattedDate,
+        status: status || '—',
+        inTime: inTime,
+        outTime: outTime,
+        totalPunches: inTime ? (outTime ? 2 : 1) : 0,
+        workMinutes: 0,
+        breakMinutes: 0,
+      }
+    });
+    setDayDrawerOpen(true);
+  };
+
+  const handleOpenDailyLogRow = (log: any) => {
+    const dDate = new Date(selectedDate);
+    const formattedDate = isNaN(dDate.getTime()) ? selectedDate : dDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    setSelectedDayInfo({
+      employeeId: log.employeeId,
+      date: selectedDate,
+      initialData: {
+        employee: {
+          employeeId: log.employeeId,
+          name: log.employeeName,
+          code: log.employeeCode || `EMP#${String(log.employeeId).padStart(3, '0')}`,
+          department: log.department || 'General',
+          branch: log.branch || currentBranch?.name || 'Main Branch',
+        },
+        date: selectedDate,
+        formattedDate,
+        status: log.status || '—',
+        inTime: log.inTime,
+        outTime: log.outTime,
+        totalPunches: log.inTime ? (log.outTime ? 2 : 1) : 0,
+        workMinutes: log.workMinutes || 0,
+        breakMinutes: 0,
+      }
+    });
+    setDayDrawerOpen(true);
+  };
 
   // Comp Off Modal states
   const [compOffModalOpen, setCompOffModalOpen] = useState(false);
@@ -352,33 +498,185 @@ export const Attendance: React.FC = () => {
   };
 
   const getStatusBadge = (code: string) => {
-    if (!code || code === '-') return <span className="text-[var(--ink-muted)] opacity-30">•</span>;
-    switch (code) {
+    if (!code || code === '-' || code.trim() === '') {
+      return <span className="text-[var(--ink-muted)] opacity-30 text-xs font-mono select-none">—</span>;
+    }
+
+    const c = code.trim().toUpperCase();
+
+    switch (c) {
       case 'P':
-      case 'Present':
-        return <span className="font-bold text-[var(--ok-600)]">P</span>;
+      case 'PRESENT':
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
+            title="Present"
+          >
+            <Check size={14} strokeWidth={3.5} />
+          </span>
+        );
+
       case 'A':
-      case 'Absent':
-        return <span className="font-bold text-[var(--err-600)]">A</span>;
+      case 'ABSENT':
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-rose-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
+            title="Absent (Loss of Pay)"
+          >
+            <X size={14} strokeWidth={3.5} />
+          </span>
+        );
+
       case 'W/O':
       case 'WO':
-      case 'Weekoff':
-        return <span className="font-mono text-[11px] text-[var(--ink-muted)] font-semibold">WO</span>;
+      case 'WEEKOFF':
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-600 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
+            title="Week Off"
+          >
+            <Calendar size={13} strokeWidth={2.5} />
+          </span>
+        );
+
+      case 'W/OP':
+      case 'WOP':
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-500 text-white ring-2 ring-amber-400 font-extrabold text-[9px] shadow-xs hover:brightness-110 transition-all select-none"
+            title="Worked on Week Off (Comp Off Earned)"
+          >
+            WO+
+          </span>
+        );
+
+      case 'W/OHF':
+      case 'WOHF':
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white ring-2 ring-emerald-400 font-extrabold text-[9px] shadow-xs hover:brightness-110 transition-all select-none"
+            title="Worked Half Day on Week Off"
+          >
+            WO½
+          </span>
+        );
+
       case 'HLD':
-      case 'Holiday':
-        return <span className="font-mono text-[11px] text-purple-600 dark:text-purple-400 font-bold">HLD</span>;
+      case 'HOLIDAY':
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-purple-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
+            title="Public Holiday"
+          >
+            <Sparkles size={13} strokeWidth={2.5} />
+          </span>
+        );
+
       case 'CO':
-        return <span className="font-mono text-[11px] text-amber-600 font-bold">CO</span>;
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-indigo-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
+            title="Comp Off Full Day"
+          >
+            <Award size={13} strokeWidth={2.5} />
+          </span>
+        );
+
       case 'COHF':
-        return <span className="font-mono text-[11px] text-amber-600 font-bold">CO½</span>;
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-indigo-500 text-white font-extrabold font-data text-[9px] shadow-xs hover:brightness-110 transition-all select-none"
+            title="Comp Off Half Day"
+          >
+            CO½
+          </span>
+        );
+
+      // First Half Leave -> Left-filled Star (Amber solid badge + Left half filled white star)
+      case '1H':
+      case 'FH':
+      case '1HF':
+      case 'HF-1':
+      case 'FIRST HALF':
+      case 'PL-1H':
+      case 'SL-1H':
+      case 'CO-1H':
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white shadow-xs hover:brightness-110 transition-all select-none"
+            title={code.includes('PL') ? 'Paid Leave (1st Half - Left Star)' : code.includes('SL') ? 'Sick Leave (1st Half - Left Star)' : code.includes('CO') ? 'Comp Off (1st Half - Left Star)' : 'First Half Leave (Left Star Filled)'}
+          >
+            <LeftHalfStar size={15} />
+          </span>
+        );
+
+      // Second Half Leave -> Right-filled Star (Amber solid badge + Right half filled white star)
+      case '2H':
+      case 'SH':
+      case '2HF':
+      case 'HF-2':
+      case 'SECOND HALF':
+      case 'PL-2H':
+      case 'SL-2H':
+      case 'CO-2H':
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white shadow-xs hover:brightness-110 transition-all select-none"
+            title={code.includes('PL') ? 'Paid Leave (2nd Half - Right Star)' : code.includes('SL') ? 'Sick Leave (2nd Half - Right Star)' : code.includes('CO') ? 'Comp Off (2nd Half - Right Star)' : 'Second Half Leave (Right Star Filled)'}
+          >
+            <RightHalfStar size={15} />
+          </span>
+        );
+
+      // Full Day Leaves -> Universal Beach Umbrella Icon (bg-teal-500)
+      case 'PL':
+      case 'SL':
+      case 'CL':
+      case 'ML':
+      case 'EL':
+      case 'LWP':
+      case 'LEAVE':
+      case 'PAID LEAVE':
+      case 'SICK LEAVE':
+      case 'CASUAL LEAVE':
+      case 'UNPAID LEAVE':
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-teal-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
+            title="Leave"
+          >
+            <Umbrella size={13} strokeWidth={2.5} />
+          </span>
+        );
+
+      // Generic Half Day / Unspecified Half Leave
       case 'PHF':
-        return <span className="font-mono text-[11px] text-emerald-600 font-bold">PL½</span>;
+      case 'PL½':
+      case 'PLHF':
       case 'SHF':
-        return <span className="font-mono text-[11px] text-teal-600 font-bold">SL½</span>;
+      case 'SL½':
+      case 'SLHF':
       case 'HF':
-        return <span className="font-mono text-[11px] text-[var(--warn-600)] font-bold">½D</span>;
+      case 'HALF DAY':
+      case 'HALFDAY':
+        return (
+          <span
+            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
+            title="Half Day"
+          >
+            <LeftHalfStar size={15} />
+          </span>
+        );
+
       default:
-        return <span className="font-mono text-[11px] text-[var(--accent)] font-semibold">{code}</span>;
+        return (
+          <span
+            className="inline-flex items-center justify-center min-w-[24px] h-6 px-1 rounded-md bg-blue-600 text-white font-bold font-mono text-[9px] shadow-xs select-none"
+            title={code}
+          >
+            {code}
+          </span>
+        );
     }
   };
 
@@ -507,6 +805,64 @@ export const Attendance: React.FC = () => {
       ) : activeTab === 'matrix' ? (
         /* View 1: Monthly Attendance Matrix */
         <div className="card overflow-hidden">
+          {/* Attendance Status Legend (Moved to Top) */}
+          <div className="border-b border-[var(--rule)] px-4 py-2.5 bg-[var(--paper-subtle)]/50 flex items-center justify-between gap-4 flex-wrap text-xs">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">Legend:</span>
+              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-emerald-500 text-white shadow-2xs">
+                  <Check size={11} strokeWidth={3.5} />
+                </span>
+                <span>Present</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-rose-500 text-white shadow-2xs">
+                  <X size={11} strokeWidth={3.5} />
+                </span>
+                <span>Absent</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-blue-600 text-white shadow-2xs">
+                  <Calendar size={10} strokeWidth={2.5} />
+                </span>
+                <span>Week Off</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-purple-500 text-white shadow-2xs">
+                  <Sparkles size={10} strokeWidth={2.5} />
+                </span>
+                <span>Holiday</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-indigo-500 text-white shadow-2xs">
+                  <Award size={10} strokeWidth={2.5} />
+                </span>
+                <span>Comp Off</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500 text-white shadow-2xs">
+                  <LeftHalfStar size={11} />
+                </span>
+                <span>1st Half Leave</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500 text-white shadow-2xs">
+                  <RightHalfStar size={11} />
+                </span>
+                <span>2nd Half Leave</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-teal-500 text-white shadow-2xs">
+                  <Umbrella size={11} strokeWidth={2.5} />
+                </span>
+                <span>Leave</span>
+              </span>
+            </div>
+            <span className="text-[11px] text-[var(--ink-muted)] italic">
+              Click any date to inspect punch timeline
+            </span>
+          </div>
+
           <div className="overflow-x-auto max-h-[70vh]">
             <table className="ledger-table w-full text-xs">
               <thead className="sticky top-0 z-10 bg-[var(--paper-subtle)]">
@@ -543,8 +899,9 @@ export const Attendance: React.FC = () => {
                       return (
                         <td
                           key={d}
-                          title={tooltip || undefined}
-                          className="text-center p-1 font-data text-xs border-r border-[var(--rule)]/50 cursor-pointer hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
+                          title={tooltip ? `${tooltip} • Click to view all punch logs` : `Day ${d} • Click to view all punch logs`}
+                          onClick={() => handleOpenDayActivity(row, d)}
+                          className="text-center p-1 font-data text-xs border-r border-[var(--rule)]/50 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:outline hover:outline-1 hover:outline-[var(--accent)] transition-all select-none"
                         >
                           {getStatusBadge(status)}
                         </td>
@@ -607,7 +964,12 @@ export const Attendance: React.FC = () => {
               </thead>
               <tbody>
                 {dailyLogs.map((log: any) => (
-                  <tr key={log.id}>
+                  <tr
+                    key={log.id}
+                    onClick={() => handleOpenDailyLogRow(log)}
+                    className="hover:bg-[var(--paper-subtle)] cursor-pointer transition-colors"
+                    title="Click to view all punch logs and audit timeline"
+                  >
                     <td className="font-semibold text-[var(--ink)]">{log.employeeName}</td>
 
                     <td className="text-right font-data text-xs text-[var(--ink)]">{log.inTime || '--:--'}</td>
@@ -913,6 +1275,17 @@ export const Attendance: React.FC = () => {
           else if (activeTab === 'daily_logs') fetchDailyLogs();
           else fetchCompOff();
         }}
+      />
+
+      {/* ========================================================================= */}
+      {/* 7. DAY ACTIVITY & IN/OUT AUDIT TIMELINE DRAWER */}
+      {/* ========================================================================= */}
+      <DayActivityDrawer
+        open={dayDrawerOpen}
+        onClose={() => setDayDrawerOpen(false)}
+        employeeId={selectedDayInfo?.employeeId}
+        date={selectedDayInfo?.date}
+        initialData={selectedDayInfo?.initialData}
       />
     </PageContainer>
   );

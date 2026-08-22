@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOrganization } from '../../context/CompanyContext';
+import { Clock } from 'lucide-react';
 
 export interface EmployeeFormData {
   employeeId?: string;
@@ -12,6 +13,8 @@ export interface EmployeeFormData {
   weekoff: string;
   joiningDate: string;
   employmentType: string;
+  contractDurationMonths?: number;
+  contractEndDate?: string;
   bloodGroup: string;
   gender: string;
   attendanceType: string;
@@ -57,6 +60,8 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     weekoff: 'Sunday',
     joiningDate: new Date().toISOString().split('T')[0],
     employmentType: '',
+    contractDurationMonths: undefined,
+    contractEndDate: '',
     bloodGroup: '',
     gender: '',
     attendanceType: 'Biometric',
@@ -233,6 +238,66 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               <option value="Intern">Intern</option>
             </select>
           </div>
+
+          {/* Dynamic Contract / Internship Term Section */}
+          {(formData.employmentType === 'Contract' || formData.employmentType === 'Intern') && (
+            <div className="col-span-2 p-3.5 bg-[var(--surface-sunken)]/70 rounded-[var(--radius-md)] border border-[var(--gold-500)]/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-xs text-[var(--gold-600)] dark:text-[var(--gold-400)] flex items-center gap-1.5 uppercase tracking-wider">
+                  <Clock size={14} />
+                  {formData.employmentType === 'Contract' ? 'Contract Agreement Duration' : 'Internship Term Duration'}
+                </span>
+                <span className="text-[10px] text-[var(--ink-muted)]">Fixed-term arrangement</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                    Duration (Months)
+                  </label>
+                  <select
+                    value={formData.contractDurationMonths || ''}
+                    onChange={(e) => {
+                      const months = e.target.value ? Number(e.target.value) : undefined;
+                      let newEndDate = formData.contractEndDate;
+                      if (months && formData.joiningDate) {
+                        const d = new Date(formData.joiningDate);
+                        d.setMonth(d.getMonth() + months);
+                        newEndDate = d.toISOString().split('T')[0];
+                      }
+                      setFormData({
+                        ...formData,
+                        contractDurationMonths: months,
+                        contractEndDate: newEndDate,
+                      });
+                    }}
+                    className="register-input w-full font-data"
+                  >
+                    <option value="">Select Duration</option>
+                    <option value="1">1 Month</option>
+                    <option value="2">2 Months</option>
+                    <option value="3">3 Months (Standard)</option>
+                    <option value="6">6 Months</option>
+                    <option value="12">12 Months (1 Year)</option>
+                    <option value="24">24 Months (2 Years)</option>
+                    <option value="36">36 Months (3 Years)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                    {formData.employmentType === 'Contract' ? 'Contract End Date' : 'Internship Completion Date'}
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.contractEndDate ? formData.contractEndDate.split('T')[0] : ''}
+                    onChange={(e) => setFormData({ ...formData, contractEndDate: e.target.value })}
+                    className="register-input w-full font-data"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Department</label>
             <select value={formData.departmentId} onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })} className="register-input w-full">
@@ -266,6 +331,11 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               <option value="">No Login Access</option>
               {lookups?.roles?.map((r: any) => (<option key={r.id} value={r.id}>{r.name}</option>))}
             </select>
+            {formData.roleId && (
+              <p className="text-[10px] text-[var(--gold-600)] dark:text-[var(--gold-400)] mt-1 font-medium">
+                ✨ Auto-creates corporate login using Work Email with initial password <code>Welcome@123</code>.
+              </p>
+            )}
           </div>
         </div>
       </section>

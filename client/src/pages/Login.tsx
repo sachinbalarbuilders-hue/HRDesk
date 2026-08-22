@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, User, Eye, EyeOff, Building2 } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Building2 } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -16,7 +16,7 @@ export const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      setError('Please enter your username and password.');
+      setError('Please enter your work email and password.');
       return;
     }
 
@@ -69,16 +69,16 @@ export const Login: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-[var(--text-primary)]">
-                Username
+                Work Email
               </label>
               <div className="relative">
-                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none z-10" />
+                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none z-10" />
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username"
+                  placeholder="name@company.com"
                   className="register-input !pl-10 py-2.5"
                 />
               </div>
@@ -116,6 +116,15 @@ export const Login: React.FC = () => {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
+
+          <div className="pt-3 border-t border-[var(--border)] text-center">
+            <p className="text-xs text-[var(--text-secondary)]">
+              Need a new workspace?{' '}
+              <Link to="/register" className="text-[var(--gold-600)] dark:text-[var(--gold-400)] font-semibold hover:underline">
+                Create an Organization
+              </Link>
+            </p>
+          </div>
         </div>
 
         <p className="text-center text-xs text-[var(--text-muted)]">

@@ -50,6 +50,18 @@ public class Organization
     [Column("radius_meters")]
     public double? RadiusMeters { get; set; } = 100;
 
+    [Column("logo_url")]
+    [StringLength(500)]
+    public string? LogoUrl { get; set; }
+
+    [Column("primary_color")]
+    [StringLength(30)]
+    public string? PrimaryColor { get; set; } = "#D97706";
+
+    [Column("custom_domain")]
+    [StringLength(150)]
+    public string? CustomDomain { get; set; }
+
     [Column("company_id")]
     public int? CompanyId { get; set; }
 

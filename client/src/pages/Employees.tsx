@@ -409,7 +409,7 @@ export const Employees: React.FC = () => {
                     </td>
                     <td className="font-data text-xs">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] bg-[var(--paper)] border border-[var(--rule)] font-mono text-[11px] font-bold text-[var(--gold-600)] shadow-2xs">
-                        {emp.employeeCode || (emp.branchCode ? `${emp.branchCode}${String(emp.employeeId).padStart(3, '0')}` : `EMP#${String(emp.employeeId).padStart(3, '0')}`)}
+                        {emp.employeeCode || `EMP#${String(emp.employeeId).padStart(3, '0')}`}
                       </span>
                     </td>
                     <td className="text-xs text-[var(--ink)]">

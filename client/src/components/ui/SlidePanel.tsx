@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { clsx } from 'clsx';
 
-type SlidePanelSize = 'sm' | 'md' | 'lg' | 'xl';
+type SlidePanelSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 type SlidePanelSide = 'left' | 'right';
 
 interface SlidePanelProps {
@@ -23,6 +23,7 @@ const sizeClasses: Record<SlidePanelSize, string> = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
 };
 
 export const SlidePanel: React.FC<SlidePanelProps> = ({

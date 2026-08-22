@@ -106,4 +106,8 @@ public sealed class Employee : IMustHaveTenant
     public bool HasProbation { get; set; }
 
     public int? ProbationDays { get; set; }
+
+    public int? ContractDurationMonths { get; set; }
+
+    public DateTime? ContractEndDate { get; set; }
 }

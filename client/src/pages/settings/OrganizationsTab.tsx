@@ -1,26 +1,35 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useOrganization } from '../../context/CompanyContext';
 import { useToast } from '../../context/ToastContext';
+import { exportToCSV } from '../../utils/csvHelper';
+import { DataToolbar } from '../../components/ui/DataToolbar';
+import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
+import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import {
   Building2,
   Plus,
-  Trash2,
   MapPin,
   Edit2,
-  Archive,
-  RotateCcw,
   Eye,
+  Globe,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
 
 export const OrganizationsTab: React.FC = () => {
   const { currentBranch } = useOrganization();
-  const { showSuccess, showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
 
@@ -28,7 +37,7 @@ export const OrganizationsTab: React.FC = () => {
     try {
       setLoading(true);
       const res = await apiClient.get('/masters/overview', {
-        params: { branchId: currentBranch?.id || undefined }
+        params: { branchId: currentBranch?.id || undefined },
       });
 
       if (res?.data) {
@@ -43,33 +52,41 @@ export const OrganizationsTab: React.FC = () => {
             latitude: o.latitude || 21.1702,
             longitude: o.longitude || 72.8311,
             radiusMeters: o.radiusMeters || 100,
+            logoUrl: o.logoUrl || '',
+            primaryColor: o.primaryColor || '#D97706',
+            customDomain: o.customDomain || '',
             isActive: o.isActive !== false,
             status: o.isActive !== false ? 'Active' : 'Inactive',
           }));
           setOrganizations(orgList);
         }
         if (res.data.branches) {
-          setBranches(res.data.branches.map((b: any) => ({
-            id: b.id,
-            publicId: b.publicId,
-            organizationId: b.organizationId,
-            name: b.name,
-            code: b.code || (b.name.length > 3 ? b.name.split(' ').map((w: string) => w[0]).join('').toUpperCase() : b.name.toUpperCase()),
-            address: b.address || '',
-            city: b.city || '',
-            state: b.state || '',
-            pincode: b.pincode || '',
-            whatsAppGroupId: b.whatsAppGroupId || '',
-            latitude: b.latitude || 21.1702,
-            longitude: b.longitude || 72.8311,
-            radiusMeters: b.radiusMeters || 100,
-            isActive: b.isActive !== false,
-            status: b.isActive !== false ? 'Active' : 'Inactive',
-          })));
+          setBranches(
+            res.data.branches.map((b: any) => ({
+              id: b.id,
+              publicId: b.publicId,
+              organizationId: b.organizationId,
+              name: b.name,
+              code: b.code || (b.name.length > 3 ? b.name.split(' ').map((w: string) => w[0]).join('').toUpperCase() : b.name.toUpperCase()),
+              address: b.address || '',
+              city: b.city || '',
+              state: b.state || '',
+              pincode: b.pincode || '',
+              latitude: b.latitude || 21.1702,
+              longitude: b.longitude || 72.8311,
+              radiusMeters: b.radiusMeters || 100,
+              whatsAppGroupId: b.whatsAppGroupId || '',
+              allowedIPs: b.allowedIPs || '',
+              outsideAttendancePolicy: b.outsideAttendancePolicy || 'Block',
+              isActive: b.isActive !== false,
+              status: b.isActive !== false ? 'Active' : 'Inactive',
+            }))
+          );
         }
       }
-    } catch (e) {
-      console.error('Failed to load organizations', e);
+    } catch (err) {
+      console.error('Failed to load masters data', err);
+      showError('Error', 'Unable to load organizations');
     } finally {
       setLoading(false);
     }
@@ -77,118 +94,264 @@ export const OrganizationsTab: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [currentBranch?.id]);
+  }, [currentBranch]);
 
-  useEffect(() => {
-    const handleReload = () => { fetchData(); };
-    window.addEventListener('hrdesk:tenant_changed', handleReload);
-    window.addEventListener('hrdesk:branch_changed', handleReload);
-    return () => {
-      window.removeEventListener('hrdesk:tenant_changed', handleReload);
-      window.removeEventListener('hrdesk:branch_changed', handleReload);
-    };
-  }, []);
+  // Counts for archive filter
+  const activeCount = organizations.filter((o) => o.isActive).length;
+  const archivedCount = organizations.filter((o) => !o.isActive).length;
 
-  const handleOpenCreateOrg = () => {
-    navigate('/settings/organizations/new');
-  };
+  // Filtered dataset
+  const filteredOrgs = useMemo(() => {
+    return organizations.filter((org) => {
+      // Archive filter
+      if (archiveFilter === 'active' && !org.isActive) return false;
+      if (archiveFilter === 'archived' && org.isActive) return false;
 
-  const handleOpenEditOrg = (org: any) => {
-    navigate(`/settings/organizations/${org.publicId}`);
-  };
+      // Search filter
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchesName = org.name.toLowerCase().includes(q);
+        const matchesCode = org.code?.toLowerCase().includes(q);
+        const matchesDomain = org.customDomain?.toLowerCase().includes(q);
+        const matchesAddress = org.address?.toLowerCase().includes(q);
+        if (!matchesName && !matchesCode && !matchesDomain && !matchesAddress) return false;
+      }
 
-  const handleDeleteOrg = (id: number) => {
-    if (organizations.length <= 1) {
-      showError('Cannot Delete', 'At least one primary Organization is required.');
+      return true;
+    });
+  }, [organizations, archiveFilter, search]);
+
+  // Total branches across all visible orgs
+  const totalBranchesCount = branches.length;
+  const customDomainsCount = organizations.filter((o) => !!o.customDomain).length;
+
+  // Export to CSV
+  const handleExport = () => {
+    if (filteredOrgs.length === 0) {
+      showError('Export', 'No organizations available to export.');
       return;
     }
-    setOrganizations(organizations.filter(o => o.id !== id));
-    showSuccess('Organization Deleted', 'Organization profile removed.');
+    const exportData = filteredOrgs.map((o) => ({
+      ID: o.id,
+      PublicId: o.publicId,
+      Name: o.name,
+      Code: o.code,
+      CustomDomain: o.customDomain || 'N/A',
+      Address: o.address || 'N/A',
+      PrimaryColor: o.primaryColor,
+      BranchesCount: branches.filter((b) => b.organizationId === o.id).length,
+      Status: o.isActive ? 'Active' : 'Inactive',
+    }));
+    exportToCSV(exportData, `Organizations_Export_${new Date().toISOString().slice(0, 10)}`);
+    showSuccess('Exported', 'Organizations list exported to CSV.');
   };
 
-  const s = search.trim().toLowerCase();
-  const filteredOrgs = organizations.filter(o => {
-    const matchesSearch = !s || (o.name?.toLowerCase().includes(s)) || (o.code?.toLowerCase().includes(s));
-    return matchesSearch;
-  });
+  // Table Columns Definition
+  const columns: ColumnDef<any>[] = [
+    {
+      key: 'name',
+      header: 'Organization / Legal Entity',
+      render: (org) => {
+        return (
+          <div
+            className="flex items-center gap-3 cursor-pointer group py-1"
+            onClick={() => navigate(`/settings/organizations/${org.publicId}`)}
+          >
+            <div
+              className="w-8 h-8 rounded-[4px] flex items-center justify-center shrink-0 font-bold text-xs shadow-xs overflow-hidden border border-[var(--rule)]"
+              style={{ backgroundColor: org.primaryColor || '#D97706', color: '#FFFFFF' }}
+            >
+              {org.logoUrl ? (
+                <img
+                  src={org.logoUrl}
+                  alt={org.name}
+                  className="w-full h-full object-contain p-0.5 bg-[var(--surface)]"
+                />
+              ) : (
+                <span className="font-display font-bold text-xs">
+                  {(org.name || 'O').charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
 
-  return (
-    <div className="space-y-4">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
-              <Building2 size={15} className="text-[var(--gold-500)]" />
-              <span>Organizations</span>
-            </h3>
-            <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-              Open an organization to manage its branches and branch settings.
-            </p>
+            <div className="flex flex-col min-w-0">
+              <span className="font-semibold text-xs text-[var(--ink)] group-hover:text-[var(--gold-600)] transition-colors">
+                {org.name}
+              </span>
+              <span className="font-mono text-[10px] text-[var(--ink-muted)]">
+                ID: {org.publicId.slice(0, 8)}...
+              </span>
+            </div>
           </div>
-          <button onClick={handleOpenCreateOrg} className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer">
-            <Plus size={13} /><span>Add Organization</span>
-          </button>
-        </div>
-
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search organizations…"
-          className="register-input w-full max-w-xs text-xs"
-        />
-
-        {loading ? (
-          <div className="text-xs text-[var(--ink-muted)] py-6 text-center">Loading…</div>
-        ) : filteredOrgs.length === 0 ? (
-          <div className="text-xs text-[var(--ink-muted)] py-6 text-center border border-dashed border-[var(--rule)] rounded-[4px]">
-            No Organizations found. Add one to get started.
+        );
+      },
+    },
+    {
+      key: 'code',
+      header: 'Code',
+      width: '100px',
+      render: (org) => (
+        <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] border border-[var(--rule)] text-[var(--ink)]">
+          {org.code || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'customDomain',
+      header: 'Subdomain / Domain',
+      render: (org) =>
+        org.customDomain ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium">
+            <Globe size={11} />
+            {org.customDomain}
+          </span>
+        ) : (
+          <span className="text-[var(--ink-muted)] text-[11px]">—</span>
+        ),
+    },
+    {
+      key: 'address',
+      header: 'Headquarters Address',
+      render: (org) =>
+        org.address ? (
+          <div className="flex items-center gap-1 text-xs text-[var(--ink-muted)] max-w-xs truncate" title={org.address}>
+            <MapPin size={11} className="shrink-0 text-[var(--ink-muted)]" />
+            <span className="truncate">{org.address}</span>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredOrgs.map((org) => {
-              const orgBranches = branches.filter(b => b.organizationId === org.id);
-              return (
-                <div key={org.id} className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-                  <div
-                    className="flex items-center gap-3 px-4 py-3 bg-[var(--paper)] cursor-pointer hover:bg-[var(--surface)] transition-colors"
-                    onClick={() => handleOpenEditOrg(org)}
-                  >
-                    <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center shrink-0">
-                      <Building2 size={14} />
-                    </div>
+          <span className="text-[var(--ink-muted)] text-xs">—</span>
+        ),
+    },
+    {
+      key: 'branches',
+      header: 'Branches',
+      width: '110px',
+      render: (org) => {
+        const count = branches.filter((b) => b.organizationId === org.id).length;
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/settings/organizations/${org.publicId}/branches`);
+            }}
+            className="font-mono text-[11px] font-semibold px-2 py-0.5 rounded bg-[var(--surface-sunken)] hover:bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink)] cursor-pointer transition-colors"
+          >
+            {count} {count === 1 ? 'branch' : 'branches'}
+          </button>
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '90px',
+      render: (org) =>
+        org.isActive !== false ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            Active
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-500/10 text-[var(--ink-muted)] border border-[var(--rule)]">
+            Archived
+          </span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      width: '48px',
+      align: 'right',
+      render: (org) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <RowActionMenu
+            actions={[
+              {
+                label: 'Edit Details & Logo',
+                icon: <Edit2 size={14} />,
+                onClick: () => navigate(`/settings/organizations/${org.publicId}`),
+              },
+              {
+                label: 'Manage Branches',
+                icon: <Eye size={14} />,
+                onClick: () => navigate(`/settings/organizations/${org.publicId}/branches`),
+              },
+            ] as RowAction[]}
+          />
+        </div>
+      ),
+    },
+  ];
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm text-[var(--ink)]">{org.name}</span>
-                        {org.isActive !== false
-                          ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--ok-600)]"><span className="status-dot-ok" /> Active</span>
-                          : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--warn-600)]"><span className="status-dot-warn" /> Archived</span>
-                        }
-                      </div>
-                      <div className="flex items-center gap-3 mt-0.5 text-[11px] text-[var(--ink-muted)]">
-                        {org.address && <span className="flex items-center gap-1"><MapPin size={10} />{org.address}</span>}
-                        <span>{orgBranches.length} {orgBranches.length === 1 ? 'branch' : 'branches'}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <RowActionMenu actions={[
-                        { label: 'View', icon: <Eye size={14} />, onClick: () => navigate(`/settings/organizations/${org.publicId}`) },
-                        { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => handleOpenEditOrg(org) },
-                        org.isActive === false
-                          ? { label: 'Restore', icon: <RotateCcw size={14} />, onClick: async () => { try { await apiClient.put(`/masters/organizations/${org.publicId}`, { ...org, isActive: true }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: true } : o)); showSuccess('Restored', `${org.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }, variant: 'success', dividerBefore: true }
-                          : { label: 'Archive', icon: <Archive size={14} />, onClick: async () => { try { await apiClient.put(`/masters/organizations/${org.publicId}`, { ...org, isActive: false }); setOrganizations(organizations.map(o => o.id === org.id ? { ...o, isActive: false } : o)); showSuccess('Archived', `${org.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }, dividerBefore: true },
-                        { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteOrg(org.id), variant: 'danger' },
-                      ] as RowAction[]} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+  return (
+    <div className="space-y-4 max-w-6xl font-ui">
+      {/* KPI Top Stat Summary Chips */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="flex items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
+          <div className="w-8 h-8 rounded-[4px] bg-[var(--gold-500)]/10 text-[var(--gold-600)] dark:text-[var(--gold-400)] flex items-center justify-center font-bold">
+            <Building2 size={16} />
           </div>
-        )}
+          <div>
+            <div className="font-mono text-base font-bold text-[var(--ink)] leading-none">
+              {organizations.length}
+            </div>
+            <div className="text-[11px] text-[var(--ink-muted)] mt-0.5">Total Organizations</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
+          <div className="w-8 h-8 rounded-[4px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+            <Layers size={16} />
+          </div>
+          <div>
+            <div className="font-mono text-base font-bold text-[var(--ink)] leading-none">
+              {totalBranchesCount}
+            </div>
+            <div className="text-[11px] text-[var(--ink-muted)] mt-0.5">Configured Branches</div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
+          <div className="w-8 h-8 rounded-[4px] bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+            <Globe size={16} />
+          </div>
+          <div>
+            <div className="font-mono text-base font-bold text-[var(--ink)] leading-none">
+              {customDomainsCount}
+            </div>
+            <div className="text-[11px] text-[var(--ink-muted)] mt-0.5">Custom Subdomains</div>
+          </div>
+        </div>
       </div>
+
+      {/* Reusable DataToolbar */}
+      <DataToolbar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name, code, domain, or address..."
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: setArchiveFilter,
+          activeCount,
+          archivedCount,
+          allCount: organizations.length,
+        }}
+        onExport={handleExport}
+        exportLabel="Export CSV"
+        primaryAction={{
+          label: 'Add Organization',
+          icon: <Plus size={14} />,
+          onClick: () => navigate('/settings/organizations/new'),
+        }}
+      />
+
+      {/* Structured DataTable */}
+      <DataTable
+        columns={columns}
+        data={filteredOrgs}
+        loading={loading}
+        emptyMessage="No organizations found matching the selected criteria."
+        keyExtractor={(item) => item.id}
+      />
     </div>
   );
 };

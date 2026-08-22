@@ -8,6 +8,9 @@ export interface OrgForm {
   name: string;
   code: string;
   address: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  customDomain?: string;
   isActive: boolean;
 }
 
@@ -111,6 +114,9 @@ export const OrganizationShell: React.FC = () => {
             name: org.name,
             code: org.code || '',
             address: org.address || '',
+            logoUrl: org.logoUrl || '',
+            primaryColor: org.primaryColor || '#D97706',
+            customDomain: org.customDomain || '',
             isActive: org.isActive !== false,
           });
           if (policyRes.status === 'fulfilled' && policyRes.value.data) {

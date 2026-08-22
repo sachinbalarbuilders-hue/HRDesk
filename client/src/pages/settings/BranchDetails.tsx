@@ -2,9 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { MapPin, ArrowLeft, Save, Clock, Map as MapIcon } from 'lucide-react';
-import { MapContainer, TileLayer, Circle, Marker } from 'react-leaflet';
+import { MapPin, ArrowLeft, Save, Clock, Map as MapIcon, Search, Navigation, Loader2, Layers, Globe } from 'lucide-react';
+import { MapContainer, TileLayer, Circle, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+
+// Leaflet click handler component
+const MapClickHandler: React.FC<{ onLocationSelect: (lat: number, lng: number) => void }> = ({ onLocationSelect }) => {
+  useMapEvents({
+    click(e) {
+      onLocationSelect(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+};
 
 // Fix leaflet default icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -52,7 +62,132 @@ export const BranchDetails: React.FC = () => {
     fullDayThresholdHours: 8.0,
     autoSyncIntervalMinutes: 5,
     defaultWeekoff: 'Sunday',
+    sandwichRuleEnabled: true,
   });
+
+  const [mapMode, setMapMode] = useState<'streets' | 'satellite' | 'hybrid'>('satellite');
+  const [placeQuery, setPlaceQuery] = useState('');
+  const [placeResults, setPlaceResults] = useState<any[]>([]);
+  const [searchingPlace, setSearchingPlace] = useState(false);
+  const [locatingUser, setLocatingUser] = useState(false);
+
+  const handleSearchPlace = async (query: string) => {
+    setPlaceQuery(query);
+    if (!query || query.trim().length < 2) {
+      setPlaceResults([]);
+      return;
+    }
+
+    // 1. Check if user pasted Google Maps URL or raw "lat, lng" coordinates
+    const urlMatch = query.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || query.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    const coordMatch = urlMatch || query.match(/^(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)$/);
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1]);
+      const lon = parseFloat(coordMatch[2]);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        setBranchForm((prev) => ({ ...prev, latitude: lat, longitude: lon }));
+        setPlaceResults([]);
+        showSuccess('GPS Coordinates Pinned', `Location set to ${lat.toFixed(5)}, ${lon.toFixed(5)}`);
+        return;
+      }
+    }
+
+    // 2. Dual Search: Nominatim + Photon Fuzzy POI Engine
+    try {
+      setSearchingPlace(true);
+      const [nomRes, photonRes] = await Promise.allSettled([
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&limit=5`).then(r => r.json()),
+        fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`).then(r => r.json())
+      ]);
+
+      const combined: any[] = [];
+      const seen = new Set<string>();
+
+      if (nomRes.status === 'fulfilled' && Array.isArray(nomRes.value)) {
+        for (const item of nomRes.value) {
+          const key = `${parseFloat(item.lat).toFixed(4)},${parseFloat(item.lon).toFixed(4)}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            combined.push({
+              display_name: item.display_name,
+              lat: item.lat,
+              lon: item.lon,
+              type: item.type || 'place'
+            });
+          }
+        }
+      }
+
+      if (photonRes.status === 'fulfilled' && photonRes.value?.features) {
+        for (const f of photonRes.value.features) {
+          const [lon, lat] = f.geometry.coordinates;
+          const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            const props = f.properties;
+            const name = [props.name, props.street, props.city, props.state].filter(Boolean).join(', ');
+            combined.push({
+              display_name: name || props.name || 'Location',
+              lat: lat.toString(),
+              lon: lon.toString(),
+              type: props.type || 'poi'
+            });
+          }
+        }
+      }
+
+      setPlaceResults(combined);
+    } catch (err) {
+      console.error('Error searching place:', err);
+    } finally {
+      setSearchingPlace(false);
+    }
+  };
+
+  const handleSelectPlace = (place: any) => {
+    const lat = parseFloat(place.lat);
+    const lon = parseFloat(place.lon);
+    setBranchForm((prev) => ({
+      ...prev,
+      latitude: lat,
+      longitude: lon,
+    }));
+    setPlaceResults([]);
+    setPlaceQuery(place.display_name);
+    showSuccess('Location Selected', `Pinned to ${place.display_name.split(',')[0]}`);
+  };
+
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) {
+      showError('GPS Error', 'Geolocation is not supported by your browser.');
+      return;
+    }
+    setLocatingUser(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setBranchForm((prev) => ({
+          ...prev,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }));
+        setLocatingUser(false);
+        showSuccess('GPS Located', `Pinned at ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
+      },
+      () => {
+        setLocatingUser(false);
+        showError('GPS Error', 'Location permission denied or unavailable.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleMapLocationSelect = (lat: number, lng: number) => {
+    setBranchForm((prev) => ({
+      ...prev,
+      latitude: parseFloat(lat.toFixed(6)),
+      longitude: parseFloat(lng.toFixed(6)),
+    }));
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -304,31 +439,158 @@ export const BranchDetails: React.FC = () => {
                      <span className="text-[10px] text-[var(--ink-muted)] block mt-1">Comma-separated list of IP addresses allowed. Leave blank for no restriction.</span>
                   </div>
 
-                  <div className="bg-[var(--surface-sunken)] p-4 rounded-md border border-[var(--rule)]">
-                     <h4 className="font-semibold text-[13px] text-[var(--ink)] mb-3 flex items-center gap-2">
-                       <MapIcon size={14} className="text-[var(--gold-500)]" />
-                       Geofencing (Mobile App)
-                     </h4>
-                     <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div className="bg-[var(--surface-sunken)] p-4 rounded-md border border-[var(--rule)] space-y-3">
+                     <div className="flex items-center justify-between">
+                       <h4 className="font-semibold text-xs uppercase tracking-wider text-[var(--ink)] flex items-center gap-1.5">
+                         <MapIcon size={13} className="text-[var(--gold-500)]" />
+                         Geofencing
+                       </h4>
+                       <button
+                         type="button"
+                         onClick={handleLocateMe}
+                         disabled={locatingUser}
+                         className="px-2.5 py-1 text-xs font-semibold rounded bg-[var(--surface)] border border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)] flex items-center gap-1.5 transition-colors cursor-pointer"
+                       >
+                         {locatingUser ? <Loader2 size={12} className="animate-spin text-[var(--gold-500)]" /> : <Navigation size={12} className="text-[var(--gold-500)]" />}
+                         {locatingUser ? 'Locating...' : 'Current Location'}
+                       </button>
+                     </div>
+
+                     {/* Clean Search Input */}
+                     <div className="relative">
+                       <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Search Location</label>
+                       <div className="relative">
+                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none" />
+                         <input
+                           type="text"
+                           value={placeQuery}
+                           onChange={(e) => handleSearchPlace(e.target.value)}
+                           onKeyDown={(e) => {
+                             if (e.key === 'Enter') {
+                               e.preventDefault();
+                               e.stopPropagation();
+                               if (placeResults.length > 0) {
+                                 handleSelectPlace(placeResults[0]);
+                               } else if (placeQuery.trim().length >= 2) {
+                                 handleSearchPlace(placeQuery);
+                               }
+                             }
+                           }}
+                           placeholder="Search address, city, or coordinates..."
+                           className="register-input w-full !pl-9 text-xs"
+                         />
+                         {searchingPlace && (
+                           <Loader2 size={14} className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-[var(--gold-500)]" />
+                         )}
+                       </div>
+
+                       {/* Autocomplete Results Dropdown */}
+                       {placeResults.length > 0 && (
+                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl max-h-48 overflow-y-auto">
+                           {placeResults.map((place: any, idx: number) => (
+                             <button
+                               key={idx}
+                               type="button"
+                               onClick={() => handleSelectPlace(place)}
+                               className="w-full text-left px-3 py-2 text-xs hover:bg-[var(--surface-sunken)] border-b border-[var(--rule)]/40 last:border-0 flex items-start gap-2 text-[var(--ink)] transition-colors cursor-pointer"
+                             >
+                               <MapPin size={13} className="text-[var(--gold-500)] shrink-0 mt-0.5" />
+                               <span className="truncate">{place.display_name}</span>
+                             </button>
+                           ))}
+                         </div>
+                       )}
+                     </div>
+
+                     <div className="grid grid-cols-3 gap-3">
                        <div>
-                         <label className="block font-medium text-[var(--ink)] mb-1 text-xs">Latitude</label>
-                         <input type="number" step="0.0001" value={branchForm.latitude} onChange={(e) => setBranchForm({ ...branchForm, latitude: parseFloat(e.target.value) })} className="register-input w-full font-data text-xs" />
+                         <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Latitude</label>
+                         <input type="number" step="0.000001" value={branchForm.latitude} onChange={(e) => setBranchForm({ ...branchForm, latitude: parseFloat(e.target.value) })} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} className="register-input w-full font-data text-xs" />
                        </div>
                        <div>
-                         <label className="block font-medium text-[var(--ink)] mb-1 text-xs">Longitude</label>
-                         <input type="number" step="0.0001" value={branchForm.longitude} onChange={(e) => setBranchForm({ ...branchForm, longitude: parseFloat(e.target.value) })} className="register-input w-full font-data text-xs" />
+                         <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Longitude</label>
+                         <input type="number" step="0.000001" value={branchForm.longitude} onChange={(e) => setBranchForm({ ...branchForm, longitude: parseFloat(e.target.value) })} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} className="register-input w-full font-data text-xs" />
                        </div>
                        <div>
-                         <label className="block font-medium text-[var(--ink)] mb-1 text-xs">Radius (m)</label>
-                         <input type="number" value={branchForm.radiusMeters} onChange={(e) => setBranchForm({ ...branchForm, radiusMeters: parseInt(e.target.value) })} className="register-input w-full font-data text-xs" />
+                         <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Radius (m)</label>
+                         <input type="number" value={branchForm.radiusMeters} onChange={(e) => setBranchForm({ ...branchForm, radiusMeters: parseInt(e.target.value) })} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} className="register-input w-full font-data text-xs" />
                        </div>
                      </div>
-                     <div className="w-full h-[200px] bg-slate-100 rounded border border-[var(--rule)] overflow-hidden relative">
+
+                     <div className="w-full h-[250px] bg-slate-100 rounded border border-[var(--rule)] overflow-hidden relative">
+                        {/* Map Mode Layer Selector */}
+                        <div className="absolute top-2 right-2 z-[1000] bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm p-1 rounded-md shadow-md border border-[var(--rule)] flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setMapMode('streets')}
+                            className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded transition-colors ${
+                              mapMode === 'streets'
+                                ? 'bg-[var(--gold-500)] text-white shadow-sm'
+                                : 'text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-sunken)]'
+                            }`}
+                          >
+                            Street
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMapMode('satellite')}
+                            className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded transition-colors flex items-center gap-1 ${
+                              mapMode === 'satellite'
+                                ? 'bg-[var(--gold-500)] text-white shadow-sm'
+                                : 'text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-sunken)]'
+                            }`}
+                          >
+                            <Globe size={10} />
+                            Satellite
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMapMode('hybrid')}
+                            className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded transition-colors flex items-center gap-1 ${
+                              mapMode === 'hybrid'
+                                ? 'bg-[var(--gold-500)] text-white shadow-sm'
+                                : 'text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-sunken)]'
+                            }`}
+                          >
+                            <Layers size={10} />
+                            Hybrid
+                          </button>
+                        </div>
+
                         {(branchForm.latitude && branchForm.longitude) ? (
-                          <MapContainer key={`${branchForm.latitude}-${branchForm.longitude}`} center={[branchForm.latitude, branchForm.longitude]} zoom={16} style={{ height: '100%', width: '100%' }}>
-                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                          <MapContainer key={`${branchForm.latitude}-${branchForm.longitude}-${mapMode}`} center={[branchForm.latitude, branchForm.longitude]} zoom={16} style={{ height: '100%', width: '100%' }}>
+                            {mapMode === 'streets' && (
+                              <TileLayer
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                attribution='&copy; OpenStreetMap'
+                              />
+                            )}
+                            {mapMode === 'satellite' && (
+                              <TileLayer
+                                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                                attribution="Tiles &copy; Esri"
+                                maxZoom={19}
+                              />
+                            )}
+                            {mapMode === 'hybrid' && (
+                              <TileLayer
+                                url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                                attribution="&copy; Google"
+                                maxZoom={20}
+                              />
+                            )}
+                            <MapClickHandler onLocationSelect={handleMapLocationSelect} />
                             <Marker position={[branchForm.latitude, branchForm.longitude]} />
-                            <Circle center={[branchForm.latitude, branchForm.longitude]} pathOptions={{ color: 'indigo', fillColor: 'indigo', fillOpacity: 0.2 }} radius={branchForm.radiusMeters || 100} />
+                            <Circle
+                              center={[branchForm.latitude, branchForm.longitude]}
+                              pathOptions={{
+                                color: mapMode === 'streets' ? '#4f46e5' : '#eab308',
+                                fillColor: mapMode === 'streets' ? '#6366f1' : '#facc15',
+                                fillOpacity: 0.25,
+                                weight: 2
+                              }}
+                              radius={branchForm.radiusMeters || 100}
+                            />
                           </MapContainer>
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center text-[var(--ink-muted)] flex-col gap-2">

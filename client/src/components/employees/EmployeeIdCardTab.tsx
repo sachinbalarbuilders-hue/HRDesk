@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Droplet, Phone, Calendar, QrCode, MapPin, Barcode } from 'lucide-react';
+import { User, Droplet, Phone, Calendar, MapPin, Barcode } from 'lucide-react';
 import { useOrganization } from '../../context/CompanyContext';
 import { AuthImage } from '../ui/AuthImage';
 
@@ -12,10 +12,10 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
   const [theme, setTheme] = useState<'classic' | 'modern' | 'dark'>('classic');
   
   const dob = employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString('en-GB') : 'N/A';
-  const orgName = currentOrganization?.name || 'VIMAL CO.';
-  const orgAddress = '123 Corporate Avenue, Business District, City 400001, India';
-  const orgPhone = '+91 98765 43210';
-  const email = employee.workEmail || 'employee@vimal.com';
+  const orgName = employee.organizationName || currentOrganization?.name || employee.companyName || 'Company';
+  const orgAddress = employee.organizationAddress || currentOrganization?.address || employee.branchAddress || 'Registered Corporate Office';
+  const orgPhone = employee.companyPhone || employee.phone || '+91 98765 43210';
+  const email = employee.workEmail || employee.personalEmail || 'contact@company.com';
   
   const qrData = `${window.location.origin}/verify/${employee.verificationId || employee.employeeId}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`;
@@ -103,7 +103,7 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
               </p>
             </div>
             <p className="text-[8px] text-gray-500 leading-relaxed font-medium">
-              This card is non-transferable. Misuse is a punishable offense. If found, please return to the address above or call {orgPhone}.
+              This card is non-transferable. Misuse is a punishable offense. If found, please return to the address above.
             </p>
           </div>
         </div>
@@ -177,7 +177,7 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
 
           <div className="mt-4 pt-4 border-t border-gray-800 flex gap-2 text-[10px] text-gray-400 leading-relaxed">
             <MapPin size={14} className="text-[var(--gold-500)] shrink-0 mt-0.5"/>
-            <span>Property of {orgName}. If found, please return to:<br/>{orgAddress} (Ph: {orgPhone})</span>
+            <span>Property of {orgName}. If found, please return to:<br/>{orgAddress}</span>
           </div>
         </div>
       </div>

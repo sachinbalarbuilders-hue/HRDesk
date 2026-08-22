@@ -170,7 +170,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("InterviewSchedules");
+                    b.ToTable("InterviewSchedules", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.ApplicationSequence", b =>
@@ -199,7 +199,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("application_sequences");
+                    b.ToTable("application_sequences", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.AttendanceLog", b =>
@@ -351,7 +351,78 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId", "EmployeeId");
 
-                    b.ToTable("attendance_regularizations");
+                    b.ToTable("attendance_regularizations", (string)null);
+                });
+
+            modelBuilder.Entity("HRDesk.Web.Models.AuditLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("ChangedColumns")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("changed_columns");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("entity_name");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("ip_address");
+
+                    b.Property<string>("NewValues")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("new_values");
+
+                    b.Property<string>("OldValues")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("old_values");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("PrimaryKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("primary_key");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("timestamp");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("user_name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "EntityName");
+
+                    b.HasIndex("OrganizationId", "Timestamp")
+                        .IsDescending(false, true);
+
+                    b.ToTable("audit_logs", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.BiometricEmployeeMapping", b =>
@@ -394,7 +465,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("biometric_employee_mappings");
+                    b.ToTable("biometric_employee_mappings", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.Branch", b =>
@@ -491,7 +562,7 @@ namespace HRDesk.Web.Migrations
                     b.HasIndex("PublicId")
                         .IsUnique();
 
-                    b.ToTable("branches");
+                    b.ToTable("branches", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.CelebrationLog", b =>
@@ -529,7 +600,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId", "EmployeeId");
 
-                    b.ToTable("celebration_logs");
+                    b.ToTable("celebration_logs", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.CompOffCredit", b =>
@@ -571,7 +642,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId", "EmployeeId");
 
-                    b.ToTable("comp_off_credits");
+                    b.ToTable("comp_off_credits", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.CompOffRequest", b =>
@@ -657,7 +728,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId", "EmployeeId");
 
-                    b.ToTable("comp_off_requests");
+                    b.ToTable("comp_off_requests", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.Company", b =>
@@ -735,7 +806,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("companies");
+                    b.ToTable("companies", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.DailyAttendance", b =>
@@ -975,7 +1046,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("device_commands");
+                    b.ToTable("device_commands", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.DeviceConfiguration", b =>
@@ -1013,7 +1084,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("DeviceConfigurations");
+                    b.ToTable("DeviceConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.DeviceSyncState", b =>
@@ -1053,7 +1124,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("device_sync_state");
+                    b.ToTable("device_sync_state", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.Employee", b =>
@@ -1254,7 +1325,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId", "EmployeeId");
 
-                    b.ToTable("employee_documents");
+                    b.ToTable("employee_documents", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.EmployeeLoan", b =>
@@ -1469,7 +1540,7 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId", "EmployeeId");
 
-                    b.ToTable("employee_shift_assignments");
+                    b.ToTable("employee_shift_assignments", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.Holiday", b =>
@@ -1942,6 +2013,11 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("CustomDomain")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("custom_domain");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")
                         .HasColumnName("is_active");
@@ -1949,6 +2025,11 @@ namespace HRDesk.Web.Migrations
                     b.Property<double?>("Latitude")
                         .HasColumnType("float")
                         .HasColumnName("latitude");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("logo_url");
 
                     b.Property<double?>("Longitude")
                         .HasColumnType("float")
@@ -1959,6 +2040,11 @@ namespace HRDesk.Web.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("name");
+
+                    b.Property<string>("PrimaryColor")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("primary_color");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uniqueidentifier")
@@ -1980,7 +2066,7 @@ namespace HRDesk.Web.Migrations
                     b.HasIndex("PublicId")
                         .IsUnique();
 
-                    b.ToTable("Organizations");
+                    b.ToTable("Organizations", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.PayrollDetail", b =>
@@ -2469,7 +2555,183 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId", "EmployeeId");
 
-                    b.ToTable("shift_roster");
+                    b.ToTable("shift_roster", (string)null);
+                });
+
+            modelBuilder.Entity("HRDesk.Web.Models.SubscriptionPayment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("BillingCycle")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("billing_cycle");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("GatewayOrderId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("gateway_order_id");
+
+                    b.Property<string>("GatewayPaymentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("gateway_payment_id");
+
+                    b.Property<string>("GatewaySignature")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("gateway_signature");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("invoice_number");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("paid_at");
+
+                    b.Property<string>("PaymentGateway")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("payment_gateway");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("int")
+                        .HasColumnName("plan_id");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("public_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("tax_amount");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("OrganizationId", "CreatedAt")
+                        .IsDescending(false, true);
+
+                    b.ToTable("subscription_payments", (string)null);
+                });
+
+            modelBuilder.Entity("HRDesk.Web.Models.SubscriptionPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("HasBiometricsModule")
+                        .HasColumnType("bit")
+                        .HasColumnName("has_biometrics_module");
+
+                    b.Property<bool>("HasCustomDomain")
+                        .HasColumnType("bit")
+                        .HasColumnName("has_custom_domain");
+
+                    b.Property<bool>("HasLoanManagement")
+                        .HasColumnType("bit")
+                        .HasColumnName("has_loan_management");
+
+                    b.Property<bool>("HasPayrollModule")
+                        .HasColumnType("bit")
+                        .HasColumnName("has_payroll_module");
+
+                    b.Property<bool>("HasRecruitmentModule")
+                        .HasColumnType("bit")
+                        .HasColumnName("has_recruitment_module");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_active");
+
+                    b.Property<int>("MaxBranches")
+                        .HasColumnType("int")
+                        .HasColumnName("max_branches");
+
+                    b.Property<int>("MaxEmployees")
+                        .HasColumnType("int")
+                        .HasColumnName("max_employees");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("name");
+
+                    b.Property<decimal>("PricePerMonth")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("price_per_month");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("public_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("subscription_plans", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.SystemSetting", b =>
@@ -2514,7 +2776,64 @@ namespace HRDesk.Web.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("system_settings");
+                    b.ToTable("system_settings", (string)null);
+                });
+
+            modelBuilder.Entity("HRDesk.Web.Models.TenantSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BillingCycle")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("billing_cycle");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int")
+                        .HasColumnName("organization_id");
+
+                    b.Property<int>("PlanId")
+                        .HasColumnType("int")
+                        .HasColumnName("plan_id");
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("public_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("TrialEndsAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("trial_ends_at");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("updated_at");
+
+                    b.Property<DateTime>("ValidUntil")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("valid_until");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("PlanId");
+
+                    b.ToTable("tenant_subscriptions", (string)null);
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.User", b =>
@@ -3380,6 +3699,25 @@ namespace HRDesk.Web.Migrations
                     b.Navigation("Shift");
                 });
 
+            modelBuilder.Entity("HRDesk.Web.Models.SubscriptionPayment", b =>
+                {
+                    b.HasOne("HRDesk.Web.Models.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HRDesk.Web.Models.SubscriptionPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Plan");
+                });
+
             modelBuilder.Entity("HRDesk.Web.Models.SystemSetting", b =>
                 {
                     b.HasOne("HRDesk.Web.Models.Branch", "Branch")
@@ -3396,6 +3734,25 @@ namespace HRDesk.Web.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("HRDesk.Web.Models.TenantSubscription", b =>
+                {
+                    b.HasOne("HRDesk.Web.Models.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HRDesk.Web.Models.SubscriptionPlan", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Plan");
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.User", b =>
