@@ -297,6 +297,13 @@ public class AuthController : ControllerBase
                 roleName = user.CustomRole?.Name ?? user.Role,
                 employeeId = user.EmployeeId,
                 employeeName = user.Employee?.EmployeeName,
+                attendanceType = user.Employee?.AttendanceType,
+                employeeCode = user.Employee != null
+                    ? $"{user.Employee.Branch?.Code ?? "EMP-"}{user.Employee.EmployeeId:D3}"
+                    : null,
+                branchId = user.Employee?.BranchId,
+                isFaceEnrolled = !string.IsNullOrEmpty(user.Employee?.FaceId),
+                faceId = user.Employee?.FaceId,
                 avatarUrl = user.Employee?.PhotoPath,
                 organizationId = user.OrganizationId,
                 organizationName = user.Organization?.Name ?? "HRDesk Builders & Developers"

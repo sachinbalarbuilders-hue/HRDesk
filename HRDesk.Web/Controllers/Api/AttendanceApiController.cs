@@ -440,11 +440,14 @@ public class AttendanceController : ControllerBase
                 .FirstOrDefaultAsync(b => b.Id == employee.BranchId.Value);
         }
 
-        // ── 0. FACE LIVENESS CHECK ───────────────────────────────────────────
-        // Applies to AttendanceType = "Face + Location" (or any type containing "face").
-        // The Flutter app runs on-device liveness detection and sends LivenessVerified=true
-        // once the check passes. The backend enforces that this flag is present and true
-        // before allowing the punch — it does not perform its own face matching.
+        // ── 0. FACE LIVENESS + IDENTITY CHECK ───────────────────────────────
+        // Applies to AttendanceType containing "face".
+        // flutter_face_liveness runs on-device (FaceNet TFLite) and sends:
+        //   LivenessVerified = true  (all challenge actions passed + anti-spoof)
+        //   FaceId = "FID-..."      (persistent identity token for this person's face)
+        //
+        // Enrollment (first punch): employee.FaceId is null → store FaceId and continue.
+        // Verification (subsequent): employee.FaceId must match dto.FaceId.
         var attType = employee.AttendanceType?.ToLowerInvariant() ?? "";
         bool requiresFace = attType.Contains("face");
 
@@ -454,18 +457,64 @@ public class AttendanceController : ControllerBase
             {
                 return BadRequest(new
                 {
-                    message = "Face liveness verification is required for this employee's attendance type. Please complete the liveness check in the mobile app.",
+                    message = "Face liveness verification is required for this employee's attendance type.",
+                    requiresFace = true,
+                    isFaceEnrolled = !string.IsNullOrEmpty(employee.FaceId)
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.FaceId))
+            {
+                return BadRequest(new
+                {
+                    message = "Face identity token (faceId) is required for face-based attendance.",
                     requiresFace = true
                 });
             }
 
+            if (string.IsNullOrEmpty(employee.FaceId))
+            {
+                // ── ENROLLMENT: first face punch — store the FaceId ──────────
+                var enrollEmp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == targetEmpId);
+                if (enrollEmp != null)
+                {
+                    enrollEmp.FaceId = dto.FaceId.Trim();
+                    await _db.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                // ── VERIFICATION: trust flutter_face_liveness on-device matching ──
+                // IsFaceIdNew == false means the library matched this face against
+                // its stored embedding (same person). IsFaceIdNew == true means
+                // the face was not recognised — different person.
+                if (dto.IsFaceIdNew == true)
+                {
+                    return BadRequest(new
+                    {
+                        message = "Face identity does not match the enrolled face for this employee. Access denied.",
+                        requiresFace = true,
+                        isFaceEnrolled = true
+                    });
+                }
+                // If IsFaceIdNew is null (library didn't return it), fall back to
+                // string comparison as a safety net
+                if (dto.IsFaceIdNew == null &&
+                    !string.Equals(employee.FaceId.Trim(), dto.FaceId.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new
+                    {
+                        message = "Face identity does not match the enrolled face for this employee. Access denied.",
+                        requiresFace = true,
+                        isFaceEnrolled = true
+                    });
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(dto.PhotoBase64))
             {
-                return BadRequest(new
-                {
-                    message = "A selfie photo is required alongside the liveness verification result.",
-                    requiresFace = true
-                });
+                // Photo is optional for audit trail — liveness + faceId is the actual verification
+                // so we don't block the punch if the library doesn't expose image bytes
             }
         }
 
@@ -965,16 +1014,26 @@ public record PunchRequestDto(
     double? Longitude,
     string? PhotoBase64,
     /// <summary>
-    /// Set to true by the Flutter app after the on-device liveness check passes
-    /// (flutter_liveness / google_mlkit_face_detection). The backend trusts this
-    /// flag — liveness detection runs in the Flutter secure context, not the server.
-    /// Required for employees whose AttendanceType = "Face + Location".
+    /// Set to true by the Flutter app after flutter_face_liveness passes.
+    /// Required for employees whose AttendanceType contains "face".
     /// </summary>
     bool? LivenessVerified = null,
     /// <summary>
-    /// Optional face similarity confidence score (0.0–1.0) from the Flutter face
-    /// detection library. Stored on the punch log for audit purposes only.
+    /// Optional face similarity confidence score (0.0–1.0). Stored for audit.
     /// </summary>
-    double? FaceConfidence = null
+    double? FaceConfidence = null,
+    /// <summary>
+    /// Persistent face identity token from flutter_face_liveness FaceNet TFLite.
+    /// Format: "FID-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    /// Null on first punch (enrollment). Must match stored FaceId on subsequent punches.
+    /// </summary>
+    string? FaceId = null,
+    /// <summary>
+    /// Passed from flutter_face_liveness: false = on-device FaceNet already matched
+    /// this face against the stored embedding (same person). True = new/unrecognised face.
+    /// The backend uses this instead of string equality to handle slight embedding drift
+    /// between sessions.
+    /// </summary>
+    bool? IsFaceIdNew = null
 );
 

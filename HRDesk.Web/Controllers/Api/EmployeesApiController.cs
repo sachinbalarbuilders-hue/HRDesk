@@ -245,7 +245,9 @@ END;";
             employee.ContractDurationMonths,
             employee.ContractEndDate,
             roleId = activeRoleId,
-            hasLoginAccess = user != null && user.IsActive
+            hasLoginAccess = user != null && user.IsActive,
+            isFaceEnrolled = !string.IsNullOrEmpty(employee.FaceId),
+            faceId = employee.FaceId
         });
     }
 
