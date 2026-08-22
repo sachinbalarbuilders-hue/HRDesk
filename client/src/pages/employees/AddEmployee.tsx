@@ -29,11 +29,22 @@ export const AddEmployee: React.FC = () => {
   const handleSubmit = async (data: EmployeeFormData) => {
     try {
       setSubmitting(true);
-      // roleId comes from a <select> as a string; convert to int or null before posting
-      // so the backend's int? DTO can deserialize it correctly.
+      // All numeric/date fields come from <select> and <input> as strings.
+      // Coerce them to the correct types (int, date, or null) before posting
+      // so the backend's typed DTO can deserialize without a 400.
+      const toInt = (v: any) => (v !== '' && v != null && !isNaN(Number(v))) ? parseInt(v, 10) : null;
+      const toDate = (v: any) => (v !== '' && v != null) ? v : null;
       const payload = {
         ...data,
-        roleId: data.roleId !== '' ? parseInt(data.roleId, 10) : null,
+        employeeId:        toInt(data.employeeId),
+        departmentId:      toInt(data.departmentId),
+        designationId:     toInt(data.designationId),
+        reportingManagerId: toInt(data.reportingManagerId),
+        branchId:          toInt(data.branchId),
+        roleId:            toInt(data.roleId),
+        dateOfBirth:       toDate(data.dateOfBirth),
+        joiningDate:       toDate(data.joiningDate),
+        contractEndDate:   toDate(data.contractEndDate),
       };
       await apiClient.post('/employees', payload);
       showSuccess('Success', 'Employee created successfully.');

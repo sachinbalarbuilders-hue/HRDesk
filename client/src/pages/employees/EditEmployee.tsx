@@ -37,12 +37,21 @@ export const EditEmployee: React.FC = () => {
   const handleSubmit = async (data: EmployeeFormData) => {
     try {
       setSubmitting(true);
-      // `id` here is the opaque PublicId (GUID) used in the URL, not the internal integer EmployeeId.
-      // roleId comes from a <select> as a string; convert to int or null before posting.
+      const toInt = (v: any) => (v !== '' && v != null && !isNaN(Number(v))) ? parseInt(v, 10) : null;
+      const toDate = (v: any) => (v !== '' && v != null) ? v : null;
       const payload = {
         ...data,
-        roleId: data.roleId !== '' ? parseInt(data.roleId, 10) : null,
+        employeeId:         toInt(data.employeeId),
+        departmentId:       toInt(data.departmentId),
+        designationId:      toInt(data.designationId),
+        reportingManagerId: toInt(data.reportingManagerId),
+        branchId:           toInt(data.branchId),
+        roleId:             toInt(data.roleId),
+        dateOfBirth:        toDate(data.dateOfBirth),
+        joiningDate:        toDate(data.joiningDate),
+        contractEndDate:    toDate(data.contractEndDate),
       };
+      // `id` here is the opaque PublicId (GUID) used in the URL, not the internal integer EmployeeId.
       await apiClient.put(`/employees/${id}`, payload);
       showSuccess('Success', 'Employee updated successfully.');
       navigate(`/employees/${id}`);
