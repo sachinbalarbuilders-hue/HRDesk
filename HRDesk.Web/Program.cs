@@ -234,6 +234,24 @@ BEGIN
         ScannedBy NVARCHAR(100) NULL
     );
     CREATE INDEX IX_gate_activity_logs_org_scanned ON gate_activity_logs(organization_id, ScannedAt DESC);
+END;
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_shift_roster_date_emp' AND object_id = OBJECT_ID('shift_roster'))
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_shift_roster_date_emp
+    ON [shift_roster] ([roster_date], [employee_id])
+    INCLUDE ([is_week_off], [shift_id], [organization_id]);
+END;
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_daily_attendance_date_emp' AND object_id = OBJECT_ID('daily_attendance'))
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_daily_attendance_date_emp
+    ON [daily_attendance] ([record_date], [employee_id])
+    INCLUDE ([status], [in_time], [out_time], [work_minutes], [is_half_day], [is_late], [is_early], [shift_id], [organization_id]);
+END;
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_leave_applications_date_emp' AND object_id = OBJECT_ID('leave_applications'))
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_leave_applications_date_emp
+    ON [leave_applications] ([start_date], [end_date], [employee_id], [status])
+    INCLUDE ([leave_type_id], [total_days], [reason], [organization_id]);
 END;";
         db.Database.ExecuteSqlRaw(ensureSql);
     }
