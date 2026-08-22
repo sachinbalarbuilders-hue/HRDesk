@@ -65,15 +65,17 @@ export const Dashboard: React.FC = () => {
       setPunching(true);
       setPunchMessage(null);
 
-      // Attempt to retrieve browser/mobile GPS coordinates for Geo-Fencing
+      // Attempt to retrieve GPS coordinates for Geo-Fencing enforcement.
+      // Timeout is 15s — desktop GPS (via WiFi/IP) can take longer than mobile.
       let coords: { latitude?: number; longitude?: number } = {};
+      let locationFailed = false;
       if (navigator.geolocation) {
         try {
           const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 4000,
-              maximumAge: 10000,
+              enableHighAccuracy: false,  // false = faster WiFi/IP location, works on desktops
+              timeout: 15000,
+              maximumAge: 0,              // always fresh — don't use cached position
             });
           });
           coords = {
@@ -81,8 +83,15 @@ export const Dashboard: React.FC = () => {
             longitude: pos.coords.longitude,
           };
         } catch {
-          // GPS optional for standard web punches, but backend will enforce if employee is strictly Geo-Fenced
+          locationFailed = true;
         }
+      }
+
+      if (locationFailed) {
+        // Tell the user clearly instead of silently submitting without coords
+        // (the backend will reject if the employee's attendance type requires GPS)
+        setPunchMessage('Could not get your location. Please ensure location access is allowed for this site and try again.');
+        return;
       }
 
       const res = await apiClient.post('/attendance/punch', {
