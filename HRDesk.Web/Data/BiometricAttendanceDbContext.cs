@@ -106,6 +106,23 @@ public sealed class BiometricAttendanceDbContext : DbContext
         modelBuilder.Entity<DailyAttendance>().HasIndex(d => d.RecordDate);
         modelBuilder.Entity<AttendanceLog>().HasIndex(a => a.PunchTime);
         modelBuilder.Entity<GateActivityLog>().HasIndex(g => new { g.OrganizationId, g.ScannedAt });
+
+        // Attendance/roster/leave lookup indexes with INCLUDE columns, used heavily by the
+        // monthly attendance matrix and roster views to avoid key-lookup round trips.
+        modelBuilder.Entity<ShiftRoster>()
+            .HasIndex(s => new { s.RosterDate, s.EmployeeId })
+            .HasDatabaseName("IX_shift_roster_date_emp")
+            .IncludeProperties(s => new { s.IsWeekOff, s.ShiftId, s.OrganizationId });
+
+        modelBuilder.Entity<DailyAttendance>()
+            .HasIndex(d => new { d.RecordDate, d.EmployeeId })
+            .HasDatabaseName("IX_daily_attendance_date_emp")
+            .IncludeProperties(d => new { d.Status, d.InTime, d.OutTime, d.WorkMinutes, d.IsHalfDay, d.IsLate, d.IsEarly, d.ShiftId, d.OrganizationId });
+
+        modelBuilder.Entity<LeaveApplication>()
+            .HasIndex(l => new { l.StartDate, l.EndDate, l.EmployeeId, l.Status })
+            .HasDatabaseName("IX_leave_applications_date_emp")
+            .IncludeProperties(l => new { l.LeaveTypeId, l.TotalDays, l.Reason, l.OrganizationId });
         
         // Comprehensive Performance Indexes - Tier 2
         modelBuilder.Entity<Employee>().HasIndex(e => e.Status);

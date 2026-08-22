@@ -38,7 +38,12 @@ export const EditEmployee: React.FC = () => {
     try {
       setSubmitting(true);
       // `id` here is the opaque PublicId (GUID) used in the URL, not the internal integer EmployeeId.
-      await apiClient.put(`/employees/${id}`, data);
+      // roleId comes from a <select> as a string; convert to int or null before posting.
+      const payload = {
+        ...data,
+        roleId: data.roleId !== '' ? parseInt(data.roleId, 10) : null,
+      };
+      await apiClient.put(`/employees/${id}`, payload);
       showSuccess('Success', 'Employee updated successfully.');
       navigate(`/employees/${id}`);
     } catch (err: any) {

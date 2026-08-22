@@ -201,65 +201,6 @@ builder.Services.AddScoped<HRDesk.Web.Services.Notifications.WhatsAppNotificatio
 
 var app = builder.Build();
 
-// Ensure startup database schema synchronization
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<HRDesk.Web.Data.BiometricAttendanceDbContext>();
-    try
-    {
-        var ensureSql = @"
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'ContractDurationMonths')
-BEGIN
-    ALTER TABLE employees ADD ContractDurationMonths INT NULL;
-END;
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'ContractEndDate')
-BEGIN
-    ALTER TABLE employees ADD ContractEndDate DATETIME2 NULL;
-END;
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'gate_activity_logs')
-BEGIN
-    CREATE TABLE gate_activity_logs (
-        Id BIGINT IDENTITY(1,1) PRIMARY KEY,
-        organization_id INT NOT NULL,
-        BranchId INT NULL,
-        EmployeeId INT NULL,
-        EmployeeCode NVARCHAR(50) NOT NULL,
-        EmployeeName NVARCHAR(150) NOT NULL,
-        DepartmentName NVARCHAR(100) NULL,
-        DesignationName NVARCHAR(100) NULL,
-        ScanStatus NVARCHAR(30) NOT NULL,
-        ScanMode NVARCHAR(30) NOT NULL,
-        Reason NVARCHAR(255) NULL,
-        ScannedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-        ScannedBy NVARCHAR(100) NULL
-    );
-    CREATE INDEX IX_gate_activity_logs_org_scanned ON gate_activity_logs(organization_id, ScannedAt DESC);
-END;
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_shift_roster_date_emp' AND object_id = OBJECT_ID('shift_roster'))
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_shift_roster_date_emp
-    ON [shift_roster] ([roster_date], [employee_id])
-    INCLUDE ([is_week_off], [shift_id], [organization_id]);
-END;
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_daily_attendance_date_emp' AND object_id = OBJECT_ID('daily_attendance'))
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_daily_attendance_date_emp
-    ON [daily_attendance] ([record_date], [employee_id])
-    INCLUDE ([status], [in_time], [out_time], [work_minutes], [is_half_day], [is_late], [is_early], [shift_id], [organization_id]);
-END;
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_leave_applications_date_emp' AND object_id = OBJECT_ID('leave_applications'))
-BEGIN
-    CREATE NONCLUSTERED INDEX IX_leave_applications_date_emp
-    ON [leave_applications] ([start_date], [end_date], [employee_id], [status])
-    INCLUDE ([leave_type_id], [total_days], [reason], [organization_id]);
-END;";
-        db.Database.ExecuteSqlRaw(ensureSql);
-    }
-    catch (Exception ex)
-    {
-        Log.Warning(ex, "Schema auto-sync exception on startup");
-    }
-}
 
 // Global Exception Middleware for API routes
 app.Use(async (context, next) =>

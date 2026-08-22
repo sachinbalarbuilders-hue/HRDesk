@@ -29,7 +29,13 @@ export const AddEmployee: React.FC = () => {
   const handleSubmit = async (data: EmployeeFormData) => {
     try {
       setSubmitting(true);
-      await apiClient.post('/employees', data);
+      // roleId comes from a <select> as a string; convert to int or null before posting
+      // so the backend's int? DTO can deserialize it correctly.
+      const payload = {
+        ...data,
+        roleId: data.roleId !== '' ? parseInt(data.roleId, 10) : null,
+      };
+      await apiClient.post('/employees', payload);
       showSuccess('Success', 'Employee created successfully.');
       navigate('/employees');
     } catch (err: any) {
