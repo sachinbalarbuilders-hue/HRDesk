@@ -440,9 +440,37 @@ public class AttendanceController : ControllerBase
                 .FirstOrDefaultAsync(b => b.Id == employee.BranchId.Value);
         }
 
+        // ── 0. FACE LIVENESS CHECK ───────────────────────────────────────────
+        // Applies to AttendanceType = "Face + Location" (or any type containing "face").
+        // The Flutter app runs on-device liveness detection and sends LivenessVerified=true
+        // once the check passes. The backend enforces that this flag is present and true
+        // before allowing the punch — it does not perform its own face matching.
+        var attType = employee.AttendanceType?.ToLowerInvariant() ?? "";
+        bool requiresFace = attType.Contains("face");
+
+        if (requiresFace)
+        {
+            if (dto.LivenessVerified != true)
+            {
+                return BadRequest(new
+                {
+                    message = "Face liveness verification is required for this employee's attendance type. Please complete the liveness check in the mobile app.",
+                    requiresFace = true
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.PhotoBase64))
+            {
+                return BadRequest(new
+                {
+                    message = "A selfie photo is required alongside the liveness verification result.",
+                    requiresFace = true
+                });
+            }
+        }
+
         // ── 1. IP RESTRICTION CHECK ─────────────────────────────────────────
         bool? isIpValid = null;
-        var attType = employee.AttendanceType?.ToLowerInvariant() ?? "";
         bool requiresIp = attType.Contains("ip") || attType.Contains("network");
 
         if (requiresIp)
@@ -572,7 +600,12 @@ public class AttendanceController : ControllerBase
             PhotoUrl = photoUrl,
             IsGeofenceValid = isGeofenceValid,
             IsIpValid = isIpValid,
-            VerifyType = dto.Source ?? "Web",
+            // Auto-set VerifyType based on attendance type so the timeline icons render correctly.
+            // Explicit Source from the client always takes priority.
+            VerifyType = !string.IsNullOrWhiteSpace(dto.Source)
+                ? dto.Source
+                : requiresFace ? "Face" : "Web",
+            FaceConfidence = dto.FaceConfidence,
         };
         _db.AttendanceLogs.Add(punchLog);
 
@@ -930,6 +963,18 @@ public record PunchRequestDto(
     string? Source,
     double? Latitude,
     double? Longitude,
-    string? PhotoBase64
+    string? PhotoBase64,
+    /// <summary>
+    /// Set to true by the Flutter app after the on-device liveness check passes
+    /// (flutter_liveness / google_mlkit_face_detection). The backend trusts this
+    /// flag — liveness detection runs in the Flutter secure context, not the server.
+    /// Required for employees whose AttendanceType = "Face + Location".
+    /// </summary>
+    bool? LivenessVerified = null,
+    /// <summary>
+    /// Optional face similarity confidence score (0.0–1.0) from the Flutter face
+    /// detection library. Stored on the punch log for audit purposes only.
+    /// </summary>
+    double? FaceConfidence = null
 );
 

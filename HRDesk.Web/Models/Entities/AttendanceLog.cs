@@ -38,5 +38,11 @@ public sealed class AttendanceLog : IMustHaveTenant
     public bool? IsGeofenceValid { get; set; }
     
     public bool? IsIpValid { get; set; }
+
+    /// <summary>
+    /// Face similarity confidence score (0.0–1.0) reported by the Flutter on-device
+    /// face detection library. Stored for audit purposes. Null for non-face punches.
+    /// </summary>
+    public double? FaceConfidence { get; set; }
 }
 
