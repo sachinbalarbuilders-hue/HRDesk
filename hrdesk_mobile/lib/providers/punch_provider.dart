@@ -68,6 +68,10 @@ class PunchProvider extends ChangeNotifier {
 
       _state = PunchState.success;
       _message = res.data['message'] ?? 'Punch recorded successfully.';
+      if (res.data['confidence'] != null) {
+        final double conf = (res.data['confidence'] as num).toDouble();
+        _message = '$_message (Match: ${(conf * 100).toStringAsFixed(1)}%)';
+      }
       // Prefer the server's authoritative state; fall back to the requested action.
       if (res.data is Map && res.data['isClockedIn'] != null) {
         _isClockedIn = res.data['isClockedIn'] == true;

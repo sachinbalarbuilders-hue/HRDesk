@@ -819,6 +819,7 @@ public class AttendanceController : ControllerBase
             photoUrl,
             isGeofenceValid,
             isIpValid,
+            confidence = calculatedConfidence,
             isClockedIn = existingLog.InTime.HasValue && !existingLog.OutTime.HasValue
         });
     }
