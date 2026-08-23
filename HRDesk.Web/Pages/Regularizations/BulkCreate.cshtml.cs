@@ -15,13 +15,11 @@ namespace HRDesk.Web.Pages.Regularizations
     public class BulkCreateModel : PageModel
     {
         private readonly BiometricAttendanceDbContext _context;
-        private readonly ISequenceService _sequenceService;
         private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
 
-        public BulkCreateModel(BiometricAttendanceDbContext context, ISequenceService sequenceService, HRDesk.Web.Services.IAttendanceProcessorService processor)
+        public BulkCreateModel(BiometricAttendanceDbContext context, HRDesk.Web.Services.IAttendanceProcessorService processor)
         {
             _context = context;
-            _sequenceService = sequenceService;
             _processor = processor;
         }
 
@@ -51,7 +49,7 @@ namespace HRDesk.Web.Pages.Regularizations
                 .Select(e => new SelectListItem { Value = e.EmployeeId.ToString(), Text = $"{e.EmployeeName} ({e.EmployeeId})" })
                 .ToListAsync();
             
-            ViewData["NextAppNo"] = await _sequenceService.PeekNextApplicationNumberAsync(DateOnly.FromDateTime(DateTime.Today));
+            ViewData["NextAppNo"] = (string?)null;
             return Page();
         }
 

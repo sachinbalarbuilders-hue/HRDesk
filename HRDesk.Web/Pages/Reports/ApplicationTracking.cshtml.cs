@@ -11,13 +11,11 @@ namespace HRDesk.Web.Pages.Reports
     public class ApplicationTrackingModel : PageModel
     {
         private readonly BiometricAttendanceDbContext _db;
-        private readonly ISequenceService _sequenceService;
         private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
 
-        public ApplicationTrackingModel(BiometricAttendanceDbContext db, ISequenceService sequenceService, HRDesk.Web.Services.IAttendanceProcessorService processor)
+        public ApplicationTrackingModel(BiometricAttendanceDbContext db, HRDesk.Web.Services.IAttendanceProcessorService processor)
         {
             _db = db;
-            _sequenceService = sequenceService;
             _processor = processor;
         }
 
@@ -172,9 +170,6 @@ namespace HRDesk.Web.Pages.Reports
                     
                     // Re-process this day for this employee to restore calculated status
                     await _processor.ProcessDailyAttendanceAsync(date, empId);
-
-                    // Auto-resync sequences
-                    await _sequenceService.ResyncSequenceAsync(Year, Month);
                 }
             }
             // For Leaves and Regularizations, the user should delete the actual request 

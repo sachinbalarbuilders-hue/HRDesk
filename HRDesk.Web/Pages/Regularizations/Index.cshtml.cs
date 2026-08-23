@@ -14,13 +14,11 @@ namespace HRDesk.Web.Pages.Regularizations
     {
         private readonly BiometricAttendanceDbContext _context;
         private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
-        private readonly Services.ISequenceService _sequenceService;
 
-        public IndexModel(BiometricAttendanceDbContext context, HRDesk.Web.Services.IAttendanceProcessorService processor, Services.ISequenceService sequenceService)
+        public IndexModel(BiometricAttendanceDbContext context, HRDesk.Web.Services.IAttendanceProcessorService processor)
         {
             _context = context;
             _processor = processor;
-            _sequenceService = sequenceService;
         }
 
         public PaginatedList<AttendanceRegularization> RegularizationRequests { get;set; } = default!;
@@ -156,8 +154,6 @@ namespace HRDesk.Web.Pages.Regularizations
                 var affected = requests.Select(r => new { r.RequestDate, r.EmployeeId }).Distinct().ToList();
                 foreach (var item in affected)
                 {
-                    // Auto-resync sequence to close gaps if it was the latest
-                    await _sequenceService.ResyncSequenceAsync(item.RequestDate.Year, item.RequestDate.Month);
                     var endOfMonth = new DateOnly(item.RequestDate.Year, item.RequestDate.Month, DateTime.DaysInMonth(item.RequestDate.Year, item.RequestDate.Month));
                     for (var d = item.RequestDate; d <= endOfMonth; d = d.AddDays(1))
                     {

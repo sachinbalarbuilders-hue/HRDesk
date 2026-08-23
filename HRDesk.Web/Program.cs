@@ -165,7 +165,6 @@ builder.Services.AddDbContext<HRDesk.Web.Data.BiometricAttendanceDbContext>(opti
 });
 
 builder.Services.AddScoped<HRDesk.Web.Services.IAttendanceProcessorService, HRDesk.Web.Services.AttendanceProcessorService>();
-builder.Services.AddScoped<HRDesk.Web.Services.ISequenceService, HRDesk.Web.Services.SequenceService>();
 builder.Services.AddScoped<HRDesk.Web.Services.ILoanService, HRDesk.Web.Services.LoanService>();
 builder.Services.AddScoped<HRDesk.Web.Services.IAttendanceSummaryService, HRDesk.Web.Services.AttendanceSummaryService>(); // Shared counting logic
 builder.Services.AddScoped<HRDesk.Web.Services.IPayrollService, HRDesk.Web.Services.PayrollService>();

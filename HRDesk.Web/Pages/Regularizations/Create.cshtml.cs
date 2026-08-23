@@ -24,27 +24,24 @@ namespace HRDesk.Web.Pages.Regularizations
     public class CreateModel : PageModel
     {
         private readonly BiometricAttendanceDbContext _context;
-        private readonly ISequenceService _sequenceService;
         private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
 
-        public CreateModel(BiometricAttendanceDbContext context, ISequenceService sequenceService, HRDesk.Web.Services.IAttendanceProcessorService processor)
+        public CreateModel(BiometricAttendanceDbContext context, HRDesk.Web.Services.IAttendanceProcessorService processor)
         {
             _context = context;
-            _sequenceService = sequenceService;
             _processor = processor;
         }
 
         public async Task<IActionResult> OnGetAsync()
         {
             ViewData["EmployeeId"] = new SelectList(_context.Employees.Where(e => e.Status == "active"), "EmployeeId", "EmployeeName");
-            ViewData["NextAppNo"] = await _sequenceService.PeekNextApplicationNumberAsync(DateOnly.FromDateTime(DateTime.Today));
+            ViewData["NextAppNo"] = (string?)null;
             return Page();
         }
 
-        public async Task<IActionResult> OnGetNextAppNoAsync(DateOnly date)
+        public IActionResult OnGetNextAppNoAsync(DateOnly date)
         {
-            string nextAppNo = await _sequenceService.PeekNextApplicationNumberAsync(date);
-            return new JsonResult(new { nextAppNo });
+            return new JsonResult(new { nextAppNo = (string?)null });
         }
 
         public async Task<IActionResult> OnGetExistingPunchAsync(int employeeId, DateOnly date)
@@ -146,15 +143,6 @@ namespace HRDesk.Web.Pages.Regularizations
             }
             
             await _context.SaveChangesAsync();
-
-            // FAILSAFE for Sequence
-            foreach (var rDate in requestDates.Distinct())
-            {
-                if (!AutoGenerate && !string.IsNullOrWhiteSpace(Regularization.ApplicationNumber))
-                {
-                    await _sequenceService.EnsureSequenceCatchUpAsync(rDate, Regularization.ApplicationNumber);
-                }
-            }
 
             // PROCESS IMMEDIATELY IN BACKGROUND (Until end of month to update frequencies)
             var empId = Regularization.EmployeeId;

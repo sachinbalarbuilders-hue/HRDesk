@@ -17,7 +17,6 @@ public class LeavesController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly IReferenceDataCacheService _cache;
-    private readonly ISequenceService _sequenceService;
     private readonly ICompOffService _compOffService;
     private readonly IAttendanceProcessorService _processor;
     private readonly ICurrentTenantProvider _tenantProvider;
@@ -26,7 +25,6 @@ public class LeavesController : ControllerBase
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         IReferenceDataCacheService cache,
-        ISequenceService sequenceService,
         ICompOffService compOffService,
         IAttendanceProcessorService processor,
         ICurrentTenantProvider tenantProvider)
@@ -34,7 +32,6 @@ public class LeavesController : ControllerBase
         _db = db;
         _permissionService = permissionService;
         _cache = cache;
-        _sequenceService = sequenceService;
         _compOffService = compOffService;
         _processor = processor;
         _tenantProvider = tenantProvider;
@@ -332,14 +329,12 @@ public class LeavesController : ControllerBase
             }
         }
 
-        var appNumber = await _sequenceService.GenerateApplicationNumberAsync(dto.StartDate);
-
         bool isHalf = dto.DayType == "First Half" || dto.DayType == "Second Half";
         decimal totalDays = isHalf ? 0.5m : (dto.EndDate.DayNumber - dto.StartDate.DayNumber + 1);
 
         var leaveApp = new LeaveApplication
         {
-            ApplicationNumber = appNumber,
+            ApplicationNumber = null,
             EmployeeId = targetEmpId.Value,
             LeaveTypeId = dto.LeaveTypeId,
             StartDate = dto.StartDate,
@@ -370,7 +365,7 @@ public class LeavesController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        return Ok(new { message = "Leave application submitted successfully.", applicationNumber = appNumber });
+        return Ok(new { message = "Leave application submitted successfully.", id = leaveApp.Id });
     }
 
     [HttpPut("{id}/status")]

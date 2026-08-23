@@ -16,14 +16,12 @@ public class IndexModel : PageModel
     private readonly ILeaveAdjustmentService _adjustmentService;
     private readonly ICompOffService _compOffService;
     private readonly BiometricAttendanceDbContext _db;
-    private readonly ISequenceService _sequenceService;
     private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
     private readonly IReferenceDataCacheService _cache;
     private readonly IPermissionService _permissionService;
 
     public IndexModel(
         BiometricAttendanceDbContext db, 
-        ISequenceService sequenceService, 
         HRDesk.Web.Services.IAttendanceProcessorService processor, 
         ICompOffService compOffService,
         ILeaveAdjustmentService adjustmentService,
@@ -31,7 +29,6 @@ public class IndexModel : PageModel
         IPermissionService permissionService)
     {
         _db = db;
-        _sequenceService = sequenceService;
         _processor = processor;
         _compOffService = compOffService;
         _adjustmentService = adjustmentService;
@@ -81,8 +78,7 @@ public class IndexModel : PageModel
         // Default to today to avoid 0001-01-01 error
         NewApplication.StartDate = DateOnly.FromDateTime(DateTime.Today);
         NewApplication.EndDate = DateOnly.FromDateTime(DateTime.Today);
-        
-        NewApplication.ApplicationNumber = await _sequenceService.PeekNextApplicationNumberAsync(NewApplication.StartDate);
+        NewApplication.ApplicationNumber = null;
  
         // Pagination & Search logic
         var baseQuery = _db.LeaveApplications.AsNoTracking();
@@ -166,10 +162,9 @@ public class IndexModel : PageModel
         return new JsonResult(new { remaining });
     }
 
-    public async Task<IActionResult> OnGetNextAppNoAsync(DateOnly date)
+    public IActionResult OnGetNextAppNoAsync(DateOnly date)
     {
-        string nextAppNo = await _sequenceService.PeekNextApplicationNumberAsync(date);
-        return new JsonResult(new { nextAppNo });
+        return new JsonResult(new { nextAppNo = (string?)null });
     }
 
     public async Task<IActionResult> OnGetGetEligibleLeaveTypesAsync(int employeeId, string? date = null)
@@ -323,13 +318,6 @@ public class IndexModel : PageModel
         }
 
         string baseAppNo = NewApplication.ApplicationNumber ?? string.Empty;
-        
-        // 1. Generate App Number if needed
-        if (AutoGenerate)
-        {
-            baseAppNo = await _sequenceService.GenerateApplicationNumberAsync(NewApplication.StartDate);
-        }
-
         DateTime now = DateTime.Now;
 
         // 2. Overlap Check
@@ -544,12 +532,6 @@ public class IndexModel : PageModel
         // Trigger attendance re-processing for the FULL range in background
         ProcessAttendanceInBackground(NewApplication.StartDate.AddDays(-1), NewApplication.EndDate.AddDays(1), NewApplication.EmployeeId);
 
-        // FAILSAFE for Sequence
-        if (!AutoGenerate && !string.IsNullOrWhiteSpace(baseAppNo))
-        {
-            await _sequenceService.EnsureSequenceCatchUpAsync(NewApplication.StartDate, baseAppNo);
-        }
-
         return RedirectToPage();
     }
 
@@ -741,9 +723,6 @@ public class IndexModel : PageModel
 
             // Auto-restore any previously 'Adjusted' leave that this one was replacing
             await _adjustmentService.RestoreAdjustedLeaveAsync(empId, start, end);
-
-            // Auto-resync sequence to close gaps if it was the latest
-            await _sequenceService.ResyncSequenceAsync(application.StartDate.Year, application.StartDate.Month);
 
             // Re-process attendance in background
             ProcessAttendanceInBackground(application.StartDate.AddDays(-1), application.EndDate.AddDays(1), application.EmployeeId);

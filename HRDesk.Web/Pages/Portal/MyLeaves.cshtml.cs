@@ -13,16 +13,13 @@ public class MyLeavesModel : PageModel
 {
     private readonly BiometricAttendanceDbContext _context;
     private readonly IPermissionService _permissionService;
-    private readonly ISequenceService _sequenceService;
 
     public MyLeavesModel(
         BiometricAttendanceDbContext context,
-        IPermissionService permissionService,
-        ISequenceService sequenceService)
+        IPermissionService permissionService)
     {
         _context = context;
         _permissionService = permissionService;
-        _sequenceService = sequenceService;
     }
 
     public Employee? CurrentEmployee { get; set; }
@@ -85,8 +82,6 @@ public class MyLeavesModel : PageModel
         var orgId = _context.Employees.Where(e => e.EmployeeId == empId.Value).Select(e => e.OrganizationId).FirstOrDefault();
         int days = Input.EndDate.DayNumber - Input.StartDate.DayNumber + 1;
 
-        var applicationNumber = await _sequenceService.GenerateApplicationNumberAsync(Input.StartDate);
-
         var leaveApp = new LeaveApplication
         {
             EmployeeId = empId.Value,
@@ -96,7 +91,7 @@ public class MyLeavesModel : PageModel
             TotalDays = days,
             Reason = Input.Reason.Trim(),
             Status = "Pending",
-            ApplicationNumber = applicationNumber,
+            ApplicationNumber = null,
             CreatedAt = DateTime.Now,
             OrganizationId = orgId
         };
