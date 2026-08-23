@@ -43,6 +43,7 @@ public class LeavesController : ControllerBase
     [HttpGet("applications")]
     public async Task<IActionResult> GetLeaveApplications(
         [FromQuery] string? status = null,
+        [FromQuery] string? archiveFilter = null,
         [FromQuery] string? search = null,
         [FromQuery] int? branchId = null,
         [FromQuery] int page = 1,
@@ -69,9 +70,26 @@ public class LeavesController : ControllerBase
 
         query = await _permissionService.ApplyLeaveScopeAsync(query, User, AppPermissions.Keys.LeavesView);
 
-        if (!string.IsNullOrWhiteSpace(status) && status != "all")
+        // Archive Filter scoping
+        var effArchive = !string.IsNullOrWhiteSpace(archiveFilter) ? archiveFilter.Trim().ToLower() : "active";
+        if (status?.ToLower() == "archived" || effArchive == "archived")
         {
-            query = query.Where(la => la.Status == status);
+            query = query.Where(la => la.Status == "Archived" || la.Status == "Cancelled");
+        }
+        else if (effArchive == "active")
+        {
+            query = query.Where(la => la.Status != "Archived" && la.Status != "Cancelled");
+            if (!string.IsNullOrWhiteSpace(status) && status != "all" && status != "active")
+            {
+                query = query.Where(la => la.Status == status);
+            }
+        }
+        else if (effArchive == "all")
+        {
+            if (!string.IsNullOrWhiteSpace(status) && status != "all")
+            {
+                query = query.Where(la => la.Status == status);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -408,7 +426,7 @@ public class LeavesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteLeave(int id)
+    public async Task<IActionResult> DeleteLeave(int id, [FromQuery] bool permanent = false)
     {
         var query = _db.LeaveApplications.Where(la => la.Id == id);
         query = await _permissionService.ApplyLeaveScopeAsync(query, User, AppPermissions.Keys.LeavesApply);
@@ -419,26 +437,100 @@ public class LeavesController : ControllerBase
             return NotFound(new { message = "Leave application not found or unauthorized." });
         }
 
-        _db.LeaveApplications.Remove(leave);
-        await _db.SaveChangesAsync();
+        bool wasApprovedOrAdjusted = leave.Status == "Approved" || leave.Status == "Adjusted";
+        var empId = leave.EmployeeId;
+        var sDate = leave.StartDate;
+        var eDate = leave.EndDate;
 
-        // Reprocess daily attendance if leave was approved or adjusted
-        if (leave.Status == "Approved" || leave.Status == "Adjusted")
+        if (permanent || leave.Status == "Archived" || leave.Status == "Cancelled")
         {
-            _ = Task.Run(async () =>
+            // Permanent hard delete
+            _db.LeaveApplications.Remove(leave);
+            await _db.SaveChangesAsync();
+
+            if (wasApprovedOrAdjusted)
             {
-                try
+                _ = Task.Run(async () =>
                 {
-                    for (var d = leave.StartDate; d <= leave.EndDate; d = d.AddDays(1))
+                    try
                     {
-                        await _processor.ProcessDailyAttendanceAsync(d, leave.EmployeeId);
+                        for (var d = sDate; d <= eDate; d = d.AddDays(1))
+                        {
+                            await _processor.ProcessDailyAttendanceAsync(d, empId);
+                        }
                     }
-                }
-                catch { }
+                    catch { }
+                });
+            }
+
+            return Ok(new { success = true, permanent = true, message = "Leave application permanently deleted." });
+        }
+        else
+        {
+            // Soft delete / Move to Archive
+            leave.Status = "Archived";
+            await _db.SaveChangesAsync();
+
+            if (wasApprovedOrAdjusted)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        for (var d = sDate; d <= eDate; d = d.AddDays(1))
+                        {
+                            await _processor.ProcessDailyAttendanceAsync(d, empId);
+                        }
+                    }
+                    catch { }
+                });
+            }
+
+            return Ok(new { success = true, permanent = false, message = "Leave application moved to archive." });
+        }
+    }
+
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreLeave(int id)
+    {
+        var query = _db.LeaveApplications.Where(la => la.Id == id);
+        query = await _permissionService.ApplyLeaveScopeAsync(query, User, AppPermissions.Keys.LeavesApply);
+
+        var leave = await query.FirstOrDefaultAsync();
+        if (leave == null)
+        {
+            return NotFound(new { message = "Leave application not found or unauthorized." });
+        }
+
+        if (leave.Status != "Archived" && leave.Status != "Cancelled")
+        {
+            return BadRequest(new { message = "Only archived or cancelled leaves can be restored." });
+        }
+
+        // Check for overlapping leaves before restoring
+        var overlappingLeaves = await _db.LeaveApplications
+            .Where(la => la.Id != id &&
+                         la.EmployeeId == leave.EmployeeId &&
+                         la.Status != "Rejected" &&
+                         la.Status != "Cancelled" &&
+                         la.Status != "Archived" &&
+                         leave.StartDate <= la.EndDate &&
+                         leave.EndDate >= la.StartDate)
+            .ToListAsync();
+
+        if (overlappingLeaves.Any())
+        {
+            var conflict = overlappingLeaves.First();
+            return BadRequest(new
+            {
+                message = $"Cannot restore: Another active leave (#{conflict.ApplicationNumber ?? conflict.Id.ToString()}) already exists for this period ({conflict.StartDate:dd MMM yyyy} to {conflict.EndDate:dd MMM yyyy})."
             });
         }
 
-        return Ok(new { success = true, message = "Leave application deleted successfully." });
+        leave.Status = "Pending";
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Leave application restored to Pending status." });
     }
 
     public record LeaveApplyRequestDto(int? EmployeeId, int LeaveTypeId, DateOnly StartDate, DateOnly EndDate, string? DayType, string? Reason);

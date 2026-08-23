@@ -15,6 +15,8 @@ import {
   CalendarCheck2,
   Check,
   Trash2,
+  Archive,
+  RotateCcw,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
@@ -56,7 +58,8 @@ export const Leaves: React.FC = () => {
       const [appsRes, typesRes, empRes] = await Promise.all([
         apiClient.get('/leaves/applications', {
           params: {
-            status: statusFilter !== 'all' ? statusFilter : (archiveFilter === 'active' ? 'Pending' : archiveFilter === 'archived' ? 'closed' : undefined),
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+            archiveFilter: archiveFilter,
             search: search || undefined,
             branchId: currentBranch?.id || undefined,
             page,
@@ -195,14 +198,35 @@ export const Leaves: React.FC = () => {
     }
   };
 
-  const handleDeleteLeave = async (id: number) => {
-    if (!window.confirm(`Are you sure you want to delete leave application #${id}?`)) return;
+  const handleDeleteLeave = async (id: number, isPermanent: boolean) => {
+    if (isPermanent) {
+      if (!window.confirm(`Permanently delete leave application #${id}? This action cannot be undone.`)) return;
+      try {
+        await apiClient.delete(`/leaves/${id}?permanent=true`);
+        showSuccess('Permanently Deleted', 'Leave application has been permanently removed.');
+        fetchLeavesData();
+      } catch (err: any) {
+        showError('Delete Failed', err.response?.data?.message || 'Failed to delete leave');
+      }
+    } else {
+      if (!window.confirm(`Archive leave application #${id}? It will be moved to the Archived tab.`)) return;
+      try {
+        await apiClient.delete(`/leaves/${id}`);
+        showSuccess('Archived', 'Leave application has been moved to Archive.');
+        fetchLeavesData();
+      } catch (err: any) {
+        showError('Archive Failed', err.response?.data?.message || 'Failed to archive leave');
+      }
+    }
+  };
+
+  const handleRestoreLeave = async (id: number) => {
     try {
-      await apiClient.delete(`/leaves/${id}`);
-      showSuccess('Deleted', 'Leave application has been deleted.');
+      await apiClient.post(`/leaves/${id}/restore`);
+      showSuccess('Restored', 'Leave application restored to Pending.');
       fetchLeavesData();
     } catch (err: any) {
-      showError('Delete Failed', err.response?.data?.message || 'Failed to delete leave');
+      showError('Restore Failed', err.response?.data?.message || 'Failed to restore leave');
     }
   };
 
@@ -278,11 +302,18 @@ export const Leaves: React.FC = () => {
                     const isApproved = app.status === 'Approved';
                     const isRejected = app.status === 'Rejected';
                     const isPending = app.status === 'Pending';
+                    const isArchived = app.status === 'Archived' || app.status === 'Cancelled';
 
-                    const barColor = isApproved ? 'bg-[var(--ok-600)]' : isRejected ? 'bg-[var(--err-600)]' : 'bg-[var(--warn-600)]';
+                    const barColor = isArchived
+                      ? 'bg-[var(--ink-muted)] opacity-50'
+                      : isApproved
+                      ? 'bg-[var(--ok-600)]'
+                      : isRejected
+                      ? 'bg-[var(--err-600)]'
+                      : 'bg-[var(--warn-600)]';
 
                     return (
-                      <tr key={app.id} className="relative">
+                      <tr key={app.id} className={`relative ${isArchived ? 'opacity-70 bg-[var(--surface-sunken)]/20' : ''}`}>
                         {/* 4px Left-Edge Status Bar */}
                         <td className={`p-0 w-1 ${barColor}`} />
 
@@ -304,14 +335,19 @@ export const Leaves: React.FC = () => {
                         <td className="text-right text-xs">
                           {canApprove ? (
                             <RowActionMenu actions={[
-                              ...(isPending ? [
-                                { label: 'Approve', icon: <Check size={14} />, onClick: () => handleStatusUpdate(app.id, 'Approved'), variant: 'success' as const },
-                                { label: 'Reject', icon: <X size={14} />, onClick: () => handleStatusUpdate(app.id, 'Rejected'), variant: 'danger' as const },
-                              ] : []),
-                              { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteLeave(app.id), variant: 'danger' as const },
+                              ...(isArchived ? [
+                                { label: 'Restore Request', icon: <RotateCcw size={14} />, onClick: () => handleRestoreLeave(app.id), variant: 'default' as const },
+                                { label: 'Permanent Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteLeave(app.id, true), variant: 'danger' as const },
+                              ] : [
+                                ...(isPending ? [
+                                  { label: 'Approve', icon: <Check size={14} />, onClick: () => handleStatusUpdate(app.id, 'Approved'), variant: 'success' as const },
+                                  { label: 'Reject', icon: <X size={14} />, onClick: () => handleStatusUpdate(app.id, 'Rejected'), variant: 'danger' as const },
+                                ] : []),
+                                { label: 'Archive', icon: <Archive size={14} />, onClick: () => handleDeleteLeave(app.id, false), variant: 'danger' as const },
+                              ]),
                             ]} />
                           ) : (
-                            <span className={`font-data text-xs font-bold ${isApproved ? 'text-[var(--ok-600)]' : isRejected ? 'text-[var(--err-600)]' : 'text-[var(--warn-600)]'}`}>
+                            <span className={`font-data text-xs font-bold ${isArchived ? 'text-[var(--ink-muted)]' : isApproved ? 'text-[var(--ok-600)]' : isRejected ? 'text-[var(--err-600)]' : 'text-[var(--warn-600)]'}`}>
                               {app.status}
                             </span>
                           )}
