@@ -21,6 +21,7 @@ import {
   MapPin,
   Database,
   Filter,
+  Loader2,
 } from 'lucide-react';
 
 interface VerificationData {
@@ -61,17 +62,18 @@ export const GuardScanner: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [recentLogs, setRecentLogs] = useState<ScanLogItem[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
 
-  // Pagination & Filter State for Gate Activity Ledger
+  // Infinite Scroll & Filter State for Gate Activity Ledger
   const [logPage, setLogPage] = useState(1);
-  const [logPageSize, setLogPageSize] = useState(15);
   const [logTotalCount, setLogTotalCount] = useState(0);
   const [logTotalPages, setLogTotalPages] = useState(1);
   const [logStatusFilter, setLogStatusFilter] = useState<'all' | 'granted' | 'denied'>('all');
   const [logSearch, setLogSearch] = useState('');
 
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const feedScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Live Clock for Guard Terminal
   useEffect(() => {
@@ -81,14 +83,18 @@ export const GuardScanner: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch persistent paginated scan logs from SQL Server database
-  const fetchRecentLogs = useCallback(async () => {
+  // Fetch persistent paginated scan logs from SQL Server database (Infinite scroll)
+  const loadLogs = useCallback(async (pageToFetch = 1, append = false) => {
     try {
-      setLoadingLogs(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoadingLogs(true);
+      }
       const res = await apiClient.get('/gate-scans', {
         params: {
-          page: logPage,
-          pageSize: logPageSize,
+          page: pageToFetch,
+          pageSize: 20,
           status: logStatusFilter !== 'all' ? logStatusFilter : undefined,
           search: logSearch.trim() || undefined,
           organizationId: currentOrganization?.id || undefined,
@@ -96,7 +102,14 @@ export const GuardScanner: React.FC = () => {
         },
       });
       if (res.data && res.data.items) {
-        setRecentLogs(res.data.items);
+        const newItems: ScanLogItem[] = res.data.items;
+        setRecentLogs((prev) => {
+          if (!append) return newItems;
+          const existingIds = new Set(prev.map((i) => i.id));
+          const filtered = newItems.filter((i) => !existingIds.has(i.id));
+          return [...prev, ...filtered];
+        });
+        setLogPage(pageToFetch);
         setLogTotalCount(res.data.totalCount || 0);
         setLogTotalPages(res.data.totalPages || 1);
       } else if (Array.isArray(res.data)) {
@@ -105,39 +118,22 @@ export const GuardScanner: React.FC = () => {
         setLogTotalPages(1);
       }
     } catch (e) {
-      console.error('Failed to fetch recent gate logs:', e);
+      console.error('Failed to fetch gate logs:', e);
     } finally {
       setLoadingLogs(false);
+      setLoadingMore(false);
     }
-  }, [logPage, logPageSize, logStatusFilter, logSearch, currentOrganization?.id, currentBranch?.id]);
+  }, [logStatusFilter, logSearch, currentOrganization?.id, currentBranch?.id]);
 
   useEffect(() => {
-    fetchRecentLogs();
-  }, [fetchRecentLogs]);
+    loadLogs(1, false);
+  }, [loadLogs]);
 
-  // Persist scan event into SQL Server database
-  const logScanToDatabase = async (
-    status: 'granted' | 'denied',
-    scanMode: 'Camera_QR' | 'Manual_Search',
-    data?: VerificationData,
-    fallbackCode?: string,
-    reason?: string
-  ) => {
-    try {
-      await apiClient.post('/gate-scans/log', {
-        employeeId: data?.employeeId || null,
-        employeeCode: data?.employeeCode || fallbackCode || 'UNKNOWN',
-        employeeName: data?.employeeName || 'Unknown Badge',
-        departmentName: data?.department || null,
-        designationName: data?.designation || null,
-        status: status,
-        scanMode: scanMode,
-        reason: reason || (status === 'granted' ? 'Verified Employee' : 'Verification Failed'),
-        branchId: currentBranch?.id ? parseInt(currentBranch.id) : null,
-      });
-      fetchRecentLogs();
-    } catch (e) {
-      console.error('Failed to persist gate scan log to database:', e);
+  // On-Scroll Infinite pagination trigger
+  const handleFeedScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 60 && !loadingLogs && !loadingMore && logPage < logTotalPages) {
+      loadLogs(logPage + 1, true);
     }
   };
 
@@ -147,7 +143,7 @@ export const GuardScanner: React.FC = () => {
     setIsScanning(false);
 
     // Refresh database logs from server (server already logged the verified event atomically)
-    fetchRecentLogs();
+    loadLogs(1, false);
   };
 
   const handleVerificationError = (errorMsg: string, code?: string, scanMode: 'Camera_QR' | 'Manual_Search' = 'Camera_QR') => {
@@ -156,7 +152,7 @@ export const GuardScanner: React.FC = () => {
     setIsScanning(false);
 
     // Refresh database logs from server (server already logged the denied event atomically)
-    fetchRecentLogs();
+    loadLogs(1, false);
   };
 
   // Initialize QR Scanner
@@ -522,11 +518,11 @@ export const GuardScanner: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 font-mono text-[10px] text-[var(--ink-muted)]">
                   <Database size={11} className="text-emerald-600" />
-                  Database Synced
+                  {recentLogs.length > 0 ? `${recentLogs.length} of ${logTotalCount}` : 'Database Synced'}
                 </span>
                 <button
                   type="button"
-                  onClick={fetchRecentLogs}
+                  onClick={() => loadLogs(1, false)}
                   className="p-1 hover:bg-[var(--surface-sunken)] rounded text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
                   title="Refresh activity feed from database"
                 >
@@ -545,7 +541,6 @@ export const GuardScanner: React.FC = () => {
                     type="button"
                     onClick={() => {
                       setLogStatusFilter(st);
-                      setLogPage(1);
                     }}
                     className={`px-2 py-0.5 rounded-[2px] font-semibold capitalize transition-colors cursor-pointer ${
                       logStatusFilter === st
@@ -570,7 +565,6 @@ export const GuardScanner: React.FC = () => {
                   value={logSearch}
                   onChange={(e) => {
                     setLogSearch(e.target.value);
-                    setLogPage(1);
                   }}
                   placeholder="Filter logs..."
                   className="register-input !pl-7 !pr-2 py-1 text-[11px] w-full font-mono"
@@ -578,63 +572,86 @@ export const GuardScanner: React.FC = () => {
               </div>
             </div>
 
-            {/* Log Items List */}
-            <div className="divide-y divide-[var(--rule)] max-h-[460px] overflow-y-auto min-h-[220px]">
+            {/* Log Items List with On-Scroll Pagination */}
+            <div
+              ref={feedScrollRef}
+              onScroll={handleFeedScroll}
+              className="divide-y divide-[var(--rule)] max-h-[480px] overflow-y-auto min-h-[240px]"
+            >
               {recentLogs.length === 0 ? (
                 <div className="p-8 text-center text-xs text-[var(--ink-muted)] font-data">
-                  {loadingLogs ? 'Loading gate activity from database...' : 'No gate scan activity found for current filters.'}
+                  {loadingLogs ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 size={16} className="animate-spin text-[var(--gold-500)]" />
+                      <span>Loading gate activity...</span>
+                    </div>
+                  ) : (
+                    'No gate scan activity found for current filters.'
+                  )}
                 </div>
               ) : (
-                recentLogs.map((log) => (
-                  <div key={log.id} className="p-3 hover:bg-[var(--surface-sunken)]/40 transition-colors flex items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {log.status === 'granted' ? (
-                        <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                      ) : (
-                        <XCircle size={16} className="text-rose-600 shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <div className="font-semibold text-[var(--ink)] truncate">
-                          {log.employeeName}
-                        </div>
-                        <div className="font-mono text-[10px] text-[var(--ink-muted)] flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold">{log.employeeCode}</span>
-                          {log.scanMode && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-[var(--surface-sunken)] border border-[var(--rule)]">
-                              {log.scanMode === 'Camera_QR' ? 'QR Scan' : 'Manual'}
-                            </span>
-                          )}
-                          <span>•</span>
-                          <span className="truncate">{log.reason || (log.status === 'granted' ? 'Verified' : 'Failed')}</span>
+                <>
+                  {recentLogs.map((log) => (
+                    <div key={log.id} className="p-3 hover:bg-[var(--surface-sunken)]/40 transition-colors flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {log.status === 'granted' ? (
+                          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                        ) : (
+                          <XCircle size={16} className="text-rose-600 shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-semibold text-[var(--ink)] truncate">
+                            {log.employeeName}
+                          </div>
+                          <div className="font-mono text-[10px] text-[var(--ink-muted)] flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold">{log.employeeCode}</span>
+                            {log.scanMode && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-[var(--surface-sunken)] border border-[var(--rule)]">
+                                {log.scanMode === 'Camera_QR' ? 'QR Scan' : 'Manual'}
+                              </span>
+                            )}
+                            <span>•</span>
+                            <span className="truncate">{log.reason || (log.status === 'granted' ? 'Verified' : 'Failed')}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="font-mono text-[10px] font-semibold text-[var(--ink-muted)] block bg-[var(--surface-sunken)] px-1.5 py-0.5 rounded border border-[var(--rule)]">
-                        {log.timestamp}
-                      </span>
-                      {log.date && (
-                        <span className="font-mono text-[9px] text-[var(--ink-muted)] block mt-0.5">
-                          {log.date}
+                      <div className="text-right shrink-0">
+                        <span className="font-mono text-[10px] font-semibold text-[var(--ink-muted)] block bg-[var(--surface-sunken)] px-1.5 py-0.5 rounded border border-[var(--rule)]">
+                          {log.timestamp}
                         </span>
-                      )}
+                        {log.date && (
+                          <span className="font-mono text-[9px] text-[var(--ink-muted)] block mt-0.5">
+                            {log.date}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+
+                  {loadingMore && (
+                    <div className="p-3 text-center text-xs text-[var(--ink-muted)] flex items-center justify-center gap-2 bg-[var(--surface-sunken)]/20">
+                      <Loader2 size={14} className="animate-spin text-[var(--gold-500)]" />
+                      <span>Loading older activity logs...</span>
+                    </div>
+                  )}
+
+                  {!loadingMore && logTotalCount > 0 && logPage >= logTotalPages && (
+                    <div className="py-2.5 text-center text-[10px] text-[var(--ink-muted)] opacity-60 font-mono border-t border-[var(--rule)] bg-[var(--surface-sunken)]/20">
+                      End of activity history ({logTotalCount} total records)
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
-            {/* Pagination Controls */}
-            <PaginationToolbar
-              page={logPage}
-              pageSize={logPageSize}
-              totalCount={logTotalCount}
-              totalPages={logTotalPages}
-              onPageChange={setLogPage}
-              onPageSizeChange={setLogPageSize}
-              pageSizeOptions={[10, 15, 25, 50, 100]}
-            />
+            {/* Bottom Status Bar */}
+            <div className="px-3.5 py-2 border-t border-[var(--rule)] bg-[var(--surface-header)] flex items-center justify-between text-[11px] text-[var(--ink-muted)] font-ui">
+              <span>Scroll down to load older records automatically</span>
+              <span className="font-mono font-semibold text-[var(--ink)]">
+                {recentLogs.length} / {logTotalCount} Scans
+              </span>
+            </div>
           </div>
         </div>
       </div>
