@@ -164,14 +164,6 @@ export const LeaveTypesTab: React.FC = () => {
 
   const leaveColumns: ColumnDef<any>[] = [
     {
-      key: 'id',
-      header: '#',
-      width: '50px',
-      align: 'center',
-      className: 'font-data text-xs text-[var(--ink-muted)]',
-      render: (item) => `#${item.id}`,
-    },
-    {
       key: 'name',
       header: 'Leave Category',
       render: (item) => (

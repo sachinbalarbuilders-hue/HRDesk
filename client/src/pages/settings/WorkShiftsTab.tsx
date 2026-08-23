@@ -126,14 +126,6 @@ export const WorkShiftsTab: React.FC = () => {
 
   const shiftColumns: ColumnDef<any>[] = [
     {
-      key: 'id',
-      header: '#',
-      width: '50px',
-      align: 'center',
-      className: 'font-data text-xs text-[var(--ink-muted)]',
-      render: (item) => `#${item.id}`,
-    },
-    {
       key: 'name',
       header: 'Shift Name',
       render: (item) => (

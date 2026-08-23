@@ -117,14 +117,6 @@ export const DepartmentsTab: React.FC = () => {
 
   const deptColumns: ColumnDef<any>[] = [
     {
-      key: 'id',
-      header: '#',
-      width: '50px',
-      align: 'center',
-      className: 'font-data text-xs text-[var(--ink-muted)]',
-      render: (item) => `#${item.id}`,
-    },
-    {
       key: 'name',
       header: 'Department Name',
       render: (item) => (

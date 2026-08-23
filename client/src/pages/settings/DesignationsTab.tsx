@@ -131,14 +131,6 @@ export const DesignationsTab: React.FC = () => {
 
   const desigColumns: ColumnDef<any>[] = [
     {
-      key: 'id',
-      header: '#',
-      width: '50px',
-      align: 'center',
-      className: 'font-data text-xs text-[var(--ink-muted)]',
-      render: (item) => `#${item.id}`,
-    },
-    {
       key: 'title',
       header: 'Designation Title',
       render: (item) => (

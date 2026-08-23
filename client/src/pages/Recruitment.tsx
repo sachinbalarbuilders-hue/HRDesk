@@ -518,14 +518,6 @@ export const Recruitment: React.FC = () => {
   // 1. Candidates Table Columns
   const candidateColumns: ColumnDef<CandidateItem>[] = [
     {
-      key: 'candidateId',
-      header: '#',
-      width: '45px',
-      align: 'center',
-      className: 'font-data text-xs text-[var(--ink-muted)]',
-      render: (c) => `#${c.candidateId}`,
-    },
-    {
       key: 'candidateName',
       header: 'Candidate Name',
       render: (c) => (
@@ -690,14 +682,6 @@ export const Recruitment: React.FC = () => {
 
   // 2. Interview Schedule Table Columns
   const interviewColumns: ColumnDef<InterviewItem>[] = [
-    {
-      key: 'id',
-      header: '#',
-      width: '45px',
-      align: 'center',
-      className: 'font-data text-xs text-[var(--ink-muted)]',
-      render: (i) => `#${i.id}`,
-    },
     {
       key: 'candidateName',
       header: 'Candidate',
