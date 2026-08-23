@@ -73,11 +73,11 @@ export const NotificationDropdown: React.FC = () => {
     fetchNotifications(true);
   }, [user, token, currentOrganization?.id, fetchNotifications]);
 
-  // Polling every 20 seconds for live badge updates
+  // Fast background polling every 5 seconds for live real-time badge updates
   useEffect(() => {
     const interval = setInterval(() => {
       fetchNotifications(true);
-    }, 20000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
