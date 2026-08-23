@@ -92,6 +92,7 @@ public class NotificationsApiController : ControllerBase
     {
         int orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         int userId = CurrentUserId;
+        string userRole = CurrentUserRole;
 
         var success = await _notificationService.MarkAsReadAsync(id, userId, orgId);
         if (!success)
@@ -99,7 +100,17 @@ public class NotificationsApiController : ControllerBase
             return NotFound(new { message = "Notification not found." });
         }
 
-        return Ok(new { success = true, message = "Notification marked as read." });
+        int? employeeId = null;
+        if (userId > 0)
+        {
+            var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+            employeeId = user?.EmployeeId;
+        }
+
+        var (_, unreadCount, _) = await _notificationService.GetNotificationsForUserAsync(
+            orgId, userId, userRole, employeeId, unreadOnly: false, page: 1, pageSize: 1);
+
+        return Ok(new { success = true, unreadCount, message = "Notification marked as read." });
     }
 
     [HttpPost("read-all")]
@@ -117,7 +128,7 @@ public class NotificationsApiController : ControllerBase
         }
 
         var count = await _notificationService.MarkAllAsReadAsync(userId, orgId, userRole, employeeId);
-        return Ok(new { success = true, markedCount = count, message = "All notifications marked as read." });
+        return Ok(new { success = true, unreadCount = 0, markedCount = count, message = "All notifications marked as read." });
     }
 
     [HttpDelete("{id}")]

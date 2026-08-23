@@ -105,32 +105,41 @@ export const NotificationDropdown: React.FC = () => {
 
   const handleToggle = () => {
     if (!isOpen) {
-      fetchNotifications();
+      fetchNotifications(true);
     }
     setIsOpen(!isOpen);
   };
 
   const handleMarkAsRead = async (id: number, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+
+    // Optimistic UI update
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+
     try {
-      await apiClient.post(`/notifications/${id}/read`);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      const res = await apiClient.post(`/notifications/${id}/read`);
+      if (res.data && typeof res.data.unreadCount === 'number') {
+        setUnreadCount(res.data.unreadCount);
+      }
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
     }
   };
 
   const handleMarkAllAsRead = async () => {
+    // Optimistic UI update
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(0);
+
     try {
       setMarkingAll(true);
       await apiClient.post('/notifications/read-all');
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
     } catch (err) {
       console.error('Failed to mark all as read:', err);
+      fetchNotifications(true);
     } finally {
       setMarkingAll(false);
     }
@@ -138,13 +147,14 @@ export const NotificationDropdown: React.FC = () => {
 
   const handleDelete = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    const target = notifications.find((n) => n.id === id);
+    if (target && !target.isRead) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+
     try {
       await apiClient.delete(`/notifications/${id}`);
-      const target = notifications.find((n) => n.id === id);
-      if (target && !target.isRead) {
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
       console.error('Failed to delete notification:', err);
     }
