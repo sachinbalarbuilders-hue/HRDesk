@@ -91,6 +91,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
     public DbSet<SubscriptionPayment> SubscriptionPayments => Set<SubscriptionPayment>();
     public DbSet<GateActivityLog> GateActivityLogs => Set<GateActivityLog>();
+    public DbSet<InAppNotification> InAppNotifications => Set<InAppNotification>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -106,6 +107,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
         modelBuilder.Entity<DailyAttendance>().HasIndex(d => d.RecordDate);
         modelBuilder.Entity<AttendanceLog>().HasIndex(a => a.PunchTime);
         modelBuilder.Entity<GateActivityLog>().HasIndex(g => new { g.OrganizationId, g.ScannedAt });
+        modelBuilder.Entity<InAppNotification>().HasIndex(n => new { n.OrganizationId, n.UserId, n.IsRead, n.CreatedAt });
 
         // Attendance/roster/leave lookup indexes with INCLUDE columns, used heavily by the
         // monthly attendance matrix and roster views to avoid key-lookup round trips.

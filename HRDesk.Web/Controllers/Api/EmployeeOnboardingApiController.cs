@@ -174,6 +174,20 @@ public class EmployeeOnboardingController : ControllerBase
                     ScannedAt = DateTime.UtcNow,
                     ScannedBy = User.Identity?.Name ?? "Gate Terminal"
                 });
+
+                _db.InAppNotifications.Add(new InAppNotification
+                {
+                    OrganizationId = failOrgId,
+                    RoleScope = "Admin",
+                    Title = "Security Alert: Gate Scan Denied",
+                    Message = $"Unrecognized badge \"{cleanInput}\" was denied access at gate terminal.",
+                    Type = "Security",
+                    Severity = "danger",
+                    LinkUrl = "/guard-terminal",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+
                 await _db.SaveChangesAsync();
             }
             catch {}

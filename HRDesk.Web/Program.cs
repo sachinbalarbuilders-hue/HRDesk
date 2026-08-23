@@ -200,6 +200,7 @@ builder.Services.AddHttpClient<HRDesk.Web.Services.Notifications.IWhatsAppProvid
     client.BaseAddress = new Uri(url);
 });
 builder.Services.AddScoped<HRDesk.Web.Services.Notifications.WhatsAppNotificationService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Notifications.IInAppNotificationService, HRDesk.Web.Services.Notifications.InAppNotificationService>();
 
 var app = builder.Build();
 

@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useOrganization } from '../../context/CompanyContext';
 import { useToast } from '../../context/ToastContext';
 import { Avatar } from '../ui/Avatar';
+import { NotificationDropdown } from './NotificationDropdown';
 import {
   LayoutDashboard,
   Users,
@@ -301,10 +302,7 @@ export const AppLayout: React.FC = () => {
             )}
 
             {/* Notifications */}
-            <button className="relative p-2 rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
-              <Bell size={18} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--danger)] rounded-full" />
-            </button>
+            <NotificationDropdown />
 
             {/* Theme Toggle */}
             <button onClick={toggleTheme} className="p-2 rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] cursor-pointer" title="Toggle theme">

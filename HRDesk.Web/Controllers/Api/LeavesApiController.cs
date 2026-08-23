@@ -299,6 +299,21 @@ public class LeavesController : ControllerBase
         };
 
         _db.LeaveApplications.Add(leaveApp);
+
+        // Notify Admins & HR Managers
+        _db.InAppNotifications.Add(new InAppNotification
+        {
+            OrganizationId = emp.OrganizationId,
+            RoleScope = "Admin",
+            Title = $"New Leave Request: {emp.EmployeeName}",
+            Message = $"{emp.EmployeeName} requested {totalDays} day(s) leave from {dto.StartDate:dd MMM} to {dto.EndDate:dd MMM}.",
+            Type = "Leave",
+            Severity = "info",
+            LinkUrl = "/leaves",
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        });
+
         await _db.SaveChangesAsync();
 
         return Ok(new { message = "Leave application submitted successfully.", applicationNumber = appNumber });
@@ -323,6 +338,21 @@ public class LeavesController : ControllerBase
 
         leave.Status = dto.Status;
         leave.ApprovedBy = User.Identity?.Name;
+
+        // Notify Employee
+        _db.InAppNotifications.Add(new InAppNotification
+        {
+            OrganizationId = leave.OrganizationId,
+            EmployeeId = leave.EmployeeId,
+            Title = $"Leave Request {dto.Status}",
+            Message = $"Your leave request for {leave.StartDate:dd MMM} to {leave.EndDate:dd MMM} was marked as {dto.Status}.",
+            Type = "Leave",
+            Severity = dto.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase) ? "success" : "danger",
+            LinkUrl = "/leaves",
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        });
+
         await _db.SaveChangesAsync();
 
         // Reprocess attendance in background for that date range
