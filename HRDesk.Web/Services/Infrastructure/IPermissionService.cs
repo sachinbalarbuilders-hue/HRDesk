@@ -9,6 +9,7 @@ public interface IPermissionService
     Task<bool> HasPermissionAsync(ClaimsPrincipal user, string permissionKey);
     Task<string?> GetPermissionScopeAsync(ClaimsPrincipal user, string permissionKey);
     Task<IReadOnlyList<string>> GetUserPermissionsAsync(ClaimsPrincipal user);
+    Task<Dictionary<string, string>> GetUserPermissionScopesAsync(ClaimsPrincipal user);
     
     Task<int?> GetCurrentEmployeeIdAsync(ClaimsPrincipal user);
     Task<Employee?> GetCurrentEmployeeAsync(ClaimsPrincipal user);

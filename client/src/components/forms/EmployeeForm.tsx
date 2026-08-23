@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOrganization } from '../../context/CompanyContext';
+import { useAuth } from '../../context/AuthContext';
 import { Clock } from 'lucide-react';
 
 export interface EmployeeFormData {
@@ -48,6 +49,11 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
   submitLabel = 'Save Employee'
 }) => {
   const { currentBranch, branches } = useOrganization();
+  const { isAdmin, getPermissionScope } = useAuth();
+
+  const isEditing = Boolean(initialData?.employeeId);
+  const editScope = getPermissionScope('Employees.Edit') || 'All Details';
+  const isBasicInfoOnly = isEditing && !isAdmin && editScope === 'Basic Information';
   
   const [formData, setFormData] = useState<EmployeeFormData>({
     employeeId: '',
@@ -177,8 +183,20 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
           <div></div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Work Email</label>
-            <input type="email" value={formData.workEmail} onChange={(e) => setFormData({ ...formData, workEmail: e.target.value })} placeholder="work@company.com" className="register-input w-full" />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-[var(--ink)]">Work Email</label>
+              {isBasicInfoOnly && (
+                <span className="text-[10px] text-[var(--ink-muted)]">🔒 Corporate</span>
+              )}
+            </div>
+            <input 
+              disabled={isBasicInfoOnly}
+              type="email" 
+              value={formData.workEmail} 
+              onChange={(e) => setFormData({ ...formData, workEmail: e.target.value })} 
+              placeholder="work@company.com" 
+              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`} 
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Personal Email</label>
@@ -228,7 +246,14 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
       {/* 4. Job Assignment */}
       <section className="space-y-3">
-        <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">4. Job Assignment</h4>
+        <div className="flex items-center justify-between border-b border-[var(--rule)] pb-1 mb-2">
+          <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider">4. Job Assignment</h4>
+          {isBasicInfoOnly && (
+            <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium border border-amber-500/20">
+              🔒 Locked (Basic Info Edit Scope)
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Branch / Site Location</label>
@@ -238,7 +263,12 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Employment Type</label>
-            <select value={formData.employmentType} onChange={(e) => setFormData({ ...formData, employmentType: e.target.value })} className="register-input w-full">
+            <select 
+              disabled={isBasicInfoOnly} 
+              value={formData.employmentType} 
+              onChange={(e) => setFormData({ ...formData, employmentType: e.target.value })} 
+              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+            >
               <option value="">Select Type</option>
               <option value="Full-time">Full-time</option>
               <option value="Part-time">Part-time</option>
@@ -264,6 +294,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                     Duration (Months)
                   </label>
                   <select
+                    disabled={isBasicInfoOnly}
                     value={formData.contractDurationMonths || ''}
                     onChange={(e) => {
                       const months = e.target.value ? Number(e.target.value) : undefined;
@@ -279,7 +310,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                         contractEndDate: newEndDate,
                       });
                     }}
-                    className="register-input w-full font-data"
+                    className={`register-input w-full font-data ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
                   >
                     <option value="">Select Duration</option>
                     <option value="1">1 Month</option>
@@ -297,10 +328,11 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                     {formData.employmentType === 'Contract' ? 'Contract End Date' : 'Internship Completion Date'}
                   </label>
                   <input
+                    disabled={isBasicInfoOnly}
                     type="date"
                     value={formData.contractEndDate ? formData.contractEndDate.split('T')[0] : ''}
                     onChange={(e) => setFormData({ ...formData, contractEndDate: e.target.value })}
-                    className="register-input w-full font-data"
+                    className={`register-input w-full font-data ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
                   />
                 </div>
               </div>
@@ -308,7 +340,12 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           )}
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Department</label>
-            <select value={formData.departmentId} onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })} className="register-input w-full">
+            <select 
+              disabled={isBasicInfoOnly}
+              value={formData.departmentId} 
+              onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })} 
+              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+            >
               <option value="">Select Department</option>
               {lookups?.departments
                 ?.filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
@@ -317,7 +354,12 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Designation</label>
-            <select value={formData.designationId} onChange={(e) => setFormData({ ...formData, designationId: e.target.value })} className="register-input w-full">
+            <select 
+              disabled={isBasicInfoOnly}
+              value={formData.designationId} 
+              onChange={(e) => setFormData({ ...formData, designationId: e.target.value })} 
+              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+            >
               <option value="">Select Designation</option>
               {lookups?.designations
                 ?.filter((des: any) => !currentBranch?.id || String(des.branchId) === String(currentBranch.id))
@@ -326,7 +368,12 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Reporting Manager</label>
-            <select value={formData.reportingManagerId} onChange={(e) => setFormData({ ...formData, reportingManagerId: e.target.value })} className="register-input w-full">
+            <select 
+              disabled={isBasicInfoOnly}
+              value={formData.reportingManagerId} 
+              onChange={(e) => setFormData({ ...formData, reportingManagerId: e.target.value })} 
+              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+            >
               <option value="">None (Top Level)</option>
               {lookups?.managers
                 ?.filter((m: any) => !currentBranch?.id || String(m.branchId) === String(currentBranch.id))
@@ -335,7 +382,12 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">User Role (Auto-create account)</label>
-            <select value={formData.roleId} onChange={(e) => setFormData({ ...formData, roleId: e.target.value })} className="register-input w-full">
+            <select 
+              disabled={isBasicInfoOnly}
+              value={formData.roleId} 
+              onChange={(e) => setFormData({ ...formData, roleId: e.target.value })} 
+              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+            >
               <option value="">No Login Access</option>
               {lookups?.roles?.map((r: any) => (<option key={r.id} value={r.id}>{r.name}</option>))}
             </select>
@@ -350,15 +402,33 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
       {/* 5. Employment Rules */}
       <section className="space-y-3">
-        <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">5. Employment Rules</h4>
+        <div className="flex items-center justify-between border-b border-[var(--rule)] pb-1 mb-2">
+          <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider">5. Employment Rules</h4>
+          {isBasicInfoOnly && (
+            <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium border border-amber-500/20">
+              🔒 Locked (Basic Info Edit Scope)
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Joining Date</label>
-            <input type="date" value={formData.joiningDate} onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })} className="register-input w-full font-data" />
+            <input 
+              disabled={isBasicInfoOnly}
+              type="date" 
+              value={formData.joiningDate} 
+              onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })} 
+              className={`register-input w-full font-data ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`} 
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Weekly Off</label>
-            <select value={formData.weekoff} onChange={(e) => setFormData({ ...formData, weekoff: e.target.value })} className="register-input w-full">
+            <select 
+              disabled={isBasicInfoOnly}
+              value={formData.weekoff} 
+              onChange={(e) => setFormData({ ...formData, weekoff: e.target.value })} 
+              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+            >
               <option value="Sunday">Sunday</option>
               <option value="Monday">Monday</option>
               <option value="Saturday">Saturday</option>
@@ -366,7 +436,12 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Attendance Type</label>
-            <select value={formData.attendanceType} onChange={(e) => setFormData({ ...formData, attendanceType: e.target.value })} className="register-input w-full">
+            <select 
+              disabled={isBasicInfoOnly}
+              value={formData.attendanceType} 
+              onChange={(e) => setFormData({ ...formData, attendanceType: e.target.value })} 
+              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+            >
               <option value="Biometric">Biometric</option>
               <option value="Web">Web Clock-in</option>
               <option value="Face + Location">Face Recognition + Location</option>
@@ -379,19 +454,38 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           <div className="col-span-2">
             <label className="block text-xs font-semibold text-[var(--ink)] mb-2">Probation Period?</label>
             <div className="flex gap-4 mb-2">
-              <label className="flex items-center gap-1.5 text-xs text-[var(--ink)] cursor-pointer">
-                <input type="radio" checked={formData.hasProbation === true} onChange={() => setFormData({ ...formData, hasProbation: true })} className="accent-[var(--gold-500)]" />
+              <label className={`flex items-center gap-1.5 text-xs text-[var(--ink)] ${isBasicInfoOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+                <input 
+                  disabled={isBasicInfoOnly}
+                  type="radio" 
+                  checked={formData.hasProbation === true} 
+                  onChange={() => setFormData({ ...formData, hasProbation: true })} 
+                  className="accent-[var(--gold-500)]" 
+                />
                 Yes
               </label>
-              <label className="flex items-center gap-1.5 text-xs text-[var(--ink)] cursor-pointer">
-                <input type="radio" checked={formData.hasProbation === false} onChange={() => setFormData({ ...formData, hasProbation: false })} className="accent-[var(--gold-500)]" />
+              <label className={`flex items-center gap-1.5 text-xs text-[var(--ink)] ${isBasicInfoOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+                <input 
+                  disabled={isBasicInfoOnly}
+                  type="radio" 
+                  checked={formData.hasProbation === false} 
+                  onChange={() => setFormData({ ...formData, hasProbation: false })} 
+                  className="accent-[var(--gold-500)]" 
+                />
                 No
               </label>
             </div>
             {formData.hasProbation && (
               <div className="w-1/2">
                 <label className="block text-xs font-semibold text-[var(--ink-muted)] mb-1">Probation Length (Days)</label>
-                <input type="number" min="0" value={formData.probationDays} onChange={(e) => setFormData({ ...formData, probationDays: Number(e.target.value) })} className="register-input w-full font-data" />
+                <input 
+                  disabled={isBasicInfoOnly}
+                  type="number" 
+                  min="0" 
+                  value={formData.probationDays} 
+                  onChange={(e) => setFormData({ ...formData, probationDays: Number(e.target.value) })} 
+                  className={`register-input w-full font-data ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`} 
+                />
               </div>
             )}
           </div>

@@ -182,11 +182,16 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
     }
   };
 
-  const handleToggleSimplePermission = async (permKey: string, currentGranted: boolean, defaultScope: string) => {
+  const handleTogglePermission = async (
+    permKey: string,
+    currentGranted: boolean,
+    defaultScope: string
+  ) => {
     if (!selectedRolePublicId || roleDetail?.isSystemRole) return;
 
     const newGranted = !currentGranted;
     const currentScope = roleDetail?.scopes?.[permKey] || defaultScope;
+    const currentSubs = roleDetail?.subRestrictions?.[permKey] || [];
 
     try {
       setSavingKey(permKey);
@@ -194,7 +199,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
         permissionKey: permKey,
         isGranted: newGranted,
         scope: currentScope,
-        subRestrictions: roleDetail?.subRestrictions?.[permKey] || [],
+        subRestrictions: currentSubs,
       });
 
       setRoleDetail((prev: any) => ({
@@ -203,15 +208,11 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
           ...prev.permissions,
           [permKey]: newGranted,
         },
-        scopes: {
-          ...prev.scopes,
-          [permKey]: currentScope,
-        },
       }));
 
       setSavedSuccessKey(permKey);
       setTimeout(() => setSavedSuccessKey(null), 1500);
-      showSuccess('Permission Updated', `${permKey} is now ${newGranted ? 'Granted' : 'Revoked'}.`);
+      showSuccess('Saved', `${newGranted ? 'Enabled' : 'Disabled'} ${permKey}`);
     } catch (err: any) {
       showError('Save Failed', err.response?.data?.message || 'Could not update permission');
     } finally {
@@ -257,16 +258,19 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
         return <Users size={16} className="text-indigo-600 dark:text-indigo-400" />;
       case 'Attendance':
         return <Calendar size={16} className="text-amber-600 dark:text-amber-400" />;
+      case 'Regularizations':
+        return <UserCheck size={16} className="text-rose-600 dark:text-rose-400" />;
+      case 'Shifts & Roster':
+      case 'Shifts & Schedule':
+        return <Clock size={16} className="text-orange-600 dark:text-orange-400" />;
       case 'Leaves & Comp-Off':
         return <Palmtree size={16} className="text-emerald-600 dark:text-emerald-400" />;
       case 'Payroll & Loans':
         return <CreditCard size={16} className="text-blue-600 dark:text-blue-400" />;
       case 'Masters & Structure':
         return <Building size={16} className="text-purple-600 dark:text-purple-400" />;
-      case 'Shifts & Schedule':
-        return <Clock size={16} className="text-orange-600 dark:text-orange-400" />;
       case 'Recruitment':
-        return <UserCheck size={16} className="text-teal-600 dark:text-teal-400" />;
+        return <Users size={16} className="text-teal-600 dark:text-teal-400" />;
       case 'System & Settings':
         return <Settings size={16} className="text-slate-600 dark:text-slate-400" />;
       default:
@@ -406,22 +410,25 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
               const isSystem = roleDetail?.isSystemRole;
 
               // Separate scoped permissions vs simple boolean toggle permissions
-              const scopedPerms = defGroup.permissions.filter((p: any) => p.supportsScope && p.scopeOptions);
-              const togglePerms = defGroup.permissions.filter((p: any) => !p.supportsScope || !p.scopeOptions);
-
-              // Sub-sections from first permission in module that defines them (e.g. Employees.View)
-              const moduleSubSections: string[] =
-                defGroup.permissions.find((p: any) => p.subSections)?.subSections || [];
+              const scopedPerms = defGroup.permissions.filter((p: any) => p.supportsScope);
+              const togglePerms = defGroup.permissions.filter((p: any) => !p.supportsScope);
+              const moduleSubSections = defGroup.permissions[0]?.subSections || [];
+              const grantedCount = defGroup.permissions.filter(
+                (p: any) => roleDetail?.permissions?.[p.key]
+              ).length;
 
               return (
                 <div
                   key={defGroup.module}
-                  className="bg-[var(--surface)] border border-[var(--rule)] rounded-lg overflow-hidden shadow-xs transition-shadow"
+                  className="rounded-xl border border-[var(--rule)] bg-[var(--card)] shadow-xs transition-shadow hover:shadow-sm relative"
                 >
-                  {/* Module Header (e.g. ^ 👥 Employees) */}
+                  {/* Module Header Accordion */}
                   <button
+                    type="button"
                     onClick={() => toggleModule(defGroup.module)}
-                    className="w-full px-4 py-3 bg-[var(--paper)] flex items-center justify-between cursor-pointer border-b border-[var(--rule)]/60 text-left hover:bg-[var(--surface)] transition-colors"
+                    className={`w-full flex items-center justify-between p-4 bg-[var(--paper)]/50 hover:bg-[var(--paper)] transition-colors text-left cursor-pointer rounded-t-xl ${
+                      isExpanded ? 'border-b border-[var(--rule)]/60' : 'rounded-b-xl'
+                    }`}
                   >
                     <div className="flex items-center gap-2.5">
                       {isExpanded ? (
@@ -435,17 +442,20 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                       </span>
                     </div>
 
-                    <span className="text-[10px] font-data text-[var(--ink-muted)]">
-                      {defGroup.permissions.length} granular rules
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-medium font-data px-2 py-0.5 rounded-full bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink-muted)]">
+                        {grantedCount} / {defGroup.permissions.length} active
+                      </span>
+                    </div>
                   </button>
 
                   {isExpanded && (
                     <div className="p-5 space-y-4">
-                      {/* Scoped Actions (View Scope, Create Scope, Edit Scope, Delete Scope) */}
+                      {/* Scoped Actions (View Scope, Create Scope, Edit Scope, Delete Scope) with ON/OFF Toggles */}
                       {scopedPerms.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3.5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
                           {scopedPerms.map((perm: any) => {
+                            const isGranted = roleDetail?.permissions?.[perm.key] ?? false;
                             const currentScope =
                               roleDetail?.scopes?.[perm.key] || perm.defaultScope || 'Own Branch';
                             const isSaving = savingKey === perm.key;
@@ -454,12 +464,57 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                             return (
                               <div
                                 key={perm.key}
-                                className="flex items-center justify-between gap-3 py-1"
+                                className={`flex items-center justify-between gap-3 p-2 rounded-lg border transition-all ${
+                                  isGranted
+                                    ? 'bg-[var(--paper)]/40 border-[var(--rule)]/60'
+                                    : 'bg-[var(--paper)]/15 border-transparent opacity-65'
+                                }`}
                               >
-                                <div className="flex items-center gap-2 min-w-[120px]">
-                                  <label className="text-xs font-medium text-[var(--ink)]">
+                                <div className="flex items-center gap-2.5 min-w-[140px]">
+                                  {/* ON/OFF TOGGLE SWITCH */}
+                                  <button
+                                    type="button"
+                                    disabled={isSystem || isSaving}
+                                    onClick={() =>
+                                      handleTogglePermission(
+                                        perm.key,
+                                        isGranted,
+                                        perm.defaultScope || 'Own Branch'
+                                      )
+                                    }
+                                    className={`w-7 h-4 rounded-full p-0.5 transition-colors cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                      isGranted
+                                        ? 'bg-emerald-600'
+                                        : 'bg-slate-300 dark:bg-slate-700'
+                                    }`}
+                                    title={isGranted ? 'Click to Disable permission' : 'Click to Enable permission'}
+                                  >
+                                    <div
+                                      className={`w-3 h-3 rounded-full bg-white transition-transform ${
+                                        isGranted ? 'translate-x-3' : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+
+                                  <label
+                                    onClick={() => {
+                                      if (!isSystem && !isSaving) {
+                                        handleTogglePermission(
+                                          perm.key,
+                                          isGranted,
+                                          perm.defaultScope || 'Own Branch'
+                                        );
+                                      }
+                                    }}
+                                    className={`text-xs font-medium cursor-pointer select-none ${
+                                      isGranted
+                                        ? 'text-[var(--ink)] font-semibold'
+                                        : 'text-[var(--ink-muted)] line-through'
+                                    }`}
+                                  >
                                     {perm.displayName} :
                                   </label>
+
                                   {isSuccess && (
                                     <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 animate-in fade-in">
                                       <Check size={10} />
@@ -468,11 +523,13 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                                 </div>
 
                                 <SearchableSelect
-                                  disabled={isSystem || isSaving}
-                                  value={currentScope}
+                                  disabled={isSystem || isSaving || !isGranted}
+                                  value={isGranted ? currentScope : 'Disabled'}
                                   options={perm.scopeOptions}
                                   onChange={(newScope) => handleScopeChange(perm.key, newScope)}
-                                  className="w-full max-w-[220px]"
+                                  className={`w-full max-w-[210px] ${
+                                    !isGranted ? 'pointer-events-none opacity-40' : ''
+                                  }`}
                                 />
                               </div>
                             );
@@ -480,7 +537,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                         </div>
                       )}
 
-                      {/* Restricted Sub-sections (Checkboxes) matching Reference */}
+                      {/* Restricted Sub-sections (Checkboxes) */}
                       {moduleSubSections.length > 0 && (
                         <div className="pt-3 border-t border-[var(--rule)]/60 space-y-2">
                           <div className="flex items-center justify-between">
@@ -498,8 +555,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                           </div>
 
                           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 pt-1">
-                            {moduleSubSections.map((subName) => {
-                              // Use primary permission key for sub-restrictions (e.g. Employees.View)
+                            {moduleSubSections.map((subName: string) => {
                               const primaryPermKey = defGroup.permissions[0]?.key || '';
                               const activeSubs: string[] =
                                 roleDetail?.subRestrictions?.[primaryPermKey] || [];
@@ -545,7 +601,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                               return (
                                 <div
                                   key={perm.key}
-                                  className="flex items-center justify-between p-2.5 rounded border border-[var(--rule)] bg-[var(--paper)]/50"
+                                  className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--rule)] bg-[var(--paper)]/50"
                                 >
                                   <div className="pr-3">
                                     <p className="text-xs font-semibold text-[var(--ink)]">
@@ -560,7 +616,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                                     type="button"
                                     disabled={isSystem || isSaving}
                                     onClick={() =>
-                                      handleToggleSimplePermission(
+                                      handleTogglePermission(
                                         perm.key,
                                         isGranted,
                                         perm.defaultScope || 'Own Branch'

@@ -54,13 +54,11 @@ public class CreateModel : PageModel
             .GroupBy(p => p.Module)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        // Default all permissions unchecked and scope = All (or Own for ESS)
+        // Default all permissions unchecked and scope = perm.DefaultScope
         foreach (var perm in AppPermissions.All)
         {
             Input.Permissions[perm.Key] = false;
-            Input.Scopes[perm.Key] = perm.Module == AppPermissions.Modules.SelfService 
-                ? AppPermissions.Scopes.Own 
-                : AppPermissions.Scopes.All;
+            Input.Scopes[perm.Key] = perm.DefaultScope;
         }
 
         return Page();

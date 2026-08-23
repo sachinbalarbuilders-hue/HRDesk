@@ -12,6 +12,7 @@ public sealed class PermissionService : IPermissionService
     private readonly BiometricAttendanceDbContext _context;
     private readonly ICurrentTenantProvider _tenantProvider;
     private readonly IMemoryCache _cache;
+    private static long _cacheVersion = 0;
 
     public PermissionService(
         BiometricAttendanceDbContext context,
@@ -23,13 +24,29 @@ public sealed class PermissionService : IPermissionService
         _cache = cache;
     }
 
+    public void ClearCache()
+    {
+        Interlocked.Increment(ref _cacheVersion);
+    }
+
+    private static string? GetUsername(ClaimsPrincipal user)
+    {
+        if (user.Identity?.IsAuthenticated != true) return null;
+        return user.Identity?.Name 
+            ?? user.FindFirst(ClaimTypes.Name)?.Value 
+            ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? user.FindFirst("unique_name")?.Value
+            ?? user.FindFirst("name")?.Value
+            ?? user.FindFirst(ClaimTypes.Email)?.Value;
+    }
+
     public async Task<bool> HasPermissionAsync(ClaimsPrincipal user, string permissionKey)
     {
         if (user.Identity == null || !user.Identity.IsAuthenticated)
             return false;
 
-        // Admin and SuperAdmin have bypass access to everything
-        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
+        // Only SuperAdmin has universal bypass
+        if (user.IsInRole("SuperAdmin"))
             return true;
 
         var permissions = await GetUserPermissionEntriesAsync(user);
@@ -41,7 +58,7 @@ public sealed class PermissionService : IPermissionService
         if (user.Identity == null || !user.Identity.IsAuthenticated)
             return null;
 
-        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
+        if (user.IsInRole("SuperAdmin"))
             return AppPermissions.Scopes.All;
 
         var permissions = await GetUserPermissionEntriesAsync(user);
@@ -54,11 +71,25 @@ public sealed class PermissionService : IPermissionService
         if (user.Identity == null || !user.Identity.IsAuthenticated)
             return Array.Empty<string>();
 
-        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
+        if (user.IsInRole("SuperAdmin"))
             return AppPermissions.All.Select(p => p.Key).ToList();
 
         var permissions = await GetUserPermissionEntriesAsync(user);
         return permissions.Select(p => p.PermissionKey).Distinct().ToList();
+    }
+
+    public async Task<Dictionary<string, string>> GetUserPermissionScopesAsync(ClaimsPrincipal user)
+    {
+        if (user.Identity == null || !user.Identity.IsAuthenticated)
+            return new Dictionary<string, string>();
+
+        if (user.IsInRole("SuperAdmin"))
+            return AppPermissions.All.ToDictionary(p => p.Key, _ => AppPermissions.Scopes.All);
+
+        var permissions = await GetUserPermissionEntriesAsync(user);
+        return permissions
+            .GroupBy(p => p.PermissionKey)
+            .ToDictionary(g => g.Key, g => g.First().Scope);
     }
 
     public async Task<int?> GetCurrentEmployeeIdAsync(ClaimsPrincipal user)
@@ -66,7 +97,14 @@ public sealed class PermissionService : IPermissionService
         if (user.Identity == null || !user.Identity.IsAuthenticated)
             return null;
 
-        var username = user.Identity.Name;
+        // 1. Direct EmployeeId claim
+        var empIdClaim = user.FindFirst("EmployeeId")?.Value 
+            ?? user.FindFirst("employee_id")?.Value;
+        if (!string.IsNullOrEmpty(empIdClaim) && int.TryParse(empIdClaim, out int claimEmpId) && claimEmpId > 0)
+            return claimEmpId;
+
+        // 2. Lookup DB User by username / email
+        var username = GetUsername(user);
         if (!string.IsNullOrEmpty(username))
         {
             var dbUser = await _context.Users
@@ -74,14 +112,18 @@ public sealed class PermissionService : IPermissionService
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
 
-            if (dbUser != null)
-                return dbUser.EmployeeId;
-        }
+            if (dbUser?.EmployeeId != null && dbUser.EmployeeId.Value > 0)
+                return dbUser.EmployeeId.Value;
 
-        // Fallback to Claim
-        var empIdClaim = user.FindFirst("EmployeeId")?.Value;
-        if (!string.IsNullOrEmpty(empIdClaim) && int.TryParse(empIdClaim, out int claimEmpId))
-            return claimEmpId;
+            // 3. Match Employee table directly by email
+            var matchingEmp = await _context.Employees
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.WorkEmail == username || e.PersonalEmail == username);
+
+            if (matchingEmp != null)
+                return matchingEmp.EmployeeId;
+        }
 
         return null;
     }
@@ -104,7 +146,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.EmployeesView)
     {
-        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
+        if (user.IsInRole("SuperAdmin"))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -146,6 +188,11 @@ public sealed class PermissionService : IPermissionService
                 return query.Where(e => e.BranchId == currentEmp.BranchId);
         }
 
+        if (scope == AppPermissions.Scopes.All)
+        {
+            return query;
+        }
+
         return query;
     }
 
@@ -154,7 +201,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.AttendanceView)
     {
-        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
+        if (user.IsInRole("SuperAdmin"))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -213,6 +260,11 @@ public sealed class PermissionService : IPermissionService
             }
         }
 
+        if (scope == AppPermissions.Scopes.All)
+        {
+            return query;
+        }
+
         return query;
     }
 
@@ -221,7 +273,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.LeavesView)
     {
-        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
+        if (user.IsInRole("SuperAdmin"))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -280,6 +332,11 @@ public sealed class PermissionService : IPermissionService
             }
         }
 
+        if (scope == AppPermissions.Scopes.All)
+        {
+            return query;
+        }
+
         return query;
     }
 
@@ -288,7 +345,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.AttendanceRegularize)
     {
-        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
+        if (user.IsInRole("SuperAdmin"))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -347,6 +404,11 @@ public sealed class PermissionService : IPermissionService
             }
         }
 
+        if (scope == AppPermissions.Scopes.All)
+        {
+            return query;
+        }
+
         return query;
     }
 
@@ -355,7 +417,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.CompOffApprove)
     {
-        if (user.IsInRole("SuperAdmin") || user.IsInRole("Admin"))
+        if (user.IsInRole("SuperAdmin"))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -414,19 +476,17 @@ public sealed class PermissionService : IPermissionService
             }
         }
 
+        if (scope == AppPermissions.Scopes.All)
+        {
+            return query;
+        }
+
         return query;
-    }
-
-    private static long _cacheVersion = 0;
-
-    public void ClearCache()
-    {
-        Interlocked.Increment(ref _cacheVersion);
     }
 
     private async Task<List<RolePermission>> GetUserPermissionEntriesAsync(ClaimsPrincipal user)
     {
-        var username = user.Identity?.Name;
+        var username = GetUsername(user);
         if (string.IsNullOrEmpty(username))
             return new List<RolePermission>();
 
@@ -447,7 +507,7 @@ public sealed class PermissionService : IPermissionService
         {
             // Default fallback based on legacy Role string
             var fallbackPermissions = new List<RolePermission>();
-            if (dbUser?.Role == "Admin" || dbUser?.Role == "SuperAdmin")
+            if (dbUser?.Role == "SuperAdmin")
             {
                 fallbackPermissions = AppPermissions.All.Select(p => new RolePermission
                 {
@@ -455,22 +515,40 @@ public sealed class PermissionService : IPermissionService
                     Scope = AppPermissions.Scopes.All
                 }).ToList();
             }
+            else if (dbUser?.Role == "Admin")
+            {
+                fallbackPermissions = AppPermissions.All.Select(p => new RolePermission
+                {
+                    PermissionKey = p.Key,
+                    Scope = AppPermissions.Scopes.OwnBranch
+                }).ToList();
+            }
             else if (dbUser?.Role == "Manager")
             {
                 fallbackPermissions = AppPermissions.All.Select(p => new RolePermission
                 {
                     PermissionKey = p.Key,
-                    Scope = p.SupportsScope ? AppPermissions.Scopes.Reporting : AppPermissions.Scopes.All
+                    Scope = p.SupportsScope ? AppPermissions.Scopes.Reporting : AppPermissions.Scopes.OwnBranch
                 }).ToList();
             }
             else
             {
-                // Standard Employee
-                fallbackPermissions = AppPermissions.All
-                    .Where(p => p.Module == AppPermissions.Modules.SelfService)
-                    .Select(p => new RolePermission
+                // Standard Employee default access (Own records only)
+                var employeePermKeys = new[]
+                {
+                    AppPermissions.Keys.EmployeesView,
+                    AppPermissions.Keys.AttendanceView,
+                    AppPermissions.Keys.AttendanceRegularize,
+                    AppPermissions.Keys.LeavesView,
+                    AppPermissions.Keys.LeavesApply,
+                    AppPermissions.Keys.PayrollView,
+                    AppPermissions.Keys.AttendanceRoster
+                };
+
+                fallbackPermissions = employeePermKeys
+                    .Select(key => new RolePermission
                     {
-                        PermissionKey = p.Key,
+                        PermissionKey = key,
                         Scope = AppPermissions.Scopes.Own
                     }).ToList();
             }
@@ -484,4 +562,3 @@ public sealed class PermissionService : IPermissionService
         return list;
     }
 }
-

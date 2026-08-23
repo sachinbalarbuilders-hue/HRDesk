@@ -124,6 +124,7 @@ public class AuthController : ControllerBase
         }, "Jwt"));
 
         var permissions = await _permissionService.GetUserPermissionsAsync(principal);
+        var permissionScopes = await _permissionService.GetUserPermissionScopesAsync(principal);
 
         var rawOrgs = await _context.Organizations
             .AsNoTracking()
@@ -166,6 +167,7 @@ public class AuthController : ControllerBase
                 organizationName = user.Organization?.Name ?? "HRDesk Builders & Developers"
             },
             permissions,
+            permissionScopes,
             organizations = orgs
         });
     }
@@ -277,6 +279,7 @@ public class AuthController : ControllerBase
         }
 
         var permissions = await _permissionService.GetUserPermissionsAsync(User);
+        var permissionScopes = await _permissionService.GetUserPermissionScopesAsync(User);
 
         var rawOrgs = await _context.Organizations
             .AsNoTracking()
@@ -318,6 +321,7 @@ public class AuthController : ControllerBase
                 organizationName = user.Organization?.Name ?? "HRDesk Builders & Developers"
             },
             permissions,
+            permissionScopes,
             organizations = orgs
         });
     }

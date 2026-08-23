@@ -18,10 +18,12 @@ interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
   permissions: string[];
+  permissionScopes: Record<string, string>;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   hasPermission: (permissionKey: string) => boolean;
+  getPermissionScope: (permissionKey: string) => string | undefined;
   isAdmin: boolean;
 }
 
@@ -37,6 +39,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('hrdesk_permissions');
     return saved ? JSON.parse(saved) : [];
   });
+  const [permissionScopes, setPermissionScopes] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('hrdesk_permission_scopes');
+    return saved ? JSON.parse(saved) : {};
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -46,11 +52,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const res = await apiClient.get('/auth/me');
           setUser(res.data.user);
           setPermissions(res.data.permissions || []);
+          setPermissionScopes(res.data.permissionScopes || {});
           if (res.data.organizations && res.data.organizations.length > 0) {
             localStorage.setItem('hrdesk_db_orgs', JSON.stringify(res.data.organizations));
           }
           localStorage.setItem('hrdesk_user', JSON.stringify(res.data.user));
           localStorage.setItem('hrdesk_permissions', JSON.stringify(res.data.permissions || []));
+          localStorage.setItem('hrdesk_permission_scopes', JSON.stringify(res.data.permissionScopes || {}));
         } catch {
           logout();
         }
@@ -63,15 +71,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string) => {
     const res = await apiClient.post('/auth/login', { username, password });
-    const { token: newToken, user: newUser, permissions: newPerms, organizations: newOrgs } = res.data;
+    const { token: newToken, user: newUser, permissions: newPerms, permissionScopes: newScopes, organizations: newOrgs } = res.data;
 
     setToken(newToken);
     setUser(newUser);
     setPermissions(newPerms || []);
+    setPermissionScopes(newScopes || {});
 
     localStorage.setItem('hrdesk_token', newToken);
     localStorage.setItem('hrdesk_user', JSON.stringify(newUser));
     localStorage.setItem('hrdesk_permissions', JSON.stringify(newPerms || []));
+    localStorage.setItem('hrdesk_permission_scopes', JSON.stringify(newScopes || {}));
     if (newOrgs && newOrgs.length > 0) {
       localStorage.setItem('hrdesk_db_orgs', JSON.stringify(newOrgs));
       localStorage.setItem('hrdesk_active_organization', String(newUser.organizationId || newOrgs[0].id));
@@ -82,20 +92,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
     setPermissions([]);
+    setPermissionScopes({});
     localStorage.removeItem('hrdesk_token');
     localStorage.removeItem('hrdesk_user');
     localStorage.removeItem('hrdesk_permissions');
+    localStorage.removeItem('hrdesk_permission_scopes');
     localStorage.removeItem('hrdesk_db_orgs');
     localStorage.removeItem('hrdesk_active_org_obj');
   };
 
   const hasPermission = (permissionKey: string): boolean => {
     if (!user) return false;
-    if (user.role === 'SuperAdmin' || user.role === 'Admin') return true;
+    if (user.role === 'SuperAdmin') return true;
     return permissions.includes(permissionKey);
   };
 
-  const isAdmin = user?.role === 'SuperAdmin' || user?.role === 'Admin';
+  const getPermissionScope = (permissionKey: string): string | undefined => {
+    if (!user) return undefined;
+    if (user.role === 'SuperAdmin') return 'All';
+    return permissionScopes[permissionKey];
+  };
+
+  const isAdmin = user?.role === 'SuperAdmin';
 
   return (
     <AuthContext.Provider
@@ -103,10 +121,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         token,
         permissions,
+        permissionScopes,
         isLoading,
         login,
         logout,
         hasPermission,
+        getPermissionScope,
         isAdmin,
       }}
     >

@@ -440,7 +440,7 @@ using (var scope = app.Services.CreateScope())
                 db.Roles.Add(managerRole);
                 db.SaveChanges();
 
-                var managerPerms = new[]
+                var managerPerms = new (string Key, string Scope)[]
                 {
                     (HRDesk.Web.Constants.AppPermissions.Keys.EmployeesView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
                     (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
@@ -449,11 +449,7 @@ using (var scope = app.Services.CreateScope())
                     (HRDesk.Web.Constants.AppPermissions.Keys.LeavesView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
                     (HRDesk.Web.Constants.AppPermissions.Keys.LeavesApprove, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
                     (HRDesk.Web.Constants.AppPermissions.Keys.CompOffApprove, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.ESSDashboard, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.ESSMyAttendance, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.ESSApplyLeave, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.ESSMyPayslips, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.ESSMyRoster, HRDesk.Web.Constants.AppPermissions.Scopes.Own)
+                    (HRDesk.Web.Constants.AppPermissions.Keys.PayrollView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting)
                 };
 
                 foreach (var (permKey, permScope) in managerPerms)
@@ -475,7 +471,7 @@ using (var scope = app.Services.CreateScope())
                 employeeRole = new HRDesk.Web.Models.Role
                 {
                     Name = "Employee",
-                    Description = "Standard staff account with access to Employee Self-Service (ESS) portal.",
+                    Description = "Standard staff account with access to personal records and attendance.",
                     IsSystemRole = true,
                     OrganizationId = defaultOrg.Id,
                     CreatedAt = DateTime.Now,
@@ -484,15 +480,23 @@ using (var scope = app.Services.CreateScope())
                 db.Roles.Add(employeeRole);
                 db.SaveChanges();
 
-                var essPerms = HRDesk.Web.Constants.AppPermissions.All
-                    .Where(p => p.Module == HRDesk.Web.Constants.AppPermissions.Modules.SelfService);
+                var defaultEmpKeys = new[]
+                {
+                    HRDesk.Web.Constants.AppPermissions.Keys.EmployeesView,
+                    HRDesk.Web.Constants.AppPermissions.Keys.AttendanceView,
+                    HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRegularize,
+                    HRDesk.Web.Constants.AppPermissions.Keys.LeavesView,
+                    HRDesk.Web.Constants.AppPermissions.Keys.LeavesApply,
+                    HRDesk.Web.Constants.AppPermissions.Keys.PayrollView,
+                    HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRoster
+                };
 
-                foreach (var perm in essPerms)
+                foreach (var key in defaultEmpKeys)
                 {
                     db.RolePermissions.Add(new HRDesk.Web.Models.RolePermission
                     {
                         RoleId = employeeRole.Id,
-                        PermissionKey = perm.Key,
+                        PermissionKey = key,
                         Scope = HRDesk.Web.Constants.AppPermissions.Scopes.Own,
                         OrganizationId = defaultOrg.Id
                     });

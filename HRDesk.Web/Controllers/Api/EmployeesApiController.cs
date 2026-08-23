@@ -433,81 +433,100 @@ END;";
             return NotFound(new { message = "Employee not found or unauthorized to edit." });
         }
 
-        if (!string.IsNullOrWhiteSpace(dto.EmployeeName)) employee.EmployeeName = dto.EmployeeName.Trim();
-        employee.Phone = dto.Phone?.Trim();
-        employee.DateOfBirth = dto.DateOfBirth;
-        if (dto.JoiningDate.HasValue) employee.JoiningDate = dto.JoiningDate.Value;
-        employee.LastWorkingDate = dto.LastWorkingDate;
-        employee.ResignationDate = dto.ResignationDate;
-        employee.ProbationStart = dto.ProbationStart;
-        employee.ProbationEnd = dto.ProbationEnd;
-        employee.DepartmentId = dto.DepartmentId;
-        employee.DesignationId = dto.DesignationId;
-        employee.ReportingManagerId = dto.ReportingManagerId;
-        if (dto.BranchId.HasValue) employee.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
-        if (!string.IsNullOrWhiteSpace(dto.Weekoff)) employee.Weekoff = dto.Weekoff;
-        
-        employee.EmploymentType = dto.EmploymentType;
-        employee.BloodGroup = dto.BloodGroup;
-        employee.Gender = dto.Gender;
-        employee.AttendanceType = dto.AttendanceType;
-        employee.MaritalStatus = dto.MaritalStatus;
-        employee.Nationality = dto.Nationality;
-        if (dto.WorkEmail != null) employee.WorkEmail = dto.WorkEmail.Trim();
-        if (dto.PersonalEmail != null) employee.PersonalEmail = dto.PersonalEmail.Trim();
-        if (dto.CurrentAddress != null) employee.CurrentAddress = dto.CurrentAddress.Trim();
-        if (dto.PermanentAddress != null) employee.PermanentAddress = dto.PermanentAddress.Trim();
-        employee.HasProbation = dto.HasProbation;
-        employee.ProbationDays = dto.ProbationDays;
-        employee.ContractDurationMonths = dto.ContractDurationMonths;
-        employee.ContractEndDate = dto.ContractEndDate;
-
-        // Auto-provision or update user account & role
-        if (dto.RoleId.HasValue)
+        var editScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesEdit);
+        if (string.IsNullOrEmpty(editScope))
         {
-            var user = await _db.Users
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(u => u.EmployeeId == employee.EmployeeId && u.OrganizationId == employee.OrganizationId);
+            editScope = User.IsInRole("SuperAdmin") ? AppPermissions.Scopes.EditAllDetails : AppPermissions.Scopes.EditBasicInfo;
+        }
 
-            if (dto.RoleId.Value > 0)
+        // 1. Personal / Basic Details (Allowed under "Basic Information" or "All Details" or SuperAdmin)
+        if (editScope == AppPermissions.Scopes.EditBasicInfo || editScope == AppPermissions.Scopes.EditAllDetails || User.IsInRole("SuperAdmin"))
+        {
+            if (!string.IsNullOrWhiteSpace(dto.EmployeeName)) employee.EmployeeName = dto.EmployeeName.Trim();
+            employee.Phone = dto.Phone?.Trim();
+            employee.DateOfBirth = dto.DateOfBirth;
+            employee.BloodGroup = dto.BloodGroup;
+            employee.Gender = dto.Gender;
+            employee.MaritalStatus = dto.MaritalStatus;
+            employee.Nationality = dto.Nationality;
+            if (dto.PersonalEmail != null) employee.PersonalEmail = dto.PersonalEmail.Trim();
+            if (dto.CurrentAddress != null) employee.CurrentAddress = dto.CurrentAddress.Trim();
+            if (dto.PermanentAddress != null) employee.PermanentAddress = dto.PermanentAddress.Trim();
+        }
+
+        // 2. Job Structure, Corporate Work Email, Department, Designation, Manager, Role (ONLY allowed under "All Details" or SuperAdmin)
+        if (editScope == AppPermissions.Scopes.EditAllDetails || User.IsInRole("SuperAdmin"))
+        {
+            if (dto.WorkEmail != null) employee.WorkEmail = dto.WorkEmail.Trim();
+            employee.DepartmentId = dto.DepartmentId;
+            employee.DesignationId = dto.DesignationId;
+            employee.ReportingManagerId = dto.ReportingManagerId;
+            if (dto.BranchId.HasValue) employee.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
+            employee.EmploymentType = dto.EmploymentType;
+            if (!string.IsNullOrWhiteSpace(dto.Weekoff)) employee.Weekoff = dto.Weekoff;
+            employee.AttendanceType = dto.AttendanceType;
+            if (dto.JoiningDate.HasValue) employee.JoiningDate = dto.JoiningDate.Value;
+
+            // Auto-provision or update user account & role
+            if (dto.RoleId.HasValue)
             {
-                var roleName = dto.RoleId.Value == 1 ? "SuperAdmin" : (dto.RoleId.Value == 2 ? "DepartmentManager" : "Employee");
-                if (user != null)
+                var user = await _db.Users
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(u => u.EmployeeId == employee.EmployeeId && u.OrganizationId == employee.OrganizationId);
+
+                if (dto.RoleId.Value > 0)
                 {
-                    user.RoleId = dto.RoleId.Value;
-                    user.Role = roleName;
-                    user.FullName = employee.EmployeeName;
-                    if (!string.IsNullOrWhiteSpace(employee.WorkEmail))
+                    var roleName = dto.RoleId.Value == 1 ? "SuperAdmin" : (dto.RoleId.Value == 2 ? "DepartmentManager" : "Employee");
+                    if (user != null)
                     {
-                        user.Username = employee.WorkEmail;
+                        user.RoleId = dto.RoleId.Value;
+                        user.Role = roleName;
+                        user.FullName = employee.EmployeeName;
+                        if (!string.IsNullOrWhiteSpace(employee.WorkEmail))
+                        {
+                            user.Username = employee.WorkEmail;
+                        }
+                        user.IsActive = true;
                     }
-                    user.IsActive = true;
-                }
-                else
-                {
-                    var username = !string.IsNullOrWhiteSpace(employee.WorkEmail)
-                        ? employee.WorkEmail
-                        : (!string.IsNullOrWhiteSpace(employee.PersonalEmail) ? employee.PersonalEmail : $"emp{employee.EmployeeId}");
-
-                    user = new User
+                    else
                     {
-                        Username = username,
-                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("Welcome@123", 12),
-                        FullName = employee.EmployeeName,
-                        RoleId = dto.RoleId.Value,
-                        Role = roleName,
-                        IsActive = true,
-                        BranchId = employee.BranchId,
-                        OrganizationId = employee.OrganizationId,
-                        EmployeeId = employee.EmployeeId
-                    };
-                    _db.Users.Add(user);
+                        var username = !string.IsNullOrWhiteSpace(employee.WorkEmail)
+                            ? employee.WorkEmail
+                            : (!string.IsNullOrWhiteSpace(employee.PersonalEmail) ? employee.PersonalEmail : $"emp{employee.EmployeeId}");
+
+                        user = new User
+                        {
+                            Username = username,
+                            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Welcome@123", 12),
+                            FullName = employee.EmployeeName,
+                            RoleId = dto.RoleId.Value,
+                            Role = roleName,
+                            IsActive = true,
+                            BranchId = employee.BranchId,
+                            OrganizationId = employee.OrganizationId,
+                            EmployeeId = employee.EmployeeId
+                        };
+                        _db.Users.Add(user);
+                    }
+                }
+                else if (dto.RoleId.Value == 0 && user != null)
+                {
+                    user.IsActive = false;
                 }
             }
-            else if (dto.RoleId.Value == 0 && user != null)
-            {
-                user.IsActive = false;
-            }
+        }
+
+        // 3. Status & Lifecycle changes (Allowed under "Status Changes" or "All Details" or SuperAdmin)
+        if (editScope == AppPermissions.Scopes.EditStatusChanges || editScope == AppPermissions.Scopes.EditAllDetails || User.IsInRole("SuperAdmin"))
+        {
+            employee.LastWorkingDate = dto.LastWorkingDate;
+            employee.ResignationDate = dto.ResignationDate;
+            employee.ProbationStart = dto.ProbationStart;
+            employee.ProbationEnd = dto.ProbationEnd;
+            employee.HasProbation = dto.HasProbation;
+            employee.ProbationDays = dto.ProbationDays;
+            employee.ContractDurationMonths = dto.ContractDurationMonths;
+            employee.ContractEndDate = dto.ContractEndDate;
         }
 
         await _db.SaveChangesAsync();

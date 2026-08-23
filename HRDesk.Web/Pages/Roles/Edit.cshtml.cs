@@ -82,7 +82,7 @@ public class EditModel : PageModel
             Input.Permissions[perm.Key] = hasPerm;
             Input.Scopes[perm.Key] = hasPerm 
                 ? existingPermMap[perm.Key] 
-                : (perm.Module == AppPermissions.Modules.SelfService ? AppPermissions.Scopes.Own : AppPermissions.Scopes.All);
+                : perm.DefaultScope;
         }
 
         return Page();

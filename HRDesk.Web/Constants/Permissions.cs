@@ -24,18 +24,18 @@ public static class AppPermissions
         public const string DeleteBulk = "Bulk Delete";
     }
 
-    // Modules
+    // Modules matching actual system sections
     public static class Modules
     {
         public const string Employees = "Employees";
         public const string Attendance = "Attendance";
+        public const string Regularizations = "Regularizations";
+        public const string ShiftsAndRoster = "Shifts & Roster";
         public const string Leaves = "Leaves & Comp-Off";
         public const string Payroll = "Payroll & Loans";
         public const string Masters = "Masters & Structure";
-        public const string Shifts = "Shifts & Schedule";
         public const string Recruitment = "Recruitment";
         public const string System = "System & Settings";
-        public const string SelfService = "Employee Self-Service (ESS)";
     }
 
     // Permission Keys
@@ -51,11 +51,18 @@ public static class AppPermissions
         // 2. Attendance Module
         public const string AttendanceView = "Attendance.View";
         public const string AttendanceProcess = "Attendance.Process";
-        public const string AttendanceRoster = "Attendance.Roster";
         public const string AttendanceMonthlySheet = "Attendance.MonthlySheet";
-        public const string AttendanceRegularize = "Attendance.Regularize";
 
-        // 3. Leaves & Comp-Off Module
+        // 3. Regularizations Module
+        public const string AttendanceRegularize = "Attendance.Regularize";
+        public const string RegularizationsDelete = "Regularizations.Delete";
+
+        // 4. Shifts & Roster Module
+        public const string ShiftsManage = "Shifts.Manage";
+        public const string AttendanceRoster = "Attendance.Roster";
+        public const string HolidaysManage = "Holidays.Manage";
+
+        // 5. Leaves & Comp-Off Module
         public const string LeavesView = "Leaves.View";
         public const string LeavesApply = "Leaves.Apply";
         public const string LeavesApprove = "Leaves.Approve";
@@ -63,37 +70,26 @@ public static class AppPermissions
         public const string LeavesManageAllocations = "Leaves.ManageAllocations";
         public const string CompOffApprove = "CompOff.Approve";
 
-        // 4. Payroll & Loans Module
+        // 6. Payroll & Loans Module
         public const string PayrollView = "Payroll.View";
         public const string PayrollProcess = "Payroll.Process";
         public const string PayrollManageSalary = "Payroll.ManageSalary";
         public const string PayrollManageLoans = "Payroll.ManageLoans";
 
-        // 5. Masters & Structure Module
+        // 7. Masters & Structure Module
         public const string MastersDepartments = "Masters.Departments";
         public const string MastersDesignations = "Masters.Designations";
         public const string MastersOrganizations = "Masters.Organizations";
 
-        // 6. Shifts & Schedule Module
-        public const string ShiftsManage = "Shifts.Manage";
-        public const string HolidaysManage = "Holidays.Manage";
-
-        // 7. Recruitment Module
+        // 8. Recruitment Module
         public const string RecruitmentCandidates = "Recruitment.Candidates";
         public const string RecruitmentInterviews = "Recruitment.Interviews";
 
-        // 8. System & Settings Module
+        // 9. System & Settings Module
         public const string SystemDevices = "System.Devices";
         public const string SystemRoles = "System.Roles";
         public const string SystemSettings = "System.Settings";
         public const string SystemLogs = "System.Logs";
-
-        // 9. Employee Self-Service (ESS)
-        public const string ESSDashboard = "ESS.Dashboard";
-        public const string ESSMyAttendance = "ESS.MyAttendance";
-        public const string ESSApplyLeave = "ESS.ApplyLeave";
-        public const string ESSMyPayslips = "ESS.MyPayslips";
-        public const string ESSMyRoster = "ESS.MyRoster";
     }
 
     public record PermissionDefinition(
@@ -108,7 +104,7 @@ public static class AppPermissions
 
     public static readonly List<PermissionDefinition> All = new()
     {
-        // Employees
+        // 1. Employees
         new(Keys.EmployeesView, "View Scope", Modules.Employees, "View employee profiles and directories", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
@@ -135,7 +131,7 @@ public static class AppPermissions
             ScopeOptions: new[] { "Own", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        // Attendance
+        // 2. Attendance
         new(Keys.AttendanceView, "View Scope", Modules.Attendance, "View biometric logs and daily attendance", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
@@ -146,22 +142,39 @@ public static class AppPermissions
             ScopeOptions: new[] { "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        new(Keys.AttendanceRoster, "Roster Scope", Modules.Attendance, "Assign and manage shift rosters", 
-            SupportsScope: true, 
-            ScopeOptions: new[] { "Department", "Own Branch" },
-            DefaultScope: "Own Branch"),
-
         new(Keys.AttendanceMonthlySheet, "Monthly Sheet Scope", Modules.Attendance, "Access aggregated monthly attendance sheet", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        new(Keys.AttendanceRegularize, "Regularization Scope", Modules.Attendance, "Approve or reject attendance regularizations", 
+        // 3. Regularizations
+        new(Keys.AttendanceRegularize, "Approval Scope", Modules.Regularizations, "Approve or reject attendance regularizations", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        // Leaves & Comp-Off
+        new(Keys.RegularizationsDelete, "Delete Scope", Modules.Regularizations, "Archive or permanently delete regularization requests", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete" },
+            DefaultScope: "Soft Delete"),
+
+        // 4. Shifts & Roster
+        new(Keys.ShiftsManage, "Manage Shifts", Modules.ShiftsAndRoster, "Create and edit shift timings and grace periods",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AttendanceRoster, "Roster Scope", Modules.ShiftsAndRoster, "Assign and manage shift rosters", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.HolidaysManage, "Manage Holidays", Modules.ShiftsAndRoster, "Configure annual holiday calendars",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        // 5. Leaves & Comp-Off
         new(Keys.LeavesView, "View Scope", Modules.Leaves, "View submitted leave applications", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
@@ -177,15 +190,15 @@ public static class AppPermissions
             ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        new(Keys.LeavesManageTypes, "Manage Leave Types", Modules.Leaves, "Configure leave quotas and rules"),
-        new(Keys.LeavesManageAllocations, "Manage Allocations", Modules.Leaves, "Credit and adjust leave balances"),
-
         new(Keys.CompOffApprove, "Comp-Off Approval Scope", Modules.Leaves, "Approve weekend / overtime comp-off credits", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        // Payroll & Loans
+        new(Keys.LeavesManageTypes, "Manage Leave Types", Modules.Leaves, "Configure leave quotas and rules"),
+        new(Keys.LeavesManageAllocations, "Manage Allocations", Modules.Leaves, "Credit and adjust leave balances"),
+
+        // 6. Payroll & Loans
         new(Keys.PayrollView, "View Scope", Modules.Payroll, "View salary statements and payroll reports", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Own", "Department", "Own Branch" },
@@ -206,16 +219,12 @@ public static class AppPermissions
             ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        // Masters
+        // 7. Masters & Structure
         new(Keys.MastersDepartments, "Manage Departments", Modules.Masters, "Create, edit, and delete departments"),
         new(Keys.MastersDesignations, "Manage Designations", Modules.Masters, "Create, edit, and delete designations"),
         new(Keys.MastersOrganizations, "Manage Organizations", Modules.Masters, "Manage company branches and organizations"),
 
-        // Shifts & Schedule
-        new(Keys.ShiftsManage, "Manage Shifts", Modules.Shifts, "Create and edit shift timings and grace periods"),
-        new(Keys.HolidaysManage, "Manage Holidays", Modules.Shifts, "Configure annual holiday calendars"),
-
-        // Recruitment
+        // 8. Recruitment
         new(Keys.RecruitmentCandidates, "Manage Candidates", Modules.Recruitment, "Candidate pipeline and resumes",
             SupportsScope: true,
             ScopeOptions: new[] { "Department", "Own Branch" },
@@ -226,17 +235,10 @@ public static class AppPermissions
             ScopeOptions: new[] { "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        // System
+        // 9. System & Settings
         new(Keys.SystemDevices, "Manage Biometric Devices", Modules.System, "Configure LAN/Cloud biometric sync & machines"),
         new(Keys.SystemRoles, "Manage Roles & Permissions", Modules.System, "Create, edit, and delete custom roles"),
         new(Keys.SystemSettings, "Manage System Settings", Modules.System, "Configure general company settings"),
-        new(Keys.SystemLogs, "View Service Logs", Modules.System, "Inspect audit trails and background job logs"),
-
-        // Employee Self-Service (ESS)
-        new(Keys.ESSDashboard, "ESS Portal Access", Modules.SelfService, "Access the Employee Self-Service portal"),
-        new(Keys.ESSMyAttendance, "My Attendance", Modules.SelfService, "View personal punch history and calendar"),
-        new(Keys.ESSApplyLeave, "Apply Personal Leave", Modules.SelfService, "Submit leave and regularization requests"),
-        new(Keys.ESSMyPayslips, "My Payslips", Modules.SelfService, "Download monthly personal payslips"),
-        new(Keys.ESSMyRoster, "My Shift Roster", Modules.SelfService, "View personal assigned shift roster")
+        new(Keys.SystemLogs, "View Service Logs", Modules.System, "Inspect audit trails and background job logs")
     };
 }

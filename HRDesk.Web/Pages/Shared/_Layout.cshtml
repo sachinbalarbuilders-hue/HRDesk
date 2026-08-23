@@ -73,7 +73,6 @@
                     bool _canLogs            = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.SystemLogs);
                     bool _canRecruit         = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.RecruitmentCandidates);
                     bool _canInterviews      = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.RecruitmentInterviews);
-                    bool _canESS             = await NavPermSvc.HasPermissionAsync(User, HRDesk.Web.Constants.AppPermissions.Keys.ESSDashboard);
 
                     bool _isEmployeeOnly = User.IsInRole("Employee");
                 }
@@ -156,13 +155,6 @@
                         @if (_canAttendView) { <a asp-page="/Reports/MissingPunch" class="nav-link"><i class="bi bi-exclamation-triangle"></i> Missing Punch</a> }
                         @if (_canLeavesView) { <a asp-page="/Reports/ApplicationTracking" class="nav-link"><i class="bi bi-list-ol"></i> Application Tracking</a> }
                         @if (_canLeavesView) { <a asp-page="/Reports/EmployeeLeaveReport" class="nav-link"><i class="bi bi-file-earmark-bar-graph"></i> Employee Leave Report</a> }
-                    }
-
-                    <!-- Self-Service link for managers/admins who also have ESS -->
-                    @if (_canESS)
-                    {
-                        <div class="nav-section-title mt-3">Self-Service</div>
-                        <a asp-page="/Portal/Dashboard" class="nav-link"><i class="bi bi-person-circle"></i> My Portal (ESS)</a>
                     }
 
                     @if (User.IsInRole("SuperAdmin"))
