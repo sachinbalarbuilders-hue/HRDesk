@@ -400,6 +400,7 @@ export const Regularizations: React.FC = () => {
                       />
                     </th>
                   )}
+                  <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
                   <th className="p-3.5 font-semibold">Application #</th>
                   <th className="p-3.5 font-semibold">Employee</th>
                   <th className="p-3.5 font-semibold">Request Date</th>
@@ -411,8 +412,9 @@ export const Regularizations: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--rule)]">
-                {items.map((r) => {
+                {items.map((r, idx) => {
                   const isSelected = selectedIds.includes(r.id);
+                  const srNo = (page - 1) * pageSize + idx + 1;
                   return (
                     <tr
                       key={r.id}
@@ -434,6 +436,10 @@ export const Regularizations: React.FC = () => {
                           )}
                         </td>
                       )}
+
+                      <td className="p-3.5 font-mono text-center text-xs text-[var(--ink-muted)]">
+                        {srNo}
+                      </td>
 
                       <td className="p-3.5 font-mono font-semibold text-[var(--accent)]">
                         #{r.applicationNumber || r.id}

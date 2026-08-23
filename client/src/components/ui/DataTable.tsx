@@ -15,6 +15,7 @@ export interface DataTableProps<T> {
   columns: ColumnDef<T>[];
   data: T[];
   loading?: boolean;
+  showSrNo?: boolean;
   emptyMessage?: string;
   keyExtractor?: (item: T, index: number) => string | number;
   pagination?: {
@@ -31,17 +32,36 @@ export function DataTable<T extends Record<string, any>>({
   columns,
   data,
   loading = false,
+  showSrNo = true,
   emptyMessage = 'No records found.',
   keyExtractor = (item, index) => item.id || item.employeeId || index,
   pagination,
 }: DataTableProps<T>) {
+  const effectiveColumns: ColumnDef<T>[] = React.useMemo(() => {
+    if (showSrNo === false || columns.some(c => c.key === 'srNo' || c.key === 'sr' || c.key === '_srNo')) {
+      return columns;
+    }
+    const srCol: ColumnDef<T> = {
+      key: '_srNo',
+      header: 'Sr.',
+      width: '50px',
+      align: 'center',
+      className: 'font-mono text-xs text-[var(--ink-muted)] w-12 text-center',
+      render: (_: T, index: number) => {
+        const offset = pagination ? (pagination.page - 1) * pagination.pageSize : 0;
+        return <span className="font-mono text-xs text-[var(--ink-muted)]">{offset + index + 1}</span>;
+      }
+    };
+    return [srCol, ...columns];
+  }, [columns, showSrNo, pagination?.page, pagination?.pageSize]);
+
   return (
     <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
       <div className="overflow-x-auto">
         <table className="register-table w-full">
           <thead>
             <tr>
-              {columns.map((col) => (
+              {effectiveColumns.map((col) => (
                 <th
                   key={col.key}
                   style={{ width: col.width }}
@@ -58,7 +78,7 @@ export function DataTable<T extends Record<string, any>>({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={columns.length} className="p-0">
+                <td colSpan={effectiveColumns.length} className="p-0">
                   <TableSkeleton rows={6} />
                 </td>
               </tr>
@@ -68,7 +88,7 @@ export function DataTable<T extends Record<string, any>>({
                   key={keyExtractor(item, index)}
                   className="hover:bg-[var(--paper-subtle)] transition-colors"
                 >
-                  {columns.map((col) => (
+                  {effectiveColumns.map((col) => (
                     <td
                       key={col.key}
                       className={`
@@ -86,7 +106,7 @@ export function DataTable<T extends Record<string, any>>({
             ) : (
               <tr>
                 <td
-                  colSpan={columns.length}
+                  colSpan={effectiveColumns.length}
                   className="py-12 text-center text-xs text-[var(--ink-muted)]"
                 >
                   {emptyMessage}

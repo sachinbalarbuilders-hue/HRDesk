@@ -362,7 +362,8 @@ export const Employees: React.FC = () => {
           <table className="register-table">
             <thead>
               <tr>
-                <th className="w-10 text-center">#</th>
+                <th className="w-12 text-center font-mono text-xs uppercase text-[var(--ink-muted)]">Sr.</th>
+                <th className="w-10 text-center">Photo</th>
                 <th>Employee Name</th>
                 <th>Employee ID</th>
                 <th>Department</th>
@@ -376,12 +377,13 @@ export const Employees: React.FC = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="p-0">
+                  <td colSpan={10} className="p-0">
                     <TableSkeleton rows={8} />
                   </td>
                 </tr>
-              ) : employees.map((emp) => {
+              ) : employees.map((emp, index) => {
                 const isActive = emp.status?.toLowerCase() === 'active';
+                const srNo = (page - 1) * pageSize + index + 1;
 
                 return (
                   <tr
@@ -389,6 +391,9 @@ export const Employees: React.FC = () => {
                     onClick={() => handleRowClick(emp)}
                     className="cursor-pointer"
                   >
+                    <td className="text-center font-mono text-xs text-[var(--ink-muted)] w-12">
+                      {srNo}
+                    </td>
                     <td className="text-center font-data text-xs text-[var(--ink-muted)] w-10">
                       <div className="w-7 h-7 mx-auto rounded-full overflow-hidden flex items-center justify-center bg-[var(--paper)] border border-[var(--rule)] shrink-0">
                         {emp.photoPath ? (
@@ -456,7 +461,7 @@ export const Employees: React.FC = () => {
 
               {employees.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
+                  <td colSpan={10} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
                     No employees found matching search criteria.
                   </td>
                 </tr>

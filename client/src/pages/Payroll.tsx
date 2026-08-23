@@ -392,6 +392,7 @@ export const Payroll: React.FC = () => {
                     />
                   </th>
                 )}
+                <th className="w-12 text-center font-mono text-xs uppercase text-[var(--ink-muted)]">Sr.</th>
                 <th>Employee Name</th>
                 <th>Department</th>
                 <th className="text-center font-data">Payable Days</th>
@@ -406,11 +407,11 @@ export const Payroll: React.FC = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={canManage ? 10 : 9} className="p-0">
+                  <td colSpan={canManage ? 11 : 10} className="p-0">
                     <TableSkeleton rows={8} />
                   </td>
                 </tr>
-              ) : records.map((r) => (
+              ) : records.map((r, index) => (
                 <tr key={r.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
                   {canManage && (
                     <td className="text-center">
@@ -422,6 +423,10 @@ export const Payroll: React.FC = () => {
                       />
                     </td>
                   )}
+
+                  <td className="text-center font-mono text-xs text-[var(--ink-muted)] w-12">
+                    {index + 1}
+                  </td>
 
                   <td>
                     <div className="font-semibold text-[var(--ink)]">{r.employeeName}</div>
@@ -483,7 +488,7 @@ export const Payroll: React.FC = () => {
 
               {!loading && records.length === 0 && (
                 <tr>
-                  <td colSpan={canManage ? 10 : 9} className="py-12 text-center text-xs text-[var(--ink-muted)]">
+                  <td colSpan={canManage ? 11 : 10} className="py-12 text-center text-xs text-[var(--ink-muted)]">
                     <Sparkles className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
                     <div className="font-semibold text-sm text-[var(--ink)]">No Payroll Records for {getMonthDisplay(selectedMonth)}</div>
                     <p className="mt-1">Click "Process Payroll" in the toolbar above to generate monthly salaries based on attendance ledger.</p>

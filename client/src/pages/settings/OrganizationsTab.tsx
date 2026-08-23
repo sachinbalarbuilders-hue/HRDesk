@@ -142,7 +142,7 @@ export const OrganizationsTab: React.FC = () => {
       BranchesCount: branches.filter((b) => b.organizationId === o.id).length,
       Status: o.isActive ? 'Active' : 'Inactive',
     }));
-    exportToCSV(exportData, `Organizations_Export_${new Date().toISOString().slice(0, 10)}`);
+    exportToCSV(`Organizations_Export_${new Date().toISOString().slice(0, 10)}`, exportData);
     showSuccess('Exported', 'Organizations list exported to CSV.');
   };
 

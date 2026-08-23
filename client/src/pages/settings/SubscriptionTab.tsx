@@ -490,6 +490,7 @@ export const SubscriptionTab: React.FC = () => {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] font-ui text-[11px] uppercase tracking-wider text-[var(--ink-muted)]">
+                <th className="py-3 px-4 w-12 text-center">Sr.</th>
                 <th className="py-3 px-4">Invoice #</th>
                 <th className="py-3 px-4">Plan Tier</th>
                 <th className="py-3 px-4">Billing Period</th>
@@ -503,21 +504,22 @@ export const SubscriptionTab: React.FC = () => {
             <tbody className="divide-y divide-[var(--rule)]">
               {loadingHistory ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-[var(--ink-muted)]">
+                  <td colSpan={9} className="py-8 text-center text-[var(--ink-muted)]">
                     <Loader2 size={16} className="animate-spin inline mr-2 text-[var(--gold-500)]" />
                     Loading billing history...
                   </td>
                 </tr>
               ) : paymentHistory.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-[var(--ink-muted)] font-ui">
+                  <td colSpan={9} className="py-8 text-center text-[var(--ink-muted)] font-ui">
                     <FileText size={20} className="mx-auto mb-1 opacity-40" />
                     No previous payment records found.
                   </td>
                 </tr>
               ) : (
-                paymentHistory.map((item) => (
+                paymentHistory.map((item, idx) => (
                   <tr key={item.id} className="hover:bg-[var(--surface-sunken)]/50 transition-colors">
+                    <td className="py-3 px-4 font-mono text-center text-xs text-[var(--ink-muted)] w-12">{idx + 1}</td>
                     <td className="py-3 px-4 font-mono font-semibold text-[var(--ink)]">{item.invoiceNumber}</td>
                     <td className="py-3 px-4 font-semibold text-[var(--ink)]">{item.planName}</td>
                     <td className="py-3 px-4 text-[var(--ink-muted)]">{item.billingCycle}</td>

@@ -867,7 +867,10 @@ export const Attendance: React.FC = () => {
             <table className="ledger-table w-full text-xs">
               <thead className="sticky top-0 z-10 bg-[var(--paper-subtle)]">
                 <tr>
-                  <th className="sticky left-0 z-20 bg-[var(--paper-subtle)] border-r border-[var(--rule)] min-w-[180px] shadow-sm text-left py-2 px-3">
+                  <th className="sticky left-0 z-20 bg-[var(--paper-subtle)] border-r border-[var(--rule)] w-12 text-center font-mono text-[11px] text-[var(--ink-muted)] shadow-xs">
+                    Sr.
+                  </th>
+                  <th className="sticky left-12 z-20 bg-[var(--paper-subtle)] border-r border-[var(--rule)] min-w-[180px] shadow-sm text-left py-2 px-3">
                     Employee Name
                   </th>
 
@@ -884,43 +887,49 @@ export const Attendance: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--rule)]">
-                {data?.items?.map((row: any) => (
-                  <tr key={row.employee.employeeId} className="hover:bg-[var(--paper-subtle)] transition-colors">
-                    <td className="sticky left-0 z-10 bg-[var(--paper)] border-r border-[var(--rule)] font-semibold text-[var(--ink)] whitespace-nowrap py-2 px-3 shadow-xs">
-                      {row.employee.employeeName}
-                    </td>
+                {data?.items?.map((row: any, idx: number) => {
+                  const srNo = ((page - 1) * pageSize) + idx + 1;
+                  return (
+                    <tr key={row.employee.employeeId} className="hover:bg-[var(--paper-subtle)] transition-colors">
+                      <td className="sticky left-0 z-10 bg-[var(--paper)] border-r border-[var(--rule)] font-mono text-xs text-center text-[var(--ink-muted)] py-2 px-1 shadow-xs">
+                        {srNo}
+                      </td>
+                      <td className="sticky left-12 z-10 bg-[var(--paper)] border-r border-[var(--rule)] font-semibold text-[var(--ink)] whitespace-nowrap py-2 px-3 shadow-xs">
+                        {row.employee.employeeName}
+                      </td>
 
-                    {Array.from({ length: data.daysInMonth }, (_, i) => i + 1).map((d) => {
-                      const dayStr = String(d);
-                      const record = row.dailyRecords?.[dayStr];
-                      const status = row.dailyStatus?.[dayStr] || (typeof record === 'object' ? record?.status : record) || '';
-                      const tooltip = typeof record === 'object' ? (record?.tooltip || (record?.inTime ? `In: ${record.inTime} | Out: ${record.outTime || '—'}` : '')) : '';
+                      {Array.from({ length: data.daysInMonth }, (_, i) => i + 1).map((d) => {
+                        const dayStr = String(d);
+                        const record = row.dailyRecords?.[dayStr];
+                        const status = row.dailyStatus?.[dayStr] || (typeof record === 'object' ? record?.status : record) || '';
+                        const tooltip = typeof record === 'object' ? (record?.tooltip || (record?.inTime ? `In: ${record.inTime} | Out: ${record.outTime || '—'}` : '')) : '';
 
-                      return (
-                        <td
-                          key={d}
-                          title={tooltip ? `${tooltip} • Click to view all punch logs` : `Day ${d} • Click to view all punch logs`}
-                          onClick={() => handleOpenDayActivity(row, d)}
-                          className="text-center p-1 font-data text-xs border-r border-[var(--rule)]/50 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:outline hover:outline-1 hover:outline-[var(--accent)] transition-all select-none"
-                        >
-                          {getStatusBadge(status)}
-                        </td>
-                      );
-                    })}
-                    <td className="border-l border-[var(--rule)] text-center font-data font-bold text-[var(--ok-600)]">
-                      {row.summary?.presentDays || 0}
-                    </td>
-                    <td className="text-center font-data font-bold text-[var(--err-600)]">
-                      {row.summary?.absentDays || 0}
-                    </td>
-                    <td className="text-center font-data text-[var(--ink-muted)]">
-                      {row.summary?.weekoffDays || 0}
-                    </td>
-                    <td className="text-center font-data font-bold text-[var(--accent)] bg-[var(--paper-subtle)]">
-                      {row.summary?.payableDays || 0}
-                    </td>
-                  </tr>
-                ))}
+                        return (
+                          <td
+                            key={d}
+                            title={tooltip ? `${tooltip} • Click to view all punch logs` : `Day ${d} • Click to view all punch logs`}
+                            onClick={() => handleOpenDayActivity(row, d)}
+                            className="text-center p-1 font-data text-xs border-r border-[var(--rule)]/50 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:outline hover:outline-1 hover:outline-[var(--accent)] transition-all select-none"
+                          >
+                            {getStatusBadge(status)}
+                          </td>
+                        );
+                      })}
+                      <td className="border-l border-[var(--rule)] text-center font-data font-bold text-[var(--ok-600)]">
+                        {row.summary?.presentDays || 0}
+                      </td>
+                      <td className="text-center font-data font-bold text-[var(--err-600)]">
+                        {row.summary?.absentDays || 0}
+                      </td>
+                      <td className="text-center font-data text-[var(--ink-muted)]">
+                        {row.summary?.weekoffDays || 0}
+                      </td>
+                      <td className="text-center font-data font-bold text-[var(--accent)] bg-[var(--paper-subtle)]">
+                        {row.summary?.payableDays || 0}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {(!data?.items || data.items.length === 0) && (
                   <tr>
                     <td colSpan={data?.daysInMonth ? data.daysInMonth + 6 : 37} className="py-12 text-center text-xs text-[var(--ink-muted)]">
@@ -953,6 +962,7 @@ export const Attendance: React.FC = () => {
             <table className="ledger-table w-full text-xs">
               <thead>
                 <tr>
+                  <th className="w-12 text-center font-mono text-xs uppercase text-[var(--ink-muted)]">Sr.</th>
                   <th>Employee Name</th>
 
                   <th className="text-right font-data">In Time</th>
@@ -963,13 +973,14 @@ export const Attendance: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {dailyLogs.map((log: any) => (
+                {dailyLogs.map((log: any, idx: number) => (
                   <tr
                     key={log.id}
                     onClick={() => handleOpenDailyLogRow(log)}
                     className="hover:bg-[var(--paper-subtle)] cursor-pointer transition-colors"
                     title="Click to view all punch logs and audit timeline"
                   >
+                    <td className="font-mono text-xs text-center text-[var(--ink-muted)]">{idx + 1}</td>
                     <td className="font-semibold text-[var(--ink)]">{log.employeeName}</td>
 
                     <td className="text-right font-data text-xs text-[var(--ink)]">{log.inTime || '--:--'}</td>
@@ -1013,6 +1024,7 @@ export const Attendance: React.FC = () => {
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-[var(--rule)] bg-[var(--paper-subtle)] text-[var(--ink-muted)] font-mono text-[11px] uppercase tracking-wider">
+                    <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
                     <th className="p-3.5 font-semibold">Employee</th>
                     <th className="p-3.5 font-semibold">Worked Date</th>
                     <th className="p-3.5 font-semibold">Shift Timing</th>
@@ -1023,11 +1035,11 @@ export const Attendance: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--rule)]">
-                  {compOffItems.map((c) => (
+                  {compOffItems.map((c, idx) => (
                     <tr key={c.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
+                      <td className="p-3.5 font-mono text-center text-xs text-[var(--ink-muted)]">{idx + 1}</td>
                       <td className="p-3.5">
                         <div className="font-semibold text-[var(--ink)]">{c.employeeName}</div>
-
                       </td>
 
                       <td className="p-3.5 font-mono">

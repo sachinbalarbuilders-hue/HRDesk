@@ -166,6 +166,7 @@ export const EmployeeLeavesTab: React.FC<EmployeeLeavesTabProps> = ({ employeeId
             <table className="w-full text-xs">
               <thead className="bg-[var(--paper)] text-[10px] uppercase tracking-wide text-[var(--ink-muted)] font-ui">
                 <tr>
+                  <th className="text-center font-semibold px-3 py-2 w-12">Sr.</th>
                   <th className="text-left font-semibold px-3 py-2">Dates</th>
                   <th className="text-left font-semibold px-3 py-2">Type</th>
                   <th className="text-right font-semibold px-3 py-2">Days</th>
@@ -176,13 +177,16 @@ export const EmployeeLeavesTab: React.FC<EmployeeLeavesTabProps> = ({ employeeId
               <tbody>
                 {history.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-3 py-8 text-center text-[var(--ink-muted)]">
+                    <td colSpan={6} className="px-3 py-8 text-center text-[var(--ink-muted)]">
                       No leave applications found.
                     </td>
                   </tr>
                 ) : (
-                  history.map((row) => (
+                  history.map((row, idx) => (
                     <tr key={row.id} className="border-t border-[var(--rule)]">
+                      <td className="px-3 py-2 text-center font-mono text-[11px] text-[var(--ink-muted)] w-12">
+                        {idx + 1}
+                      </td>
                       <td className="px-3 py-2 font-data text-[var(--ink)] whitespace-nowrap">
                         {formatDate(row.startDate)}
                         {row.startDate !== row.endDate ? ` – ${formatDate(row.endDate)}` : ''}

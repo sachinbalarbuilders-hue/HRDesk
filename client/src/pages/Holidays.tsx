@@ -231,6 +231,7 @@ export const Holidays: React.FC = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-[var(--rule)] bg-[var(--paper-subtle)] text-[var(--ink-muted)] font-mono text-[11px] uppercase tracking-wider">
+                  <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
                   <th className="p-3.5 font-semibold">Holiday Title</th>
                   <th className="p-3.5 font-semibold">Start Date</th>
                   <th className="p-3.5 font-semibold">End Date</th>
@@ -241,14 +242,19 @@ export const Holidays: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--rule)]">
-                {paginatedHolidays.map((h) => (
-                  <tr key={h.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
-                    <td className="p-3.5">
-                      <div className="font-semibold text-[var(--ink)] flex items-center gap-2">
-                        <CalendarIcon className="w-3.5 h-3.5 text-[var(--accent)]" />
-                        <span>{h.name}</span>
-                      </div>
-                    </td>
+                {paginatedHolidays.map((h, idx) => {
+                  const srNo = (page - 1) * pageSize + idx + 1;
+                  return (
+                    <tr key={h.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
+                      <td className="p-3.5 font-mono text-center text-xs text-[var(--ink-muted)]">
+                        {srNo}
+                      </td>
+                      <td className="p-3.5">
+                        <div className="font-semibold text-[var(--ink)] flex items-center gap-2">
+                          <CalendarIcon className="w-3.5 h-3.5 text-[var(--accent)]" />
+                          <span>{h.name}</span>
+                        </div>
+                      </td>
 
                     <td className="p-3.5 font-mono text-[var(--ink)]">
                       {h.startDate}
@@ -287,7 +293,8 @@ export const Holidays: React.FC = () => {
                       ]} />
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>

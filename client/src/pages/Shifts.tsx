@@ -329,6 +329,7 @@ export const Shifts: React.FC = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--text-secondary)] text-[11px] uppercase tracking-wider">
+                  <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
                   <th className="p-3.5 font-semibold min-w-[200px] text-left">Employee</th>
                   {weekDays.map((d, i) => {
                     const isToday = d.toDateString() === new Date().toDateString();
@@ -343,8 +344,11 @@ export const Shifts: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {roster.map((r) => (
+                {roster.map((r, idx) => (
                   <tr key={r.employeeId} className="hover:bg-[var(--surface-hover)]">
+                    <td className="p-3.5 font-mono text-center text-xs text-[var(--text-muted)] w-12">
+                      {idx + 1}
+                    </td>
                     <td className="p-3.5">
                       <div className="font-semibold text-sm text-[var(--text-primary)]">{r.employeeName}</div>
                       <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5">

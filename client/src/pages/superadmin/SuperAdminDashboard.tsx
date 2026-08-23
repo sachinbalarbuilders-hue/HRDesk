@@ -422,6 +422,7 @@ export const SuperAdminDashboard: React.FC = () => {
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] text-[11px] uppercase tracking-wider text-[var(--ink-muted)]">
+                    <th className="py-3 px-4 w-12 text-center">Sr.</th>
                     <th className="py-3 px-4">Workspace / Organization</th>
                     <th className="py-3 px-4">Plan Tier</th>
                     <th className="py-3 px-4">Employee Seats</th>
@@ -434,22 +435,23 @@ export const SuperAdminDashboard: React.FC = () => {
                 <tbody className="divide-y divide-[var(--rule)]">
                   {loadingTenants ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-[var(--ink-muted)]">
+                      <td colSpan={8} className="py-12 text-center text-[var(--ink-muted)]">
                         <Loader2 size={16} className="animate-spin inline mr-2 text-[var(--gold-500)]" />
                         Loading workspaces...
                       </td>
                     </tr>
                   ) : tenants.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-[var(--ink-muted)]">
+                      <td colSpan={8} className="py-12 text-center text-[var(--ink-muted)]">
                         No tenant organizations found.
                       </td>
                     </tr>
                   ) : (
-                    tenants.map((t) => {
+                    tenants.map((t, idx) => {
                       const isExpired = t.validUntil && new Date(t.validUntil) < new Date();
                       return (
                         <tr key={t.id} className="hover:bg-[var(--surface-sunken)]/50 transition-colors">
+                          <td className="py-3 px-4 font-mono text-center text-xs text-[var(--ink-muted)] w-12">{idx + 1}</td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2.5">
                               <div
@@ -560,6 +562,7 @@ export const SuperAdminDashboard: React.FC = () => {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] text-[11px] uppercase tracking-wider text-[var(--ink-muted)]">
+                  <th className="py-3 px-4 w-12 text-center">Sr.</th>
                   <th className="py-3 px-4">Invoice #</th>
                   <th className="py-3 px-4">Workspace / Organization</th>
                   <th className="py-3 px-4">Plan Tier</th>
@@ -574,20 +577,21 @@ export const SuperAdminDashboard: React.FC = () => {
               <tbody className="divide-y divide-[var(--rule)]">
                 {loadingPayments ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-[var(--ink-muted)]">
+                    <td colSpan={10} className="py-12 text-center text-[var(--ink-muted)]">
                       <Loader2 size={16} className="animate-spin inline mr-2 text-[var(--gold-500)]" />
                       Loading global payment transactions...
                     </td>
                   </tr>
                 ) : payments.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-[var(--ink-muted)]">
+                    <td colSpan={10} className="py-12 text-center text-[var(--ink-muted)]">
                       No platform payments recorded yet.
                     </td>
                   </tr>
                 ) : (
-                  payments.map((p) => (
+                  payments.map((p, idx) => (
                     <tr key={p.id} className="hover:bg-[var(--surface-sunken)]/50 transition-colors">
+                      <td className="py-3 px-4 font-mono text-center text-xs text-[var(--ink-muted)] w-12">{idx + 1}</td>
                       <td className="py-3 px-4 font-mono font-bold text-[var(--ink)]">{p.invoiceNumber}</td>
                       <td className="py-3 px-4 font-semibold text-[var(--ink)]">{p.organizationName}</td>
                       <td className="py-3 px-4">{p.planName}</td>

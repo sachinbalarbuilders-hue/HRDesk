@@ -485,6 +485,7 @@ export const Loans: React.FC = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-[var(--rule)] bg-[var(--paper-subtle)] text-[var(--ink-muted)] font-mono text-[11px] uppercase tracking-wider">
+                  <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
                   <th className="p-3.5 font-semibold">Application #</th>
                   <th className="p-3.5 font-semibold">Employee</th>
                   <th className="p-3.5 font-semibold">Type</th>
@@ -496,20 +497,26 @@ export const Loans: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--rule)]">
-                {loans.map((l) => (
-                  <tr key={l.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
-                    <td className="p-3.5 font-mono font-semibold text-[var(--accent)]">
-                      <button
-                        onClick={() => navigate(`/loans/${l.id}`)}
-                        className="hover:underline cursor-pointer text-left"
-                        title="View payment summary"
-                      >
-                        {l.appNumber}
-                      </button>
-                      <div className="text-[10px] text-[var(--ink-muted)] font-normal">
-                        {l.appDate}
-                      </div>
-                    </td>
+                {loans.map((l, idx) => {
+                  const srNo = (page - 1) * pageSize + idx + 1;
+                  return (
+                    <tr key={l.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
+                      <td className="p-3.5 font-mono text-center text-xs text-[var(--ink-muted)]">
+                        {srNo}
+                      </td>
+
+                      <td className="p-3.5 font-mono font-semibold text-[var(--accent)]">
+                        <button
+                          onClick={() => navigate(`/loans/${l.id}`)}
+                          className="hover:underline cursor-pointer text-left"
+                          title="View payment summary"
+                        >
+                          {l.appNumber}
+                        </button>
+                        <div className="text-[10px] text-[var(--ink-muted)] font-normal">
+                          {l.appDate}
+                        </div>
+                      </td>
 
                     <td className="p-3.5">
                       <div className="font-semibold text-[var(--ink)]">{l.employeeName}</div>
@@ -591,7 +598,8 @@ export const Loans: React.FC = () => {
                       ] as RowAction[]} />
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>

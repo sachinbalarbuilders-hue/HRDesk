@@ -440,7 +440,7 @@ export const ViewLoan: React.FC = () => {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-[var(--rule)] bg-[var(--surface-header)] text-[var(--ink-muted)] font-data text-[11px] uppercase tracking-wider">
-                <th className="p-3 font-semibold">#</th>
+                <th className="p-3 font-semibold w-12 text-center">Sr.</th>
                 <th className="p-3 font-semibold">Due Month</th>
                 <th className="p-3 font-semibold">EMI Amount</th>
                 <th className="p-3 font-semibold">Paid Amount</th>
@@ -453,7 +453,7 @@ export const ViewLoan: React.FC = () => {
             <tbody className="divide-y divide-[var(--rule)]">
               {installments.map((inst) => (
                 <tr key={inst.id} className="hover:bg-[var(--surface-hover)] transition-colors">
-                  <td className="p-3 font-data font-bold text-[var(--ink)]">
+                  <td className="p-3 font-data font-mono text-center text-xs text-[var(--ink-muted)]">
                     {inst.installmentNumber}
                   </td>
                   <td className="p-3 font-data text-[var(--ink)]">

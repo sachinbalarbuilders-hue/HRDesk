@@ -283,7 +283,8 @@ export const Leaves: React.FC = () => {
                 <thead>
                   <tr>
                     <th className="w-1"></th>
-                    <th className="font-mono text-xs w-14">#</th>
+                    <th className="w-12 text-center font-mono text-xs uppercase text-[var(--ink-muted)]">Sr.</th>
+                    <th className="font-mono text-xs w-16">App #</th>
                     <th>Employee</th>
                     <th>Type</th>
                     <th className="font-data">Period</th>
@@ -295,15 +296,16 @@ export const Leaves: React.FC = () => {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={8} className="p-0">
+                      <td colSpan={9} className="p-0">
                         <TableSkeleton rows={6} />
                       </td>
                     </tr>
-                  ) : applications.map((app) => {
+                  ) : applications.map((app, index) => {
                     const isApproved = app.status === 'Approved';
                     const isRejected = app.status === 'Rejected';
                     const isPending = app.status === 'Pending';
                     const isArchived = app.status === 'Archived' || app.status === 'Cancelled';
+                    const srNo = (page - 1) * pageSize + index + 1;
 
                     const barColor = isArchived
                       ? 'bg-[var(--ink-muted)] opacity-50'
@@ -317,6 +319,10 @@ export const Leaves: React.FC = () => {
                       <tr key={app.id} className={`relative ${isArchived ? 'opacity-70 bg-[var(--surface-sunken)]/20' : ''}`}>
                         {/* 4px Left-Edge Status Bar */}
                         <td className={`p-0 w-1 ${barColor}`} />
+
+                        <td className="text-center font-mono text-xs text-[var(--ink-muted)] w-12">
+                          {srNo}
+                        </td>
 
                         <td className="font-mono text-xs font-semibold text-[var(--accent)]">
                           #{app.applicationNumber || app.id}
@@ -363,7 +369,7 @@ export const Leaves: React.FC = () => {
 
                   {applications.length === 0 && !loading && (
                     <tr>
-                      <td colSpan={8} className="py-10 text-center text-xs font-data text-[var(--ink-muted)]">
+                      <td colSpan={9} className="py-10 text-center text-xs font-data text-[var(--ink-muted)]">
                         No leave requests found.
                       </td>
                     </tr>

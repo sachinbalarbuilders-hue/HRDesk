@@ -46,13 +46,15 @@ export const AuditLogsTab: React.FC = () => {
 
   const [inspectLog, setInspectLog] = useState<AuditLogItem | null>(null);
 
+  const PAGE_SIZE = 15;
+
   const fetchLogs = async () => {
     try {
       setLoading(true);
       const res = await apiClient.get('/audit-logs', {
         params: {
           page,
-          pageSize: 15,
+          pageSize: PAGE_SIZE,
           entityName: selectedEntity !== 'all' ? selectedEntity : undefined,
           action: selectedAction !== 'all' ? selectedAction : undefined,
           search: search.trim() || undefined,
@@ -238,6 +240,7 @@ export const AuditLogsTab: React.FC = () => {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-[var(--rule)] bg-[var(--surface-sunken)] font-ui text-[11px] uppercase tracking-wider text-[var(--ink-muted)]">
+                <th className="py-3 px-4 w-12 text-center">Sr.</th>
                 <th className="py-3 px-4">Timestamp</th>
                 <th className="py-3 px-4">Actor / User</th>
                 <th className="py-3 px-4">Action</th>
@@ -250,7 +253,7 @@ export const AuditLogsTab: React.FC = () => {
             <tbody className="divide-y divide-[var(--rule)]">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-[var(--ink-muted)]">
+                  <td colSpan={8} className="py-12 text-center text-[var(--ink-muted)]">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 size={16} className="animate-spin text-[var(--gold-500)]" />
                       <span>Loading audit records...</span>
@@ -259,14 +262,17 @@ export const AuditLogsTab: React.FC = () => {
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-[var(--ink-muted)] font-ui">
+                  <td colSpan={8} className="py-12 text-center text-[var(--ink-muted)] font-ui">
                     <FileText size={24} className="mx-auto mb-2 opacity-40" />
                     <span>No audit log records found for the selected criteria.</span>
                   </td>
                 </tr>
               ) : (
-                logs.map((log) => (
+                logs.map((log, idx) => (
                   <tr key={log.id} className="hover:bg-[var(--surface-sunken)]/50 transition-colors">
+                    <td className="py-3 px-4 font-mono text-center text-xs text-[var(--ink-muted)] w-12">
+                      {(page - 1) * PAGE_SIZE + idx + 1}
+                    </td>
                     <td className="py-3 px-4 font-mono text-[11px] text-[var(--ink)] whitespace-nowrap">
                       {new Date(log.timestamp).toLocaleString()}
                     </td>
