@@ -294,15 +294,35 @@ public class RegularizationsController : ControllerBase
 
         await _db.SaveChangesAsync();
 
+        var branchId = employee.BranchId;
+        var orgId = employee.OrganizationId;
+
+        var existingNumbers = await _db.AttendanceRegularizations
+            .Where(r => r.OrganizationId == orgId && (branchId == null || r.Employee != null && r.Employee.BranchId == branchId) && r.ApplicationNumber != null)
+            .Select(r => r.ApplicationNumber)
+            .ToListAsync();
+
+        int maxSeq = 0;
+        foreach (var numStr in existingNumbers)
+        {
+            if (int.TryParse(numStr, out int val) && val > maxSeq)
+            {
+                maxSeq = val;
+            }
+        }
+
+        int nextSeq = maxSeq + 1;
+
         foreach (var reg in createdList)
         {
-            reg.ApplicationNumber = reg.Id.ToString();
+            reg.ApplicationNumber = nextSeq.ToString();
         }
         await _db.SaveChangesAsync();
 
         return Ok(new
         {
             message = $"Created {createdList.Count} regularization request(s) successfully.",
+            applicationNumber = nextSeq.ToString(),
             count = createdList.Count
         });
     }

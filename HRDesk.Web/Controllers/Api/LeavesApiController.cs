@@ -332,9 +332,28 @@ public class LeavesController : ControllerBase
         bool isHalf = dto.DayType == "First Half" || dto.DayType == "Second Half";
         decimal totalDays = isHalf ? 0.5m : (dto.EndDate.DayNumber - dto.StartDate.DayNumber + 1);
 
+        var branchId = emp.BranchId;
+        var orgId = emp.OrganizationId;
+
+        var existingNumbers = await _db.LeaveApplications
+            .Where(l => l.OrganizationId == orgId && (branchId == null || l.Employee != null && l.Employee.BranchId == branchId) && l.ApplicationNumber != null)
+            .Select(l => l.ApplicationNumber)
+            .ToListAsync();
+
+        int maxSeq = 0;
+        foreach (var numStr in existingNumbers)
+        {
+            if (int.TryParse(numStr, out int val) && val > maxSeq)
+            {
+                maxSeq = val;
+            }
+        }
+
+        int nextSeq = maxSeq + 1;
+
         var leaveApp = new LeaveApplication
         {
-            ApplicationNumber = null,
+            ApplicationNumber = nextSeq.ToString(),
             EmployeeId = targetEmpId.Value,
             LeaveTypeId = dto.LeaveTypeId,
             StartDate = dto.StartDate,
@@ -349,8 +368,6 @@ public class LeavesController : ControllerBase
 
         _db.LeaveApplications.Add(leaveApp);
         await _db.SaveChangesAsync();
-
-        leaveApp.ApplicationNumber = leaveApp.Id.ToString();
 
         // Trigger notification for Admins/HR
         await _db.InAppNotifications.AddAsync(new InAppNotification
