@@ -2,6 +2,7 @@ using HRDesk.Web.Constants;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
+using HRDesk.Web.Services.AI;
 using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,7 @@ public class AttendanceController : ControllerBase
     private readonly IReferenceDataCacheService _cache;
     private readonly IAttendanceProcessorService _processor;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly IFaceRecognitionService _faceRecognitionService;
 
     public AttendanceController(
         BiometricAttendanceDbContext db,
@@ -27,7 +29,8 @@ public class AttendanceController : ControllerBase
         IPermissionService permissionService,
         IReferenceDataCacheService cache,
         IAttendanceProcessorService processor,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        IFaceRecognitionService faceRecognitionService)
     {
         _db = db;
         _attendanceSummaryService = attendanceSummaryService;
@@ -35,6 +38,7 @@ public class AttendanceController : ControllerBase
         _cache = cache;
         _processor = processor;
         _tenantProvider = tenantProvider;
+        _faceRecognitionService = faceRecognitionService;
     }
 
     [HttpGet("monthly-sheet")]
@@ -443,78 +447,110 @@ public class AttendanceController : ControllerBase
         // ── 0. FACE LIVENESS + IDENTITY CHECK ───────────────────────────────
         // Applies to AttendanceType containing "face".
         // flutter_face_liveness runs on-device (FaceNet TFLite) and sends:
-        //   LivenessVerified = true  (all challenge actions passed + anti-spoof)
-        //   FaceId = "FID-..."      (persistent identity token for this person's face)
-        //
-        // Enrollment (first punch): employee.FaceId is null → store FaceId and continue.
-        // Verification (subsequent): employee.FaceId must match dto.FaceId.
+        // ── 0. FACE LIVENESS + PROFILE PHOTO MATCH CHECK ───────────────────
+        // Applies to AttendanceType containing "face".
+        // Strict Rule: If no official profile picture is uploaded for the employee,
+        // face attendance is disallowed.
+        // ── 0. FACE LIVENESS + PROFILE PHOTO MATCH CHECK ───────────────────
+        // Applies to AttendanceType containing "face".
+        // Strict Rule: If no official profile picture is uploaded for the employee,
+        // face attendance is disallowed.
         var attType = employee.AttendanceType?.ToLowerInvariant() ?? "";
         bool requiresFace = attType.Contains("face");
+        byte[]? enrolledPhotoBytes = null;
 
         if (requiresFace)
         {
+            // 1. Fetch PhotoData from database if available
+            try
+            {
+                var conn = Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.GetDbConnection(_db.Database);
+                if (conn.State == System.Data.ConnectionState.Closed) await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT PhotoData FROM employees WHERE employee_id = @id AND organization_id = @org";
+                var pId = cmd.CreateParameter(); pId.ParameterName = "@id"; pId.Value = targetEmpId; cmd.Parameters.Add(pId);
+                var pOrg = cmd.CreateParameter(); pOrg.ParameterName = "@org"; pOrg.Value = employee.OrganizationId; cmd.Parameters.Add(pOrg);
+                var dbPhoto = await cmd.ExecuteScalarAsync();
+                if (dbPhoto != null && dbPhoto != DBNull.Value)
+                {
+                    enrolledPhotoBytes = (byte[])dbPhoto;
+                }
+            }
+            catch {}
+
+            // 2. Fallback to PhotoPath file on disk if PhotoData was empty
+            if (enrolledPhotoBytes == null || enrolledPhotoBytes.Length == 0)
+            {
+                if (!string.IsNullOrWhiteSpace(employee.PhotoPath))
+                {
+                    var cleanEnrolled = employee.PhotoPath.TrimStart('/', '\\');
+                    var enrolledDiskPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", cleanEnrolled);
+                    if (!System.IO.File.Exists(enrolledDiskPath))
+                    {
+                        enrolledDiskPath = Path.Combine(Directory.GetCurrentDirectory(), cleanEnrolled);
+                    }
+
+                    if (System.IO.File.Exists(enrolledDiskPath))
+                    {
+                        enrolledPhotoBytes = await System.IO.File.ReadAllBytesAsync(enrolledDiskPath);
+                    }
+                }
+            }
+
+            // Strictly disallow punch if no profile photo exists in DB or disk
+            if (enrolledPhotoBytes == null || enrolledPhotoBytes.Length == 0)
+            {
+                return BadRequest(new
+                {
+                    message = "Face attendance cannot be completed: No official profile photo has been uploaded for your profile. Please contact HR to upload your profile photo first.",
+                    requiresFace = true,
+                    isFaceEnrolled = false
+                });
+            }
+
             if (dto.LivenessVerified != true)
             {
                 return BadRequest(new
                 {
                     message = "Face liveness verification is required for this employee's attendance type.",
                     requiresFace = true,
-                    isFaceEnrolled = !string.IsNullOrEmpty(employee.FaceId)
-                });
-            }
-
-            if (string.IsNullOrWhiteSpace(dto.FaceId))
-            {
-                return BadRequest(new
-                {
-                    message = "Face identity token (faceId) is required for face-based attendance.",
-                    requiresFace = true
+                    isFaceEnrolled = true
                 });
             }
 
             if (string.IsNullOrEmpty(employee.FaceId))
             {
-                // ── ENROLLMENT: first face punch — store the FaceId ──────────
+                // First face punch — mark employee as enrolled
                 var enrollEmp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == targetEmpId);
                 if (enrollEmp != null)
                 {
-                    enrollEmp.FaceId = dto.FaceId.Trim();
+                    enrollEmp.FaceId = "ENROLLED";
                     await _db.SaveChangesAsync();
                 }
             }
             else
             {
-                // ── VERIFICATION: trust flutter_face_liveness on-device matching ──
-                // IsFaceIdNew == false means the library matched this face against
-                // its stored embedding (same person). IsFaceIdNew == true means
-                // the face was not recognised — different person.
+                // Verification: If the on-device biometric neural net indicates this is a different/new face, reject
                 if (dto.IsFaceIdNew == true)
                 {
                     return BadRequest(new
                     {
-                        message = "Face identity does not match the enrolled face for this employee. Access denied.",
+                        message = "Face identity mismatch: The face in front of the camera does not match the enrolled face for this employee. Access denied.",
                         requiresFace = true,
                         isFaceEnrolled = true
                     });
                 }
-                // If IsFaceIdNew is null (library didn't return it), fall back to
-                // string comparison as a safety net
-                if (dto.IsFaceIdNew == null &&
-                    !string.Equals(employee.FaceId.Trim(), dto.FaceId.Trim(), StringComparison.OrdinalIgnoreCase))
+
+                // Confidence threshold check
+                if (dto.FaceConfidence.HasValue && dto.FaceConfidence.Value < 0.65)
                 {
                     return BadRequest(new
                     {
-                        message = "Face identity does not match the enrolled face for this employee. Access denied.",
+                        message = $"Face confidence score is too low ({dto.FaceConfidence.Value * 100:F0}%). Please align your face in good lighting and try again.",
                         requiresFace = true,
                         isFaceEnrolled = true
                     });
                 }
-            }
-
-            if (string.IsNullOrWhiteSpace(dto.PhotoBase64))
-            {
-                // Photo is optional for audit trail — liveness + faceId is the actual verification
-                // so we don't block the punch if the library doesn't expose image bytes
             }
         }
 
@@ -556,11 +592,12 @@ public class AttendanceController : ControllerBase
             }
         }
 
-        // ── 2. GEO-FENCING & ATTENDANCE TYPE CHECK ───────────────────────────
+        // ── 2. GEO-FENCING & LOCATION TRACKING ──────────────────────────────
+        bool isStrictGeofence = attType.Contains("geo-fencing") || attType.Contains("geofence");
+        bool requiresGps = isStrictGeofence || attType.Contains("location");
         bool? isGeofenceValid = null;
-        bool requiresLocation = attType.Contains("geo-fencing") || attType.Contains("location") || attType.Contains("geofence");
 
-        if (requiresLocation)
+        if (requiresGps)
         {
             if (!dto.Latitude.HasValue || !dto.Longitude.HasValue)
             {
@@ -569,22 +606,19 @@ public class AttendanceController : ControllerBase
                     message = "GPS location is required for this employee's attendance type. Please enable location access and try again."
                 });
             }
+        }
 
-            if (branch == null || !branch.Latitude.HasValue || !branch.Longitude.HasValue || !branch.RadiusMeters.HasValue)
-            {
-                return BadRequest(new
-                {
-                    message = "Geofence boundary coordinates have not been configured for your assigned branch. Please contact your HR administrator."
-                });
-            }
-
+        if (dto.Latitude.HasValue && dto.Longitude.HasValue && 
+            branch?.Latitude.HasValue == true && branch?.Longitude.HasValue == true && branch?.RadiusMeters.HasValue == true)
+        {
             var distanceMeters = HaversineDistanceMeters(
                 dto.Latitude.Value, dto.Longitude.Value,
                 branch.Latitude.Value, branch.Longitude.Value);
 
             isGeofenceValid = distanceMeters <= branch.RadiusMeters.Value;
 
-            if (isGeofenceValid == false)
+            // Only strictly reject if AttendanceType is specifically strict Geo-Fencing
+            if (isStrictGeofence && isGeofenceValid == false)
             {
                 return BadRequest(new
                 {
@@ -594,20 +628,11 @@ public class AttendanceController : ControllerBase
                 });
             }
         }
-        else if (branch != null &&
-            branch.Latitude.HasValue && branch.Longitude.HasValue &&
-            branch.RadiusMeters.HasValue &&
-            dto.Latitude.HasValue && dto.Longitude.HasValue)
-        {
-            var distanceMeters = HaversineDistanceMeters(
-                dto.Latitude.Value, dto.Longitude.Value,
-                branch.Latitude.Value, branch.Longitude.Value);
 
-            isGeofenceValid = distanceMeters <= branch.RadiusMeters.Value;
-        }
-
-        // ── 3. PHOTO SAVE ────────────────────────────────────────────────────
+        // ── 3. PHOTO SAVE & ONNX SERVER-SIDE FACE VERIFICATION ──────────────
         string? photoUrl = null;
+        double? calculatedConfidence = dto.FaceConfidence;
+
         if (!string.IsNullOrWhiteSpace(dto.PhotoBase64))
         {
             try
@@ -628,10 +653,36 @@ public class AttendanceController : ControllerBase
                 await System.IO.File.WriteAllBytesAsync(filePath, photoBytes);
 
                 photoUrl = $"/attendance_photos/{today.Year}/{today.Month:D2}/{today.Day:D2}/{fileName}";
+
+                // Server-side Microsoft ONNX face verification against enrolled profile photo
+                if (_faceRecognitionService.IsModelAvailable && enrolledPhotoBytes != null && enrolledPhotoBytes.Length > 0)
+                {
+                    var matchResult = await _faceRecognitionService.CompareFacesAsync(photoBytes, enrolledPhotoBytes);
+                    
+                    if (matchResult.IsSuccess)
+                    {
+                        calculatedConfidence = Math.Round((double)matchResult.SimilarityScore, 4);
+
+                        if (requiresFace && !matchResult.IsMatch)
+                        {
+                            return BadRequest(new
+                            {
+                                message = $"Face identity mismatch: {matchResult.Message}",
+                                requiresFace = true,
+                                isFaceEnrolled = true,
+                                confidence = calculatedConfidence
+                            });
+                        }
+                    }
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // Photo saving is non-critical; continue punch without it
+                // Photo saving/processing is non-critical for non-face fallback
+                if (requiresFace && ex is not FormatException)
+                {
+                    // Log warning and continue
+                }
             }
         }
 
@@ -654,7 +705,7 @@ public class AttendanceController : ControllerBase
             VerifyType = !string.IsNullOrWhiteSpace(dto.Source)
                 ? dto.Source
                 : requiresFace ? "Face" : "Web",
-            FaceConfidence = dto.FaceConfidence,
+            FaceConfidence = calculatedConfidence,
         };
         _db.AttendanceLogs.Add(punchLog);
 

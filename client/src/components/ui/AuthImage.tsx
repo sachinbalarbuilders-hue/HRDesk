@@ -65,5 +65,13 @@ export const AuthImage: React.FC<AuthImageProps> = ({ src, fallbackInitial, fall
     return null;
   }
 
-  return <img src={imageSrc} alt={alt} className={className} {...props} />;
+  return (
+    <img 
+      src={imageSrc} 
+      alt={alt} 
+      className={`object-cover aspect-square ${className || ''}`} 
+      style={{ objectFit: 'cover', ...props.style }} 
+      {...props} 
+    />
+  );
 };

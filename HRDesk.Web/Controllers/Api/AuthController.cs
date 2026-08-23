@@ -50,6 +50,7 @@ public class AuthController : ControllerBase
             .IgnoreQueryFilters()
             .Include(u => u.CustomRole)
             .Include(u => u.Employee)
+                .ThenInclude(e => e.Branch)
             .Include(u => u.Organization)
             .FirstOrDefaultAsync(u => u.IsActive && (
                 u.Username == cleanUsername ||
@@ -140,6 +141,8 @@ public class AuthController : ControllerBase
             isActive = o.IsActive
         }).ToList();
 
+        var empCode = await GetFormattedEmployeeCodeAsync(user.Employee, user.OrganizationId);
+
         return Ok(new
         {
             token,
@@ -153,6 +156,11 @@ public class AuthController : ControllerBase
                 roleName = user.CustomRole?.Name ?? user.Role,
                 employeeId = user.EmployeeId,
                 employeeName = user.Employee?.EmployeeName,
+                employeeCode = empCode,
+                attendanceType = user.Employee?.AttendanceType,
+                branchId = user.Employee?.BranchId,
+                isFaceEnrolled = !string.IsNullOrEmpty(user.Employee?.FaceId),
+                faceId = user.Employee?.FaceId,
                 avatarUrl = user.Employee?.PhotoPath,
                 organizationId = user.OrganizationId,
                 organizationName = user.Organization?.Name ?? "HRDesk Builders & Developers"
@@ -259,6 +267,7 @@ public class AuthController : ControllerBase
             .IgnoreQueryFilters()
             .Include(u => u.CustomRole)
             .Include(u => u.Employee)
+                .ThenInclude(e => e.Branch)
             .Include(u => u.Organization)
             .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
 
@@ -285,6 +294,8 @@ public class AuthController : ControllerBase
             isActive = o.IsActive
         }).ToList();
 
+        var empCode = await GetFormattedEmployeeCodeAsync(user.Employee, user.OrganizationId);
+
         return Ok(new
         {
             user = new
@@ -298,9 +309,7 @@ public class AuthController : ControllerBase
                 employeeId = user.EmployeeId,
                 employeeName = user.Employee?.EmployeeName,
                 attendanceType = user.Employee?.AttendanceType,
-                employeeCode = user.Employee != null
-                    ? $"{user.Employee.Branch?.Code ?? "EMP-"}{user.Employee.EmployeeId:D3}"
-                    : null,
+                employeeCode = empCode,
                 branchId = user.Employee?.BranchId,
                 isFaceEnrolled = !string.IsNullOrEmpty(user.Employee?.FaceId),
                 faceId = user.Employee?.FaceId,
@@ -311,6 +320,38 @@ public class AuthController : ControllerBase
             permissions,
             organizations = orgs
         });
+    }
+
+    private async Task<string?> GetFormattedEmployeeCodeAsync(Employee? employee, int orgId)
+    {
+        if (employee == null) return null;
+
+        var targetBranch = employee.BranchId;
+
+        var settings = await _context.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == orgId && (s.BranchId == targetBranch || s.BranchId == null))
+            .ToListAsync();
+
+        string series = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+            ?? employee.Branch?.Code
+            ?? "EMP";
+
+        string connector = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+            ?? "#";
+
+        int padding = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue
+            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue, out var p) ? p : 3;
+
+        var cleanSeries = series.Trim();
+        if (cleanSeries.EndsWith('#') || cleanSeries.EndsWith('-') || cleanSeries.EndsWith('_') || cleanSeries.EndsWith('/'))
+        {
+            return $"{cleanSeries}{employee.EmployeeId.ToString($"D{padding}")}";
+        }
+
+        return $"{cleanSeries}{connector}{employee.EmployeeId.ToString($"D{padding}")}";
     }
 
     private string GenerateJwtToken(User user)

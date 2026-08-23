@@ -22,11 +22,16 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.0" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.19.2" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.2" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="2.1.13" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta15" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="App_Data\models\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Exclude helper dbcheck project files from main web project compilation -->

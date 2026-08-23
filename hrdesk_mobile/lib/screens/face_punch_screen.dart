@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
 import 'package:flutter_face_liveness/flutter_face_liveness.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
@@ -62,25 +61,41 @@ class _FacePunchScreenState extends State<FacePunchScreen> {
           perm == LocationPermission.deniedForever) {
         setState(() {
           _locationLoading = false;
-          _locationError = 'Location permission denied.';
+          _locationError = 'Location permission denied. Please allow location access.';
         });
         return;
       }
 
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 15),
-        ),
-      );
-      setState(() {
-        _position = pos;
-        _locationLoading = false;
-      });
+      // Fast check: Use last known position if recent, or request fresh
+      Position? pos = await Geolocator.getLastKnownPosition();
+
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.low,
+            timeLimit: Duration(seconds: 6),
+          ),
+        );
+      } catch (_) {
+        // Fallback to last known position if current request timed out
+        pos ??= await Geolocator.getLastKnownPosition();
+      }
+
+      if (pos != null) {
+        setState(() {
+          _position = pos;
+          _locationLoading = false;
+        });
+      } else {
+        setState(() {
+          _locationLoading = false;
+          _locationError = 'Could not get GPS fix. Please ensure location/GPS is on and tap Retry.';
+        });
+      }
     } catch (e) {
       setState(() {
         _locationLoading = false;
-        _locationError = 'Location failed: $e';
+        _locationError = 'Location error: $e';
       });
     }
   }
@@ -116,7 +131,10 @@ class _FacePunchScreenState extends State<FacePunchScreen> {
           success ? const Color(0xFF059669) : const Color(0xFFDC2626),
       duration: const Duration(seconds: 4),
     ));
-    if (success) Navigator.of(context).pop(true);
+    if (success) {
+      context.read<AuthProvider>().tryAutoLogin();
+      Navigator.of(context).pop(true);
+    }
   }
 
   @override
@@ -184,34 +202,26 @@ class _FacePunchScreenState extends State<FacePunchScreen> {
   }
 
   Widget _buildLivenessWidget(user) {
-    // Determine mode based on enrollment status
-    // isFaceEnrolled = false → auto mode enrolls on first pass
-    // isFaceEnrolled = true  → auto mode verifies against stored embedding
-    final isFaceEnrolled = user?.isFaceEnrolled ?? false;
-
     return FlutterFaceLiveness(
       // Single blink action — faster, less friction, still proves live person
       actions: const [
         LivenessAction.blink,
       ],
-      config: LivenessConfig(
+      config: const LivenessConfig(
         // Face identity — persistent FaceNet embedding per person
         enableFaceId: true,
-        faceIdMode: FaceIdMode.auto, // enroll first time, verify after
-        faceIdSimilarityThreshold: 0.80,
+        faceIdMode: FaceIdMode.auto,
+        faceIdSimilarityThreshold: 0.85,
 
         // Anti-spoof (9 heuristic signals)
         enableAntiSpoof: true,
-        antiSpoofThreshold: 0.40, // slightly lenient for varied lighting
+        antiSpoofThreshold: 0.45,
 
         // Randomize action order to prevent replay attacks
         randomizeActions: true,
 
         // Session timeout
         sessionTimeoutMs: 60000,
-
-        // Camera
-        cameraResolution: ResolutionPreset.medium,
 
         // UI
         themeMode: ThemeMode.dark,

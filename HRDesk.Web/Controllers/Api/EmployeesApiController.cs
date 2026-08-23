@@ -111,11 +111,24 @@ END;";
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var s = search.Trim().ToLower();
+            var s = search.Trim();
+            var sLower = s.ToLower();
+
+            // Extract numeric digits if searching by code (e.g. "EMP#007" -> 7, "007" -> 7, "123" -> 123)
+            int? parsedId = null;
+            var digitMatch = System.Text.RegularExpressions.Regex.Match(s, @"\d+");
+            if (digitMatch.Success && int.TryParse(digitMatch.Value, out int extractedNum))
+            {
+                parsedId = extractedNum;
+            }
+
             query = query.Where(e =>
-                e.EmployeeName.ToLower().Contains(s) ||
-                (e.Phone != null && e.Phone.Contains(s)) ||
-                e.EmployeeId.ToString().Contains(s));
+                e.EmployeeName.ToLower().Contains(sLower) ||
+                (e.Phone != null && e.Phone.Contains(sLower)) ||
+                (e.WorkEmail != null && e.WorkEmail.ToLower().Contains(sLower)) ||
+                (e.PersonalEmail != null && e.PersonalEmail.ToLower().Contains(sLower)) ||
+                e.EmployeeId.ToString().Contains(sLower) ||
+                (parsedId.HasValue && e.EmployeeId == parsedId.Value));
         }
 
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
@@ -137,7 +150,9 @@ END;";
                 e.EmployeeId,
                 e.PublicId,
                 e.EmployeeName,
-                employeeCode = $"EMP#{e.EmployeeId:D3}",
+                employeeCode = e.Branch != null && !string.IsNullOrWhiteSpace(e.Branch.Code) 
+                    ? (e.Branch.Code.EndsWith('#') || e.Branch.Code.EndsWith('-') || e.Branch.Code.EndsWith('_') || e.Branch.Code.EndsWith('/') ? $"{e.Branch.Code}{e.EmployeeId:D3}" : $"{e.Branch.Code}#{e.EmployeeId:D3}")
+                    : $"EMP#{e.EmployeeId:D3}",
                 e.Phone,
                 Department = e.Department != null ? e.Department.DepartmentName : null,
                 DepartmentId = e.DepartmentId,

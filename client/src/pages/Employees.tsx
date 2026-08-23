@@ -389,20 +389,22 @@ export const Employees: React.FC = () => {
                     onClick={() => handleRowClick(emp)}
                     className="cursor-pointer"
                   >
-                    <td className="text-center font-data text-xs text-[var(--ink-muted)]">
-                      {emp.photoPath ? (
-                        <AuthImage 
-                          src={`/Thumbnail?employeeId=${emp.employeeId}`} 
-                          alt={emp.employeeName} 
-                          className="w-6 h-6 rounded-full object-cover mx-auto bg-[var(--paper)]" 
-                          fallbackInitial={emp.employeeName.charAt(0)}
-                          fallbackClassName="w-6 h-6 rounded-full text-[10px] mx-auto"
-                        />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-[var(--navy-900)] text-[var(--gold-500)] font-bold flex items-center justify-center text-[10px] mx-auto">
-                          {emp.employeeName.charAt(0)}
-                        </div>
-                      )}
+                    <td className="text-center font-data text-xs text-[var(--ink-muted)] w-10">
+                      <div className="w-7 h-7 mx-auto rounded-full overflow-hidden flex items-center justify-center bg-[var(--paper)] border border-[var(--rule)] shrink-0">
+                        {emp.photoPath ? (
+                          <AuthImage 
+                            src={`/Thumbnail?employeeId=${emp.employeeId}`} 
+                            alt={emp.employeeName} 
+                            className="w-full h-full aspect-square object-cover" 
+                            fallbackInitial={emp.employeeName.charAt(0)}
+                            fallbackClassName="w-full h-full text-[10px] flex items-center justify-center bg-[var(--navy-900)] text-[var(--gold-500)] font-bold"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[var(--navy-900)] text-[var(--gold-500)] font-bold flex items-center justify-center text-[10px]">
+                            {emp.employeeName.charAt(0)}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="font-semibold text-[var(--ink)]">
                       {emp.employeeName}

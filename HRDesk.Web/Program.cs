@@ -15,6 +15,7 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
     builder.Host.UseSerilog();
+    builder.WebHost.UseUrls("http://0.0.0.0:5283");
 
 // Add services to the container.
 builder.Services.AddRazorPages(options =>
@@ -171,6 +172,7 @@ builder.Services.AddScoped<HRDesk.Web.Services.IPayrollService, HRDesk.Web.Servi
 builder.Services.AddScoped<HRDesk.Web.Services.ICompOffService, HRDesk.Web.Services.CompOffService>();
 builder.Services.AddScoped<HRDesk.Web.Services.ILeaveAdjustmentService, HRDesk.Web.Services.LeaveAdjustmentService>();
 builder.Services.AddSingleton<HRDesk.Web.Services.IReferenceDataCacheService, HRDesk.Web.Services.ReferenceDataCacheService>();
+builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceRecognitionService, HRDesk.Web.Services.AI.FaceRecognitionService>();
 builder.Services.AddScoped<HRDesk.Web.Services.IImageGenerationService, HRDesk.Web.Services.ImageGenerationService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.CelebrationNotificationService>();
 builder.Services.AddHttpClient<HRDesk.Web.Services.Attendance.ITeamOfficeSyncService, HRDesk.Web.Services.Attendance.TeamOfficeSyncService>();
