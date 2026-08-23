@@ -126,12 +126,12 @@ export const RegisterTenant: React.FC = () => {
       const payload = {
         companyName: companyName.trim(),
         workspaceSlug: workspaceSlug.trim().toLowerCase(),
-        adminName: adminName.trim(),
+        adminFullName: adminName.trim(),
         adminEmail: adminEmail.trim().toLowerCase(),
         adminPhone: adminPhone.trim() || undefined,
-        adminPassword: adminPassword,
-        city: city.trim() || undefined,
-        estimatedHeadcount: headcount,
+        password: adminPassword,
+        headOfficeCity: city.trim() || undefined,
+        employeeCountRange: headcount,
       };
 
       const res = await apiClient.post('/auth/register-tenant', payload);

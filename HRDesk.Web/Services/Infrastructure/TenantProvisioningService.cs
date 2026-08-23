@@ -166,6 +166,7 @@ public class TenantProvisioningService : ITenantProvisioningService
                 _db.RolePermissions.Add(new RolePermission
                 {
                     RoleId = adminRole.Id,
+                    OrganizationId = org.Id,
                     PermissionKey = perm.Key,
                     Scope = AppPermissions.Scopes.All
                 });
@@ -197,7 +198,6 @@ public class TenantProvisioningService : ITenantProvisioningService
             // 8. Create Administrator Employee Profile
             var adminEmp = new Employee
             {
-                EmployeeId = 1,
                 OrganizationId = org.Id,
                 BranchId = branch.Id,
                 DepartmentId = deptMgmt.Id,

@@ -22,6 +22,11 @@ export default defineConfig({
         target: 'http://localhost:5283',
         changeOrigin: true,
         secure: false,
+      },
+      '/attendance_photos': {
+        target: 'http://localhost:5283',
+        changeOrigin: true,
+        secure: false,
       }
     }
   }

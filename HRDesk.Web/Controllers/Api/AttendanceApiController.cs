@@ -660,7 +660,7 @@ public class AttendanceController : ControllerBase
                     // Threshold 0.40: with YuNet 5-point alignment, the genuine employee scores
                     // ~0.9 and a different person ~0.1 (measured), so 0.40 separates them with a
                     // wide safety margin in both directions.
-                    var matchResult = await _faceRecognitionService.CompareFacesAsync(photoBytes, enrolledPhotoBytes, threshold: 0.40f);
+                    var matchResult = await _faceRecognitionService.CompareFacesAsync(photoBytes, enrolledPhotoBytes, threshold: 0.50f);
                     
                     if (matchResult.IsSuccess)
                     {
