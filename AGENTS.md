@@ -154,3 +154,64 @@ var summary = _attendanceSummaryService.ComputeSummary(employeeId, year, month, 
 - **Security is the first priority.** Always check for known vulnerabilities in NuGet or npm packages before installing or updating them.
 - If a vulnerability is found in a package, immediately find a safe, patched version (e.g., using dotnet list package --vulnerable).
 - When updating packages to patch security issues, always verify licensing changes (e.g. Split Licenses) to ensure the project remains legally compliant.
+
+
+---
+
+## Face Verification (Mobile Punch) — Server-Side ONNX Pipeline
+
+This section is required reading before touching **any** face-recognition, punch, or
+`FaceRecognitionService` code. It documents a pipeline that took several wrong turns to get
+right; the notes below are the *proven* contract, verified empirically against real photos.
+
+### Where the code lives
+| File | Role |
+|------|------|
+| `HRDesk.Web/Services/AI/FaceRecognitionService.cs` | ⭐ Detection, alignment, embedding, similarity. Touch this first. |
+| `HRDesk.Web/Services/AI/IFaceRecognitionService.cs` | Interface + `FaceMatchResult`. |
+| `HRDesk.Web/Controllers/Api/AttendanceApiController.cs` | `PunchIn` — loads enrolled photo, calls `CompareFacesAsync`, enforces the match. Face block starts at the `// ── 0. FACE ...` comment. |
+| `HRDesk.Web/App_Data/models/face_recognition.onnx` | ArcFace embedding model (~38 MB, **128-d** output, MobileFaceNet-style). |
+| `HRDesk.Web/App_Data/models/face_detection_yunet.onnx` | YuNet face detector (~227 KB, Apache-2.0). |
+| `hrdesk_mobile/lib/screens/face_punch_screen.dart` | Flutter selfie capture. Sends `photoBase64`, `livenessVerified:true`, `isFaceIdNew:null`. |
+
+Both `.onnx` files are copied to the build output by the `App_Data\models\**` item in
+`HRDesk.Web.csproj`.
+
+### The model contract (DO NOT re-derive by guessing)
+1. **`face_recognition.onnx` normalizes internally.** Its first two graph layers are
+   `Sub(127.5)` then `Mul(1/128)`. Therefore you must feed **RAW 0-255 pixel values**.
+   Do **NOT** apply `(px-127.5)/127.5` (or any manual scaling) in C# — that double-normalizes
+   and destroys discrimination. Channel order is **RGB**.
+2. **Alignment is mandatory.** ArcFace only separates identities when the face is warped to
+   the canonical 5-point template (eyes/nose/mouth at fixed positions). A bounding-box crop is
+   NOT enough. Pipeline: YuNet → 5 landmarks → least-squares similarity transform → 112×112 →
+   embed.
+3. **YuNet input is a fixed 640×640** in this export (not dynamic). Feed BGR raw 0-255.
+   Outputs are `cls_{s}`, `obj_{s}`, `bbox_{s}`, `kps_{s}` for strides 8/16/32.
+   Decode: `point = (prior + delta) * stride`; score = `sqrt(cls*obj)`.
+
+### Measured similarity (cosine) with the correct recipe
+Same person ≈ **0.92**, different people ≈ **0.09**. Threshold is **0.40** (wide margin both
+ways). It is set in `AttendanceApiController.PunchIn` via `CompareFacesAsync(..., threshold: 0.40f)`.
+If you change alignment/preprocessing, re-measure before changing the threshold.
+
+### Gotchas that already bit us
+- `[ONNX] score=... isMatch=... onDevice=...` is written with `Console.WriteLine`, so it lands
+  in the **process stdout**, NOT the Serilog file (`logs/hrdesk-*.txt`). Read the running
+  process output to see scores.
+- Verification only runs when `employee.AttendanceType` contains `"face"` AND an enrolled photo
+  exists (DB `PhotoData`, else `PhotoPath` on disk). No enrolled photo ⇒ punch is rejected with
+  an "upload profile photo" message. The very first face punch auto-enrolls (`FaceId="ENROLLED"`).
+- The server ONNX rejection is gated by `!onDeviceVerified`, where `onDeviceVerified =
+  (dto.IsFaceIdNew == false)`. The mobile app currently sends `isFaceIdNew: null`, so the server
+  enforces its own match. If a client ever sends `isFaceIdNew:false`, it would bypass the server
+  check — keep that in mind for security.
+
+### How to recalibrate / debug safely (offline, no phone round-trips)
+Build a tiny throwaway console referencing `Microsoft.ML.OnnxRuntime 1.19.2` and
+`SixLabors.ImageSharp 2.1.13`, load both models, and compare a known genuine pair and a known
+impostor pair. Export an enrolled photo with
+`SELECT PhotoData FROM employees WHERE employee_id=@id`, and use saved selfies from
+`HRDesk.Web/wwwroot/attendance_photos/YYYY/MM/DD/`. Print cosine similarity per preprocessing
+variant (raw vs normalized, RGB vs BGR, aligned vs box-crop). Delete the harness and any
+exported photos afterward (they are PII).

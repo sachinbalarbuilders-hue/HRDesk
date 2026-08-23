@@ -6,11 +6,33 @@ enum PunchState { idle, loading, success, error }
 class PunchProvider extends ChangeNotifier {
   PunchState _state = PunchState.idle;
   String? _message;
+  bool _isClockedIn = false;
+  bool _statusLoaded = false;
 
   PunchState get state => _state;
   String? get message => _message;
 
+  /// Whether the current user is clocked in right now (in set, no out yet).
+  bool get isClockedIn => _isClockedIn;
+
+  /// True once today's status has been fetched at least once.
+  bool get statusLoaded => _statusLoaded;
+
   final _api = ApiClient();
+
+  /// Fetches the current user's clock in/out state for today so the UI can show
+  /// the correct single toggle button on load.
+  Future<void> fetchTodayStatus() async {
+    try {
+      final res = await _api.dio.get('/attendance/today-status');
+      _isClockedIn = res.data['isClockedIn'] == true;
+    } catch (_) {
+      // Leave previous state on failure.
+    } finally {
+      _statusLoaded = true;
+      notifyListeners();
+    }
+  }
 
   Future<bool> punch({
     required int employeeId,
@@ -46,6 +68,12 @@ class PunchProvider extends ChangeNotifier {
 
       _state = PunchState.success;
       _message = res.data['message'] ?? 'Punch recorded successfully.';
+      // Prefer the server's authoritative state; fall back to the requested action.
+      if (res.data is Map && res.data['isClockedIn'] != null) {
+        _isClockedIn = res.data['isClockedIn'] == true;
+      } else {
+        _isClockedIn = punchType == 'in';
+      }
       notifyListeners();
       return true;
     } catch (e) {

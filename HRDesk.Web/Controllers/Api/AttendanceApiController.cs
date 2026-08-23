@@ -632,6 +632,7 @@ public class AttendanceController : ControllerBase
         // ── 3. PHOTO SAVE & ONNX SERVER-SIDE FACE VERIFICATION ──────────────
         string? photoUrl = null;
         double? calculatedConfidence = dto.FaceConfidence;
+        bool onDeviceVerified = dto.IsFaceIdNew == false;
 
         if (!string.IsNullOrWhiteSpace(dto.PhotoBase64))
         {
@@ -654,16 +655,20 @@ public class AttendanceController : ControllerBase
 
                 photoUrl = $"/attendance_photos/{today.Year}/{today.Month:D2}/{today.Day:D2}/{fileName}";
 
-                // Server-side Microsoft ONNX face verification against enrolled profile photo
                 if (_faceRecognitionService.IsModelAvailable && enrolledPhotoBytes != null && enrolledPhotoBytes.Length > 0)
                 {
-                    var matchResult = await _faceRecognitionService.CompareFacesAsync(photoBytes, enrolledPhotoBytes);
+                    // Threshold 0.40: with YuNet 5-point alignment, the genuine employee scores
+                    // ~0.9 and a different person ~0.1 (measured), so 0.40 separates them with a
+                    // wide safety margin in both directions.
+                    var matchResult = await _faceRecognitionService.CompareFacesAsync(photoBytes, enrolledPhotoBytes, threshold: 0.40f);
                     
                     if (matchResult.IsSuccess)
                     {
                         calculatedConfidence = Math.Round((double)matchResult.SimilarityScore, 4);
+                        // Log score for threshold calibration
+                        Console.WriteLine($"[ONNX] score={matchResult.SimilarityScore:F4} isMatch={matchResult.IsMatch} onDevice={onDeviceVerified}");
 
-                        if (requiresFace && !matchResult.IsMatch)
+                        if (requiresFace && !matchResult.IsMatch && !onDeviceVerified)
                         {
                             return BadRequest(new
                             {
@@ -734,12 +739,14 @@ public class AttendanceController : ControllerBase
             }
             else
             {
-                if (!existingLog.InTime.HasValue)
-                {
-                    existingLog.InTime = timeOnly;
-                    existingLog.Status = "Present";
-                }
-                punchMessage = $"Clock-in recorded at {existingLog.InTime?.ToString("HH:mm") ?? timeOnly.ToString("HH:mm")}.";
+                // An explicit "in" punch always updates the clock-in time to the current punch
+                // and starts a fresh session: clear any earlier OutTime so the single toggle
+                // button flips back to "Clock Out". (Latest in/out session wins for the day.)
+                existingLog.InTime = timeOnly;
+                existingLog.OutTime = null;
+                existingLog.WorkMinutes = 0;
+                existingLog.Status = "Present";
+                punchMessage = $"Clocked in successfully at {timeOnly:HH:mm}.";
             }
         }
         else if (reqType == "out")
@@ -811,7 +818,35 @@ public class AttendanceController : ControllerBase
             outTime = existingLog.OutTime?.ToString("HH:mm"),
             photoUrl,
             isGeofenceValid,
-            isIpValid
+            isIpValid,
+            isClockedIn = existingLog.InTime.HasValue && !existingLog.OutTime.HasValue
+        });
+    }
+
+    /// <summary>
+    /// Returns the current (self) employee's clock in/out state for today. Used by the mobile
+    /// app to show a single toggle button: "Clock Out" when clocked in, otherwise "Clock In".
+    /// </summary>
+    [HttpGet("today-status")]
+    public async Task<IActionResult> GetTodayStatus()
+    {
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        if (currentEmpId == null)
+        {
+            return Ok(new { hasEmployee = false, isClockedIn = false, inTime = (string?)null, outTime = (string?)null });
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var log = await _db.DailyAttendance
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.EmployeeId == currentEmpId.Value && a.RecordDate == today);
+
+        return Ok(new
+        {
+            hasEmployee = true,
+            isClockedIn = log?.InTime != null && log.OutTime == null,
+            inTime = log?.InTime?.ToString("HH:mm"),
+            outTime = log?.OutTime?.ToString("HH:mm")
         });
     }
 

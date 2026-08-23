@@ -18,6 +18,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _statusMessage;
   bool? _lastPunchSuccess;
 
+  @override
+  void initState() {
+    super.initState();
+    // Load today's clock in/out state so the toggle button shows the right action.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PunchProvider>().fetchTodayStatus();
+    });
+  }
+
   String get _greeting {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good morning';
@@ -300,31 +309,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 20),
             ],
 
-            // Punch buttons
-            Row(
-              children: [
-                Expanded(
-                  child: _PunchButton(
-                    label: 'Clock In',
-                    icon: Icons.login,
-                    color: const Color(0xFF059669),
-                    loading:
-                        _locationPunching || punch.state == PunchState.loading,
-                    onTap: () => _handlePunch('in'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _PunchButton(
-                    label: 'Clock Out',
-                    icon: Icons.logout,
-                    color: const Color(0xFFDC2626),
-                    loading:
-                        _locationPunching || punch.state == PunchState.loading,
-                    onTap: () => _handlePunch('out'),
-                  ),
-                ),
-              ],
+            // Single toggle punch button: shows "Clock Out" while clocked in,
+            // otherwise "Clock In". State comes from the server (today-status / punch response).
+            SizedBox(
+              width: double.infinity,
+              child: _PunchButton(
+                label: punch.isClockedIn ? 'Clock Out' : 'Clock In',
+                icon: punch.isClockedIn ? Icons.logout : Icons.login,
+                color: punch.isClockedIn
+                    ? const Color(0xFFDC2626)
+                    : const Color(0xFF059669),
+                loading: _locationPunching || punch.state == PunchState.loading,
+                onTap: () => _handlePunch(punch.isClockedIn ? 'out' : 'in'),
+              ),
             ),
             const SizedBox(height: 24),
 

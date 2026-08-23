@@ -3,7 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
   static const String _baseUrl =
-      'http://192.168.1.154:5283/api'; // Office/Current Wi-Fi LAN IP
+      'http://10.229.155.51:5283/api'; // Current Wi-Fi LAN IP
 
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
