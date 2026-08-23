@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useOrganization } from '../../context/CompanyContext';
 import {
   Bell,
   Check,
@@ -32,6 +34,9 @@ export interface NotificationItem {
 
 export const NotificationDropdown: React.FC = () => {
   const navigate = useNavigate();
+  const { user, token } = useAuth();
+  const { currentOrganization } = useOrganization();
+
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -63,13 +68,24 @@ export const NotificationDropdown: React.FC = () => {
     }
   }, []);
 
-  // Polling every 30 seconds for live updates
+  // Fetch immediately on mount, on auth login, and on organization change
   useEffect(() => {
     fetchNotifications(true);
+  }, [user, token, currentOrganization?.id, fetchNotifications]);
+
+  // Polling every 20 seconds for live badge updates
+  useEffect(() => {
     const interval = setInterval(() => {
       fetchNotifications(true);
-    }, 30000);
+    }, 20000);
     return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  // Listen to custom refresh events across app
+  useEffect(() => {
+    const onRefresh = () => fetchNotifications(true);
+    window.addEventListener('notification-refresh', onRefresh);
+    return () => window.removeEventListener('notification-refresh', onRefresh);
   }, [fetchNotifications]);
 
   // Click outside to close dropdown
@@ -179,11 +195,11 @@ export const NotificationDropdown: React.FC = () => {
         className={`relative p-2 rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors ${
           isOpen ? 'bg-[var(--surface-secondary)] text-[var(--text-primary)]' : ''
         }`}
-        title="Notifications & Alerts"
+        title={unreadCount > 0 ? `${unreadCount} Unread Notifications` : 'Notifications & Alerts'}
       >
-        <Bell size={18} />
+        <Bell size={19} className={unreadCount > 0 ? 'text-[var(--gold-500)]' : ''} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-bold font-mono text-white bg-rose-600 rounded-full ring-2 ring-[var(--surface)] shadow-xs animate-pulse">
+          <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-extrabold font-mono text-white bg-rose-600 rounded-full ring-2 ring-[var(--surface)] shadow-md animate-pulse pointer-events-none">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
