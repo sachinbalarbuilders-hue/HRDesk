@@ -146,7 +146,7 @@ export const ViewEmployee: React.FC = () => {
       
       setEmployee((prev: any) => ({
         ...prev,
-        photoPath: `${res.data.photoPath}&t=${new Date().getTime()}`
+        photoPath: res.data.photoPath  // versioned URL from server e.g. /api/Thumbnail?employeeId=7&v=1234567890
       }));
       
     } catch (err: any) {
@@ -260,7 +260,7 @@ export const ViewEmployee: React.FC = () => {
             >
               {employee.photoPath ? (
                 <AuthImage 
-                  src={`/Thumbnail?employeeId=${employee.employeeId}&t=${new Date(employee.photoPath.includes('&t=') ? parseInt(employee.photoPath.split('&t=')[1]) : 0).getTime()}`} 
+                  src={employee.photoPath.startsWith('/api') ? employee.photoPath : `/api/Thumbnail?employeeId=${employee.employeeId}`} 
                   alt={employee.employeeName} 
                   className={`w-16 h-16 rounded-full object-cover bg-[var(--paper)] border border-[var(--rule)] ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`} 
                   fallbackInitial={employee.employeeName.charAt(0)}

@@ -7,6 +7,7 @@ using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HRDesk.Web.Controllers.Api;
 
@@ -26,6 +27,7 @@ public class EmployeesController : ControllerBase
     private readonly IReferenceDataCacheService _cache;
     private readonly ICurrentTenantProvider _tenantProvider;
     private readonly IPlanEntitlementService _entitlementService;
+    private readonly IMemoryCache _memoryCache;
 
     private static bool _contractColumnsEnsured = false;
     private static readonly object _columnLock = new();
@@ -35,13 +37,15 @@ public class EmployeesController : ControllerBase
         IPermissionService permissionService,
         IReferenceDataCacheService cache,
         ICurrentTenantProvider tenantProvider,
-        IPlanEntitlementService entitlementService)
+        IPlanEntitlementService entitlementService,
+        IMemoryCache memoryCache)
     {
         _db = db;
         _permissionService = permissionService;
         _cache = cache;
         _tenantProvider = tenantProvider;
         _entitlementService = entitlementService;
+        _memoryCache = memoryCache;
         EnsureContractColumns();
     }
 
@@ -691,14 +695,30 @@ END;";
             
             await cmd.ExecuteNonQueryAsync();
             
-            // Invalidate cache if there is any
+            // Invalidate server-side thumbnail cache for all sizes so the new photo is served immediately
+            var orgId = organizationId;
+            foreach (var size in new[] { 150, 40, 60, 80, 100, 200 })
+            {
+                _memoryCache.Remove($"thumb_{orgId}_{id}_{size}_{size}");
+            }
         }
         finally
         {
             if (wasClosed) await connection.CloseAsync();
         }
 
-        return Ok(new { success = true, photoPath = $"/api/Thumbnail?employeeId={id}", message = "Profile picture updated successfully." });
+        // Include a version token in the path so the browser never serves a stale cached image
+        var versionedPath = $"/api/Thumbnail?employeeId={id}&v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+
+        // Persist the versioned path in the DB so all subsequent loads get a fresh URL
+        var empToUpdate = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id && e.OrganizationId == organizationId);
+        if (empToUpdate != null)
+        {
+            empToUpdate.PhotoPath = versionedPath;
+            await _db.SaveChangesAsync();
+        }
+
+        return Ok(new { success = true, photoPath = versionedPath, message = "Profile picture updated successfully." });
     }
 
     public record EmployeeCreateDto(

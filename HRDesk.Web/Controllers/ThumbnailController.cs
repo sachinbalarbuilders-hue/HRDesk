@@ -88,6 +88,7 @@ public class ThumbnailController : ControllerBase
         var cacheKey = $"thumb_{_tenantProvider.TenantId}_{employeeId}_{width}_{height}";
         if (_cache.TryGetValue(cacheKey, out byte[]? cachedBytes))
         {
+            Response.Headers["Cache-Control"] = "no-cache";
             return File(cachedBytes!, "image/jpeg");
         }
 
@@ -106,7 +107,8 @@ public class ThumbnailController : ControllerBase
                 image.SaveAsJpeg(outStream);
                 var finalBytes = outStream.ToArray();
                 
-                _cache.Set(cacheKey, finalBytes, TimeSpan.FromDays(1)); // Cache for 1 day
+                _cache.Set(cacheKey, finalBytes, TimeSpan.FromDays(1));
+                Response.Headers["Cache-Control"] = "no-cache";
                 return File(finalBytes, "image/jpeg");
             }
         }
