@@ -357,7 +357,6 @@ public sealed class BiometricAttendanceDbContext : DbContext
             entity.Property(e => e.Reason).HasColumnName("reason");
             entity.Property(e => e.Status).HasColumnName("status");
             entity.Property(e => e.ApprovedBy).HasColumnName("approved_by");
-            entity.Property(e => e.ApplicationNumber).HasColumnName("application_number");
             entity.Property(e => e.IgnoreSandwichRule).HasColumnName("ignore_sandwich_rule");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
 

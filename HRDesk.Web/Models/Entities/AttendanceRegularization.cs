@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
@@ -32,10 +32,6 @@ public class AttendanceRegularization : IMustHaveTenant
     [Column("status")]
     [MaxLength(20)]
     public string? Status { get; set; } = "Pending"; // Pending, Approved, Rejected
-
-    [Column("application_number")]
-    [MaxLength(20)]
-    public string? ApplicationNumber { get; set; }
 
     [Column("punch_time_in")]
     public DateTime? PunchTimeIn { get; set; }

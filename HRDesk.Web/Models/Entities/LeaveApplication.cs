@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
@@ -42,10 +42,6 @@ public class LeaveApplication : IMustHaveTenant
 
     [Column("approved_by")]
     public string? ApprovedBy { get; set; }
-
-    [Column("application_number")]
-    [MaxLength(20)]
-    public string? ApplicationNumber { get; set; }
 
     [Column("ignore_sandwich_rule")]
     public bool IgnoreSandwichRule { get; set; } = false;

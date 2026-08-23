@@ -132,7 +132,6 @@ public class RegularizationsController : ControllerBase
             var s = search.Trim().ToLower();
             query = query.Where(r =>
                 (r.Employee != null && r.Employee.EmployeeName.ToLower().Contains(s)) ||
-                (r.ApplicationNumber != null && r.ApplicationNumber.ToLower().Contains(s)) ||
                 (r.Reason != null && r.Reason.ToLower().Contains(s))
             );
         }
@@ -164,7 +163,6 @@ public class RegularizationsController : ControllerBase
                 r.EmployeeId,
                 employeeName = r.Employee != null ? r.Employee.EmployeeName : $"Emp #{r.EmployeeId}",
                 departmentName = r.Employee != null && r.Employee.Department != null ? r.Employee.Department.DepartmentName : "Unassigned",
-                r.ApplicationNumber,
                 r.RequestType,
                 r.RequestDate,
                 r.PunchTimeIn,
@@ -282,7 +280,6 @@ public class RegularizationsController : ControllerBase
                 RequestDate = item.RequestDate,
                 Reason = item.Reason ?? request.Reason,
                 Status = "Pending",
-                ApplicationNumber = null,
                 PunchTimeIn = inTime,
                 PunchTimeOut = outTime,
                 CreatedAt = now
@@ -294,35 +291,9 @@ public class RegularizationsController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        var branchId = employee.BranchId;
-        var orgId = employee.OrganizationId;
-
-        var existingNumbers = await _db.AttendanceRegularizations
-            .Where(r => r.OrganizationId == orgId && (branchId == null || r.Employee != null && r.Employee.BranchId == branchId) && r.ApplicationNumber != null)
-            .Select(r => r.ApplicationNumber)
-            .ToListAsync();
-
-        int maxSeq = 0;
-        foreach (var numStr in existingNumbers)
-        {
-            if (int.TryParse(numStr, out int val) && val > maxSeq)
-            {
-                maxSeq = val;
-            }
-        }
-
-        int nextSeq = maxSeq + 1;
-
-        foreach (var reg in createdList)
-        {
-            reg.ApplicationNumber = nextSeq.ToString();
-        }
-        await _db.SaveChangesAsync();
-
         return Ok(new
         {
             message = $"Created {createdList.Count} regularization request(s) successfully.",
-            applicationNumber = nextSeq.ToString(),
             count = createdList.Count
         });
     }

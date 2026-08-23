@@ -188,14 +188,14 @@ public class MonthlyAttendanceSheetModel : PageModel
                         // Show leave overlap info in tooltip if applicable
                         if (activeApp != null)
                         {
-                            dto.Tooltip = $"Weekoff (Overlaps with {activeApp.LeaveType?.Code} #{activeApp.ApplicationNumber})";
+                            dto.Tooltip = $"Weekoff (Overlaps with {activeApp.LeaveType?.Code} #{activeApp.Id})";
                         }
                         else
                         {
                             dto.Tooltip = "Weekoff";
                         }
                     }
-                    // â”€â”€ Leave application display logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    // ── Leave application display logic ──────────────────────────────────
                     else if (activeApp?.LeaveType != null)
                     {
                         dto.TextColor = activeApp.LeaveType.TextColor;
@@ -249,27 +249,27 @@ public class MonthlyAttendanceSheetModel : PageModel
                     }
 
                     // Build tooltip: Application No + Reason/Remarks
-                    // (Skipped for holidays â€” tooltip already set to holiday name above)
+                    // (Skipped for holidays — tooltip already set to holiday name above)
                     if (log.Status != "Holiday")
                     {
                         var tooltipParts = new List<string>();
                         
                         if (activeApp != null)
                         {
-                            tooltipParts.Add($"App#: {activeApp.ApplicationNumber}");
+                            tooltipParts.Add($"Leave: #{activeApp.Id}");
                             if (!string.IsNullOrEmpty(activeApp.Reason))
                                 tooltipParts.Add($"Reason: {activeApp.Reason}");
                         }
                         else if (!string.IsNullOrEmpty(log.ApplicationNumber))
                         {
-                            tooltipParts.Add($"App#: {log.ApplicationNumber}");
+                            tooltipParts.Add($"Ref: #{log.ApplicationNumber}");
                         }
                         
                         // Add Adjusted leaves info
                         var adjustedApps = dayApps.Where(la => la.Status == "Adjusted").ToList();
                         foreach (var adj in adjustedApps)
                         {
-                            tooltipParts.Add($"Adjusted: {adj.LeaveType?.Code ?? "Leave"} ({adj.ApplicationNumber})");
+                            tooltipParts.Add($"Adjusted: {adj.LeaveType?.Code ?? "Leave"} (#{adj.Id})");
                             if (!string.IsNullOrEmpty(adj.Reason))
                                 tooltipParts.Add($"Orig Reason: {adj.Reason}");
                         }

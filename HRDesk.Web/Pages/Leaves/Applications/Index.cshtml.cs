@@ -78,7 +78,6 @@ public class IndexModel : PageModel
         // Default to today to avoid 0001-01-01 error
         NewApplication.StartDate = DateOnly.FromDateTime(DateTime.Today);
         NewApplication.EndDate = DateOnly.FromDateTime(DateTime.Today);
-        NewApplication.ApplicationNumber = null;
  
         // Pagination & Search logic
         var baseQuery = _db.LeaveApplications.AsNoTracking();
@@ -89,7 +88,6 @@ public class IndexModel : PageModel
             var searchLower = SearchTerm.ToLower();
             baseQuery = baseQuery.Where(la => 
                 (la.Employee != null && la.Employee.EmployeeName.ToLower().Contains(searchLower)) ||
-                (la.ApplicationNumber != null && la.ApplicationNumber.ToLower().Contains(searchLower)) ||
                 (la.Reason != null && la.Reason.ToLower().Contains(searchLower))
             );
         }
@@ -317,7 +315,6 @@ public class IndexModel : PageModel
             return Page();
         }
 
-        string baseAppNo = NewApplication.ApplicationNumber ?? string.Empty;
         DateTime now = DateTime.Now;
 
         // 2. Overlap Check
@@ -369,7 +366,6 @@ public class IndexModel : PageModel
         NewApplication.TotalDays = workDaysCount;
 
         // 4. Set Base Properties
-        NewApplication.ApplicationNumber = baseAppNo;
         NewApplication.Status = "Approved";
         NewApplication.CreatedAt = now;
 
@@ -470,18 +466,13 @@ public class IndexModel : PageModel
                 decimal lwpDays = totalDaysRequested - effectiveRemaining;
                 DateOnly lwpStartDate = plEndDate.AddDays(1);
 
-                // Generate application numbers
-                string plAppNo = baseAppNo;
-                string lwpAppNo = baseAppNo; // Use the same app no since it's a connected leave
-
-                // 1. Create PL application (start â†’ split date)
+                // 1. Create PL application (start → split date)
                 NewApplication.EndDate = plEndDate;
                 NewApplication.TotalDays = plDays;
-                NewApplication.ApplicationNumber = plAppNo;
                 NewApplication.Status = "Approved";
                 NewApplication.CreatedAt = now;
 
-                // 2. Create LWP application (split date + 1 â†’ original end)
+                // 2. Create LWP application (split date + 1 → original end)
                 var lwpApp = new LeaveApplication
                 {
                     EmployeeId = NewApplication.EmployeeId,
@@ -492,7 +483,6 @@ public class IndexModel : PageModel
                     DayType = NewApplication.DayType,
                     Reason = $"{NewApplication.Reason ?? ""} (Auto-split: {type.Code} balance exhausted)".Trim(),
                     IgnoreSandwichRule = NewApplication.IgnoreSandwichRule,
-                    ApplicationNumber = lwpAppNo,
                     Status = "Approved",
                     CreatedAt = now
                 };
@@ -556,7 +546,7 @@ public class IndexModel : PageModel
             // Also reverse any cross-application sandwich deductions linked to this application
             var oldSandwichCount = await _db.DailyAttendance
                 .Where(d => d.EmployeeId == application.EmployeeId &&
-                            d.ApplicationNumber == application.ApplicationNumber &&
+                            d.ApplicationNumber == application.Id.ToString() &&
                             d.Remarks != null && d.Remarks.Contains("Sandwich Leave (covered by"))
                 .CountAsync();
             if (oldSandwichCount > 0)
@@ -653,35 +643,14 @@ public class IndexModel : PageModel
             {
                 remaining = newAllocation!.TotalAllocated + newAllocation.OpeningBalance - newAllocation.UsedCount;
             }
-
-            int extSandwichCount = await GetExternalSandwichCountAsync(application.EmployeeId, EditApplication.StartDate, EditApplication.EndDate, EditApplication.DayType, EditApplication.IgnoreSandwichRule);
-            
-            if (application.TotalDays + extSandwichCount > remaining)
-            {
-                // Note: We need to put back the oldUsedCount if validation fails because we subtracted it above
-                if (oldAllocation != null) oldAllocation.UsedCount += oldTotalDays;
-                
-                string msg = extSandwichCount > 0 ? $" (+ {extSandwichCount} external sandwich days)" : "";
-                ModelState.AddModelError("", $"Insufficient balance for update. Available: {remaining} days, Requested: {application.TotalDays} days{msg}.");
-                await OnGetAsync();
-                return Page();
-            }
-        }
-
-        if (newAllocation != null)
-        {
-            newAllocation.UsedCount += application.TotalDays;
-            newAllocation.UpdatedAt = DateTime.Now;
         }
 
         await _db.SaveChangesAsync();
 
-        // Re-process both old and new ranges (including adjacent days for sandwiches)
-        var combinedStart = (oldStart < application.StartDate ? oldStart : application.StartDate).AddDays(-1);
-        var combinedEnd = (oldEnd > application.EndDate ? oldEnd : application.EndDate).AddDays(1);
-
-        // Process in background
-        ProcessAttendanceInBackground(combinedStart, combinedEnd, application.EmployeeId);
+        // 6. Re-process attendance for the combined union of old and new ranges in background
+        var reprocessStart = oldStart < application.StartDate ? oldStart : application.StartDate;
+        var reprocessEnd = oldEnd > application.EndDate ? oldEnd : application.EndDate;
+        ProcessAttendanceInBackground(reprocessStart.AddDays(-1), reprocessEnd.AddDays(1), application.EmployeeId);
 
         return RedirectToPage();
     }
@@ -705,7 +674,7 @@ public class IndexModel : PageModel
                 // (Within-range sandwiches are already included in TotalDays above)
                 var sandwichCount = await _db.DailyAttendance
                     .Where(d => d.EmployeeId == application.EmployeeId &&
-                                d.ApplicationNumber == application.ApplicationNumber &&
+                                d.ApplicationNumber == application.Id.ToString() &&
                                 d.Remarks != null && d.Remarks.Contains("Sandwich Leave (covered by"))
                     .CountAsync();
                 if (sandwichCount > 0)

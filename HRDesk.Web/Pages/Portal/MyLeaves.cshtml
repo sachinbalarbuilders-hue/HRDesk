@@ -112,7 +112,7 @@
                             @foreach (var app in Model.Applications)
                             {
                                 <tr>
-                                    <td class="ps-4 fw-bold text-primary">@(app.ApplicationNumber ?? $"#{app.Id}")</td>
+                                    <td class="ps-4 fw-bold text-primary">#@app.Id</td>
                                     <td>
                                         <span class="badge bg-body-secondary text-body-emphasis">
                                             @(app.LeaveType?.Name ?? "Leave")

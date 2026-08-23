@@ -214,22 +214,22 @@ public class AttendanceController : ControllerBase
                         if (activeApp.DayType == "First Half" || log.Status == "FH" || log.Status == "1H" || log.Status == "1HF")
                         {
                             statusChar = activeApp.LeaveType.Code + "-1H";
-                            tooltip = $"{activeApp.LeaveType.Name} (First Half Leave) (#{activeApp.ApplicationNumber})";
+                            tooltip = $"{activeApp.LeaveType.Name} (First Half Leave) (#{activeApp.Id})";
                         }
                         else if (activeApp.DayType == "Second Half" || log.Status == "SH" || log.Status == "2H" || log.Status == "2HF")
                         {
                             statusChar = activeApp.LeaveType.Code + "-2H";
-                            tooltip = $"{activeApp.LeaveType.Name} (Second Half Leave) (#{activeApp.ApplicationNumber})";
+                            tooltip = $"{activeApp.LeaveType.Name} (Second Half Leave) (#{activeApp.Id})";
                         }
                         else if (log.IsHalfDay || activeApp.TotalDays == 0.5m)
                         {
                             statusChar = activeApp.LeaveType.Code + "HF";
-                            tooltip = $"{activeApp.LeaveType.Name} (Half Day) (#{activeApp.ApplicationNumber})";
+                            tooltip = $"{activeApp.LeaveType.Name} (Half Day) (#{activeApp.Id})";
                         }
                         else
                         {
                             statusChar = activeApp.LeaveType.Code;
-                            tooltip = $"{activeApp.LeaveType.Name} (#{activeApp.ApplicationNumber})";
+                            tooltip = $"{activeApp.LeaveType.Name} (#{activeApp.Id})";
                         }
                     }
                     else

@@ -591,7 +591,6 @@
             formData.append('NewApplication.DayType', dayType);
             formData.append('NewApplication.Reason', reason);
             formData.append('AutoGenerate', autoGenerate ? 'true' : 'false');
-            if (!autoGenerate && appNumber) formData.append('NewApplication.ApplicationNumber', appNumber);
 
             // Get CSRF token from the hidden field injected by server
             const token = document.getElementById('afToken')?.value || '';

@@ -310,16 +310,19 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             existingRecord.Remarks != null && 
             existingRecord.Remarks.Contains("Sandwich Leave (covered by"))
         {
-            _logger.LogInformation("IDEMPOTENCY: Found cross-app sandwich for {EmpId} on {Date}. Application: {AppNum}", emp.EmployeeId, date, existingRecord.ApplicationNumber);
+            _logger.LogInformation("IDEMPOTENCY: Found cross-app sandwich for {EmpId} on {Date}. Reference ID: {AppNum}", emp.EmployeeId, date, existingRecord.ApplicationNumber);
             
-            var refApp = await _db.LeaveApplications
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(la => la.ApplicationNumber == existingRecord.ApplicationNumber);
-            
-            if (refApp != null && context.Allocations.TryGetValue((emp.EmployeeId, refApp.LeaveTypeId), out var allocation))
+            if (int.TryParse(existingRecord.ApplicationNumber, out int refLeaveId))
             {
-                _logger.LogInformation("IDEMPOTENCY: Reversing -1 from {LeaveType} balance. Current: {UsedCount}", refApp.LeaveType?.Code ?? refApp.LeaveTypeId.ToString(), allocation.UsedCount);
-                allocation.UsedCount -= 1;
+                var refApp = await _db.LeaveApplications
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(la => la.Id == refLeaveId);
+                
+                if (refApp != null && context.Allocations.TryGetValue((emp.EmployeeId, refApp.LeaveTypeId), out var allocation))
+                {
+                    _logger.LogInformation("IDEMPOTENCY: Reversing -1 from {LeaveType} balance. Current: {UsedCount}", refApp.LeaveType?.Code ?? refApp.LeaveTypeId.ToString(), allocation.UsedCount);
+                    allocation.UsedCount -= 1;
+                }
             }
         }
 
@@ -376,16 +379,10 @@ public class AttendanceProcessorService : IAttendanceProcessorService
 
         bool waiveLate = lateRegularization != null && lateRegularization.WaivePenalty;
         bool waiveEarly = earlyRegularization != null && earlyRegularization.WaivePenalty;
-        
-        if (empRegs.Any())
+                if (empRegs.Any())
         {
-            var firstReg = empRegs.First();
-            existingRecord.ApplicationNumber = firstReg.ApplicationNumber;
-            
             foreach (var reg in empRegs)
             {
-                var appNumText = !string.IsNullOrWhiteSpace(reg.ApplicationNumber) ? $" ({reg.ApplicationNumber})" : "";
-                
                 string regText = "Regularized";
                 if (reg.RequestType != "Missed Punch" && !reg.WaivePenalty)
                 {
@@ -393,7 +390,7 @@ public class AttendanceProcessorService : IAttendanceProcessorService
                 }
 
                 var reasonText = !string.IsNullOrWhiteSpace(reg.Reason) ? $" - Reason: {reg.Reason}" : "";
-                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{reg.RequestType} {regText}{appNumText}{reasonText}");
+                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"{reg.RequestType} {regText}{reasonText}");
             }
         }
 
@@ -403,67 +400,57 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             if (dailyLogs.Any()) 
             {
                 existingRecord.Status = "W/OP"; // Weekoff Present - worked on weekoff
-                
-                var orderedLogs = dailyLogs.OrderBy(l => l.PunchTime).ToList();
-                var compOffInTime = TimeOnly.FromDateTime(orderedLogs.First().PunchTime);
-                var compOffOutTime = orderedLogs.Count > 1 ? TimeOnly.FromDateTime(orderedLogs.Last().PunchTime) : (TimeOnly?)null;
-                
-                await _compOffService.CreateDraftRequestAsync(emp.EmployeeId, date, compOffInTime, existingRecord.ShiftId);
-                
-                if (compOffOutTime.HasValue)
-                {
-                    await _compOffService.UpdateWithOutPunchAsync(emp.EmployeeId, date, compOffOutTime.Value);
-                }
+                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Worked on scheduled weekoff.");
+                return;
             }
-            else 
+
+            var sandwichEnabled = emp.BranchId == null || !context.SandwichDisabledBranches.Contains(emp.BranchId.Value);
+            var sandwichingLeave = sandwichEnabled ? GetSandwichingLeaveFromContext(emp.EmployeeId, date, context.Leaves) : null;
+
+            if (sandwichingLeave != null)
             {
-                var sandwichEnabled = emp.BranchId == null || !context.SandwichDisabledBranches.Contains(emp.BranchId.Value);
-                var sandwichingLeave = sandwichEnabled ? GetSandwichingLeaveFromContext(emp.EmployeeId, date, context.Leaves) : null;
-                if (sandwichingLeave != null)
+                existingRecord.InTime = null;
+                existingRecord.OutTime = null;
+                existingRecord.WorkMinutes = 0;
+                existingRecord.BreakMinutes = 0;
+                existingRecord.IsActualBreak = false;
+
+                bool alreadyInTotalDays = date >= sandwichingLeave.StartDate && date <= sandwichingLeave.EndDate;
+
+                if (alreadyInTotalDays)
                 {
-                    existingRecord.InTime = null;
-                    existingRecord.OutTime = null;
-                    existingRecord.WorkMinutes = 0;
-                    existingRecord.BreakMinutes = 0;
-                    existingRecord.IsActualBreak = false;
-
-                    bool alreadyInTotalDays = date >= sandwichingLeave.StartDate && date <= sandwichingLeave.EndDate;
-
-                    if (alreadyInTotalDays)
-                    {
-                        _logger.LogInformation("SANDWICH (within-range): Marking {Date} for {EmpId} — no deduction (already in TotalDays)", date, emp.EmployeeId);
-                        existingRecord.Status = sandwichingLeave.LeaveType?.Code ?? "Leave";
-                        existingRecord.ApplicationNumber = sandwichingLeave.ApplicationNumber;
-                        existingRecord.Remarks = AppendRemark(existingRecord.Remarks,
-                            $"Sandwich Leave (within application {sandwichingLeave.ApplicationNumber})");
-                    }
-                    else
-                    {
-                        context.Allocations.TryGetValue((emp.EmployeeId, sandwichingLeave.LeaveTypeId), out var allocation);
-
-                        if (allocation != null && allocation.RemainingCount >= 1)
-                        {
-                            _logger.LogInformation("SANDWICH (cross-app): Deducting +1 from {LeaveType} for {EmpId} on {Date}. Previous Used: {UsedCount}", sandwichingLeave.LeaveType?.Code ?? sandwichingLeave.LeaveTypeId.ToString(), emp.EmployeeId, date, allocation.UsedCount);
-                            allocation.UsedCount += 1;
-                            allocation.UpdatedAt = DateTime.Now;
-                            existingRecord.Status = sandwichingLeave.LeaveType?.Code ?? "Leave";
-                            existingRecord.ApplicationNumber = sandwichingLeave.ApplicationNumber;
-                            existingRecord.Remarks = AppendRemark(existingRecord.Remarks,
-                                $"Sandwich Leave (covered by {sandwichingLeave.LeaveType?.Name ?? sandwichingLeave.ApplicationNumber})");
-                        }
-                        else
-                        {
-                            existingRecord.Status = "LWP";
-                            existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Sandwich Leave (LWP - No Balance)");
-                        }
-                    }
-                    return;
+                    _logger.LogInformation("SANDWICH (within-range): Marking {Date} for {EmpId} — no deduction (already in TotalDays)", date, emp.EmployeeId);
+                    existingRecord.Status = sandwichingLeave.LeaveType?.Code ?? "Leave";
+                    existingRecord.ApplicationNumber = sandwichingLeave.Id.ToString();
+                    existingRecord.Remarks = AppendRemark(existingRecord.Remarks,
+                        $"Sandwich Leave (within application #{sandwichingLeave.Id})");
                 }
                 else
                 {
-                    existingRecord.Status = "W/O"; // Standard unworked Weekoff
-                    return;
+                    context.Allocations.TryGetValue((emp.EmployeeId, sandwichingLeave.LeaveTypeId), out var allocation);
+
+                    if (allocation != null && allocation.RemainingCount >= 1)
+                    {
+                        _logger.LogInformation("SANDWICH (cross-app): Deducting +1 from {LeaveType} for {EmpId} on {Date}. Previous Used: {UsedCount}", sandwichingLeave.LeaveType?.Code ?? sandwichingLeave.LeaveTypeId.ToString(), emp.EmployeeId, date, allocation.UsedCount);
+                        allocation.UsedCount += 1;
+                        allocation.UpdatedAt = DateTime.Now;
+                        existingRecord.Status = sandwichingLeave.LeaveType?.Code ?? "Leave";
+                        existingRecord.ApplicationNumber = sandwichingLeave.Id.ToString();
+                        existingRecord.Remarks = AppendRemark(existingRecord.Remarks,
+                            $"Sandwich Leave (covered by {sandwichingLeave.LeaveType?.Name ?? $"Leave #{sandwichingLeave.Id}"})");
+                    }
+                    else
+                    {
+                        existingRecord.Status = "LWP";
+                        existingRecord.Remarks = AppendRemark(existingRecord.Remarks, "Sandwich Leave (LWP - No Balance)");
+                    }
                 }
+                return;
+            }
+            else
+            {
+                existingRecord.Status = "W/O"; // Standard unworked Weekoff
+                return;
             }
         }
 
@@ -476,7 +463,7 @@ public class AttendanceProcessorService : IAttendanceProcessorService
 
         if (adjustedLeaves.Any())
         {
-            var adjText = string.Join(", ", adjustedLeaves.Select(al => $"{al.LeaveType?.Code ?? "Leave"} ({al.ApplicationNumber})"));
+            var adjText = string.Join(", ", adjustedLeaves.Select(al => $"{al.LeaveType?.Code ?? "Leave"} (#{al.Id})"));
             existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"Adjusted: {adjText}");
         }
         
@@ -486,14 +473,14 @@ public class AttendanceProcessorService : IAttendanceProcessorService
             
             if (isHalfDayLeave)
             {
-                existingRecord.ApplicationNumber = approvedLeave.ApplicationNumber;
+                existingRecord.ApplicationNumber = approvedLeave.Id.ToString();
                 existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"Half Day Leave: {approvedLeave.LeaveType?.Code ?? approvedLeave.LeaveType?.Name} ({approvedLeave.DayType})");
             }
             else
             {
                 existingRecord.Status = approvedLeave.LeaveType?.Code ?? "Leave";
-                existingRecord.ApplicationNumber = approvedLeave.ApplicationNumber;
-                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"Leave: {approvedLeave.LeaveType?.Name} ({approvedLeave.ApplicationNumber})");
+                existingRecord.ApplicationNumber = approvedLeave.Id.ToString();
+                existingRecord.Remarks = AppendRemark(existingRecord.Remarks, $"Leave: {approvedLeave.LeaveType?.Name}");
                 if (dailyLogs.Any())
                 {
                     existingRecord.Status = "Present (Leave)";

@@ -30,7 +30,6 @@ interface RegularizationItem {
   employeeId: number;
   employeeName: string;
   departmentName: string;
-  applicationNumber: string;
   requestType: string;
   requestDate: string;
   punchTimeIn: string | null;
@@ -401,7 +400,6 @@ export const Regularizations: React.FC = () => {
                     </th>
                   )}
                   <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
-                  <th className="p-3.5 font-semibold">Application #</th>
                   <th className="p-3.5 font-semibold">Employee</th>
                   <th className="p-3.5 font-semibold">Request Date</th>
                   <th className="p-3.5 font-semibold">Adjusted Timings</th>
@@ -439,10 +437,6 @@ export const Regularizations: React.FC = () => {
 
                       <td className="p-3.5 font-mono text-center text-xs text-[var(--ink-muted)]">
                         {srNo}
-                      </td>
-
-                      <td className="p-3.5 font-mono font-semibold text-[var(--accent)]">
-                        #{r.applicationNumber || r.id}
                       </td>
 
                       <td className="p-3.5">

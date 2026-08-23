@@ -114,7 +114,6 @@ public class EmployeeLeaveController : ControllerBase
             .Select(la => new
             {
                 la.Id,
-                la.ApplicationNumber,
                 leaveTypeName = la.LeaveType != null ? la.LeaveType.Name : "Leave",
                 leaveTypeCode = la.LeaveType != null ? la.LeaveType.Code : "",
                 la.StartDate,

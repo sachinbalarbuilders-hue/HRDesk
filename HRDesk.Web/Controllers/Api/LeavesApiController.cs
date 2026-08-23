@@ -93,7 +93,6 @@ public class LeavesController : ControllerBase
         {
             var s = search.Trim().ToLower();
             query = query.Where(la =>
-                (la.ApplicationNumber != null && la.ApplicationNumber.ToLower().Contains(s)) ||
                 (la.Employee != null && la.Employee.EmployeeName.ToLower().Contains(s)) ||
                 (la.Reason != null && la.Reason.ToLower().Contains(s)));
         }
@@ -108,7 +107,6 @@ public class LeavesController : ControllerBase
             .Select(la => new
             {
                 la.Id,
-                la.ApplicationNumber,
                 la.EmployeeId,
                 EmployeeName = la.Employee != null ? la.Employee.EmployeeName : null,
                 Department = la.Employee != null && la.Employee.Department != null ? la.Employee.Department.DepartmentName : null,
@@ -332,28 +330,8 @@ public class LeavesController : ControllerBase
         bool isHalf = dto.DayType == "First Half" || dto.DayType == "Second Half";
         decimal totalDays = isHalf ? 0.5m : (dto.EndDate.DayNumber - dto.StartDate.DayNumber + 1);
 
-        var branchId = emp.BranchId;
-        var orgId = emp.OrganizationId;
-
-        var existingNumbers = await _db.LeaveApplications
-            .Where(l => l.OrganizationId == orgId && (branchId == null || l.Employee != null && l.Employee.BranchId == branchId) && l.ApplicationNumber != null)
-            .Select(l => l.ApplicationNumber)
-            .ToListAsync();
-
-        int maxSeq = 0;
-        foreach (var numStr in existingNumbers)
-        {
-            if (int.TryParse(numStr, out int val) && val > maxSeq)
-            {
-                maxSeq = val;
-            }
-        }
-
-        int nextSeq = maxSeq + 1;
-
         var leaveApp = new LeaveApplication
         {
-            ApplicationNumber = nextSeq.ToString(),
             EmployeeId = targetEmpId.Value,
             LeaveTypeId = dto.LeaveTypeId,
             StartDate = dto.StartDate,
@@ -385,7 +363,7 @@ public class LeavesController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        return Ok(new { message = "Leave application submitted successfully.", id = leaveApp.Id, applicationNumber = leaveApp.ApplicationNumber });
+        return Ok(new { message = "Leave application submitted successfully.", id = leaveApp.Id });
     }
 
     [HttpPut("{id}/status")]
@@ -538,7 +516,7 @@ public class LeavesController : ControllerBase
             var conflict = overlappingLeaves.First();
             return BadRequest(new
             {
-                message = $"Cannot restore: Another active leave (#{conflict.ApplicationNumber ?? conflict.Id.ToString()}) already exists for this period ({conflict.StartDate:dd MMM yyyy} to {conflict.EndDate:dd MMM yyyy})."
+                message = $"Cannot restore: Another active leave (#{conflict.Id}) already exists for this period ({conflict.StartDate:dd MMM yyyy} to {conflict.EndDate:dd MMM yyyy})."
             });
         }
 

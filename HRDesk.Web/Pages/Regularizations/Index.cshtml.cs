@@ -40,7 +40,6 @@ namespace HRDesk.Web.Pages.Regularizations
                     var searchLower = SearchTerm.ToLower();
                     baseQuery = baseQuery.Where(r => 
                         (r.Employee != null && r.Employee.EmployeeName.ToLower().Contains(searchLower)) ||
-                        (r.ApplicationNumber != null && r.ApplicationNumber.ToLower().Contains(searchLower)) ||
                         (r.Reason != null && r.Reason.ToLower().Contains(searchLower))
                     );
                 }
@@ -58,7 +57,7 @@ namespace HRDesk.Web.Pages.Regularizations
 
                 var items = await _context.AttendanceRegularizations.AsNoTracking()
                     .Where(r => pagedIds.Contains(r.Id))
-                    .Include(a => a.Employee)
+                    .Include(r => r.Employee)
                     .OrderByDescending(r => r.CreatedAt)
                     .ToListAsync();
                     
@@ -118,7 +117,25 @@ namespace HRDesk.Web.Pages.Regularizations
             return RedirectToPage();
         }
 
-        public async Task<IActionResult> OnPostDeleteAsync(string ids)
+        public async Task<IActionResult> OnPostDeleteAsync(int id)
+        {
+            var req = await _context.AttendanceRegularizations.FindAsync(id);
+            if (req != null)
+            {
+                _context.AttendanceRegularizations.Remove(req);
+                await _context.SaveChangesAsync();
+                
+                // Re-process attendance from the request date until the end of that month
+                var endOfMonth = new DateOnly(req.RequestDate.Year, req.RequestDate.Month, DateTime.DaysInMonth(req.RequestDate.Year, req.RequestDate.Month));
+                for (var d = req.RequestDate; d <= endOfMonth; d = d.AddDays(1))
+                {
+                    await _processor.ProcessDailyAttendanceAsync(d, req.EmployeeId);
+                }
+            }
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostDeleteGroupAsync(string ids)
         {
             if (string.IsNullOrEmpty(ids)) return RedirectToPage();
 
@@ -135,10 +152,10 @@ namespace HRDesk.Web.Pages.Regularizations
                     var attendance = await _context.DailyAttendance
                         .FirstOrDefaultAsync(d => d.EmployeeId == req.EmployeeId && d.RecordDate == req.RequestDate);
                     
-                    if (attendance != null && (attendance.ApplicationNumber == req.ApplicationNumber))
+                    if (attendance != null)
                     {
                         attendance.ApplicationNumber = null;
-                        attendance.Remarks = $"Manual override reverted (Deleted {req.ApplicationNumber ?? "Group Log"})";
+                        attendance.Remarks = "Manual override reverted";
                         attendance.WorkMinutes = 0; // Explicit reset
                         attendance.InTime = null;
                         attendance.OutTime = null;

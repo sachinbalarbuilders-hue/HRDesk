@@ -74,7 +74,7 @@
                         var isAdjusted = app.Status == "Adjusted";
                         <tr class="@(isAdjusted ? "opacity-50 grayscale" : "")">
                             <td class="ps-4">
-                                <code class="text-primary @(isAdjusted ? "text-decoration-line-through text-muted" : "")">@app.ApplicationNumber</code>
+                                <code class="text-primary @(isAdjusted ? "text-decoration-line-through text-muted" : "")">#@app.Id</code>
                                 @if (isAdjusted)
                                 {
                                     <div class="badge bg-secondary-subtle text-secondary border x-small py-0 px-1 mt-1" style="font-size:0.65rem;">Adjusted</div>
@@ -229,20 +229,6 @@
                     </div>
                     <div id="add-sandwich-warning" class="alert alert-warning small py-2 mb-3" style="display:none;">
                         <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="add-sandwich-text"></span>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold d-flex justify-content-between">
-                            Application Number
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="add-auto-app-no" asp-for="AutoGenerate">
-                                <label class="form-check-label small" for="add-auto-app-no">Auto-generate</label>
-                            </div>
-                        </label>
-                        <div class="input-group">
-                            <input asp-for="NewApplication.ApplicationNumber" class="form-control" readonly id="add-app-no" />
-                            <span class="input-group-text text-muted small" id="add-app-no-loading" style="display:none;">Loading...</span>
-                        </div>
-                        <div class="form-text">Leave blank if tracking number is not required.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Day Type</label>

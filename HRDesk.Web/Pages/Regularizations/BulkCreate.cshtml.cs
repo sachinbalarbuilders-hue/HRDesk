@@ -125,23 +125,22 @@ namespace HRDesk.Web.Pages.Regularizations
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (Input.EmployeeId <= 0)
+            if (!ModelState.IsValid)
             {
-                ModelState.AddModelError("Input.EmployeeId", "Please select an employee.");
+                await OnGetAsync();
+                return Page();
             }
 
             if (Input.StartDate > Input.EndDate)
             {
-                ModelState.AddModelError("Input.StartDate", "Start date cannot be after end date.");
+                ModelState.AddModelError("", "Start date must be before or equal to End date.");
+                await OnGetAsync();
+                return Page();
             }
 
             if (!Input.IncludeIn && !Input.IncludeOut)
             {
-                ModelState.AddModelError("", "Please select at least one punch type (IN or OUT).");
-            }
-
-            if (!ModelState.IsValid)
-            {
+                ModelState.AddModelError("", "You must include at least IN time or OUT time.");
                 await OnGetAsync();
                 return Page();
             }
@@ -149,8 +148,6 @@ namespace HRDesk.Web.Pages.Regularizations
             var username = User.Identity?.Name ?? "Admin";
             var now = DateTime.Now;
             int totalCreated = 0;
-
-            string appNo = Input.ApplicationNumber ?? "";
 
             // Pre-load existing attendance to avoid N+1 queries and check for exempt days
             var existingRecords = await _context.DailyAttendance
@@ -204,14 +201,14 @@ namespace HRDesk.Web.Pages.Regularizations
                 if (shouldCreateIn)
                 {
                     var inDateTime = date.ToDateTime(TimeOnly.FromDateTime(Input.InTime));
-                    await CreateRegularizationRecord(Input.EmployeeId, date, "Missed Punch", inDateTime, username, appNo, now);
+                    await CreateRegularizationRecord(Input.EmployeeId, date, "Missed Punch", inDateTime, username, now);
                     totalCreated++;
                 }
 
                 if (shouldCreateOut)
                 {
                     var outDateTime = date.ToDateTime(TimeOnly.FromDateTime(Input.OutTime));
-                    await CreateRegularizationRecord(Input.EmployeeId, date, "Missed Punch", outDateTime, username, appNo, now);
+                    await CreateRegularizationRecord(Input.EmployeeId, date, "Missed Punch", outDateTime, username, now);
                     totalCreated++;
                 }
             }
@@ -227,11 +224,11 @@ namespace HRDesk.Web.Pages.Regularizations
                 }
             }
 
-            TempData["SuccessMessage"] = $"Successfully created {totalCreated} regularization records for employee ID {Input.EmployeeId} using App # {appNo}.";
+            TempData["SuccessMessage"] = $"Successfully created {totalCreated} regularization records for employee ID {Input.EmployeeId}.";
             return RedirectToPage("./Index");
         }
 
-        private async Task CreateRegularizationRecord(int employeeId, DateOnly date, string type, DateTime punchTime, string username, string appNo, DateTime createdAt)
+        private async Task CreateRegularizationRecord(int employeeId, DateOnly date, string type, DateTime punchTime, string username, DateTime createdAt)
         {
             var reg = new AttendanceRegularization
             {
@@ -243,8 +240,7 @@ namespace HRDesk.Web.Pages.Regularizations
                 CreatedAt = createdAt,
                 Status = Input.AutoApprove ? "Approved" : "Pending",
                 ApprovedBy = Input.AutoApprove ? username : null,
-                ApproveDate = Input.AutoApprove ? DateTime.Now : null,
-                ApplicationNumber = appNo
+                ApproveDate = Input.AutoApprove ? DateTime.Now : null
             };
             _context.AttendanceRegularizations.Add(reg);
         }

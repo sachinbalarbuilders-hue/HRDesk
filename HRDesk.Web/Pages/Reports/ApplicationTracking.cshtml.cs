@@ -55,7 +55,6 @@ namespace HRDesk.Web.Pages.Reports
 
             var regularizations = regEntities
                 .GroupBy(r => new { 
-                    r.ApplicationNumber, 
                     r.EmployeeId, 
                     CreatedAt = new DateTime(r.CreatedAt.Year, r.CreatedAt.Month, r.CreatedAt.Day, r.CreatedAt.Hour, r.CreatedAt.Minute, 0)
                 })
@@ -69,7 +68,7 @@ namespace HRDesk.Web.Pages.Reports
                     return new ApplicationTrackItem
                     {
                         Id = first.Id,
-                        ApplicationNumber = first.ApplicationNumber,
+                        ApplicationNumber = $"#{first.Id}",
                         Date = minDate,
                         EndDate = maxDate != minDate ? maxDate : null,
                         EmployeeName = first.Employee != null ? first.Employee.EmployeeName : "Unknown",
@@ -79,6 +78,7 @@ namespace HRDesk.Web.Pages.Reports
                         Status = first.Status ?? "Pending",
                         ChildItems = isGroup ? g.OrderBy(x => x.RequestDate).Select(c => new ApplicationTrackItem {
                             Id = c.Id,
+                            ApplicationNumber = $"#{c.Id}",
                             Date = c.RequestDate,
                             Details = c.RequestType ?? "Regularization",
                             Reason = c.Reason,
@@ -97,7 +97,7 @@ namespace HRDesk.Web.Pages.Reports
                 .Select(l => new ApplicationTrackItem
                 {
                     Id = l.Id,
-                    ApplicationNumber = l.ApplicationNumber,
+                    ApplicationNumber = $"#{l.Id}",
                     Date = l.StartDate,
                     EndDate = l.EndDate,
                     EmployeeName = l.Employee != null ? l.Employee.EmployeeName : "Unknown",
@@ -108,12 +108,7 @@ namespace HRDesk.Web.Pages.Reports
                 })
                 .ToListAsync();
 
-            // 3. Get Manual Overrides from DailyAttendance (only those NOT linked to above records)
-            var linkedAppNos = regularizations.Select(r => r.ApplicationNumber)
-                .Concat(leaves.Select(l => l.ApplicationNumber))
-                .Where(n => !string.IsNullOrEmpty(n))
-                .ToHashSet();
-
+            // 3. Get Manual Overrides from DailyAttendance
             var manualOverrides = await _db.DailyAttendance
                 .AsNoTracking()
                 .Include(d => d.Employee)
@@ -122,11 +117,10 @@ namespace HRDesk.Web.Pages.Reports
                 .ToListAsync();
 
             var attendanceItems = manualOverrides
-                .Where(d => !linkedAppNos.Contains(d.ApplicationNumber))
                 .Select(d => new ApplicationTrackItem
                 {
                     Id = d.Id,
-                    ApplicationNumber = d.ApplicationNumber,
+                    ApplicationNumber = $"#{d.Id}",
                     Date = d.RecordDate,
                     EmployeeName = d.Employee != null ? d.Employee.EmployeeName : "Unknown",
                     Category = "Attendance Record",
@@ -135,15 +129,11 @@ namespace HRDesk.Web.Pages.Reports
                 })
                 .ToList();
 
-            // 4. Combine and Sort (Group by Month Descending, then Numeric ID Descending)
+            // 4. Combine and Sort
             var allApps = regularizations.Concat(leaves).Concat(attendanceItems)
                 .OrderByDescending(a => a.Date.Year)
                 .ThenByDescending(a => a.Date.Month)
-                .ThenByDescending(a => {
-                    if (string.IsNullOrEmpty(a.ApplicationNumber)) return -1;
-                    var parts = a.ApplicationNumber.Split(' ');
-                    return parts.Length > 1 && int.TryParse(parts[^1], out var num) ? num : -1;
-                })
+                .ThenByDescending(a => a.Id)
                 .ToList();
                 
             var paged = allApps.Skip((pageNum - 1) * 50).Take(50).ToList();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -59,7 +59,6 @@ namespace HRDesk.Web.Pages.Regularizations
             existingReg.RequestType = Regularization.RequestType;
             existingReg.RequestDate = Regularization.RequestDate;
             existingReg.Reason = Regularization.Reason;
-            existingReg.ApplicationNumber = Regularization.ApplicationNumber;
             existingReg.WaivePenalty = Regularization.WaivePenalty;
             existingReg.PunchTimeIn = Regularization.PunchTimeIn;
             existingReg.PunchTimeOut = Regularization.PunchTimeOut;

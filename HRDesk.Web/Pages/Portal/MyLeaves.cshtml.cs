@@ -91,7 +91,6 @@ public class MyLeavesModel : PageModel
             TotalDays = days,
             Reason = Input.Reason.Trim(),
             Status = "Pending",
-            ApplicationNumber = null,
             CreatedAt = DateTime.Now,
             OrganizationId = orgId
         };

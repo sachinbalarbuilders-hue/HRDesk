@@ -55,7 +55,6 @@
                 @{
                     var groupedRequests = Model.RegularizationRequests
                         .GroupBy(r => new {
-                            r.ApplicationNumber,
                             r.EmployeeId,
                             CreatedAt = new DateTime(r.CreatedAt.Year, r.CreatedAt.Month, r.CreatedAt.Day, r.CreatedAt.Hour, r.CreatedAt.Minute, 0),
                             EmployeeName = r.Employee?.EmployeeName ?? "Unknown"
@@ -86,14 +85,7 @@
 
                         <tr>
                             <td class="ps-4">
-                                @if (!string.IsNullOrEmpty(group.Key.ApplicationNumber))
-                                {
-                                    <code class="text-primary">@group.Key.ApplicationNumber</code>
-                                }
-                                else
-                                {
-                                    <span class="text-muted small"><em>No #</em></span>
-                                }
+                                <code class="text-primary">#@first.Id</code>
                             </td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
@@ -220,7 +212,7 @@
 
 <!-- Modals for Grouped Requests -->
 @foreach (var group in Model.RegularizationRequests
-    .GroupBy(r => new { r.ApplicationNumber, r.EmployeeId, CreatedAt = new DateTime(r.CreatedAt.Year, r.CreatedAt.Month, r.CreatedAt.Day, r.CreatedAt.Hour, r.CreatedAt.Minute, 0) })
+    .GroupBy(r => new { r.EmployeeId, CreatedAt = new DateTime(r.CreatedAt.Year, r.CreatedAt.Month, r.CreatedAt.Day, r.CreatedAt.Hour, r.CreatedAt.Minute, 0) })
     .Where(g => g.Count() > 1))
 {
     var first = group.First();
@@ -238,7 +230,7 @@
                             <i class="bi bi-stack me-2 text-primary"></i>Batch Request Details
                         </h5>
                         <p class="text-muted small mb-0">
-                            App #: <strong>@(first.ApplicationNumber ?? "N/A")</strong> | 
+                            Batch #: <strong>#@first.Id</strong> | 
                             Employee: <strong>@first.Employee?.EmployeeName</strong>
                         </p>
                     </div>
