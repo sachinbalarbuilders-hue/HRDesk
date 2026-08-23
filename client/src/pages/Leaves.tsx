@@ -14,6 +14,7 @@ import {
   X,
   CalendarCheck2,
   Check,
+  Trash2,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
@@ -194,6 +195,17 @@ export const Leaves: React.FC = () => {
     }
   };
 
+  const handleDeleteLeave = async (id: number) => {
+    if (!window.confirm(`Are you sure you want to delete leave application #${id}?`)) return;
+    try {
+      await apiClient.delete(`/leaves/${id}`);
+      showSuccess('Deleted', 'Leave application has been deleted.');
+      fetchLeavesData();
+    } catch (err: any) {
+      showError('Delete Failed', err.response?.data?.message || 'Failed to delete leave');
+    }
+  };
+
   const canApprove = isAdmin || hasPermission('Leaves.Approve');
 
   return (
@@ -290,10 +302,13 @@ export const Leaves: React.FC = () => {
                           {app.reason || '-'}
                         </td>
                         <td className="text-right text-xs">
-                          {canApprove && isPending ? (
+                          {canApprove ? (
                             <RowActionMenu actions={[
-                              { label: 'Approve', icon: <Check size={14} />, onClick: () => handleStatusUpdate(app.id, 'Approved'), variant: 'success' },
-                              { label: 'Reject', icon: <X size={14} />, onClick: () => handleStatusUpdate(app.id, 'Rejected'), variant: 'danger' },
+                              ...(isPending ? [
+                                { label: 'Approve', icon: <Check size={14} />, onClick: () => handleStatusUpdate(app.id, 'Approved'), variant: 'success' as const },
+                                { label: 'Reject', icon: <X size={14} />, onClick: () => handleStatusUpdate(app.id, 'Rejected'), variant: 'danger' as const },
+                              ] : []),
+                              { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteLeave(app.id), variant: 'danger' as const },
                             ]} />
                           ) : (
                             <span className={`font-data text-xs font-bold ${isApproved ? 'text-[var(--ok-600)]' : isRejected ? 'text-[var(--err-600)]' : 'text-[var(--warn-600)]'}`}>

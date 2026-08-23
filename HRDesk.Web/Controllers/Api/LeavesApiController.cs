@@ -278,6 +278,42 @@ public class LeavesController : ControllerBase
         var emp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == targetEmpId.Value);
         if (emp == null) return NotFound(new { message = "Employee not found." });
 
+        // Overlapping leave validation
+        var overlappingLeaves = await _db.LeaveApplications
+            .Where(la => la.EmployeeId == targetEmpId.Value &&
+                         la.Status != "Rejected" &&
+                         la.Status != "Cancelled" &&
+                         dto.StartDate <= la.EndDate &&
+                         dto.EndDate >= la.StartDate)
+            .ToListAsync();
+
+        if (overlappingLeaves.Any())
+        {
+            // Allow only if both are on the same single day and one is First Half and other is Second Half
+            bool isAllowedHalfDayCombo = false;
+            if (dto.StartDate == dto.EndDate && overlappingLeaves.Count == 1)
+            {
+                var existing = overlappingLeaves.First();
+                if (existing.StartDate == existing.EndDate && existing.StartDate == dto.StartDate)
+                {
+                    if ((dto.DayType == "First Half" && existing.DayType == "Second Half") ||
+                        (dto.DayType == "Second Half" && existing.DayType == "First Half"))
+                    {
+                        isAllowedHalfDayCombo = true;
+                    }
+                }
+            }
+
+            if (!isAllowedHalfDayCombo)
+            {
+                var conflict = overlappingLeaves.First();
+                return BadRequest(new
+                {
+                    message = $"Leave overlap error: An active leave application already exists for {emp.EmployeeName} covering {conflict.StartDate:dd MMM yyyy} to {conflict.EndDate:dd MMM yyyy} ({conflict.DayType}, Status: {conflict.Status}). Cannot apply multiple leaves for the same date."
+                });
+            }
+        }
+
         var appNumber = await _sequenceService.GenerateApplicationNumberAsync(dto.StartDate);
 
         bool isHalf = dto.DayType == "First Half" || dto.DayType == "Second Half";
@@ -369,6 +405,40 @@ public class LeavesController : ControllerBase
         });
 
         return Ok(new { message = $"Leave application marked as {dto.Status}." });
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteLeave(int id)
+    {
+        var query = _db.LeaveApplications.Where(la => la.Id == id);
+        query = await _permissionService.ApplyLeaveScopeAsync(query, User, AppPermissions.Keys.LeavesApply);
+
+        var leave = await query.FirstOrDefaultAsync();
+        if (leave == null)
+        {
+            return NotFound(new { message = "Leave application not found or unauthorized." });
+        }
+
+        _db.LeaveApplications.Remove(leave);
+        await _db.SaveChangesAsync();
+
+        // Reprocess daily attendance if leave was approved or adjusted
+        if (leave.Status == "Approved" || leave.Status == "Adjusted")
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    for (var d = leave.StartDate; d <= leave.EndDate; d = d.AddDays(1))
+                    {
+                        await _processor.ProcessDailyAttendanceAsync(d, leave.EmployeeId);
+                    }
+                }
+                catch { }
+            });
+        }
+
+        return Ok(new { success = true, message = "Leave application deleted successfully." });
     }
 
     public record LeaveApplyRequestDto(int? EmployeeId, int LeaveTypeId, DateOnly StartDate, DateOnly EndDate, string? DayType, string? Reason);
