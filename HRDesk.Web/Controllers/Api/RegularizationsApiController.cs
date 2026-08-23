@@ -69,6 +69,7 @@ public class RegularizationsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetRegularizations(
         [FromQuery] string? status = null,
+        [FromQuery] string? archiveFilter = null,
         [FromQuery] string? search = null,
         [FromQuery] int? employeeId = null,
         [FromQuery] int? branchId = null,
@@ -107,9 +108,26 @@ public class RegularizationsController : ControllerBase
 
         query = query.Where(r => allowedEmpIds.Contains(r.EmployeeId));
 
-        if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
+        // Archive Filter scoping
+        var effArchive = !string.IsNullOrWhiteSpace(archiveFilter) ? archiveFilter.Trim().ToLower() : "active";
+        if (status?.ToLower() == "archived" || effArchive == "archived")
         {
-            query = query.Where(r => r.Status == status);
+            query = query.Where(r => r.Status == "Archived" || r.Status == "Cancelled");
+        }
+        else if (effArchive == "active")
+        {
+            query = query.Where(r => r.Status != "Archived" && r.Status != "Cancelled");
+            if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase) && !status.Equals("active", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(r => r.Status == status);
+            }
+        }
+        else if (effArchive == "all")
+        {
+            if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(r => r.Status == status);
+            }
         }
 
         if (employeeId.HasValue && employeeId.Value > 0)
@@ -153,6 +171,11 @@ public class RegularizationsController : ControllerBase
             .Where(r => allowedEmpIds.Contains(r.EmployeeId) && r.Status == "Rejected")
             .CountAsync();
 
+        var archivedCount = await _db.AttendanceRegularizations
+            .AsNoTracking()
+            .Where(r => allowedEmpIds.Contains(r.EmployeeId) && (r.Status == "Archived" || r.Status == "Cancelled"))
+            .CountAsync();
+
         var items = await query
             .OrderByDescending(r => r.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -188,6 +211,7 @@ public class RegularizationsController : ControllerBase
                 pending = pendingCount,
                 approved = approvedCount,
                 rejected = rejectedCount,
+                archived = archivedCount,
                 total = totalCount
             }
         });
@@ -452,7 +476,83 @@ public class RegularizationsController : ControllerBase
     }
 
     // ==========================================
-    // 8. COMP-OFF REQUESTS & APPROVALS
+    // 8. DELETE REGULARIZATION (Archive vs Hard Delete)
+    // ==========================================
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteRegularization(int id, [FromQuery] bool permanent = false)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize))
+        {
+            return Forbid();
+        }
+
+        var reg = await _db.AttendanceRegularizations.FindAsync(id);
+        if (reg == null)
+        {
+            return NotFound(new { message = "Regularization record not found." });
+        }
+
+        var wasApproved = reg.Status == "Approved";
+        var date = reg.RequestDate;
+        var empId = reg.EmployeeId;
+
+        if (permanent || reg.Status == "Archived" || reg.Status == "Cancelled")
+        {
+            _db.AttendanceRegularizations.Remove(reg);
+            await _db.SaveChangesAsync();
+
+            if (wasApproved)
+            {
+                await _processor.ProcessDailyAttendanceAsync(date, empId);
+            }
+
+            return Ok(new { success = true, permanent = true, message = "Regularization request permanently deleted." });
+        }
+        else
+        {
+            // Soft delete / Move to Archive
+            reg.Status = "Archived";
+            await _db.SaveChangesAsync();
+
+            if (wasApproved)
+            {
+                await _processor.ProcessDailyAttendanceAsync(date, empId);
+            }
+
+            return Ok(new { success = true, permanent = false, message = "Regularization request moved to archive." });
+        }
+    }
+
+    // ==========================================
+    // 9. RESTORE REGULARIZATION
+    // ==========================================
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreRegularization(int id)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize))
+        {
+            return Forbid();
+        }
+
+        var reg = await _db.AttendanceRegularizations.FindAsync(id);
+        if (reg == null)
+        {
+            return NotFound(new { message = "Regularization record not found." });
+        }
+
+        if (reg.Status != "Archived" && reg.Status != "Cancelled")
+        {
+            return BadRequest(new { message = "Only archived or cancelled requests can be restored." });
+        }
+
+        reg.Status = "Pending";
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Regularization request restored to Pending status." });
+    }
+
+    // ==========================================
+    // 10. COMP-OFF REQUESTS & APPROVALS
     // ==========================================
     [HttpGet("compoff")]
     public async Task<IActionResult> GetCompOffRequests(

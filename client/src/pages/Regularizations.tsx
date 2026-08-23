@@ -22,6 +22,9 @@ import {
   CalendarCheck,
   Building2,
   Info,
+  Trash2,
+  Archive,
+  RotateCcw,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 
@@ -36,7 +39,7 @@ interface RegularizationItem {
   punchTimeOut: string | null;
   waivePenalty: boolean;
   reason: string | null;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Archived' | 'Cancelled';
   approvedBy: string | null;
   approveDate: string | null;
   createdAt: string;
@@ -56,7 +59,7 @@ export const Regularizations: React.FC = () => {
   const [pageSize, setPageSize] = useState(25);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [metrics, setMetrics] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
+  const [metrics, setMetrics] = useState({ pending: 0, approved: 0, rejected: 0, archived: 0, total: 0 });
 
   // Selected row IDs for batch actions
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -100,7 +103,8 @@ export const Regularizations: React.FC = () => {
       setLoading(true);
       const res = await apiClient.get('/regularizations', {
         params: {
-          status: statusFilter !== 'all' ? statusFilter : (archiveFilter === 'active' ? 'Pending' : archiveFilter === 'archived' ? 'closed' : undefined),
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          archiveFilter: archiveFilter,
           search: search || undefined,
           branchId: currentBranch?.id || undefined,
           page,
@@ -272,12 +276,44 @@ export const Regularizations: React.FC = () => {
     }
   };
 
+  const handleDeleteRegularization = async (id: number, isPermanent: boolean) => {
+    if (isPermanent) {
+      if (!window.confirm(`Permanently delete regularization request #${id}? This action cannot be undone.`)) return;
+      try {
+        await apiClient.delete(`/regularizations/${id}?permanent=true`);
+        showSuccess('Permanently Deleted', 'Regularization request has been permanently removed.');
+        fetchData();
+      } catch (err: any) {
+        showError('Delete Failed', err.response?.data?.message || 'Failed to delete regularization');
+      }
+    } else {
+      if (!window.confirm(`Archive regularization request #${id}? It will be moved to the Archived tab.`)) return;
+      try {
+        await apiClient.delete(`/regularizations/${id}`);
+        showSuccess('Archived', 'Regularization request has been moved to Archive.');
+        fetchData();
+      } catch (err: any) {
+        showError('Archive Failed', err.response?.data?.message || 'Failed to archive regularization');
+      }
+    }
+  };
+
+  const handleRestoreRegularization = async (id: number) => {
+    try {
+      await apiClient.post(`/regularizations/${id}/restore`);
+      showSuccess('Restored', 'Regularization request restored to Pending.');
+      fetchData();
+    } catch (err: any) {
+      showError('Restore Failed', err.response?.data?.message || 'Failed to restore regularization');
+    }
+  };
+
   const handleExport = () => {
     if (!items.length) return showError('Empty', 'No records to export.');
     exportToCSV(
       'Attendance_Regularizations',
-      items.map(r => ({
-        'App No': r.applicationNumber,
+      items.map((r, idx) => ({
+        'Sr.': idx + 1,
         'Employee Name': r.employeeName,
         Department: r.departmentName,
         'Request Date': r.requestDate,
@@ -412,13 +448,14 @@ export const Regularizations: React.FC = () => {
               <tbody className="divide-y divide-[var(--rule)]">
                 {items.map((r, idx) => {
                   const isSelected = selectedIds.includes(r.id);
+                  const isArchived = r.status === 'Archived' || r.status === 'Cancelled';
                   const srNo = (page - 1) * pageSize + idx + 1;
                   return (
                     <tr
                       key={r.id}
                       className={`hover:bg-[var(--paper-subtle)] transition-colors ${
-                        isSelected ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''
-                      }`}
+                        isArchived ? 'opacity-70 bg-[var(--paper-subtle)]/40' : ''
+                      } ${isSelected ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}
                     >
                       {canManage && (
                         <td className="p-3.5 text-center">
@@ -511,13 +548,27 @@ export const Regularizations: React.FC = () => {
                             Rejected
                           </span>
                         )}
+                        {isArchived && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            <Archive className="w-3 h-3 text-slate-500" />
+                            Archived
+                          </span>
+                        )}
                       </td>
 
                       <td className="p-3.5 text-right">
-                        {r.status === 'Pending' && canManage ? (
+                        {canManage ? (
                           <RowActionMenu actions={[
-                            { label: 'Approve', icon: <Check className="w-4 h-4" />, onClick: () => handleApprove(r.id), variant: 'success' },
-                            { label: 'Reject', icon: <X className="w-4 h-4" />, onClick: () => handleOpenReject(r.id), variant: 'danger' },
+                            ...(isArchived ? [
+                              { label: 'Restore Request', icon: <RotateCcw size={14} />, onClick: () => handleRestoreRegularization(r.id), variant: 'default' as const },
+                              { label: 'Permanently Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteRegularization(r.id, true), variant: 'danger' as const },
+                            ] : [
+                              ...(r.status === 'Pending' ? [
+                                { label: 'Approve', icon: <Check className="w-4 h-4" />, onClick: () => handleApprove(r.id), variant: 'success' as const },
+                                { label: 'Reject', icon: <X className="w-4 h-4" />, onClick: () => handleOpenReject(r.id), variant: 'danger' as const },
+                              ] : []),
+                              { label: 'Archive Request', icon: <Archive size={14} />, onClick: () => handleDeleteRegularization(r.id, false), variant: 'danger' as const },
+                            ])
                           ]} />
                         ) : (
                           <div className="text-[10px] text-[var(--ink-muted)] font-mono">
