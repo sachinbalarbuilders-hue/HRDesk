@@ -339,19 +339,19 @@ export const AuditLogsTab: React.FC = () => {
       {/* Diff Inspector Modal */}
       {inspectLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-lg)] shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-lg)] shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
             <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--surface-sunken)]">
-              <div className="flex items-center gap-2">
-                <History size={18} className="text-[var(--gold-500)]" />
-                <h4 className="font-display font-bold text-base text-[var(--ink)]">
+              <div className="flex items-center gap-2 min-w-0">
+                <History size={18} className="text-[var(--gold-500)] shrink-0" />
+                <h4 className="font-display font-bold text-base text-[var(--ink)] truncate">
                   Audit Diff: {inspectLog.entityName} #{inspectLog.primaryKey || inspectLog.id}
                 </h4>
                 {renderActionBadge(inspectLog.action)}
               </div>
               <button
                 onClick={() => setInspectLog(null)}
-                className="p-1.5 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] cursor-pointer"
+                className="p-1.5 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] cursor-pointer shrink-0"
               >
                 <X size={16} />
               </button>
@@ -360,22 +360,30 @@ export const AuditLogsTab: React.FC = () => {
             {/* Modal Body / Diffs */}
             <div className="p-5 overflow-y-auto space-y-4 text-xs">
               {/* Event Metadata */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[var(--paper)] p-3 rounded border border-[var(--rule)]">
-                <div>
-                  <span className="text-[10px] text-[var(--ink-muted)] uppercase font-semibold block">Actor</span>
-                  <strong className="text-[var(--ink)]">{inspectLog.userName || 'System'}</strong>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-[var(--paper)] p-3.5 rounded border border-[var(--rule)]">
+                <div className="min-w-0">
+                  <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-semibold block mb-0.5">Actor</span>
+                  <strong className="text-[var(--ink)] block truncate font-medium text-xs" title={inspectLog.userName || 'System'}>
+                    {inspectLog.userName || 'System'}
+                  </strong>
                 </div>
-                <div>
-                  <span className="text-[10px] text-[var(--ink-muted)] uppercase font-semibold block">Timestamp</span>
-                  <span className="text-[var(--ink)]">{new Date(inspectLog.timestamp).toLocaleString()}</span>
+                <div className="min-w-0">
+                  <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-semibold block mb-0.5">Timestamp</span>
+                  <span className="text-[var(--ink)] block truncate font-mono text-[11px]" title={new Date(inspectLog.timestamp).toLocaleString()}>
+                    {new Date(inspectLog.timestamp).toLocaleString()}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-[10px] text-[var(--ink-muted)] uppercase font-semibold block">IP Address</span>
-                  <span className="text-[var(--ink)] font-mono">{inspectLog.ipAddress || 'Local'}</span>
+                <div className="min-w-0">
+                  <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-semibold block mb-0.5">IP Address</span>
+                  <span className="text-[var(--ink)] font-mono text-[11px] block truncate">
+                    {inspectLog.ipAddress || 'Local'}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-[10px] text-[var(--ink-muted)] uppercase font-semibold block">Audit ID</span>
-                  <span className="text-[var(--ink)] font-mono">#{inspectLog.id}</span>
+                <div className="min-w-0">
+                  <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-semibold block mb-0.5">Audit ID</span>
+                  <span className="text-[var(--ink)] font-mono text-[11px] font-bold block">
+                    #{inspectLog.id}
+                  </span>
                 </div>
               </div>
 
