@@ -415,13 +415,13 @@ export const Employees: React.FC = () => {
                       </span>
                     </td>
                     <td className="text-xs text-[var(--ink)]">
-                      {emp.department || 'General'}
+                      {emp.department || '-'}
                     </td>
                     <td className="text-xs text-[var(--ink-muted)]">
-                      {emp.designation || 'Staff'}
+                      {emp.designation || '-'}
                     </td>
                     <td className="text-xs text-[var(--ink-muted)]">
-                      {emp.reportingManager || 'None'}
+                      {emp.reportingManager || '-'}
                     </td>
                     <td className="text-center font-data text-xs text-[var(--ink-muted)]">
                       {formatDate(emp.joiningDate)}

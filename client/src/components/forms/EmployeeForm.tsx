@@ -106,7 +106,15 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             </p>
           </div>
           <span className="font-mono text-xs font-bold text-[var(--gold-600)] px-2.5 py-1 rounded-[3px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
-            {branches?.find((b: any) => String(b.id) === String(formData.branchId || currentBranch?.id))?.code || 'EMP#'}{formData.employeeId ? formData.employeeId : '00X (Auto)'}
+            {(() => {
+              const branch = branches?.find((b: any) => String(b.id) === String(formData.branchId || currentBranch?.id));
+              const rawPrefix = branch?.code || 'EMP#';
+              const prefix = (rawPrefix.endsWith('#') || rawPrefix.endsWith('-') || rawPrefix.endsWith('_') || rawPrefix.endsWith('/'))
+                ? rawPrefix
+                : `${rawPrefix}#`;
+              const num = formData.employeeId ? String(formData.employeeId).padStart(3, '0') : '00X (Auto)';
+              return `${prefix}${num}`;
+            })()}
           </span>
         </div>
 

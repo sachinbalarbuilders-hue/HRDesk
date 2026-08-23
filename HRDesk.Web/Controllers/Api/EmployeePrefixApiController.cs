@@ -53,7 +53,11 @@ public class EmployeePrefixController : ControllerBase
         int startSeq = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_StartSeq")?.SettingValue
             ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_StartSeq")?.SettingValue, out var sSeq) ? sSeq : 1;
 
-        var maxId = await _db.Employees.Where(e => e.OrganizationId == targetOrgId).Select(e => (int?)e.EmployeeId).MaxAsync() ?? 0;
+        var maxId = await _db.Employees
+            .Where(e => e.OrganizationId == targetOrgId && (targetBranch == null || e.BranchId == targetBranch) && e.EmployeeId < 10000)
+            .Select(e => (int?)e.EmployeeId)
+            .MaxAsync() ?? 0;
+
         var nextSeq = Math.Max(maxId + 1, startSeq);
 
         var preview = $"{series}{connector}{nextSeq.ToString($"D{padding}")}";

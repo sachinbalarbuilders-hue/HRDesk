@@ -222,7 +222,9 @@ END;";
             employee.PublicId,
             employee.VerificationId,
             employee.EmployeeName,
-            employeeCode = $"EMP#{employee.EmployeeId:D3}",
+            employeeCode = employee.Branch != null && !string.IsNullOrWhiteSpace(employee.Branch.Code)
+                ? (employee.Branch.Code.EndsWith('#') || employee.Branch.Code.EndsWith('-') || employee.Branch.Code.EndsWith('_') || employee.Branch.Code.EndsWith('/') ? $"{employee.Branch.Code}{employee.EmployeeId:D3}" : $"{employee.Branch.Code}#{employee.EmployeeId:D3}")
+                : $"EMP#{employee.EmployeeId:D3}",
             employee.Phone,
             employee.DateOfBirth,
             employee.JoiningDate,
@@ -332,11 +334,25 @@ END;";
         }
         else
         {
+            var startSeqStr = await _db.SystemSettings
+                .Where(s => s.OrganizationId == targetOrgId && (s.BranchId == targetBranchId || s.BranchId == null) && s.SettingKey == "Employee_Prefix_StartSeq")
+                .Select(s => s.SettingValue)
+                .FirstOrDefaultAsync();
+
+            int startSeq = int.TryParse(startSeqStr, out var s) ? s : 1;
+
             var maxId = await _db.Employees.IgnoreQueryFilters()
-                .Where(e => e.OrganizationId == targetOrgId)
+                .Where(e => e.OrganizationId == targetOrgId && (targetBranchId == null || e.BranchId == targetBranchId) && e.EmployeeId < 10000)
                 .Select(e => (int?)e.EmployeeId)
                 .MaxAsync() ?? 0;
-            targetEmpId = maxId + 1;
+
+            targetEmpId = Math.Max(maxId + 1, startSeq);
+
+            // Safety net: ensure targetEmpId is globally unique within the tenant
+            while (await _db.Employees.IgnoreQueryFilters().AnyAsync(e => e.OrganizationId == targetOrgId && e.EmployeeId == targetEmpId))
+            {
+                targetEmpId++;
+            }
         }
 
         var employee = new Employee

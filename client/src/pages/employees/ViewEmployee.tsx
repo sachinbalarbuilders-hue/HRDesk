@@ -213,7 +213,7 @@ export const ViewEmployee: React.FC = () => {
                   <p className={`text-sm font-semibold truncate ${isSelected ? 'text-[var(--gold-600)]' : 'text-[var(--ink)]'}`}>
                     {emp.employeeName}
                   </p>
-                  <p className="text-[10px] text-[var(--ink-muted)] truncate">{emp.designation || 'Staff'} • #{emp.employeeId}</p>
+                  <p className="text-[10px] text-[var(--ink-muted)] truncate">{emp.designation ? `${emp.designation} • ` : ''}{emp.employeeCode || `EMP#${String(emp.employeeId).padStart(3, '0')}`}</p>
                 </div>
               </Link>
             );
@@ -294,14 +294,14 @@ export const ViewEmployee: React.FC = () => {
               )}
             </div>
             <div>
-              <span className="text-[10px] uppercase font-semibold text-[var(--gold-500)] font-data">
-                ID: #{employee.employeeId}
+              <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] bg-[var(--paper)] border border-[var(--rule)] font-mono text-[11px] font-bold text-[var(--gold-600)] shadow-2xs mb-1">
+                {employee.employeeCode || `EMP#${String(employee.employeeId).padStart(3, '0')}`}
               </span>
               <h2 className="font-display text-2xl font-semibold text-[var(--ink)] mt-0.5">
                 {employee.employeeName}
               </h2>
               <p className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wide font-semibold mt-1 flex items-center justify-center sm:justify-start gap-1.5 opacity-80 font-ui">
-                {employee.designation || 'Staff'} &nbsp;|&nbsp; Joined: {formatDate(employee.joiningDate)}
+                {employee.designation ? `${employee.designation} | ` : ''}Joined: {formatDate(employee.joiningDate)}
               </p>
             </div>
           </div>

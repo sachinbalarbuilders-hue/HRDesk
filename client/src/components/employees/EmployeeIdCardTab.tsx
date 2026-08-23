@@ -51,7 +51,7 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
           <div className="w-full space-y-3 text-xs mb-6 mt-4">
             <div>
               <p className="text-gray-400 font-bold uppercase text-[9px] tracking-widest mb-0.5">ID NUMBER</p>
-              <p className="font-bold text-gray-900 font-mono text-sm tracking-widest">{employee.employeeCode || `EMP-${employee.employeeId}`}</p>
+              <p className="font-bold text-gray-900 font-mono text-sm tracking-widest">{employee.employeeCode || `EMP#${String(employee.employeeId).padStart(3, '0')}`}</p>
             </div>
             <div className="w-full h-12 overflow-hidden opacity-60 flex items-center justify-start">
                <Barcode size={64} strokeWidth={1} className="text-gray-900 -ml-4" />
@@ -138,7 +138,7 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-[9px] text-gray-400 uppercase font-bold tracking-widest mb-0.5">ID Number</p>
-              <p className="font-mono text-sm font-bold text-gray-800 bg-gray-100 inline-block px-1.5 py-0.5 rounded">{employee.employeeCode || `EMP-${employee.employeeId}`}</p>
+              <p className="font-mono text-sm font-bold text-gray-800 bg-gray-100 inline-block px-1.5 py-0.5 rounded">{employee.employeeCode || `EMP#${String(employee.employeeId).padStart(3, '0')}`}</p>
             </div>
             <div>
               <p className="text-[9px] text-gray-400 uppercase font-bold tracking-widest mb-0.5">Department</p>
@@ -212,7 +212,7 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
 
           <div className="w-full bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm text-center">
              <span className="text-gray-400 uppercase text-[10px] tracking-widest block mb-1">ID NUMBER</span>
-             <span className="font-mono text-[var(--gold-500)] text-lg tracking-wider">{employee.employeeCode || `EMP-${employee.employeeId}`}</span>
+             <span className="font-mono text-[var(--gold-500)] text-lg tracking-wider">{employee.employeeCode || `EMP#${String(employee.employeeId).padStart(3, '0')}`}</span>
           </div>
         </div>
       </div>
