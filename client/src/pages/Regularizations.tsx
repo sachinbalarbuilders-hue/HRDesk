@@ -436,7 +436,7 @@ export const Regularizations: React.FC = () => {
                       )}
 
                       <td className="p-3.5 font-mono font-semibold text-[var(--accent)]">
-                        {r.applicationNumber || `#REG-${r.id}`}
+                        #{r.applicationNumber || r.id}
                       </td>
 
                       <td className="p-3.5">

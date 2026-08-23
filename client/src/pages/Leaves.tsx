@@ -283,6 +283,7 @@ export const Leaves: React.FC = () => {
                 <thead>
                   <tr>
                     <th className="w-1"></th>
+                    <th className="font-mono text-xs w-14">#</th>
                     <th>Employee</th>
                     <th>Type</th>
                     <th className="font-data">Period</th>
@@ -294,7 +295,7 @@ export const Leaves: React.FC = () => {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="p-0">
+                      <td colSpan={8} className="p-0">
                         <TableSkeleton rows={6} />
                       </td>
                     </tr>
@@ -316,6 +317,10 @@ export const Leaves: React.FC = () => {
                       <tr key={app.id} className={`relative ${isArchived ? 'opacity-70 bg-[var(--surface-sunken)]/20' : ''}`}>
                         {/* 4px Left-Edge Status Bar */}
                         <td className={`p-0 w-1 ${barColor}`} />
+
+                        <td className="font-mono text-xs font-semibold text-[var(--accent)]">
+                          #{app.applicationNumber || app.id}
+                        </td>
 
                         <td className="font-semibold text-[var(--ink)]">
                           {app.employeeName}
@@ -358,7 +363,7 @@ export const Leaves: React.FC = () => {
 
                   {applications.length === 0 && !loading && (
                     <tr>
-                      <td colSpan={7} className="py-10 text-center text-xs font-data text-[var(--ink-muted)]">
+                      <td colSpan={8} className="py-10 text-center text-xs font-data text-[var(--ink-muted)]">
                         No leave requests found.
                       </td>
                     </tr>

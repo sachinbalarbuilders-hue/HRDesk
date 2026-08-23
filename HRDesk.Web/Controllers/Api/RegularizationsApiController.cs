@@ -294,6 +294,12 @@ public class RegularizationsController : ControllerBase
 
         await _db.SaveChangesAsync();
 
+        foreach (var reg in createdList)
+        {
+            reg.ApplicationNumber = reg.Id.ToString();
+        }
+        await _db.SaveChangesAsync();
+
         return Ok(new
         {
             message = $"Created {createdList.Count} regularization request(s) successfully.",

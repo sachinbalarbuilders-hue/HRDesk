@@ -348,9 +348,12 @@ public class LeavesController : ControllerBase
         };
 
         _db.LeaveApplications.Add(leaveApp);
+        await _db.SaveChangesAsync();
 
-        // Notify Admins & HR Managers
-        _db.InAppNotifications.Add(new InAppNotification
+        leaveApp.ApplicationNumber = leaveApp.Id.ToString();
+
+        // Trigger notification for Admins/HR
+        await _db.InAppNotifications.AddAsync(new InAppNotification
         {
             OrganizationId = emp.OrganizationId,
             RoleScope = "Admin",
@@ -365,7 +368,7 @@ public class LeavesController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        return Ok(new { message = "Leave application submitted successfully.", id = leaveApp.Id });
+        return Ok(new { message = "Leave application submitted successfully.", id = leaveApp.Id, applicationNumber = leaveApp.ApplicationNumber });
     }
 
     [HttpPut("{id}/status")]
