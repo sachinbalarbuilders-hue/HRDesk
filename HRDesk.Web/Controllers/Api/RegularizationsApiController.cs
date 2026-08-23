@@ -218,8 +218,6 @@ public class RegularizationsController : ControllerBase
             .Include(r => r.Shift)
             .FirstOrDefaultAsync(r => r.EmployeeId == employeeId && r.RosterDate == parsedDate);
 
-        var nextAppNo = await _sequenceService.PeekNextApplicationNumberAsync(parsedDate);
-
         return Ok(new
         {
             date = parsedDate,
@@ -233,7 +231,7 @@ public class RegularizationsController : ControllerBase
                 startTime = roster.Shift.StartTime.ToString("HH:mm"),
                 endTime = roster.Shift.EndTime.ToString("HH:mm")
             } : null,
-            nextApplicationNumber = nextAppNo
+            nextApplicationNumber = (string?)null
         });
     }
 
@@ -254,7 +252,6 @@ public class RegularizationsController : ControllerBase
             return NotFound(new { message = "Employee not found." });
         }
 
-        var appNo = await _sequenceService.GenerateApplicationNumberAsync(request.Items[0].RequestDate);
         var createdList = new List<AttendanceRegularization>();
         var now = DateTime.Now;
 
@@ -288,7 +285,7 @@ public class RegularizationsController : ControllerBase
                 RequestDate = item.RequestDate,
                 Reason = item.Reason ?? request.Reason,
                 Status = "Pending",
-                ApplicationNumber = appNo,
+                ApplicationNumber = null,
                 PunchTimeIn = inTime,
                 PunchTimeOut = outTime,
                 CreatedAt = now
@@ -303,7 +300,6 @@ public class RegularizationsController : ControllerBase
         return Ok(new
         {
             message = $"Created {createdList.Count} regularization request(s) successfully.",
-            applicationNumber = appNo,
             count = createdList.Count
         });
     }

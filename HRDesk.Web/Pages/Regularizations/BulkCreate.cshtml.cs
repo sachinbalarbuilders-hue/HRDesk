@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -152,12 +152,7 @@ namespace HRDesk.Web.Pages.Regularizations
             var now = DateTime.Now;
             int totalCreated = 0;
 
-            // Generate ONE application number for the entire bulk request
             string appNo = Input.ApplicationNumber ?? "";
-            if (Input.AutoGenerate)
-            {
-                appNo = await _sequenceService.GenerateApplicationNumberAsync(Input.StartDate);
-            }
 
             // Pre-load existing attendance to avoid N+1 queries and check for exempt days
             var existingRecords = await _context.DailyAttendance

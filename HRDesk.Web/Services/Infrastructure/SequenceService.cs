@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -20,7 +20,7 @@ public class SequenceService : ISequenceService
         int month = requestDate.Month;
 
         // Scan actual tables for the highest used number this month
-        int maxActual = await GetMaxAppNumberAsync(year, month);
+        int maxActual = await GetMaxSequenceNumberAsync(year, month);
 
         // The next number is strictly maxActual + 1 (recycling deleted numbers)
         int nextValue = maxActual + 1;
@@ -59,22 +59,17 @@ public class SequenceService : ISequenceService
         int month = requestDate.Month;
 
         // Strictly rely on actual live records to allow recycling
-        int maxActual = await GetMaxAppNumberAsync(year, month);
+        int maxActual = await GetMaxSequenceNumberAsync(year, month);
 
         string monthName = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month).ToUpper();
         return $"{monthName} {maxActual + 1}";
     }
 
-    /// <summary>Scans all 3 tables separately to find the highest app number (avoids SQL UNION collation issues).</summary>
-    private async Task<int> GetMaxAppNumberAsync(int year, int month)
+    /// <summary>Scans all tables separately to find the highest app number (avoids SQL UNION collation issues).</summary>
+    public async Task<int> GetMaxSequenceNumberAsync(int year, int month)
     {
         var startDate = new DateOnly(year, month, 1);
         var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
-
-        var regAppNos = await _db.AttendanceRegularizations
-            .Where(r => r.RequestDate >= startDate && r.RequestDate <= endDate && r.ApplicationNumber != null)
-            .Select(r => r.ApplicationNumber)
-            .ToListAsync();
 
         var leaveAppNos = await _db.LeaveApplications
             .Where(l => l.StartDate >= startDate && l.StartDate <= endDate && l.ApplicationNumber != null)
@@ -89,7 +84,7 @@ public class SequenceService : ISequenceService
         string monthPrefix = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month).ToUpper();
 
         int maxVal = 0;
-        foreach (var appNo in regAppNos.Concat(leaveAppNos).Concat(attendanceAppNos))
+        foreach (var appNo in leaveAppNos.Concat(attendanceAppNos))
         {
             if (string.IsNullOrWhiteSpace(appNo)) continue;
             var parts = appNo.Split(' ');
@@ -101,14 +96,9 @@ public class SequenceService : ISequenceService
 
     public async Task ResyncSequenceAsync(int year, int month)
     {
-        // 1. Get all application numbers for this month/year from all 3 sources
+        // 1. Get all application numbers for this month/year from leave sources
         var startDate = new DateOnly(year, month, 1);
         var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
-
-        var regAppNos = await _db.AttendanceRegularizations
-            .Where(r => r.RequestDate >= startDate && r.RequestDate <= endDate && r.ApplicationNumber != null)
-            .Select(r => r.ApplicationNumber)
-            .ToListAsync();
 
         var leaveAppNos = await _db.LeaveApplications
             .Where(l => l.StartDate >= startDate && l.StartDate <= endDate && l.ApplicationNumber != null)
@@ -120,7 +110,7 @@ public class SequenceService : ISequenceService
             .Select(d => d.ApplicationNumber)
             .ToListAsync();
 
-        var allAppNos = regAppNos.Concat(leaveAppNos).Concat(attendanceAppNos).Distinct().ToList();
+        var allAppNos = leaveAppNos.Concat(attendanceAppNos).Distinct().ToList();
 
         string monthPrefix = CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month).ToUpper();
 
@@ -130,7 +120,7 @@ public class SequenceService : ISequenceService
         {
             if (string.IsNullOrWhiteSpace(appNo)) continue;
             
-            // Format is "MMM N", e.g. "FEB 50"
+            // Format is "MMM N", e.g. "AUG 50"
             var parts = appNo.Split(' ');
             if (parts.Length == 2 && parts[0] == monthPrefix && int.TryParse(parts[1], out int val))
             {
