@@ -26,6 +26,7 @@ export const Leaves: React.FC = () => {
   const [applications, setApplications] = useState<any[]>([]);
   const [balances, setBalances] = useState<any[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -40,6 +41,7 @@ export const Leaves: React.FC = () => {
   const [applyPanelOpen, setApplyPanelOpen] = useState(false);
   const [applying, setApplying] = useState(false);
   const [applyForm, setApplyForm] = useState({
+    employeeId: user?.employeeId ? String(user.employeeId) : '',
     leaveTypeId: '',
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
@@ -50,7 +52,7 @@ export const Leaves: React.FC = () => {
   const fetchLeavesData = async () => {
     try {
       setLoading(true);
-      const [appsRes, typesRes] = await Promise.all([
+      const [appsRes, typesRes, empRes] = await Promise.all([
         apiClient.get('/leaves/applications', {
           params: {
             status: statusFilter !== 'all' ? statusFilter : (archiveFilter === 'active' ? 'Pending' : archiveFilter === 'archived' ? 'closed' : undefined),
@@ -65,21 +67,39 @@ export const Leaves: React.FC = () => {
             branchId: currentBranch?.id || undefined,
           },
         }),
+        apiClient.get('/employees', {
+          params: {
+            pageSize: 300,
+            branchId: currentBranch?.id || undefined,
+          },
+        }),
       ]);
 
       setApplications(appsRes.data.items || []);
       setTotalCount(appsRes.data.totalCount || 0);
       setTotalPages(appsRes.data.totalPages || 1);
       setLeaveTypes(typesRes.data || []);
+      setEmployees(empRes.data.items || empRes.data || []);
 
-      if (user?.employeeId) {
-        const balRes = await apiClient.get(`/leaves/balances/${user.employeeId}`);
+      const activeEmpId = applyForm.employeeId || (user?.employeeId ? String(user.employeeId) : '');
+      if (activeEmpId) {
+        const balRes = await apiClient.get(`/leaves/balances/${activeEmpId}`);
         setBalances(balRes.data.balances || []);
       }
     } catch (err: any) {
       showError('Failed to load leaves', err.response?.data?.message || 'Network error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEmployeeChange = async (empIdStr: string) => {
+    setApplyForm((prev) => ({ ...prev, employeeId: empIdStr }));
+    if (empIdStr) {
+      try {
+        const balRes = await apiClient.get(`/leaves/balances/${empIdStr}`);
+        setBalances(balRes.data.balances || []);
+      } catch {}
     }
   };
 
@@ -129,9 +149,16 @@ export const Leaves: React.FC = () => {
     e.preventDefault();
     if (!applyForm.leaveTypeId) return;
 
+    const targetEmpId = applyForm.employeeId ? parseInt(applyForm.employeeId) : (user?.employeeId || null);
+    if (!targetEmpId) {
+      showError('Employee Required', 'Please select an employee to apply leave for.');
+      return;
+    }
+
     try {
       setApplying(true);
       await apiClient.post('/leaves/apply', {
+        employeeId: targetEmpId,
         leaveTypeId: parseInt(applyForm.leaveTypeId),
         startDate: applyForm.startDate,
         endDate: applyForm.endDate,
@@ -142,6 +169,7 @@ export const Leaves: React.FC = () => {
       showSuccess('Application Submitted', 'Your leave request has been submitted.');
       setApplyPanelOpen(false);
       setApplyForm({
+        employeeId: user?.employeeId ? String(user.employeeId) : '',
         leaveTypeId: '',
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0],
@@ -324,6 +352,26 @@ export const Leaves: React.FC = () => {
             </div>
 
             <form onSubmit={handleApplyLeave} className="space-y-4">
+              {/* Employee Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                  Employee *
+                </label>
+                <select
+                  required
+                  value={applyForm.employeeId}
+                  onChange={(e) => handleEmployeeChange(e.target.value)}
+                  className="register-input w-full font-ui"
+                >
+                  <option value="">-- Select Employee --</option>
+                  {employees.map((emp: any) => (
+                    <option key={emp.employeeId || emp.id} value={emp.employeeId || emp.id}>
+                      {emp.employeeCode ? `${emp.employeeCode} — ` : ''}{emp.employeeName || emp.name} {emp.departmentName ? `(${emp.departmentName})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
                   Leave Type *
