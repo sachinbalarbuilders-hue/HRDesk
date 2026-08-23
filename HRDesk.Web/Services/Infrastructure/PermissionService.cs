@@ -95,6 +95,7 @@ public sealed class PermissionService : IPermissionService
             .AsNoTracking()
             .Include(e => e.Department)
             .Include(e => e.Designation)
+            .Include(e => e.Branch)
             .FirstOrDefaultAsync(e => e.EmployeeId == empId.Value);
     }
 
@@ -109,37 +110,40 @@ public sealed class PermissionService : IPermissionService
         var scope = await GetPermissionScopeAsync(user, permissionKey);
         if (string.IsNullOrEmpty(scope))
         {
-            // Fallback: If user has role "Employee", default to Own scope
             if (user.IsInRole("Employee")) scope = AppPermissions.Scopes.Own;
             else if (user.IsInRole("Manager")) scope = AppPermissions.Scopes.Reporting;
-            else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.All;
-            else return query.Where(_ => false); // Denied
+            else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.OwnBranch;
+            else return query.Where(_ => false);
         }
-
-        if (scope == AppPermissions.Scopes.All)
-            return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
         if (!currentEmpId.HasValue)
             return query.Where(_ => false);
+
+        var currentEmp = await GetCurrentEmployeeAsync(user);
 
         if (scope == AppPermissions.Scopes.Own)
         {
             return query.Where(e => e.EmployeeId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Reporting)
+        if (scope == AppPermissions.Scopes.Reporting || scope == "Reporting")
         {
             return query.Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value);
         }
 
         if (scope == AppPermissions.Scopes.Department)
         {
-            var currentEmp = await GetCurrentEmployeeAsync(user);
             if (currentEmp?.DepartmentId == null)
                 return query.Where(e => e.EmployeeId == currentEmpId.Value);
 
             return query.Where(e => e.EmployeeId == currentEmpId.Value || e.DepartmentId == currentEmp.DepartmentId);
+        }
+
+        if (scope == AppPermissions.Scopes.OwnBranch)
+        {
+            if (currentEmp?.BranchId != null)
+                return query.Where(e => e.BranchId == currentEmp.BranchId);
         }
 
         return query;
@@ -158,23 +162,22 @@ public sealed class PermissionService : IPermissionService
         {
             if (user.IsInRole("Employee")) scope = AppPermissions.Scopes.Own;
             else if (user.IsInRole("Manager")) scope = AppPermissions.Scopes.Reporting;
-            else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.All;
+            else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.OwnBranch;
             else return query.Where(_ => false);
         }
-
-        if (scope == AppPermissions.Scopes.All)
-            return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
         if (!currentEmpId.HasValue)
             return query.Where(_ => false);
+
+        var currentEmp = await GetCurrentEmployeeAsync(user);
 
         if (scope == AppPermissions.Scopes.Own)
         {
             return query.Where(a => a.EmployeeId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Reporting)
+        if (scope == AppPermissions.Scopes.Reporting || scope == "Reporting")
         {
             var reporteeIds = await _context.Employees
                 .Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value)
@@ -186,7 +189,6 @@ public sealed class PermissionService : IPermissionService
 
         if (scope == AppPermissions.Scopes.Department)
         {
-            var currentEmp = await GetCurrentEmployeeAsync(user);
             if (currentEmp?.DepartmentId == null)
                 return query.Where(a => a.EmployeeId == currentEmpId.Value);
 
@@ -196,6 +198,19 @@ public sealed class PermissionService : IPermissionService
                 .ToListAsync();
 
             return query.Where(a => deptEmpIds.Contains(a.EmployeeId));
+        }
+
+        if (scope == AppPermissions.Scopes.OwnBranch)
+        {
+            if (currentEmp?.BranchId != null)
+            {
+                var branchEmpIds = await _context.Employees
+                    .Where(e => e.BranchId == currentEmp.BranchId)
+                    .Select(e => e.EmployeeId)
+                    .ToListAsync();
+
+                return query.Where(a => branchEmpIds.Contains(a.EmployeeId));
+            }
         }
 
         return query;
@@ -214,23 +229,22 @@ public sealed class PermissionService : IPermissionService
         {
             if (user.IsInRole("Employee")) scope = AppPermissions.Scopes.Own;
             else if (user.IsInRole("Manager")) scope = AppPermissions.Scopes.Reporting;
-            else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.All;
+            else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.OwnBranch;
             else return query.Where(_ => false);
         }
-
-        if (scope == AppPermissions.Scopes.All)
-            return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
         if (!currentEmpId.HasValue)
             return query.Where(_ => false);
+
+        var currentEmp = await GetCurrentEmployeeAsync(user);
 
         if (scope == AppPermissions.Scopes.Own)
         {
             return query.Where(l => l.EmployeeId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Reporting)
+        if (scope == AppPermissions.Scopes.Reporting || scope == "Reporting")
         {
             var reporteeIds = await _context.Employees
                 .Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value)
@@ -238,6 +252,32 @@ public sealed class PermissionService : IPermissionService
                 .ToListAsync();
 
             return query.Where(l => reporteeIds.Contains(l.EmployeeId));
+        }
+
+        if (scope == AppPermissions.Scopes.Department)
+        {
+            if (currentEmp?.DepartmentId == null)
+                return query.Where(l => l.EmployeeId == currentEmpId.Value);
+
+            var deptEmpIds = await _context.Employees
+                .Where(e => e.EmployeeId == currentEmpId.Value || e.DepartmentId == currentEmp.DepartmentId)
+                .Select(e => e.EmployeeId)
+                .ToListAsync();
+
+            return query.Where(l => deptEmpIds.Contains(l.EmployeeId));
+        }
+
+        if (scope == AppPermissions.Scopes.OwnBranch)
+        {
+            if (currentEmp?.BranchId != null)
+            {
+                var branchEmpIds = await _context.Employees
+                    .Where(e => e.BranchId == currentEmp.BranchId)
+                    .Select(e => e.EmployeeId)
+                    .ToListAsync();
+
+                return query.Where(l => branchEmpIds.Contains(l.EmployeeId));
+            }
         }
 
         return query;
@@ -256,23 +296,22 @@ public sealed class PermissionService : IPermissionService
         {
             if (user.IsInRole("Employee")) scope = AppPermissions.Scopes.Own;
             else if (user.IsInRole("Manager")) scope = AppPermissions.Scopes.Reporting;
-            else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.All;
+            else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.OwnBranch;
             else return query.Where(_ => false);
         }
-
-        if (scope == AppPermissions.Scopes.All)
-            return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
         if (!currentEmpId.HasValue)
             return query.Where(_ => false);
+
+        var currentEmp = await GetCurrentEmployeeAsync(user);
 
         if (scope == AppPermissions.Scopes.Own)
         {
             return query.Where(r => r.EmployeeId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Reporting)
+        if (scope == AppPermissions.Scopes.Reporting || scope == "Reporting")
         {
             var reporteeIds = await _context.Employees
                 .Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value)
@@ -280,6 +319,32 @@ public sealed class PermissionService : IPermissionService
                 .ToListAsync();
 
             return query.Where(r => reporteeIds.Contains(r.EmployeeId));
+        }
+
+        if (scope == AppPermissions.Scopes.Department)
+        {
+            if (currentEmp?.DepartmentId == null)
+                return query.Where(r => r.EmployeeId == currentEmpId.Value);
+
+            var deptEmpIds = await _context.Employees
+                .Where(e => e.EmployeeId == currentEmpId.Value || e.DepartmentId == currentEmp.DepartmentId)
+                .Select(e => e.EmployeeId)
+                .ToListAsync();
+
+            return query.Where(r => deptEmpIds.Contains(r.EmployeeId));
+        }
+
+        if (scope == AppPermissions.Scopes.OwnBranch)
+        {
+            if (currentEmp?.BranchId != null)
+            {
+                var branchEmpIds = await _context.Employees
+                    .Where(e => e.BranchId == currentEmp.BranchId)
+                    .Select(e => e.EmployeeId)
+                    .ToListAsync();
+
+                return query.Where(r => branchEmpIds.Contains(r.EmployeeId));
+            }
         }
 
         return query;
@@ -298,23 +363,22 @@ public sealed class PermissionService : IPermissionService
         {
             if (user.IsInRole("Employee")) scope = AppPermissions.Scopes.Own;
             else if (user.IsInRole("Manager")) scope = AppPermissions.Scopes.Reporting;
-            else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.All;
+            else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.OwnBranch;
             else return query.Where(_ => false);
         }
-
-        if (scope == AppPermissions.Scopes.All)
-            return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
         if (!currentEmpId.HasValue)
             return query.Where(_ => false);
+
+        var currentEmp = await GetCurrentEmployeeAsync(user);
 
         if (scope == AppPermissions.Scopes.Own)
         {
             return query.Where(c => c.EmployeeId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Reporting)
+        if (scope == AppPermissions.Scopes.Reporting || scope == "Reporting")
         {
             var reporteeIds = await _context.Employees
                 .Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value)
@@ -322,6 +386,32 @@ public sealed class PermissionService : IPermissionService
                 .ToListAsync();
 
             return query.Where(c => reporteeIds.Contains(c.EmployeeId));
+        }
+
+        if (scope == AppPermissions.Scopes.Department)
+        {
+            if (currentEmp?.DepartmentId == null)
+                return query.Where(c => c.EmployeeId == currentEmpId.Value);
+
+            var deptEmpIds = await _context.Employees
+                .Where(e => e.EmployeeId == currentEmpId.Value || e.DepartmentId == currentEmp.DepartmentId)
+                .Select(e => e.EmployeeId)
+                .ToListAsync();
+
+            return query.Where(c => deptEmpIds.Contains(c.EmployeeId));
+        }
+
+        if (scope == AppPermissions.Scopes.OwnBranch)
+        {
+            if (currentEmp?.BranchId != null)
+            {
+                var branchEmpIds = await _context.Employees
+                    .Where(e => e.BranchId == currentEmp.BranchId)
+                    .Select(e => e.EmployeeId)
+                    .ToListAsync();
+
+                return query.Where(c => branchEmpIds.Contains(c.EmployeeId));
+            }
         }
 
         return query;

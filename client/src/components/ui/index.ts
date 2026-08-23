@@ -16,6 +16,7 @@ export { DataTable } from './DataTable';
 export { PaginationToolbar } from './PaginationToolbar';
 export { BulkImportModal } from './BulkImportModal';
 export { PageSkeleton, TableSkeleton } from './PageSkeleton';
+export { SearchableSelect } from './SearchableSelect';
 
 // Types
 export type { RowAction } from './RowActionMenu';

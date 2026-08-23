@@ -1,3 +1,4 @@
+using System.Text.Json;
 using HRDesk.Web.Constants;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
@@ -23,15 +24,36 @@ public class RolesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetRoles()
+    public async Task<IActionResult> GetRoles([FromQuery] string? branchId = null)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.SystemRoles))
         {
             return Forbid();
         }
 
-        var roles = await _db.Roles
-            .AsNoTracking()
+        int? resolvedBranchId = null;
+        if (!string.IsNullOrWhiteSpace(branchId))
+        {
+            if (int.TryParse(branchId, out var parsedInt))
+            {
+                resolvedBranchId = parsedInt;
+            }
+            else if (Guid.TryParse(branchId, out var parsedGuid))
+            {
+                var branch = await _db.Branches.AsNoTracking().FirstOrDefaultAsync(b => b.PublicId == parsedGuid);
+                if (branch != null) resolvedBranchId = branch.Id;
+            }
+        }
+
+        var query = _db.Roles.AsNoTracking().Include(r => r.Branch).AsQueryable();
+
+        if (resolvedBranchId.HasValue)
+        {
+            // Return global roles (BranchId == null) PLUS branch-specific roles
+            query = query.Where(r => r.BranchId == null || r.BranchId == resolvedBranchId.Value);
+        }
+
+        var roles = await query
             .Select(r => new
             {
                 r.Id,
@@ -39,11 +61,17 @@ public class RolesController : ControllerBase
                 r.Name,
                 r.Description,
                 r.IsSystemRole,
+                r.BranchId,
+                BranchName = r.Branch != null ? r.Branch.Name : "Organization Wide",
+                IsBranchSpecific = r.BranchId != null,
                 r.CreatedAt,
                 r.UpdatedAt,
                 UserCount = _db.Users.Count(u => u.RoleId == r.Id),
                 PermissionCount = _db.RolePermissions.Count(p => p.RoleId == r.Id)
             })
+            .OrderByDescending(r => r.IsSystemRole)
+            .ThenBy(r => r.BranchId == null ? 0 : 1)
+            .ThenBy(r => r.Name)
             .ToListAsync();
 
         return Ok(roles);
@@ -62,7 +90,10 @@ public class RolesController : ControllerBase
                     p.Key,
                     p.DisplayName,
                     p.Description,
-                    p.SupportsScope
+                    p.SupportsScope,
+                    p.ScopeOptions,
+                    p.DefaultScope,
+                    p.SubSections
                 })
             });
 
@@ -79,6 +110,7 @@ public class RolesController : ControllerBase
 
         var role = await _db.Roles
             .Include(r => r.Permissions)
+            .Include(r => r.Branch)
             .FirstOrDefaultAsync(r => r.PublicId == publicId);
 
         if (role == null)
@@ -88,6 +120,23 @@ public class RolesController : ControllerBase
 
         var permissionsMap = role.Permissions.ToDictionary(p => p.PermissionKey, p => true);
         var scopesMap = role.Permissions.ToDictionary(p => p.PermissionKey, p => p.Scope);
+        var subRestrictionsMap = new Dictionary<string, List<string>>();
+
+        foreach (var p in role.Permissions)
+        {
+            if (!string.IsNullOrWhiteSpace(p.SubRestrictions))
+            {
+                try
+                {
+                    var list = JsonSerializer.Deserialize<List<string>>(p.SubRestrictions);
+                    if (list != null) subRestrictionsMap[p.PermissionKey] = list;
+                }
+                catch
+                {
+                    // Ignore parse error
+                }
+            }
+        }
 
         return Ok(new
         {
@@ -96,8 +145,12 @@ public class RolesController : ControllerBase
             role.Name,
             role.Description,
             role.IsSystemRole,
+            role.BranchId,
+            BranchName = role.Branch != null ? role.Branch.Name : "Organization Wide",
+            IsBranchSpecific = role.BranchId != null,
             permissions = permissionsMap,
-            scopes = scopesMap
+            scopes = scopesMap,
+            subRestrictions = subRestrictionsMap
         });
     }
 
@@ -118,11 +171,26 @@ public class RolesController : ControllerBase
         var orgClaim = User.FindFirst("OrganizationId")?.Value;
         if (int.TryParse(orgClaim, out var parsedOrg)) orgId = parsedOrg;
 
+        int? branchId = null;
+        if (!string.IsNullOrWhiteSpace(dto.BranchId))
+        {
+            if (int.TryParse(dto.BranchId, out var parsedBId))
+            {
+                branchId = parsedBId;
+            }
+            else if (Guid.TryParse(dto.BranchId, out var parsedBGuid))
+            {
+                var branch = await _db.Branches.AsNoTracking().FirstOrDefaultAsync(b => b.PublicId == parsedBGuid);
+                if (branch != null) branchId = branch.Id;
+            }
+        }
+
         var role = new Role
         {
             Name = dto.Name.Trim(),
             Description = dto.Description?.Trim(),
             IsSystemRole = false,
+            BranchId = branchId,
             OrganizationId = orgId,
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
@@ -137,12 +205,19 @@ public class RolesController : ControllerBase
             {
                 if (isGranted)
                 {
-                    var scope = dto.Scopes != null && dto.Scopes.TryGetValue(key, out var s) ? s : AppPermissions.Scopes.All;
+                    var scope = dto.Scopes != null && dto.Scopes.TryGetValue(key, out var s) ? s : AppPermissions.Scopes.OwnBranch;
+                    string? subRestJson = null;
+                    if (dto.SubRestrictions != null && dto.SubRestrictions.TryGetValue(key, out var subs) && subs != null)
+                    {
+                        subRestJson = JsonSerializer.Serialize(subs);
+                    }
+
                     _db.RolePermissions.Add(new RolePermission
                     {
                         RoleId = role.Id,
                         PermissionKey = key,
                         Scope = scope,
+                        SubRestrictions = subRestJson,
                         OrganizationId = orgId
                     });
                 }
@@ -203,10 +278,13 @@ public class RolesController : ControllerBase
 
         if (dto.IsGranted)
         {
-            var targetScope = !string.IsNullOrEmpty(dto.Scope) ? dto.Scope : AppPermissions.Scopes.All;
+            var targetScope = !string.IsNullOrEmpty(dto.Scope) ? dto.Scope : AppPermissions.Scopes.OwnBranch;
+            string? subRestJson = dto.SubRestrictions != null ? JsonSerializer.Serialize(dto.SubRestrictions) : null;
+
             if (existing != null)
             {
                 existing.Scope = targetScope;
+                existing.SubRestrictions = subRestJson;
             }
             else
             {
@@ -215,6 +293,7 @@ public class RolesController : ControllerBase
                     RoleId = id,
                     PermissionKey = dto.PermissionKey,
                     Scope = targetScope,
+                    SubRestrictions = subRestJson,
                     OrganizationId = role.OrganizationId
                 });
             }
@@ -234,7 +313,44 @@ public class RolesController : ControllerBase
         return Ok(new { success = true, message = "Permission updated live." });
     }
 
-    public record RoleCreateDto(string Name, string? Description, Dictionary<string, bool>? Permissions, Dictionary<string, string>? Scopes);
+    [HttpDelete("{publicId:guid}")]
+    public async Task<IActionResult> DeleteRole(Guid publicId)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.SystemRoles))
+        {
+            return Forbid();
+        }
+
+        var role = await _db.Roles
+            .Include(r => r.Permissions)
+            .Include(r => r.Users)
+            .FirstOrDefaultAsync(r => r.PublicId == publicId);
+
+        if (role == null)
+        {
+            return NotFound(new { message = "Role not found." });
+        }
+
+        if (role.IsSystemRole)
+        {
+            return BadRequest(new { message = "System roles cannot be deleted." });
+        }
+
+        if (role.Users.Any())
+        {
+            return BadRequest(new { message = $"Cannot delete role because it is assigned to {role.Users.Count} active user(s)." });
+        }
+
+        _db.RolePermissions.RemoveRange(role.Permissions);
+        _db.Roles.Remove(role);
+        await _db.SaveChangesAsync();
+        _permissionService.ClearCache();
+
+        return Ok(new { success = true, message = "Role deleted successfully." });
+    }
+
+    public record RoleCreateDto(string Name, string? Description, string? BranchId, Dictionary<string, bool>? Permissions, Dictionary<string, string>? Scopes, Dictionary<string, List<string>>? SubRestrictions);
     public record RoleUpdateDto(string? Name, string? Description);
-    public record PermissionToggleDto(string PermissionKey, bool IsGranted, string? Scope);
+    public record PermissionToggleDto(string PermissionKey, bool IsGranted, string? Scope, List<string>? SubRestrictions);
 }
+

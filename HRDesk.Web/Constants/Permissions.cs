@@ -5,10 +5,23 @@ public static class AppPermissions
     // Permission Scopes
     public static class Scopes
     {
-        public const string All = "All";                 // Entire organization
-        public const string Reporting = "Reporting";     // Reporting team (direct reportees) + own
+        // General Data Scopes (Branch-Contained)
+        public const string All = "All";                 // Organization wide (System Admin)
+        public const string OwnBranch = "Own Branch";     // Entire branch (Branch Level)
         public const string Department = "Department";   // Entire department + own
+        public const string Reporting = "Reporting To";  // Reporting team (direct reportees) + own
         public const string Own = "Own";                 // Logged-in user's own profile/records only
+
+        // Edit Scopes
+        public const string EditBasicInfo = "Basic Information";
+        public const string EditStatusChanges = "Status Changes";
+        public const string EditCompensation = "Compensation";
+        public const string EditAllDetails = "All Details";
+
+        // Delete Scopes
+        public const string DeleteSoft = "Soft Delete";
+        public const string DeletePermanent = "Permanent Delete";
+        public const string DeleteBulk = "Bulk Delete";
     }
 
     // Modules
@@ -88,37 +101,110 @@ public static class AppPermissions
         string DisplayName, 
         string Module, 
         string Description, 
-        bool SupportsScope = false);
+        bool SupportsScope = false,
+        string[]? ScopeOptions = null,
+        string DefaultScope = "Own Branch",
+        string[]? SubSections = null);
 
     public static readonly List<PermissionDefinition> All = new()
     {
         // Employees
-        new(Keys.EmployeesView, "View Employees", Modules.Employees, "View employee profiles and directories", SupportsScope: true),
-        new(Keys.EmployeesCreate, "Create Employees", Modules.Employees, "Add new employees to the organization", SupportsScope: true),
-        new(Keys.EmployeesEdit, "Edit Employees", Modules.Employees, "Update employee personal and job details", SupportsScope: true),
-        new(Keys.EmployeesDelete, "Delete Employees", Modules.Employees, "Archive or remove employee records", SupportsScope: true),
-        new(Keys.EmployeesViewSalary, "View Salary Info", Modules.Employees, "View compensation, CTC, and bank info", SupportsScope: true),
+        new(Keys.EmployeesView, "View Scope", Modules.Employees, "View employee profiles and directories", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch",
+            SubSections: new[] { "Work", "Documents", "Attendance", "Action", "Personal", "Credentials", "Other", "Activity" }),
+
+        new(Keys.EmployeesCreate, "Create Scope", Modules.Employees, "Add new employees to the organization", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Reporting To", "Own Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.EmployeesEdit, "Edit Scope", Modules.Employees, "Update employee personal and job details", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Basic Information", "Status Changes", "Compensation", "All Details" },
+            DefaultScope: "All Details"),
+
+        new(Keys.EmployeesDelete, "Delete Scope", Modules.Employees, "Archive or remove employee records", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
+
+        new(Keys.EmployeesViewSalary, "View Salary Info", Modules.Employees, "View compensation, CTC, and bank info", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
 
         // Attendance
-        new(Keys.AttendanceView, "View Attendance Logs", Modules.Attendance, "View biometric logs and daily attendance", SupportsScope: true),
-        new(Keys.AttendanceProcess, "Process Attendance", Modules.Attendance, "Run attendance calculation engine"),
-        new(Keys.AttendanceRoster, "Manage Shift Roster", Modules.Attendance, "Assign and manage weekly shift rosters", SupportsScope: true),
-        new(Keys.AttendanceMonthlySheet, "View Monthly Sheet", Modules.Attendance, "Access aggregated monthly attendance sheet", SupportsScope: true),
-        new(Keys.AttendanceRegularize, "Approve Regularization", Modules.Attendance, "Approve or reject attendance regularizations", SupportsScope: true),
+        new(Keys.AttendanceView, "View Scope", Modules.Attendance, "View biometric logs and daily attendance", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AttendanceProcess, "Process Attendance", Modules.Attendance, "Run attendance calculation engine",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AttendanceRoster, "Roster Scope", Modules.Attendance, "Assign and manage shift rosters", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AttendanceMonthlySheet, "Monthly Sheet Scope", Modules.Attendance, "Access aggregated monthly attendance sheet", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AttendanceRegularize, "Regularization Scope", Modules.Attendance, "Approve or reject attendance regularizations", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
 
         // Leaves & Comp-Off
-        new(Keys.LeavesView, "View Leaves", Modules.Leaves, "View submitted leave applications", SupportsScope: true),
-        new(Keys.LeavesApply, "Apply Leaves (Admin)", Modules.Leaves, "Submit leave on behalf of staff"),
-        new(Keys.LeavesApprove, "Approve Leaves", Modules.Leaves, "Approve or reject leave requests", SupportsScope: true),
+        new(Keys.LeavesView, "View Scope", Modules.Leaves, "View submitted leave applications", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.LeavesApply, "Apply Scope", Modules.Leaves, "Submit leave on behalf of staff", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.LeavesApprove, "Approve Scope", Modules.Leaves, "Approve or reject leave requests", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
         new(Keys.LeavesManageTypes, "Manage Leave Types", Modules.Leaves, "Configure leave quotas and rules"),
         new(Keys.LeavesManageAllocations, "Manage Allocations", Modules.Leaves, "Credit and adjust leave balances"),
-        new(Keys.CompOffApprove, "Approve Comp-Off", Modules.Leaves, "Approve weekend / overtime comp-off credits", SupportsScope: true),
+
+        new(Keys.CompOffApprove, "Comp-Off Approval Scope", Modules.Leaves, "Approve weekend / overtime comp-off credits", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
 
         // Payroll & Loans
-        new(Keys.PayrollView, "View Payroll", Modules.Payroll, "View salary statements and payroll reports"),
-        new(Keys.PayrollProcess, "Process Payroll", Modules.Payroll, "Calculate monthly payroll and generate slips"),
-        new(Keys.PayrollManageSalary, "Manage Salary Structure", Modules.Payroll, "Configure salary components and formulas"),
-        new(Keys.PayrollManageLoans, "Manage Loans & Advances", Modules.Payroll, "Approve and track employee loans"),
+        new(Keys.PayrollView, "View Scope", Modules.Payroll, "View salary statements and payroll reports", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.PayrollProcess, "Process Payroll", Modules.Payroll, "Calculate monthly payroll and generate slips",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.PayrollManageSalary, "Manage Salary Structure", Modules.Payroll, "Configure salary components and formulas",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.PayrollManageLoans, "Loans Manage Scope", Modules.Payroll, "Approve and track employee loans", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
 
         // Masters
         new(Keys.MastersDepartments, "Manage Departments", Modules.Masters, "Create, edit, and delete departments"),
@@ -130,8 +216,15 @@ public static class AppPermissions
         new(Keys.HolidaysManage, "Manage Holidays", Modules.Shifts, "Configure annual holiday calendars"),
 
         // Recruitment
-        new(Keys.RecruitmentCandidates, "Manage Candidates", Modules.Recruitment, "Candidate pipeline and resumes"),
-        new(Keys.RecruitmentInterviews, "Schedule Interviews", Modules.Recruitment, "Interview scheduling and evaluations"),
+        new(Keys.RecruitmentCandidates, "Manage Candidates", Modules.Recruitment, "Candidate pipeline and resumes",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.RecruitmentInterviews, "Schedule Interviews", Modules.Recruitment, "Interview scheduling and evaluations",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
 
         // System
         new(Keys.SystemDevices, "Manage Biometric Devices", Modules.System, "Configure LAN/Cloud biometric sync & machines"),

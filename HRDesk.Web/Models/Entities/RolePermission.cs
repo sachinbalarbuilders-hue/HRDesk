@@ -23,7 +23,10 @@ public class RolePermission : IMustHaveTenant
     [Required]
     [Column("scope")]
     [StringLength(50)]
-    public string Scope { get; set; } = "All"; // All, Reporting, Department, Own
+    public string Scope { get; set; } = "Own Branch"; // Own Branch, Reporting To, Department, Own
+
+    [Column("sub_restrictions")]
+    public string? SubRestrictions { get; set; }
 
     [Column("organization_id")]
     public int OrganizationId { get; set; }

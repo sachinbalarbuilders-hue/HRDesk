@@ -75,7 +75,7 @@ export const BranchPermissions: React.FC = () => {
       </div>
 
       <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-lg shadow-sm p-6">
-        <RolesPermissionsTab />
+        <RolesPermissionsTab branchPublicId={branchPublicId} branchName={branchName} />
       </div>
     </div>
   );
