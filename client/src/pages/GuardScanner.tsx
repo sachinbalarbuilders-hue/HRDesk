@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
 import { apiClient } from '../api/client';
 import { useOrganization } from '../context/CompanyContext';
+import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -19,6 +20,7 @@ import {
   Sparkles,
   MapPin,
   Database,
+  Filter,
 } from 'lucide-react';
 
 interface VerificationData {
@@ -61,6 +63,14 @@ export const GuardScanner: React.FC = () => {
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
 
+  // Pagination & Filter State for Gate Activity Ledger
+  const [logPage, setLogPage] = useState(1);
+  const [logPageSize, setLogPageSize] = useState(15);
+  const [logTotalCount, setLogTotalCount] = useState(0);
+  const [logTotalPages, setLogTotalPages] = useState(1);
+  const [logStatusFilter, setLogStatusFilter] = useState<'all' | 'granted' | 'denied'>('all');
+  const [logSearch, setLogSearch] = useState('');
+
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   // Live Clock for Guard Terminal
@@ -71,24 +81,35 @@ export const GuardScanner: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch persistent scan logs from SQL Server database
+  // Fetch persistent paginated scan logs from SQL Server database
   const fetchRecentLogs = useCallback(async () => {
     try {
       setLoadingLogs(true);
-      const res = await apiClient.get('/gate-scans/recent', {
+      const res = await apiClient.get('/gate-scans', {
         params: {
+          page: logPage,
+          pageSize: logPageSize,
+          status: logStatusFilter !== 'all' ? logStatusFilter : undefined,
+          search: logSearch.trim() || undefined,
           organizationId: currentOrganization?.id || undefined,
+          branchId: currentBranch?.id || undefined,
         },
       });
-      if (Array.isArray(res.data)) {
+      if (res.data && res.data.items) {
+        setRecentLogs(res.data.items);
+        setLogTotalCount(res.data.totalCount || 0);
+        setLogTotalPages(res.data.totalPages || 1);
+      } else if (Array.isArray(res.data)) {
         setRecentLogs(res.data);
+        setLogTotalCount(res.data.length);
+        setLogTotalPages(1);
       }
     } catch (e) {
       console.error('Failed to fetch recent gate logs:', e);
     } finally {
       setLoadingLogs(false);
     }
-  }, [currentOrganization?.id]);
+  }, [logPage, logPageSize, logStatusFilter, logSearch, currentOrganization?.id, currentBranch?.id]);
 
   useEffect(() => {
     fetchRecentLogs();
@@ -125,28 +146,8 @@ export const GuardScanner: React.FC = () => {
     setScanError(null);
     setIsScanning(false);
 
-    const status = data.isActive ? 'granted' : 'denied';
-    const reason = data.isActive ? 'Verified Employee' : 'Inactive / Suspended Employee';
-
-    // Local instant optimistic update
-    setRecentLogs((prev) => [
-      {
-        id: `opt_${Date.now()}`,
-        employeeCode: data.employeeCode,
-        employeeName: data.employeeName,
-        organizationName: data.organizationName || currentOrganization?.name,
-        department: data.department,
-        designation: data.designation,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        status,
-        scanMode,
-        reason,
-      },
-      ...prev.slice(0, 49),
-    ]);
-
-    // Persist permanently in SQL Server
-    logScanToDatabase(status, scanMode, data, data.employeeCode, reason);
+    // Refresh database logs from server (server already logged the verified event atomically)
+    fetchRecentLogs();
   };
 
   const handleVerificationError = (errorMsg: string, code?: string, scanMode: 'Camera_QR' | 'Manual_Search' = 'Camera_QR') => {
@@ -154,23 +155,8 @@ export const GuardScanner: React.FC = () => {
     setScanResult(null);
     setIsScanning(false);
 
-    // Local instant optimistic update
-    setRecentLogs((prev) => [
-      {
-        id: `opt_${Date.now()}`,
-        employeeCode: code || 'UNKNOWN',
-        employeeName: 'Unknown Badge',
-        organizationName: currentOrganization?.name,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        status: 'denied',
-        scanMode,
-        reason: errorMsg,
-      },
-      ...prev.slice(0, 49),
-    ]);
-
-    // Persist permanently in SQL Server
-    logScanToDatabase('denied', scanMode, undefined, code, errorMsg);
+    // Refresh database logs from server (server already logged the denied event atomically)
+    fetchRecentLogs();
   };
 
   // Initialize QR Scanner
@@ -522,9 +508,10 @@ export const GuardScanner: React.FC = () => {
           </form>
         </div>
 
-        {/* RIGHT COLUMN: RECENT BADGE SCANS LEDGER (PERSISTENT DATABASE FEED) */}
+        {/* RIGHT COLUMN: RECENT BADGE SCANS LEDGER (PERSISTENT DATABASE FEED WITH PAGINATION) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-md)] overflow-hidden shadow-xs">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-md)] overflow-hidden shadow-xs flex flex-col">
+            {/* Feed Header */}
             <div className="p-3.5 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--surface-sunken)]/50">
               <div className="flex items-center gap-2">
                 <ShieldCheck size={16} className="text-[var(--gold-500)]" />
@@ -548,10 +535,54 @@ export const GuardScanner: React.FC = () => {
               </div>
             </div>
 
-            <div className="divide-y divide-[var(--rule)] max-h-[460px] overflow-y-auto">
+            {/* Filter & Search Bar */}
+            <div className="p-2.5 bg-[var(--surface-sunken)]/30 border-b border-[var(--rule)] flex items-center justify-between gap-2 text-xs">
+              {/* Status Filter Pills */}
+              <div className="inline-flex rounded-[3px] border border-[var(--rule)] bg-[var(--paper)] p-0.5 font-ui text-[11px]">
+                {(['all', 'granted', 'denied'] as const).map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => {
+                      setLogStatusFilter(st);
+                      setLogPage(1);
+                    }}
+                    className={`px-2 py-0.5 rounded-[2px] font-semibold capitalize transition-colors cursor-pointer ${
+                      logStatusFilter === st
+                        ? st === 'granted'
+                          ? 'bg-emerald-600 text-white shadow-2xs'
+                          : st === 'denied'
+                          ? 'bg-rose-600 text-white shadow-2xs'
+                          : 'bg-[var(--navy-900)] text-[var(--gold-500)] shadow-2xs'
+                        : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                    }`}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+
+              {/* Mini Log Search */}
+              <div className="relative flex-1 max-w-[180px]">
+                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                <input
+                  type="text"
+                  value={logSearch}
+                  onChange={(e) => {
+                    setLogSearch(e.target.value);
+                    setLogPage(1);
+                  }}
+                  placeholder="Filter logs..."
+                  className="register-input !pl-7 !pr-2 py-1 text-[11px] w-full font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Log Items List */}
+            <div className="divide-y divide-[var(--rule)] max-h-[460px] overflow-y-auto min-h-[220px]">
               {recentLogs.length === 0 ? (
                 <div className="p-8 text-center text-xs text-[var(--ink-muted)] font-data">
-                  {loadingLogs ? 'Loading gate activity from database...' : 'No gate scan activity recorded yet.'}
+                  {loadingLogs ? 'Loading gate activity from database...' : 'No gate scan activity found for current filters.'}
                 </div>
               ) : (
                 recentLogs.map((log) => (
@@ -593,6 +624,17 @@ export const GuardScanner: React.FC = () => {
                 ))
               )}
             </div>
+
+            {/* Pagination Controls */}
+            <PaginationToolbar
+              page={logPage}
+              pageSize={logPageSize}
+              totalCount={logTotalCount}
+              totalPages={logTotalPages}
+              onPageChange={setLogPage}
+              onPageSizeChange={setLogPageSize}
+              pageSizeOptions={[10, 15, 25, 50, 100]}
+            />
           </div>
         </div>
       </div>

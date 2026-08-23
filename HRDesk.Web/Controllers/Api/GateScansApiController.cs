@@ -63,6 +63,104 @@ END";
         }
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetLogs(
+        [FromQuery] string? search = null,
+        [FromQuery] string? status = null,
+        [FromQuery] int? branchId = null,
+        [FromQuery] string? organizationId = null,
+        [FromQuery] string? date = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var query = _db.GateActivityLogs
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(organizationId))
+        {
+            if (int.TryParse(organizationId, out int intOrgId))
+            {
+                query = query.Where(l => l.OrganizationId == intOrgId);
+            }
+            else if (Guid.TryParse(organizationId, out Guid orgGuid))
+            {
+                var matchOrg = await _db.Organizations.IgnoreQueryFilters().FirstOrDefaultAsync(o => o.PublicId == orgGuid);
+                if (matchOrg != null)
+                {
+                    query = query.Where(l => l.OrganizationId == matchOrg.Id);
+                }
+            }
+        }
+        else if (_tenantProvider.TenantId > 0 && !User.IsInRole("SuperAdmin") && !User.IsInRole("Super Admin"))
+        {
+            query = query.Where(l => l.OrganizationId == _tenantProvider.TenantId);
+        }
+
+        if (branchId.HasValue && branchId.Value > 0)
+        {
+            query = query.Where(l => l.BranchId == branchId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && status.ToLower() != "all")
+        {
+            query = query.Where(l => l.ScanStatus.ToLower() == status.ToLower());
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(l =>
+                l.EmployeeName.ToLower().Contains(s) ||
+                l.EmployeeCode.ToLower().Contains(s) ||
+                (l.DepartmentName != null && l.DepartmentName.ToLower().Contains(s)) ||
+                (l.Reason != null && l.Reason.ToLower().Contains(s)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(date) && DateOnly.TryParse(date, out var filterDate))
+        {
+            var startUtc = filterDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            var endUtc = filterDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+            query = query.Where(l => l.ScannedAt >= startUtc && l.ScannedAt <= endUtc);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        if (pageSize <= 0) pageSize = 20;
+        if (pageSize > 200) pageSize = 200;
+        if (page <= 0) page = 1;
+
+        var items = await query
+            .OrderByDescending(l => l.ScannedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(l => new
+            {
+                id = l.Id.ToString(),
+                employeeId = l.EmployeeId,
+                employeeCode = l.EmployeeCode,
+                employeeName = l.EmployeeName,
+                department = l.DepartmentName,
+                designation = l.DesignationName,
+                status = l.ScanStatus.ToLower(),
+                scanMode = l.ScanMode,
+                reason = l.Reason,
+                timestamp = l.ScannedAt.ToLocalTime().ToString("hh:mm:ss tt"),
+                date = l.ScannedAt.ToLocalTime().ToString("dd MMM yyyy")
+            })
+            .ToListAsync();
+
+        return Ok(new
+        {
+            items,
+            totalCount,
+            page,
+            pageSize,
+            totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+        });
+    }
+
     [HttpGet("recent")]
     public async Task<IActionResult> GetRecentLogs([FromQuery] string? organizationId = null)
     {
