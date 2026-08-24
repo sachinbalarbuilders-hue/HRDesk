@@ -8,15 +8,31 @@ class PunchProvider extends ChangeNotifier {
   String? _message;
   bool _isClockedIn = false;
   bool _statusLoaded = false;
+  String? _inTime;
+  String? _outTime;
+  int _workMinutes = 0;
+  String? _status;
+  bool _isLate = false;
+  int _lateMinutes = 0;
+  String _shiftName = 'General Shift';
+  String _shiftStart = '09:30 AM';
+  String _shiftEnd = '06:30 PM';
+  double _targetHours = 9.0;
 
   PunchState get state => _state;
   String? get message => _message;
-
-  /// Whether the current user is clocked in right now (in set, no out yet).
   bool get isClockedIn => _isClockedIn;
-
-  /// True once today's status has been fetched at least once.
   bool get statusLoaded => _statusLoaded;
+  String? get inTime => _inTime;
+  String? get outTime => _outTime;
+  int get workMinutes => _workMinutes;
+  String? get status => _status;
+  bool get isLate => _isLate;
+  int get lateMinutes => _lateMinutes;
+  String get shiftName => _shiftName;
+  String get shiftStart => _shiftStart;
+  String get shiftEnd => _shiftEnd;
+  double get targetHours => _targetHours;
 
   final _api = ApiClient();
 
@@ -25,7 +41,19 @@ class PunchProvider extends ChangeNotifier {
   Future<void> fetchTodayStatus() async {
     try {
       final res = await _api.dio.get('/attendance/today-status');
-      _isClockedIn = res.data['isClockedIn'] == true;
+      if (res.data != null && res.data is Map) {
+        _isClockedIn = res.data['isClockedIn'] == true;
+        _inTime = res.data['inTime'];
+        _outTime = res.data['outTime'];
+        _workMinutes = (res.data['workMinutes'] as num?)?.toInt() ?? 0;
+        _status = res.data['status'];
+        _isLate = res.data['isLate'] == true;
+        _lateMinutes = (res.data['lateMinutes'] as num?)?.toInt() ?? 0;
+        _shiftName = res.data['shiftName'] ?? _shiftName;
+        _shiftStart = res.data['shiftStart'] ?? _shiftStart;
+        _shiftEnd = res.data['shiftEnd'] ?? _shiftEnd;
+        _targetHours = (res.data['targetHours'] as num?)?.toDouble() ?? _targetHours;
+      }
     } catch (_) {
       // Leave previous state on failure.
     } finally {
@@ -78,7 +106,7 @@ class PunchProvider extends ChangeNotifier {
       } else {
         _isClockedIn = punchType == 'in';
       }
-      notifyListeners();
+      await fetchTodayStatus();
       return true;
     } catch (e) {
       _state = PunchState.error;

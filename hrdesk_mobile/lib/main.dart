@@ -4,8 +4,15 @@ import 'package:provider/provider.dart';
 import 'core/api_client.dart';
 import 'providers/auth_provider.dart';
 import 'providers/punch_provider.dart';
+import 'providers/attendance_provider.dart';
+import 'providers/leave_provider.dart';
+import 'providers/regularization_provider.dart';
+import 'providers/loan_provider.dart';
+import 'providers/employee_provider.dart';
+import 'providers/holiday_provider.dart';
+import 'providers/notification_provider.dart';
 import 'screens/login_screen.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/main_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +31,13 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => PunchProvider()),
+        ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+        ChangeNotifierProvider(create: (_) => LeaveProvider()),
+        ChangeNotifierProvider(create: (_) => RegularizationProvider()),
+        ChangeNotifierProvider(create: (_) => LoanProvider()),
+        ChangeNotifierProvider(create: (_) => EmployeeProvider()),
+        ChangeNotifierProvider(create: (_) => HolidayProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const HRDeskApp(),
     ),
@@ -45,7 +59,7 @@ class HRDeskApp extends StatelessWidget {
         appBarTheme: const AppBarTheme(
           systemOverlayStyle: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.dark,
+            statusBarIconBrightness: Brightness.light,
           ),
         ),
       ),
@@ -53,7 +67,7 @@ class HRDeskApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
-        '/dashboard': (context) => const DashboardScreen(),
+        '/dashboard': (context) => const MainShell(),
       },
     );
   }

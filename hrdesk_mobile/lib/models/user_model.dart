@@ -30,9 +30,21 @@ class UserModel {
   bool get requiresFace =>
       (attendanceType ?? '').toLowerCase().contains('face');
 
+  bool get isGeoFencing =>
+      (attendanceType ?? '').toLowerCase().contains('geo');
+
+  bool get isBiometricOnly =>
+      (attendanceType ?? '').toLowerCase().contains('biometric');
+
+  bool get isIpRestricted =>
+      (attendanceType ?? '').toLowerCase().contains('ip');
+
+  bool get isWebOnly =>
+      (attendanceType ?? '').toLowerCase().contains('web');
+
   bool get requiresLocation =>
       requiresFace ||
-      (attendanceType ?? '').toLowerCase().contains('geo') ||
+      isGeoFencing ||
       (attendanceType ?? '').toLowerCase().contains('location');
 
   factory UserModel.fromJson(Map<String, dynamic> json, String token) {

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -10,41 +10,23 @@ namespace HRDesk.Web.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "application_number",
-                table: "leave_applications");
-
-            migrationBuilder.DropColumn(
-                name: "application_number",
-                table: "attendance_regularizations");
-
-            migrationBuilder.AddColumn<string>(
-                name: "sub_restrictions",
-                table: "role_permissions",
-                type: "nvarchar(max)",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF COL_LENGTH('role_permissions', 'sub_restrictions') IS NULL
+                BEGIN
+                    ALTER TABLE [role_permissions] ADD [sub_restrictions] nvarchar(max) NULL;
+                END
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "sub_restrictions",
-                table: "role_permissions");
-
-            migrationBuilder.AddColumn<string>(
-                name: "application_number",
-                table: "leave_applications",
-                type: "nvarchar(20)",
-                maxLength: 20,
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "application_number",
-                table: "attendance_regularizations",
-                type: "nvarchar(20)",
-                maxLength: 20,
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF COL_LENGTH('role_permissions', 'sub_restrictions') IS NOT NULL
+                BEGIN
+                    ALTER TABLE [role_permissions] DROP COLUMN [sub_restrictions];
+                END
+            ");
         }
     }
 }

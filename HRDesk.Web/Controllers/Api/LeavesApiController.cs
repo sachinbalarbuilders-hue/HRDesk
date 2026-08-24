@@ -133,20 +133,78 @@ public class LeavesController : ControllerBase
         });
     }
 
-    [HttpGet("balances/{employeeId}")]
-    public async Task<IActionResult> GetLeaveBalances(int employeeId)
+    [HttpGet("my-applications")]
+    public async Task<IActionResult> GetMyLeaveApplications([FromQuery] int? employeeId = null)
     {
-        var targetEmpQuery = _db.Employees.Where(e => e.EmployeeId == employeeId);
-        targetEmpQuery = await _permissionService.ApplyEmployeeScopeAsync(targetEmpQuery, User, AppPermissions.Keys.LeavesView);
-        if (!await targetEmpQuery.AnyAsync())
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        var targetEmpId = employeeId ?? currentEmpId;
+        if (!targetEmpId.HasValue)
         {
-            return Forbid();
+            targetEmpId = await _db.Employees.AsNoTracking().Select(e => (int?)e.EmployeeId).FirstOrDefaultAsync();
+        }
+
+        if (!targetEmpId.HasValue)
+        {
+            return Ok(new List<object>());
+        }
+
+        var apps = await _db.LeaveApplications
+            .AsNoTracking()
+            .Include(la => la.LeaveType)
+            .Where(la => la.EmployeeId == targetEmpId.Value)
+            .OrderByDescending(la => la.StartDate)
+            .Take(100)
+            .Select(la => new
+            {
+                la.Id,
+                la.EmployeeId,
+                LeaveType = la.LeaveType != null ? la.LeaveType.Name : "Leave",
+                la.StartDate,
+                la.EndDate,
+                Days = la.TotalDays,
+                la.Reason,
+                la.Status,
+                la.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(apps);
+    }
+
+    [HttpGet("balances")]
+    [HttpGet("balances/{employeeId}")]
+    public async Task<IActionResult> GetLeaveBalances([FromRoute] int? employeeId = null, [FromQuery] int? empId = null)
+    {
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        var targetEmpId = employeeId ?? empId ?? currentEmpId;
+
+        if (!targetEmpId.HasValue)
+        {
+            targetEmpId = await _db.Employees.AsNoTracking().Select(e => (int?)e.EmployeeId).FirstOrDefaultAsync();
+        }
+
+        if (!targetEmpId.HasValue)
+        {
+            return NotFound(new { message = "Employee not found." });
+        }
+
+        var resolvedId = targetEmpId.Value;
+        bool isSelf = currentEmpId.HasValue && currentEmpId.Value == resolvedId;
+
+        if (!isSelf)
+        {
+            var targetEmpQuery = _db.Employees.Where(e => e.EmployeeId == resolvedId);
+            targetEmpQuery = await _permissionService.ApplyEmployeeScopeAsync(targetEmpQuery, User, AppPermissions.Keys.LeavesView);
+            if (!await targetEmpQuery.AnyAsync())
+            {
+                return Forbid();
+            }
         }
 
         var leaveTypes = await _cache.GetLeaveTypesAsync();
 
         // Filter leave types by employee eligibility
-        var emp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+        var emp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == resolvedId);
         if (emp != null)
         {
             leaveTypes = leaveTypes.Where(t => IsLeaveTypeEligible(t, emp)).ToList();
@@ -156,16 +214,16 @@ public class LeavesController : ControllerBase
         var currentYear = today.Year;
 
         var allocations = await _db.LeaveAllocations
-            .Where(la => la.EmployeeId == employeeId && la.Year == currentYear)
+            .Where(la => la.EmployeeId == resolvedId && la.Year == currentYear)
             .ToListAsync();
 
         var approvedLeaves = await _db.LeaveApplications
-            .Where(la => la.EmployeeId == employeeId &&
+            .Where(la => la.EmployeeId == resolvedId &&
                          la.Status == "Approved" &&
                          la.StartDate.Year == currentYear)
             .ToListAsync();
 
-        var compOffBalance = await _compOffService.GetValidBalanceAsync(employeeId, today);
+        var compOffBalance = await _compOffService.GetValidBalanceAsync(resolvedId, today);
 
         var balances = leaveTypes.Select(lt =>
         {
@@ -178,7 +236,8 @@ public class LeavesController : ControllerBase
                     lt.Name,
                     Allocated = compOffBalance,
                     Used = approvedLeaves.Where(l => l.LeaveTypeId == lt.Id).Sum(l => l.TotalDays),
-                    Remaining = compOffBalance
+                    Remaining = compOffBalance,
+                    IsPaid = lt.IsPaid
                 };
             }
 
@@ -194,11 +253,12 @@ public class LeavesController : ControllerBase
                 lt.Name,
                 Allocated = allocated,
                 Used = used,
-                Remaining = remaining
+                Remaining = remaining,
+                IsPaid = lt.IsPaid
             };
-        });
+        }).ToList();
 
-        return Ok(new { employeeId, year = currentYear, balances });
+        return Ok(new { employeeId = resolvedId, year = currentYear, balances });
     }
 
     [HttpGet("types")]

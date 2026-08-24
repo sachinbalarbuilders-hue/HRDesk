@@ -456,6 +456,13 @@ public class AttendanceController : ControllerBase
         // Strict Rule: If no official profile picture is uploaded for the employee,
         // face attendance is disallowed.
         var attType = employee.AttendanceType?.ToLowerInvariant() ?? "";
+        if (attType == "biometric")
+        {
+            return BadRequest(new
+            {
+                message = "Mobile clock-in is disabled for your account. Your attendance is tracked exclusively via the office Biometric Machine."
+            });
+        }
         bool requiresFace = attType.Contains("face");
         byte[]? enrolledPhotoBytes = null;
 
@@ -842,19 +849,56 @@ public class AttendanceController : ControllerBase
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.EmployeeId == currentEmpId.Value && a.RecordDate == today);
 
+        // Resolve active shift for employee today
+        var roster = await _db.ShiftRosters
+            .AsNoTracking()
+            .Include(r => r.Shift)
+            .FirstOrDefaultAsync(r => r.EmployeeId == currentEmpId.Value && r.RosterDate == today);
+
+        Shift? shift = roster?.Shift;
+        if (shift == null)
+        {
+            var assignment = await _db.EmployeeShiftAssignments
+                .AsNoTracking()
+                .Include(a => a.Shift)
+                .FirstOrDefaultAsync(a => a.EmployeeId == currentEmpId.Value && a.FromDate <= today && (a.ToDate == null || a.ToDate >= today));
+            shift = assignment?.Shift;
+        }
+
+        if (shift == null)
+        {
+            var employee = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == currentEmpId.Value);
+            shift = await _db.Shifts.AsNoTracking().FirstOrDefaultAsync(s => s.BranchId == employee.BranchId || s.BranchId == null);
+        }
+
+        string shiftName = shift?.ShiftName ?? "General Shift";
+        string shiftStart = shift?.StartTime.ToString("hh:mm tt") ?? "09:30 AM";
+        string shiftEnd = shift?.EndTime.ToString("hh:mm tt") ?? "06:30 PM";
+        decimal targetHours = shift?.WorkingHours > 0 ? shift.WorkingHours : 9.0m;
+
         return Ok(new
         {
             hasEmployee = true,
             isClockedIn = log?.InTime != null && log.OutTime == null,
             inTime = log?.InTime?.ToString("HH:mm"),
-            outTime = log?.OutTime?.ToString("HH:mm")
+            outTime = log?.OutTime?.ToString("HH:mm"),
+            workMinutes = log?.WorkMinutes ?? 0,
+            status = log?.Status ?? "Absent",
+            isLate = log?.IsLate ?? false,
+            lateMinutes = log?.LateMinutes ?? 0,
+            shiftName,
+            shiftStart,
+            shiftEnd,
+            targetHours
         });
     }
 
     [HttpGet("day-details")]
     public async Task<IActionResult> GetDayDetails([FromQuery] int employeeId, [FromQuery] string date)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceMonthlySheet))
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        bool isSelf = currentEmpId.HasValue && currentEmpId.Value == employeeId;
+        if (!isSelf && !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceMonthlySheet))
         {
             return Forbid();
         }
@@ -1076,6 +1120,196 @@ public class AttendanceController : ControllerBase
             } : null,
             punches,
             totalPunches = punches.Count
+        });
+    }
+
+    [HttpGet("my-monthly")]
+    public async Task<IActionResult> GetMyMonthlyAttendance(
+        [FromQuery] int? employeeId = null,
+        [FromQuery] int? year = null,
+        [FromQuery] int? month = null)
+    {
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        var targetEmpId = employeeId ?? currentEmpId;
+
+        if (!targetEmpId.HasValue)
+        {
+            targetEmpId = await _db.Employees
+                .AsNoTracking()
+                .OrderBy(e => e.EmployeeId)
+                .Select(e => (int?)e.EmployeeId)
+                .FirstOrDefaultAsync();
+        }
+
+        if (!targetEmpId.HasValue)
+        {
+            return BadRequest(new { message = "No employee found." });
+        }
+
+        var selectedYear = year ?? DateTime.Now.Year;
+        var selectedMonth = month ?? DateTime.Now.Month;
+        var startDate = new DateOnly(selectedYear, selectedMonth, 1);
+        var daysInMonth = DateTime.DaysInMonth(selectedYear, selectedMonth);
+        var endDate = startDate.AddMonths(1);
+
+        var employee = await _db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.Designation)
+            .FirstOrDefaultAsync(e => e.EmployeeId == targetEmpId.Value);
+
+        if (employee == null) return NotFound(new { message = "Employee not found." });
+
+        var logs = await _db.DailyAttendance
+            .AsNoTracking()
+            .Where(a => a.RecordDate >= startDate && a.RecordDate < endDate && a.EmployeeId == targetEmpId.Value)
+            .ToListAsync();
+
+        var leaveApps = await _db.LeaveApplications
+            .AsNoTracking()
+            .Include(l => l.LeaveType)
+            .Where(l => l.EmployeeId == targetEmpId.Value && l.StartDate < endDate && l.EndDate >= startDate && (l.Status == "Approved" || l.Status == "Adjusted"))
+            .ToListAsync();
+
+        var holidays = await _db.Holidays
+            .AsNoTracking()
+            .Where(h => h.StartDate < endDate && h.EndDate >= startDate)
+            .ToListAsync();
+
+        var monthRosters = await _db.ShiftRosters
+            .AsNoTracking()
+            .Where(r => r.EmployeeId == targetEmpId.Value && r.RosterDate >= startDate && r.RosterDate < endDate)
+            .ToListAsync();
+
+        var today = DateOnly.FromDateTime(DateTime.Now);
+
+        // Quick check for today's live punches only if today's DailyAttendance is missing
+        if (selectedYear == today.Year && selectedMonth == today.Month)
+        {
+            var existingToday = logs.FirstOrDefault(l => l.RecordDate == today);
+            if (existingToday == null)
+            {
+                var todayStart = today.ToDateTime(TimeOnly.MinValue);
+                var todayEnd = today.ToDateTime(TimeOnly.MaxValue);
+                var todayPunches = await _db.AttendanceLogs
+                    .AsNoTracking()
+                    .Where(l => l.EmployeeId == targetEmpId.Value && l.PunchTime >= todayStart && l.PunchTime <= todayEnd)
+                    .OrderBy(l => l.PunchTime)
+                    .ToListAsync();
+
+                if (todayPunches.Count > 0)
+                {
+                    var firstIn = TimeOnly.FromDateTime(todayPunches.First().PunchTime);
+                    TimeOnly? lastOut = todayPunches.Count > 1 ? TimeOnly.FromDateTime(todayPunches.Last().PunchTime) : null;
+                    int workMins = 0;
+                    if (lastOut.HasValue && lastOut > firstIn)
+                    {
+                        workMins = (int)(lastOut.Value - firstIn).TotalMinutes;
+                    }
+                    logs.Add(new DailyAttendance
+                    {
+                        EmployeeId = targetEmpId.Value,
+                        RecordDate = today,
+                        InTime = firstIn,
+                        OutTime = lastOut,
+                        WorkMinutes = workMins,
+                        Status = "Present"
+                    });
+                }
+            }
+        }
+
+        // Compute summary via shared Single Source of Truth service
+        var summary = _attendanceSummaryService.ComputeSummary(targetEmpId.Value, selectedYear, selectedMonth, logs, leaveApps);
+
+        // Group safely by date to prevent duplicate key crashes
+        var logsByDate = logs
+            .GroupBy(l => l.RecordDate)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(l => l.OutTime ?? l.InTime).First());
+
+        var days = new List<object>();
+
+        for (int day = 1; day <= daysInMonth; day++)
+        {
+            var date = new DateOnly(selectedYear, selectedMonth, day);
+            logsByDate.TryGetValue(date, out var log);
+
+            var leave = leaveApps.FirstOrDefault(l => l.StartDate <= date && l.EndDate >= date && l.Status == "Approved");
+            var holiday = holidays.FirstOrDefault(h => h.StartDate <= date && h.EndDate >= date);
+            var roster = monthRosters.FirstOrDefault(r => r.RosterDate == date);
+
+            bool isDefaultWeekoff = !string.IsNullOrWhiteSpace(employee.Weekoff)
+                ? string.Equals(employee.Weekoff.Trim(), date.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase)
+                : date.DayOfWeek == DayOfWeek.Sunday;
+
+            bool isWeekoff = roster != null ? roster.IsWeekOff : isDefaultWeekoff;
+
+            string status;
+            if (log != null && !string.IsNullOrWhiteSpace(log.Status) && log.Status != "-")
+            {
+                status = log.Status;
+            }
+            else if (leave != null)
+            {
+                status = leave.LeaveType?.Code ?? "Leave";
+            }
+            else if (holiday != null)
+            {
+                status = "Holiday";
+            }
+            else if (isWeekoff)
+            {
+                status = "Weekoff";
+            }
+            else if (date > today)
+            {
+                status = "Upcoming";
+            }
+            else
+            {
+                status = "Absent";
+            }
+
+            days.Add(new
+            {
+                day,
+                date = date.ToString("yyyy-MM-dd"),
+                dayOfWeek = date.ToString("ddd"),
+                fullDayOfWeek = date.ToString("dddd"),
+                status,
+                inTime = log?.InTime?.ToString("HH:mm"),
+                outTime = log?.OutTime?.ToString("HH:mm"),
+                workMinutes = log?.WorkMinutes ?? 0,
+                workDuration = log?.WorkMinutes > 0 ? $"{log.WorkMinutes / 60}h {log.WorkMinutes % 60}m" : "--",
+                isLate = log?.IsLate ?? false,
+                lateMinutes = log?.LateMinutes ?? 0,
+                isHalfDay = log?.IsHalfDay ?? false,
+                hasLeave = leave != null,
+                leaveType = leave?.LeaveType?.Name,
+                hasHoliday = holiday != null,
+                holidayName = holiday?.HolidayName
+            });
+        }
+
+        return Ok(new
+        {
+            employeeId = targetEmpId.Value,
+            employeeName = employee.EmployeeName,
+            year = selectedYear,
+            month = selectedMonth,
+            daysInMonth,
+            summary = new
+            {
+                presentCount = summary.PresentCount,
+                absentCount = summary.AbsentCount,
+                halfDayCount = summary.HalfDayCount,
+                weekoffCount = summary.WeekoffCount,
+                holidayCount = summary.HolidayCount,
+                leaveCount = summary.LeaveCount,
+                unpaidLeaveCount = summary.UnpaidLeaveCount,
+                payableDays = summary.PayableDays
+            },
+            days
         });
     }
 

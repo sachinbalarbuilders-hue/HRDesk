@@ -17,6 +17,11 @@ try
     builder.Host.UseSerilog();
     builder.WebHost.UseUrls("http://0.0.0.0:5283");
 
+builder.Services.Configure<HostOptions>(options =>
+{
+    options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
+});
+
 // Add services to the container.
 builder.Services.AddRazorPages(options =>
 {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+import '../core/location_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/punch_provider.dart';
 
@@ -22,8 +23,6 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     with WidgetsBindingObserver {
   // GPS
   Position? _position;
-  bool _locationLoading = true;
-  String? _locationError;
 
   // Camera
   CameraController? _camera;
@@ -38,54 +37,21 @@ class _FacePunchScreenState extends State<FacePunchScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _getLocation();
     _initCamera();
+    _loadInitialLocation();
   }
 
-  Future<void> _getLocation() async {
-    setState(() {
-      _locationLoading = true;
-      _locationError = null;
-    });
+  Future<void> _loadInitialLocation() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
+      final pos = await LocationService().getFreshPosition(
+        timeout: const Duration(seconds: 4),
+      );
+      if (mounted) {
         setState(() {
-          _locationLoading = false;
-          _locationError = 'Location services disabled.';
+          _position = pos;
         });
-        return;
       }
-      LocationPermission perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied)
-        perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) {
-        setState(() {
-          _locationLoading = false;
-          _locationError = 'Location permission denied.';
-        });
-        return;
-      }
-      Position? pos = await Geolocator.getLastKnownPosition();
-      try {
-        pos = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.low, timeLimit: Duration(seconds: 8)),
-        );
-      } catch (_) {
-        pos ??= await Geolocator.getLastKnownPosition();
-      }
-      setState(() {
-        _position = pos;
-        _locationLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _locationLoading = false;
-        _locationError = 'Location error: $e';
-      });
-    }
+    } catch (_) {}
   }
 
   Future<void> _initCamera() async {
@@ -126,13 +92,23 @@ class _FacePunchScreenState extends State<FacePunchScreen>
   }
 
   Future<void> _submitPunch() async {
-    final user = context.read<AuthProvider>().user;
-    if (user == null || _capturedPhotoBase64 == null) return;
+    final authProvider = context.read<AuthProvider>();
+    final punchProvider = context.read<PunchProvider>();
+    final user = authProvider.user;
+    final employeeId = user?.employeeId;
+    if (user == null || employeeId == null || _capturedPhotoBase64 == null) return;
 
     setState(() => _submitting = true);
-    final punchProvider = context.read<PunchProvider>();
+    // Guarantee verified fresh position at time of punch
+    final pos = await LocationService().getFreshPosition(
+      timeout: const Duration(seconds: 4),
+    );
+    if (pos != null) {
+      _position = pos;
+    }
+
     final success = await punchProvider.punch(
-      employeeId: user.employeeId!,
+      employeeId: employeeId,
       punchType: widget.punchType,
       latitude: _position?.latitude,
       longitude: _position?.longitude,
@@ -153,7 +129,7 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       duration: const Duration(seconds: 4),
     ));
     if (success) {
-      context.read<AuthProvider>().tryAutoLogin();
+      authProvider.tryAutoLogin();
       Navigator.of(context).pop(true);
     }
   }
@@ -182,17 +158,13 @@ class _FacePunchScreenState extends State<FacePunchScreen>
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
-      body: _locationLoading
-          ? _buildLoading('Getting your location...')
-          : _locationError != null
-              ? _buildError(_locationError!, onRetry: _getLocation)
-              : !_cameraReady
-                  ? _buildLoading('Starting camera...')
-                  : _submitting
-                      ? _buildLoading('Verifying face & recording punch...')
-                      : _capturedPhotoBase64 != null
-                          ? _buildConfirmState()
-                          : _buildCameraView(),
+      body: !_cameraReady
+          ? _buildLoading('Starting camera...')
+          : _submitting
+              ? _buildLoading('Verifying face & recording punch...')
+              : _capturedPhotoBase64 != null
+                  ? _buildConfirmState()
+                  : _buildCameraView(),
     );
   }
 
@@ -205,27 +177,6 @@ class _FacePunchScreenState extends State<FacePunchScreen>
           Text(msg,
               style: const TextStyle(color: Colors.white70, fontSize: 14)),
         ],
-      ));
-
-  Widget _buildError(String msg, {VoidCallback? onRetry}) => Center(
-          child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Icon(Icons.location_off, color: Colors.redAccent, size: 48),
-          const SizedBox(height: 16),
-          Text(msg,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          if (onRetry != null) ...[
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: onRetry,
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D9488)),
-              child: const Text('Retry', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ]),
       ));
 
   Widget _buildCameraView() {
@@ -257,30 +208,38 @@ class _FacePunchScreenState extends State<FacePunchScreen>
           ),
         ),
 
-        // GPS status
-        if (_position != null)
-          Positioned(
-            bottom: 16,
-            left: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black.withAlpha(130),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child:
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.location_on,
-                    color: Color(0xFF0D9488), size: 14),
+        // GPS status pill
+        Positioned(
+          bottom: 16,
+          left: 16,
+          right: 16,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black.withAlpha(130),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _position != null ? Icons.location_on : Icons.location_searching,
+                  color: _position != null
+                      ? const Color(0xFF0D9488)
+                      : Colors.amberAccent,
+                  size: 14,
+                ),
                 const SizedBox(width: 4),
                 Text(
-                  'GPS: ${_position!.latitude.toStringAsFixed(4)}, ${_position!.longitude.toStringAsFixed(4)}',
+                  _position != null
+                      ? 'GPS: ${_position!.latitude.toStringAsFixed(4)}, ${_position!.longitude.toStringAsFixed(4)}'
+                      : 'Acquiring GPS location...',
                   style: const TextStyle(color: Colors.white70, fontSize: 11),
                 ),
-              ]),
+              ],
             ),
           ),
+        ),
       ])),
 
       // Capture button

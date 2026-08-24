@@ -185,9 +185,47 @@ END;";
     }
 
     [HttpGet("{publicId:guid}")]
-    public async Task<IActionResult> GetEmployeeById(Guid publicId)
+    public async Task<IActionResult> GetEmployeeByGuid(Guid publicId)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesView))
+        return await FetchEmployeeDetail(e => e.PublicId == publicId);
+    }
+
+    [HttpGet("me")]
+    public async Task<IActionResult> GetMyProfile([FromQuery] int? employeeId = null)
+    {
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        var targetEmpId = employeeId ?? currentEmpId;
+        if (!targetEmpId.HasValue)
+        {
+            targetEmpId = await _db.Employees.AsNoTracking().Select(e => (int?)e.EmployeeId).FirstOrDefaultAsync();
+        }
+
+        if (!targetEmpId.HasValue)
+        {
+            return NotFound(new { message = "No employee found." });
+        }
+
+        return await FetchEmployeeDetail(e => e.EmployeeId == targetEmpId.Value, bypassPermission: true);
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetEmployeeById(int id)
+    {
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        // Allow self-lookup without broad EmployeesView permission
+        if (!currentEmpId.HasValue || currentEmpId.Value == id)
+        {
+            return await FetchEmployeeDetail(e => e.EmployeeId == id, bypassPermission: true);
+        }
+
+        return await FetchEmployeeDetail(e => e.EmployeeId == id);
+    }
+
+    private async Task<IActionResult> FetchEmployeeDetail(
+        System.Linq.Expressions.Expression<Func<HRDesk.Web.Models.Employee, bool>> predicate,
+        bool bypassPermission = false)
+    {
+        if (!bypassPermission && !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesView))
         {
             return Forbid();
         }
@@ -200,9 +238,12 @@ END;";
                 .ThenInclude(b => b!.Organization)
             .Include(e => e.Organization)
             .Include(e => e.ReportingManager)
-            .Where(e => e.PublicId == publicId);
+            .Where(predicate);
 
-        query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.EmployeesView);
+        if (!bypassPermission)
+        {
+            query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.EmployeesView);
+        }
 
         var employee = await query.FirstOrDefaultAsync();
         if (employee == null)
@@ -212,6 +253,17 @@ END;";
 
         var orgName = employee.Organization?.Name ?? employee.Branch?.Organization?.Name;
         var orgAddress = employee.Organization?.Address ?? employee.Branch?.Organization?.Address;
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var shiftRoster = await _db.ShiftRosters
+            .AsNoTracking()
+            .Include(r => r.Shift)
+            .FirstOrDefaultAsync(r => r.EmployeeId == employee.EmployeeId && r.RosterDate == today);
+
+        var shift = shiftRoster?.Shift ?? await _db.Shifts.AsNoTracking().FirstOrDefaultAsync();
+        var shiftName = shift?.ShiftName ?? "General";
+        var shiftStart = shift != null ? shift.StartTime.ToString(@"hh\:mm") : "09:30";
+        var shiftEnd = shift != null ? shift.EndTime.ToString(@"hh\:mm") : "18:30";
 
         var user = await _db.Users
             .AsNoTracking()
@@ -265,6 +317,10 @@ END;";
             employee.ProbationDays,
             employee.ContractDurationMonths,
             employee.ContractEndDate,
+            shiftName,
+            shiftStart,
+            shiftEnd,
+            shiftTiming = $"{shiftStart} - {shiftEnd}",
             roleId = activeRoleId,
             hasLoginAccess = user != null && user.IsActive,
             isFaceEnrolled = !string.IsNullOrEmpty(employee.FaceId),

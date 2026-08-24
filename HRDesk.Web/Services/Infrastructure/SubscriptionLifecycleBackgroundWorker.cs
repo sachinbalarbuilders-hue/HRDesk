@@ -28,23 +28,43 @@ public class SubscriptionLifecycleBackgroundWorker : BackgroundService
     {
         _logger.LogInformation("Subscription Lifecycle Worker started.");
 
-        // Initial brief delay on startup
-        await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
-
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
-            {
-                await ProcessExpiredSubscriptionsAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing expired subscriptions.");
-            }
+            // Initial brief delay on startup
+            await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
 
-            // Runs every 6 hours
-            await Task.Delay(TimeSpan.FromHours(6), stoppingToken);
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await ProcessExpiredSubscriptionsAsync(stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing expired subscriptions.");
+                }
+
+                // Runs every 6 hours
+                try
+                {
+                    await Task.Delay(TimeSpan.FromHours(6), stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+            }
         }
+        catch (OperationCanceledException)
+        {
+            // Normal graceful shutdown
+        }
+
+        _logger.LogInformation("Subscription Lifecycle Worker stopped.");
     }
 
     private async Task ProcessExpiredSubscriptionsAsync(CancellationToken stoppingToken)
