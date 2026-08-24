@@ -52,6 +52,7 @@ class RegularizationProvider with ChangeNotifier {
     String? punchTimeIn,
     String? punchTimeOut,
     String? reason,
+    bool waivePenalty = true,
   }) async {
     _loading = true;
     _error = null;
@@ -61,7 +62,7 @@ class RegularizationProvider with ChangeNotifier {
       final response = await _api.dio.post('/regularizations', data: {
         'employeeId': employeeId,
         'requestType': requestType,
-        'waivePenalty': false,
+        'waivePenalty': waivePenalty,
         'reason': reason ?? '',
         'items': [
           {

@@ -397,7 +397,7 @@ public class LoansController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = $"Failed to create loan application: {ex.Message}" });
+            return StatusCode(500, new { message = "Failed to create loan application. Please try again or contact support." });
         }
     }
 

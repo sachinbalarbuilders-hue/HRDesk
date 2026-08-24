@@ -194,6 +194,212 @@ public class DashboardController : ControllerBase
         });
     }
 
+    [HttpGet("overview")]
+    public async Task<IActionResult> GetDashboardOverview([FromQuery] int? branchId = null)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var currentMonth = today.Month;
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+
+        // 1. Team Members & Today's Attendance
+        var empQuery = _db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.Designation)
+            .Where(e => e.Status == null || e.Status.ToLower() == "active");
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            empQuery = empQuery.Where(e => e.BranchId == activeBranch.Value);
+        }
+
+        var employees = await empQuery.Take(30).ToListAsync();
+        var empIds = employees.Select(e => e.EmployeeId).ToList();
+
+        var todayLogs = await _db.DailyAttendance
+            .AsNoTracking()
+            .Where(a => a.RecordDate == today && empIds.Contains(a.EmployeeId))
+            .ToDictionaryAsync(a => a.EmployeeId);
+
+        var myTeam = employees.Select(e =>
+        {
+            todayLogs.TryGetValue(e.EmployeeId, out var log);
+            var status = log?.Status ?? (log?.InTime != null ? "Present" : "Not Checked In");
+            return new
+            {
+                employeeId = e.EmployeeId,
+                employeeName = e.EmployeeName,
+                department = e.Department?.DepartmentName ?? "General",
+                designation = e.Designation?.DesignationName ?? "Staff",
+                inTime = log?.InTime != null ? log.InTime.Value.ToString("HH:mm") : null,
+                outTime = log?.OutTime != null ? log.OutTime.Value.ToString("HH:mm") : null,
+                status,
+                isLate = log?.IsLate ?? false,
+                photoUrl = $"/api/employees/{e.EmployeeId}/public-photo",
+                phone = e.Phone
+            };
+        }).ToList();
+
+        // 2. Celebrations (Upcoming Birthdays & Work Anniversaries)
+        var celQuery = _db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Where(e => e.Status == null || e.Status.ToLower() == "active");
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            // If branch has no birthdays, we can still fall back to all active
+            var branchHasEmps = await celQuery.AnyAsync(e => e.BranchId == activeBranch.Value);
+            if (branchHasEmps)
+            {
+                celQuery = celQuery.Where(e => e.BranchId == activeBranch.Value);
+            }
+        }
+
+        var allWithDob = await celQuery
+            .Where(e => e.DateOfBirth.HasValue)
+            .ToListAsync();
+
+        var birthdays = allWithDob
+            .Select(e =>
+            {
+                var dob = e.DateOfBirth!.Value;
+                var nextBday = new DateOnly(today.Year, dob.Month, dob.Day);
+                if (nextBday < today) nextBday = new DateOnly(today.Year + 1, dob.Month, dob.Day);
+                var daysUntil = nextBday.DayNumber - today.DayNumber;
+                return new
+                {
+                    employeeId = e.EmployeeId,
+                    employeeName = e.EmployeeName,
+                    department = e.Department != null ? e.Department.DepartmentName : "General",
+                    day = dob.Day,
+                    month = dob.Month,
+                    dateStr = $"{dob:dd MMM}",
+                    daysUntil,
+                    isToday = dob.Month == today.Month && dob.Day == today.Day,
+                    photoUrl = $"/api/employees/{e.EmployeeId}/public-photo",
+                    type = "Birthday"
+                };
+            })
+            .OrderBy(b => b.daysUntil)
+            .Take(5)
+            .ToList();
+
+        var allWithJoining = await celQuery
+            .Where(e => e.JoiningDate.HasValue && e.JoiningDate.Value.Year <= today.Year)
+            .ToListAsync();
+
+        var anniversaries = allWithJoining
+            .Select(e =>
+            {
+                var jd = e.JoiningDate!.Value;
+                var nextAnniv = new DateOnly(today.Year, jd.Month, jd.Day);
+                if (nextAnniv < today) nextAnniv = new DateOnly(today.Year + 1, jd.Month, jd.Day);
+                var daysUntil = nextAnniv.DayNumber - today.DayNumber;
+                var years = Math.Max(1, today.Year - jd.Year);
+                return new
+                {
+                    employeeId = e.EmployeeId,
+                    employeeName = e.EmployeeName,
+                    department = e.Department != null ? e.Department.DepartmentName : "General",
+                    day = jd.Day,
+                    month = jd.Month,
+                    dateStr = $"{jd:dd MMM}",
+                    daysUntil,
+                    years,
+                    isToday = jd.Month == today.Month && jd.Day == today.Day,
+                    photoUrl = $"/api/employees/{e.EmployeeId}/public-photo",
+                    type = "Work Anniversary"
+                };
+            })
+            .OrderBy(a => a.daysUntil)
+            .Take(5)
+            .ToList();
+
+        var minJoinDate = today.AddDays(-45);
+        var newJoiners = await celQuery
+            .Where(e => e.JoiningDate.HasValue && e.JoiningDate.Value >= minJoinDate && e.JoiningDate.Value <= today)
+            .OrderByDescending(e => e.JoiningDate)
+            .Take(5)
+            .Select(e => new
+            {
+                employeeId = e.EmployeeId,
+                employeeName = e.EmployeeName,
+                department = e.Department != null ? e.Department.DepartmentName : "General",
+                day = e.JoiningDate!.Value.Day,
+                month = e.JoiningDate!.Value.Month,
+                dateStr = $"{e.JoiningDate.Value:dd MMM yyyy}",
+                daysAgo = today.DayNumber - e.JoiningDate!.Value.DayNumber,
+                photoUrl = $"/api/employees/{e.EmployeeId}/public-photo",
+                type = "New Joiner"
+            })
+            .ToListAsync();
+
+        // 3. Database Announcements & Holiday Notices
+        var dbAnnouncements = await _db.Announcements
+            .AsNoTracking()
+            .Where(a => a.IsActive && a.StartDate <= today && (a.EndDate == null || a.EndDate >= today))
+            .Where(a => !activeBranch.HasValue || a.BranchId == null || a.BranchId == activeBranch.Value)
+            .OrderByDescending(a => a.IsPinned)
+            .ThenByDescending(a => a.CreatedAt)
+            .Take(5)
+            .Select(a => new
+            {
+                id = a.Id.ToString(),
+                title = a.Title,
+                message = a.Message,
+                category = a.Category,
+                date = a.StartDate.ToString("yyyy-MM-dd"),
+                priority = a.Priority,
+                isPinned = a.IsPinned
+            })
+            .ToListAsync();
+
+        var announcements = new List<object>(dbAnnouncements);
+
+        var upcomingHolidays = await _db.Holidays
+            .AsNoTracking()
+            .Where(h => h.StartDate >= today || h.EndDate >= today)
+            .OrderBy(h => h.StartDate)
+            .Take(2)
+            .ToListAsync();
+
+        foreach (var h in upcomingHolidays)
+        {
+            announcements.Add(new
+            {
+                id = $"hol-{h.Id}",
+                title = $"Upcoming Holiday: {h.HolidayName}",
+                message = $"Office closed on {h.StartDate:dd MMM yyyy} ({h.HolidayName}). Plan your tasks accordingly.",
+                category = "Holiday",
+                date = h.StartDate.ToString("yyyy-MM-dd"),
+                priority = "Normal",
+                isPinned = false
+            });
+        }
+
+        if (announcements.Count == 0)
+        {
+            announcements.Add(new
+            {
+                id = "sys-cutoff",
+                title = "Monthly Attendance Regularization",
+                message = "Remember to submit regularization requests for any punch discrepancies before month-end cutoff.",
+                category = "Notice",
+                date = today.ToString("yyyy-MM-dd"),
+                priority = "High",
+                isPinned = false
+            });
+        }
+
+        return Ok(new
+        {
+            myTeam,
+            announcements,
+            celebrations = new { birthdays, anniversaries, newJoiners }
+        });
+    }
+
     [HttpGet("celebrations")]
     public async Task<IActionResult> GetCelebrations([FromQuery] int? branchId = null)
     {
@@ -217,6 +423,7 @@ public class DashboardController : ControllerBase
                 e.EmployeeName,
                 Department = e.Department != null ? e.Department.DepartmentName : "General",
                 Day = e.DateOfBirth!.Value.Day,
+                PhotoUrl = $"/api/employees/{e.EmployeeId}/public-photo",
                 Type = "Birthday"
             })
             .ToListAsync();
@@ -232,6 +439,7 @@ public class DashboardController : ControllerBase
                 Department = e.Department != null ? e.Department.DepartmentName : "General",
                 Day = e.JoiningDate!.Value.Day,
                 Years = today.Year - e.JoiningDate!.Value.Year,
+                PhotoUrl = $"/api/employees/{e.EmployeeId}/public-photo",
                 Type = "Work Anniversary"
             })
             .ToListAsync();

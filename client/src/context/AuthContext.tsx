@@ -84,8 +84,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('hrdesk_permission_scopes', JSON.stringify(newScopes || {}));
     if (newOrgs && newOrgs.length > 0) {
       localStorage.setItem('hrdesk_db_orgs', JSON.stringify(newOrgs));
-      localStorage.setItem('hrdesk_active_organization', String(newUser.organizationId || newOrgs[0].id));
+      const activeOrg = newOrgs.find((o: any) => String(o.id) === String(newUser.organizationId)) || newOrgs[0];
+      localStorage.setItem('hrdesk_active_organization', String(activeOrg.id));
+      localStorage.setItem('hrdesk_active_org_obj', JSON.stringify(activeOrg));
     }
+    localStorage.removeItem('hrdesk_db_branches');
+    localStorage.removeItem('hrdesk_active_branch');
   };
 
   const logout = () => {
@@ -98,22 +102,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('hrdesk_permissions');
     localStorage.removeItem('hrdesk_permission_scopes');
     localStorage.removeItem('hrdesk_db_orgs');
+    localStorage.removeItem('hrdesk_db_branches');
     localStorage.removeItem('hrdesk_active_org_obj');
+    localStorage.removeItem('hrdesk_active_organization');
+    localStorage.removeItem('hrdesk_active_branch');
   };
 
   const hasPermission = (permissionKey: string): boolean => {
     if (!user) return false;
-    if (user.role === 'SuperAdmin') return true;
+    if (user.role === 'SuperAdmin' || user.role === 'Admin') return true;
     return permissions.includes(permissionKey);
   };
 
   const getPermissionScope = (permissionKey: string): string | undefined => {
     if (!user) return undefined;
-    if (user.role === 'SuperAdmin') return 'All';
+    if (user.role === 'SuperAdmin' || user.role === 'Admin') return 'All';
     return permissionScopes[permissionKey];
   };
 
-  const isAdmin = user?.role === 'SuperAdmin';
+  const isAdmin = user?.role === 'SuperAdmin' || user?.role === 'Admin' || user?.role === 'HR' || user?.role === 'Manager';
 
   return (
     <AuthContext.Provider

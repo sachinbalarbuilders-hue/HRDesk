@@ -260,8 +260,25 @@ END;";
             .Include(r => r.Shift)
             .FirstOrDefaultAsync(r => r.EmployeeId == employee.EmployeeId && r.RosterDate == today);
 
-        var shift = shiftRoster?.Shift ?? await _db.Shifts.AsNoTracking().FirstOrDefaultAsync();
-        var shiftName = shift?.ShiftName ?? "General";
+        Shift? shift = shiftRoster?.Shift;
+        if (shift == null)
+        {
+            var assignment = await _db.EmployeeShiftAssignments
+                .AsNoTracking()
+                .Include(a => a.Shift)
+                .FirstOrDefaultAsync(a => a.EmployeeId == employee.EmployeeId && a.FromDate <= today && (a.ToDate == null || a.ToDate >= today));
+            shift = assignment?.Shift;
+        }
+
+        if (shift == null)
+        {
+            shift = await _db.Shifts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => (s.BranchId == employee.BranchId || s.BranchId == null) && s.OrganizationId == employee.OrganizationId);
+            shift ??= await _db.Shifts.AsNoTracking().FirstOrDefaultAsync();
+        }
+
+        var shiftName = shift?.ShiftName ?? "General Day Shift";
         var shiftStart = shift != null ? shift.StartTime.ToString(@"hh\:mm") : "09:30";
         var shiftEnd = shift != null ? shift.EndTime.ToString(@"hh\:mm") : "18:30";
 
@@ -438,10 +455,7 @@ END;";
             WorkEmail = dto.WorkEmail?.Trim(),
             PersonalEmail = dto.PersonalEmail?.Trim(),
             CurrentAddress = dto.CurrentAddress?.Trim(),
-            PermanentAddress = dto.PermanentAddress?.Trim(),
-            HasProbation = dto.HasProbation,
-            ProbationDays = dto.ProbationDays,
-            ContractDurationMonths = dto.ContractDurationMonths,
+        ContractDurationMonths = dto.ContractDurationMonths,
             ContractEndDate = dto.ContractEndDate
         };
 
@@ -451,7 +465,12 @@ END;";
                 ? dto.WorkEmail.Trim() 
                 : (!string.IsNullOrWhiteSpace(dto.PersonalEmail) ? dto.PersonalEmail.Trim() : $"emp{targetEmpId}");
 
-            var roleName = dto.RoleId.Value == 1 ? "SuperAdmin" : (dto.RoleId.Value == 2 ? "DepartmentManager" : "Employee");
+            var roleObj = await _db.Roles.FirstOrDefaultAsync(r => r.Id == dto.RoleId.Value);
+            var roleName = roleObj?.Name ?? "Employee";
+            if (roleName.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Super Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                roleName = "Admin";
+            }
 
             var user = new User
             {
@@ -536,11 +555,20 @@ END;";
 
                 if (dto.RoleId.Value > 0)
                 {
-                    var roleName = dto.RoleId.Value == 1 ? "SuperAdmin" : (dto.RoleId.Value == 2 ? "DepartmentManager" : "Employee");
+                    var roleObj = await _db.Roles.FirstOrDefaultAsync(r => r.Id == dto.RoleId.Value);
+                    var roleName = roleObj?.Name ?? "Employee";
+                    if (roleName.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || roleName.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) || roleName.Equals("Super Admin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        roleName = "Admin";
+                    }
+
                     if (user != null)
                     {
                         user.RoleId = dto.RoleId.Value;
-                        user.Role = roleName;
+                        if (user.Role != "SuperAdmin")
+                        {
+                            user.Role = roleName;
+                        }
                         user.FullName = employee.EmployeeName;
                         if (!string.IsNullOrWhiteSpace(employee.WorkEmail))
                         {

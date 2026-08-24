@@ -92,6 +92,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<SubscriptionPayment> SubscriptionPayments => Set<SubscriptionPayment>();
     public DbSet<GateActivityLog> GateActivityLogs => Set<GateActivityLog>();
     public DbSet<InAppNotification> InAppNotifications => Set<InAppNotification>();
+    public DbSet<Announcement> Announcements => Set<Announcement>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -139,6 +140,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
         modelBuilder.Entity<CompOffCredit>().HasIndex(c => c.WorkDate);
         modelBuilder.Entity<ShiftRoster>().HasIndex(s => s.RosterDate);
         modelBuilder.Entity<Holiday>().HasIndex(h => new { h.StartDate, h.EndDate });
+        modelBuilder.Entity<Announcement>().HasIndex(a => new { a.OrganizationId, a.IsActive, a.StartDate, a.EndDate });
 
         // Opaque public-facing identifiers (used in URLs/API responses instead of the
         // internal integer Id) must be unique so they safely resolve back to one row.

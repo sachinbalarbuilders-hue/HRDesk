@@ -38,7 +38,7 @@ public class MastersController : ControllerBase
     public record DesignationDto(string DesignationName, string? Status, int? BranchId = null);
     public record OrganizationDto(string Name, string? Code, string? Address, string? WhatsAppGroupId, double? Latitude, double? Longitude, double? RadiusMeters, bool IsActive, string? LogoUrl = null, string? PrimaryColor = null, string? CustomDomain = null);
     public record LeaveTypeDto(string Name, string Code, decimal DefaultYearlyQuota, bool IsPaid, bool ApplicableAfterProbation, bool AllowCarryForward, string GenderApplicability, string MaritalStatusApplicability, string DepartmentIds, string DesignationIds, string RoleIds, string Status, int? BranchId = null);
-    public record ShiftDto(string Name, string? Code, string StartTime, string EndTime, string? LunchBreakStart, string? LunchBreakEnd, int? BreakMinutes, int? LateComingGraceMinutes, int? EarlyLeaveGraceMinutes, string? ColorCode, int? BranchId = null);
+    public record ShiftDto(string Name, string? Code, string StartTime, string EndTime, string? LunchBreakStart, string? LunchBreakEnd, int? BreakMinutes, int? LateComingGraceMinutes, int? EarlyLeaveGraceMinutes, string? ColorCode, string? HalfTime = null, int? BranchId = null);
     public record AttendancePolicyDto(int GracePeriodMinutes, decimal HalfDayThresholdHours, decimal FullDayThresholdHours, int AutoSyncIntervalMinutes, string DefaultWeekoff, bool SandwichRuleEnabled = true, int? BranchId = null);
     public record CompanyPolicyDto(
         int OrganizationId,
@@ -64,42 +64,34 @@ public class MastersController : ControllerBase
     [HttpGet("company")]
     public async Task<IActionResult> GetCompany()
     {
-        var company = await _db.Companies.AsNoTracking().FirstOrDefaultAsync();
-        if (company == null)
-        {
-            company = new Company
-            {
-                LegalName = "Sachin Balar Builders Pvt. Ltd.",
-                TradeName = "Hue Builders",
-                Code = "SBB",
-                Gstin = "24AAAAA0000A1Z5",
-                HeadquartersAddress = "Surat, Gujarat, India",
-                Email = "contact@sachinbalar.com",
-                Phone = "+91 98765 43210",
-                IsActive = true,
-                CreatedAt = DateTime.Now
-            };
-            _db.Companies.Add(company);
-            await _db.SaveChangesAsync();
-        }
+        var userOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var org = await _db.Organizations.AsNoTracking().FirstOrDefaultAsync(o => o.Id == userOrgId);
 
-        var branchCount = await _db.Organizations.CountAsync(b => b.IsActive);
+        var company = await _db.Companies.AsNoTracking().FirstOrDefaultAsync();
+        var legalName = org != null ? org.Name : (company?.LegalName ?? "Company");
+        var tradeName = org != null ? org.Name : (company?.TradeName ?? legalName);
+        var code = org?.Code ?? company?.Code ?? "ORG";
+        var address = org?.Address ?? company?.HeadquartersAddress ?? "";
+        var logoUrl = org?.LogoUrl ?? company?.LogoUrl;
+        var email = company?.Email;
+        var phone = company?.Phone;
+        var branchCount = await _db.Branches.CountAsync(b => b.OrganizationId == userOrgId && b.IsActive);
 
         return Ok(new
         {
-            id = company.Id,
-            legalName = company.LegalName,
-            tradeName = company.TradeName ?? company.LegalName,
-            code = company.Code ?? "SBB",
-            gstin = company.Gstin,
-            cin = company.Cin,
-            pan = company.Pan,
-            logoUrl = company.LogoUrl,
-            website = company.Website,
-            email = company.Email,
-            phone = company.Phone,
-            headquartersAddress = company.HeadquartersAddress,
-            isActive = company.IsActive,
+            id = company?.Id ?? (org?.Id ?? 1),
+            legalName,
+            tradeName,
+            code,
+            gstin = company?.Gstin,
+            cin = company?.Cin,
+            pan = company?.Pan,
+            logoUrl,
+            website = company?.Website,
+            email,
+            phone,
+            headquartersAddress = address,
+            isActive = org?.IsActive ?? true,
             branchCount = branchCount
         });
     }
@@ -153,9 +145,20 @@ public class MastersController : ControllerBase
     public async Task<IActionResult> GetOverview([FromQuery] int? branchId = null)
     {
         var activeBranch = branchId ?? _tenantProvider.BranchId;
+        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        var userOrgId = _tenantProvider.TenantId;
 
-        var orgs = await _db.Organizations.AsNoTracking().ToListAsync();
-        var branches = await _db.Branches.IgnoreQueryFilters().AsNoTracking().ToListAsync();
+        var orgQuery = _db.Organizations.AsNoTracking().Where(o => o.IsActive);
+        var branchQuery = _db.Branches.AsNoTracking().Where(b => b.IsActive);
+
+        if (!isSuperAdmin && userOrgId > 0)
+        {
+            orgQuery = orgQuery.Where(o => o.Id == userOrgId);
+            branchQuery = branchQuery.Where(b => b.OrganizationId == userOrgId);
+        }
+
+        var orgs = await orgQuery.ToListAsync();
+        var branches = await branchQuery.ToListAsync();
 
         var deptQuery = _db.Departments.Include(d => d.Branch).AsNoTracking().AsQueryable();
         var desigQuery = _db.Designations.Include(d => d.Branch).AsNoTracking().AsQueryable();
@@ -253,7 +256,14 @@ public class MastersController : ControllerBase
                 code = s.ShiftCode,
                 startTime = s.StartTime.ToString("HH:mm"),
                 endTime = s.EndTime.ToString("HH:mm"),
-                colorCode = s.ColorCode,
+                lunchStart = s.LunchBreakStart.HasValue ? s.LunchBreakStart.Value.ToString("HH:mm") : null,
+                lunchEnd = s.LunchBreakEnd.HasValue ? s.LunchBreakEnd.Value.ToString("HH:mm") : null,
+                breakMinutes = s.LunchBreakDuration,
+                lateGrace = s.LateComingGraceMinutes ?? 15,
+                earlyLeaveGrace = s.EarlyLeaveGraceMinutes ?? 15,
+                halfTime = s.HalfTime.HasValue ? s.HalfTime.Value.ToString("HH:mm") : null,
+                workingHours = s.WorkingHours,
+                colorCode = s.ColorCode ?? "#4e73df",
                 branchId = s.BranchId,
                 branchName = s.Branch != null ? s.Branch.Name : null
             })
@@ -471,7 +481,9 @@ public class MastersController : ControllerBase
                 LunchBreakEnd = TimeOnly.TryParse(dto.LunchBreakEnd, out var lbEnd) ? lbEnd : null,
                 LunchBreakDuration = breakMins,
                 WorkingHours = workingHours > 0 ? workingHours : 8m,
-                HalfTime = TimeOnly.FromTimeSpan(startTime.ToTimeSpan() + TimeSpan.FromMinutes(totalMinutes / 2)),
+                HalfTime = !string.IsNullOrWhiteSpace(dto.HalfTime) && TimeOnly.TryParse(dto.HalfTime, out var hTimeCustom)
+                    ? hTimeCustom
+                    : TimeOnly.FromTimeSpan(startTime.ToTimeSpan() + TimeSpan.FromMinutes(totalMinutes / 2)),
                 LateComingGraceMinutes = dto.LateComingGraceMinutes ?? 15,
                 EarlyLeaveGraceMinutes = dto.EarlyLeaveGraceMinutes ?? 15,
                 ColorCode = dto.ColorCode ?? "#4e73df",
@@ -487,7 +499,7 @@ public class MastersController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = $"Failed to create shift: {ex.InnerException?.Message ?? ex.Message}" });
+            return StatusCode(500, new { message = "Failed to create shift. Please try again or contact support." });
         }
     }
 
@@ -498,12 +510,30 @@ public class MastersController : ControllerBase
         if (shift == null) return NotFound(new { message = "Shift not found." });
 
         if (!string.IsNullOrWhiteSpace(dto.Name)) shift.ShiftName = dto.Name.Trim();
-        if (!string.IsNullOrWhiteSpace(dto.Code)) shift.ShiftCode = dto.Code.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.Code)) shift.ShiftCode = dto.Code.Trim().ToUpper();
         if (TimeOnly.TryParse(dto.StartTime, out var startTime)) shift.StartTime = startTime;
         if (TimeOnly.TryParse(dto.EndTime, out var endTime)) shift.EndTime = endTime;
+        if (TimeOnly.TryParse(dto.LunchBreakStart, out var lbStart)) shift.LunchBreakStart = lbStart;
+        if (TimeOnly.TryParse(dto.LunchBreakEnd, out var lbEnd)) shift.LunchBreakEnd = lbEnd;
         if (dto.BreakMinutes.HasValue) shift.LunchBreakDuration = dto.BreakMinutes.Value;
+        if (dto.LateComingGraceMinutes.HasValue) shift.LateComingGraceMinutes = dto.LateComingGraceMinutes.Value;
+        if (dto.EarlyLeaveGraceMinutes.HasValue) shift.EarlyLeaveGraceMinutes = dto.EarlyLeaveGraceMinutes.Value;
         if (!string.IsNullOrWhiteSpace(dto.ColorCode)) shift.ColorCode = dto.ColorCode;
         if (dto.BranchId.HasValue) shift.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
+
+        var totalMinutes = (shift.EndTime.ToTimeSpan() - shift.StartTime.ToTimeSpan()).TotalMinutes;
+        var breakMins = shift.LunchBreakDuration;
+        var workingHours = Math.Round((decimal)(totalMinutes - breakMins) / 60m, 2);
+        shift.WorkingHours = workingHours > 0 ? workingHours : 8m;
+        
+        if (!string.IsNullOrWhiteSpace(dto.HalfTime) && TimeOnly.TryParse(dto.HalfTime, out var hTimeEdit))
+        {
+            shift.HalfTime = hTimeEdit;
+        }
+        else
+        {
+            shift.HalfTime = TimeOnly.FromTimeSpan(shift.StartTime.ToTimeSpan() + TimeSpan.FromMinutes(totalMinutes / 2));
+        }
 
         await _db.SaveChangesAsync();
         return Ok(new { message = "Shift updated successfully.", id = shift.Id });
@@ -722,9 +752,16 @@ public class MastersController : ControllerBase
     [HttpGet("organizations")]
     public async Task<IActionResult> GetOrganizations()
     {
-        var rawOrgs = await _db.Organizations
-            .AsNoTracking()
-            .Where(o => o.IsActive)
+        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        var userOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+
+        var query = _db.Organizations.AsNoTracking().Where(o => o.IsActive);
+        if (!isSuperAdmin)
+        {
+            query = query.Where(o => o.Id == userOrgId);
+        }
+
+        var rawOrgs = await query
             .OrderBy(o => o.Id)
             .ToListAsync();
 
@@ -732,9 +769,12 @@ public class MastersController : ControllerBase
         {
             id = o.Id.ToString(),
             name = o.Name,
-            code = o.Name.Length > 3 ? string.Concat(o.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(w => w[0])) : o.Name,
+            code = o.Code ?? (o.Name.Length > 3 ? string.Concat(o.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(w => w[0])) : o.Name),
             address = o.Address,
             whatsAppGroupId = o.WhatsAppGroupId,
+            logoUrl = o.LogoUrl,
+            primaryColor = o.PrimaryColor ?? "#D97706",
+            customDomain = o.CustomDomain,
             isActive = o.IsActive
         }).ToList();
 
@@ -873,19 +913,30 @@ public class MastersController : ControllerBase
     // BRANCHES MASTER
     // ==========================================
     [HttpGet("branches")]
-    public async Task<IActionResult> GetBranches()
+    public async Task<IActionResult> GetBranches([FromQuery] int? organizationId = null)
     {
-        var branches = await _db.Branches
-            .IgnoreQueryFilters()
-            .AsNoTracking()
+        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        var userOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+
+        var query = _db.Branches.AsNoTracking().Where(b => b.IsActive);
+        if (!isSuperAdmin)
+        {
+            query = query.Where(b => b.OrganizationId == userOrgId);
+        }
+        else if (organizationId.HasValue && organizationId.Value > 0)
+        {
+            query = query.Where(b => b.OrganizationId == organizationId.Value);
+        }
+
+        var branches = await query
             .OrderBy(b => b.Id)
             .ToListAsync();
 
         return Ok(branches.Select(b => new
         {
-            id = b.Id,
+            id = b.Id.ToString(),
             publicId = b.PublicId,
-            organizationId = b.OrganizationId,
+            organizationId = b.OrganizationId.ToString(),
             name = b.Name,
             code = b.Code ?? "",
             address = b.Address,

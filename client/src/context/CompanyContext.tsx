@@ -42,16 +42,8 @@ interface OrganizationContextType {
   refreshOrganizations: () => Promise<void>;
 }
 
-const DEFAULT_ORGS: Organization[] = [
-  { id: '1', name: 'Setu Developers', code: 'SETU', address: 'Surat, Gujarat' },
-  { id: '2', name: 'Shilpam', code: 'SHILPAM', address: 'Surat, Gujarat' },
-];
-
-const DEFAULT_BRANCHES: Branch[] = [
-  { id: '1', organizationId: '1', name: 'Ville flora', code: 'VF-01', city: 'Surat', state: 'Gujarat', radiusMeters: 150, isActive: true },
-  { id: '2', organizationId: '1', name: 'Ville Flora 2', code: 'VF-02', city: 'Surat', state: 'Gujarat', radiusMeters: 200, isActive: true },
-  { id: '3', organizationId: '2', name: 'Vista Regency', code: 'VR-01', city: 'Surat', state: 'Gujarat', radiusMeters: 150, isActive: true },
-];
+const DEFAULT_ORGS: Organization[] = [];
+const DEFAULT_BRANCHES: Branch[] = [];
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
@@ -64,7 +56,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch {}
     }
-    return DEFAULT_ORGS;
+    return [];
   });
 
   const [allBranches, setAllBranches] = useState<Branch[]>(() => {
@@ -73,14 +65,11 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       try {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // If cached data contains stale mock names like "Vesu", discard it
-          if (!parsed.some((b: any) => b.name?.includes('Vesu'))) {
-            return parsed;
-          }
+          return parsed;
         }
       } catch {}
     }
-    return DEFAULT_BRANCHES;
+    return [];
   });
 
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(() => {
@@ -90,16 +79,16 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return JSON.parse(savedObj);
       } catch {}
     }
-    const savedId = localStorage.getItem('hrdesk_active_organization') || '1';
+    const savedId = localStorage.getItem('hrdesk_active_organization');
     const cachedOrgs = localStorage.getItem('hrdesk_db_orgs');
-    if (cachedOrgs) {
+    if (cachedOrgs && savedId) {
       try {
         const list: Organization[] = JSON.parse(cachedOrgs);
         const match = list.find(o => String(o.id) === String(savedId));
         if (match) return match;
       } catch {}
     }
-    return DEFAULT_ORGS.find(o => String(o.id) === String(savedId)) || DEFAULT_ORGS[0];
+    return null;
   });
 
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(() => {
@@ -109,23 +98,18 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (cachedBranches) {
       try {
         const list: Branch[] = JSON.parse(cachedBranches);
-        if (!list.some((b: any) => b.name?.includes('Vesu'))) {
-          const match = list.find(b => String(b.id) === String(savedBranchId));
-          if (match) return match;
-        }
+        const match = list.find(b => String(b.id) === String(savedBranchId));
+        if (match) return match;
       } catch {}
     }
-    const savedOrgId = localStorage.getItem('hrdesk_active_organization') || '1';
-    return DEFAULT_BRANCHES.find(b => String(b.id) === String(savedBranchId)) || 
-           DEFAULT_BRANCHES.find(b => String(b.organizationId) === String(savedOrgId)) || 
-           DEFAULT_BRANCHES[0];
+    return null;
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Filter branches for the current active organization
-  const activeOrgId = currentOrganization?.id ? String(currentOrganization.id) : '1';
-  const orgBranches = allBranches.filter(b => String(b.organizationId) === activeOrgId);
+  const activeOrgId = currentOrganization?.id ? String(currentOrganization.id) : '';
+  const orgBranches = activeOrgId ? allBranches.filter(b => String(b.organizationId) === activeOrgId) : allBranches;
 
   const fetchOrganizationsAndBranches = async () => {
     const token = localStorage.getItem('hrdesk_token');
@@ -141,7 +125,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         apiClient.get('/masters/branches'),
       ]);
 
-      let orgList: Organization[] = DEFAULT_ORGS;
+      let orgList: Organization[] = [];
       if (orgsRes.status === 'fulfilled' && Array.isArray(orgsRes.value.data) && orgsRes.value.data.length > 0) {
         orgList = orgsRes.value.data.map((o: any) => ({
           id: String(o.id),
@@ -158,7 +142,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         localStorage.setItem('hrdesk_db_orgs', JSON.stringify(orgList));
       }
 
-      let branchList: Branch[] = DEFAULT_BRANCHES;
+      let branchList: Branch[] = [];
       if (branchesRes.status === 'fulfilled' && Array.isArray(branchesRes.value.data) && branchesRes.value.data.length > 0) {
         branchList = branchesRes.value.data.map((b: any) => ({
           id: String(b.id),
@@ -179,30 +163,25 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         localStorage.setItem('hrdesk_db_branches', JSON.stringify(branchList));
       }
 
-      const savedOrgId = localStorage.getItem('hrdesk_active_organization') || (orgList[0]?.id ? String(orgList[0].id) : '1');
-      const matchedOrg = orgList.find(o => String(o.id) === String(savedOrgId)) || orgList[0] || DEFAULT_ORGS[0];
-      setCurrentOrganization(matchedOrg);
-      localStorage.setItem('hrdesk_active_organization', String(matchedOrg.id));
-      localStorage.setItem('hrdesk_active_org_obj', JSON.stringify(matchedOrg));
+      if (orgList.length > 0) {
+        const savedOrgId = localStorage.getItem('hrdesk_active_organization');
+        const matchedOrg = orgList.find(o => String(o.id) === String(savedOrgId)) || orgList[0];
+        setCurrentOrganization(matchedOrg);
+        localStorage.setItem('hrdesk_active_organization', String(matchedOrg.id));
+        localStorage.setItem('hrdesk_active_org_obj', JSON.stringify(matchedOrg));
 
-      const savedBranchId = localStorage.getItem('hrdesk_active_branch');
-      if (savedBranchId && savedBranchId !== 'all') {
-        const matchedBranch = branchList.find(b => String(b.id) === String(savedBranchId) && String(b.organizationId) === String(matchedOrg.id));
-        setCurrentBranch(matchedBranch || null);
+        const orgBranchList = branchList.filter(b => String(b.organizationId) === String(matchedOrg.id));
+        const savedBranchId = localStorage.getItem('hrdesk_active_branch');
+        const matchedBranch = orgBranchList.find(b => String(b.id) === String(savedBranchId)) || orgBranchList[0] || null;
+        setCurrentBranch(matchedBranch);
         if (matchedBranch) {
           localStorage.setItem('hrdesk_active_branch', String(matchedBranch.id));
         } else {
           localStorage.removeItem('hrdesk_active_branch');
         }
-      } else {
-        const firstBranch = branchList.find(b => String(b.organizationId) === String(matchedOrg.id));
-        setCurrentBranch(firstBranch || null);
-        if (firstBranch) {
-          localStorage.setItem('hrdesk_active_branch', String(firstBranch.id));
-        }
       }
-    } catch (err) {
-      console.warn('Could not fetch organizations/branches from backend:', err);
+    } catch (e) {
+      console.error('[CompanyContext] fetchOrganizationsAndBranches error', e);
     } finally {
       setIsLoading(false);
     }

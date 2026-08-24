@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/employee_provider.dart';
+import '../../widgets/employee_avatar.dart';
 
 class DirectoryScreen extends StatefulWidget {
   const DirectoryScreen({super.key});
@@ -120,7 +121,6 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (ctx, i) {
                           final emp = directory[i];
-                          final initial = emp.name.isNotEmpty ? emp.name[0].toUpperCase() : 'E';
 
                           return Container(
                             padding: const EdgeInsets.all(12),
@@ -131,10 +131,13 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                             ),
                             child: Row(
                               children: [
-                                CircleAvatar(
+                                EmployeeAvatar(
+                                  employeeId: emp.employeeId,
+                                  name: emp.name,
+                                  photoBase64: emp.photoBase64,
                                   radius: 22,
                                   backgroundColor: const Color(0xFF0D9488).withValues(alpha: 0.2),
-                                  child: Text(initial, style: const TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.bold, fontSize: 16)),
+                                  textColor: const Color(0xFF0D9488),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(

@@ -290,6 +290,27 @@ using (var scope = app.Services.CreateScope())
                     );
                 END;
 
+                IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Announcements')
+                BEGIN
+                    CREATE TABLE Announcements (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        Title NVARCHAR(200) NOT NULL,
+                        Message NVARCHAR(MAX) NOT NULL,
+                        Category NVARCHAR(50) NOT NULL DEFAULT 'General',
+                        Priority NVARCHAR(50) NOT NULL DEFAULT 'Normal',
+                        StartDate DATE NOT NULL,
+                        EndDate DATE NULL,
+                        IsPinned BIT NOT NULL DEFAULT 0,
+                        IsActive BIT NOT NULL DEFAULT 1,
+                        organization_id INT NOT NULL,
+                        branch_id INT NULL,
+                        CreatedByUserId INT NULL,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+                        UpdatedAt DATETIME2 NULL
+                    );
+                END;
+
+
                 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Organizations') AND name = 'code')
                 BEGIN
                     ALTER TABLE Organizations ADD code NVARCHAR(50) NULL;

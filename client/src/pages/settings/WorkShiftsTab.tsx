@@ -29,6 +29,7 @@ export const WorkShiftsTab: React.FC = () => {
 
   const [shifts, setShifts] = useState<any[]>([]);
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
+  const [editingShiftId, setEditingShiftId] = useState<number | null>(null);
   const [newShift, setNewShift] = useState({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
 
   const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
@@ -78,11 +79,11 @@ export const WorkShiftsTab: React.FC = () => {
     };
   }, []);
 
-  const handleAddShift = async (e: React.FormEvent) => {
+  const handleSaveShift = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newShift.name.trim()) return;
     try {
-      await apiClient.post('/masters/shifts', {
+      const payload = {
         name: newShift.name,
         code: newShift.code || 'SHF',
         startTime: newShift.startTime,
@@ -92,12 +93,22 @@ export const WorkShiftsTab: React.FC = () => {
         breakMinutes: newShift.breakMinutes,
         lateComingGraceMinutes: newShift.lateGrace,
         earlyLeaveGraceMinutes: newShift.earlyLeaveGrace,
+        halfTime: newShift.halfTime || null,
         colorCode: newShift.colorCode,
         branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
-      });
+      };
+
+      if (editingShiftId) {
+        await apiClient.put(`/masters/shifts/${editingShiftId}`, payload);
+        showSuccess('Shift Updated', `${newShift.name} updated successfully.`);
+      } else {
+        await apiClient.post('/masters/shifts', payload);
+        showSuccess('Shift Registered', `${newShift.name} added to roster.`);
+      }
+
+      setEditingShiftId(null);
       setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
       setShiftModalOpen(false);
-      showSuccess('Shift Registered', `${newShift.name} added to roster.`);
       fetchData();
     } catch (err: any) {
       showError('Failed', err.response?.data?.message || 'Server error');
@@ -172,6 +183,7 @@ export const WorkShiftsTab: React.FC = () => {
               label: 'Edit',
               icon: <Edit2 size={14} />,
               onClick: () => {
+                setEditingShiftId(item.id);
                 setNewShift({
                   name: item.name,
                   code: item.code,
@@ -211,9 +223,16 @@ export const WorkShiftsTab: React.FC = () => {
             {
               label: 'Delete',
               icon: <Trash2 size={14} />,
-              onClick: () => {
-                setShifts(shifts.filter(sh => sh.id !== item.id));
-                showSuccess('Shift Removed', 'Shift removed from roster.');
+              onClick: async () => {
+                if (window.confirm(`Are you sure you want to delete shift "${item.name}"?`)) {
+                  try {
+                    await apiClient.delete(`/masters/shifts/${item.id}`);
+                    showSuccess('Shift Removed', 'Shift removed from database.');
+                    fetchData();
+                  } catch (err: any) {
+                    showError('Failed to delete', err.response?.data?.message || 'Cannot delete shift');
+                  }
+                }
               },
               variant: 'danger'
             }
@@ -241,6 +260,7 @@ export const WorkShiftsTab: React.FC = () => {
           label: 'Add Work Shift',
           icon: <Plus size={14} />,
           onClick: () => {
+            setEditingShiftId(null);
             setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
             setShiftModalOpen(true);
           },
@@ -262,21 +282,21 @@ export const WorkShiftsTab: React.FC = () => {
         }}
       />
 
-      {/* Add Shift Modal */}
+      {/* Add / Edit Shift Modal */}
       {shiftModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
               <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
                 <Layers size={16} className="text-[var(--gold-500)]" />
-                <span>Create Work Shift</span>
+                <span>{editingShiftId ? 'Edit Work Shift' : 'Create Work Shift'}</span>
               </h3>
               <button onClick={() => setShiftModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleAddShift} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveShift} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium text-[var(--ink)] mb-1">Shift Name *</label>
@@ -421,7 +441,7 @@ export const WorkShiftsTab: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary cursor-pointer">
-                  Save Shift
+                  {editingShiftId ? 'Update Shift' : 'Save Shift'}
                 </button>
               </div>
             </form>

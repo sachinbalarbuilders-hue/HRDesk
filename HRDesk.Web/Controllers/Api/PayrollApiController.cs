@@ -172,7 +172,7 @@ public class PayrollController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = ex.Message });
+            return StatusCode(500, new { message = "Payroll processing failed. Please try again or contact support." });
         }
     }
 

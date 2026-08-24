@@ -91,17 +91,33 @@ class LoanModel {
     }
 
     final principal = ((json['principalAmount'] ?? json['amount'] ?? 0.0) as num).toDouble();
-    final balance = ((json['balanceAmount'] ?? json['remainingBalance'] ?? principal) as num).toDouble();
+    final balance = ((json['remainingAmount'] ?? json['balanceAmount'] ?? json['remainingBalance'] ?? principal) as num).toDouble();
     final paid = ((json['paidAmount'] ?? (principal - balance)) as num).toDouble();
+
+    final rawLoanType = json['loanType'];
+    String typeName = 'Salary Advance';
+    if (rawLoanType is Map) {
+      typeName = rawLoanType['name']?.toString() ?? 'Salary Advance';
+    } else if (rawLoanType is String && rawLoanType.isNotEmpty) {
+      typeName = rawLoanType;
+    } else if (json['loanTypeName'] != null) {
+      typeName = json['loanTypeName'].toString();
+    }
+
+    final rawTenure = json['tenureMonths'] ?? json['installments'] ?? 6;
+    final tenure = rawTenure is num ? rawTenure.toInt() : int.tryParse(rawTenure.toString()) ?? 6;
+
+    final rawEmi = json['monthlyEmi'] ?? json['emiAmount'] ?? (tenure > 0 ? principal / tenure : 0.0);
+    final emi = rawEmi is num ? rawEmi.toDouble() : double.tryParse(rawEmi.toString()) ?? 0.0;
 
     return LoanModel(
       id: (json['id'] ?? json['loanId'] ?? 0) as int,
-      loanNumber: json['loanNumber'] ?? json['applicationNo'] ?? 'LN-001',
-      loanTypeName: json['loanType']?['name'] ?? json['loanTypeName'] ?? 'Salary Advance',
+      loanNumber: json['loanNumber'] ?? json['applicationNumber'] ?? json['appNumber'] ?? json['applicationNo'] ?? 'LN-001',
+      loanTypeName: typeName,
       principalAmount: principal,
       totalAmount: ((json['totalAmount'] ?? principal) as num).toDouble(),
-      emiAmount: ((json['emiAmount'] ?? (principal / (json['tenureMonths'] ?? 1))) as num).toDouble(),
-      tenureMonths: (json['tenureMonths'] ?? 6) as int,
+      emiAmount: emi,
+      tenureMonths: tenure,
       balanceAmount: balance < 0 ? 0.0 : balance,
       paidAmount: paid < 0 ? 0.0 : paid,
       status: json['status'] ?? 'Pending',

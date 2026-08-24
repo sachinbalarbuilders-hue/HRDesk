@@ -316,9 +316,15 @@ class _DayActivitySheetState extends State<DayActivitySheet> {
                               label: const Text('Regularize', style: TextStyle(color: Color(0xFF0D9488), fontSize: 12)),
                               onPressed: () {
                                 Navigator.pop(context);
-                                showDialog(
+                                DateTime? parsedDate;
+                                try {
+                                  parsedDate = DateTime.parse(widget.date);
+                                } catch (_) {}
+                                showModalBottomSheet(
                                   context: context,
-                                  builder: (_) => const ApplyRegularizationDialog(),
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (_) => ApplyRegularizationSheet(initialDate: parsedDate),
                                 );
                               },
                             ),

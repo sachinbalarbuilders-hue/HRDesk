@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using HRDesk.Web.Data;
 using HRDesk.Web.Services;
@@ -7,6 +8,7 @@ namespace HRDesk.Web.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class EmployeeApiController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _context;

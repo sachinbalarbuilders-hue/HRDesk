@@ -11,7 +11,7 @@ class LeaveProvider with ChangeNotifier {
   List<LeaveBalanceModel> _balances = [];
   List<LeaveTypeModel> _leaveTypes = [];
   List<LeaveApplicationModel> _myApplications = [];
-  List<LeaveApplicationModel> _teamApplications = [];
+  final List<LeaveApplicationModel> _teamApplications = [];
 
   bool get loading => _loading;
   String? get error => _error;

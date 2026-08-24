@@ -22,6 +22,9 @@ dependencies:
   geolocator: ^13.0.2
   permission_handler: ^12.0.3
 
+  # Camera
+  camera: ^0.12.0+1
+
   # Face liveness detection + Face ID (enrollment + verification)
   # Replaces manual camera + google_mlkit_face_detection
   flutter_face_liveness: ^3.2.0

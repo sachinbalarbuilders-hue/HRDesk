@@ -54,7 +54,7 @@ public class PaymentsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(new { message = "Payment order creation failed. Please try again." });
         }
     }
 

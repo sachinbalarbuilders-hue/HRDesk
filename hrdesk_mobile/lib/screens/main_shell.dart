@@ -13,6 +13,7 @@ import 'profile/profile_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'leaves/apply_leave_sheet.dart';
 import 'regularization/apply_regularization_dialog.dart';
+import '../widgets/app_drawer.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -98,9 +99,11 @@ class _MainShellState extends State<MainShell> {
                 subtitle: const Text('Request fix for missed or late punch', style: TextStyle(color: Colors.white60, fontSize: 12)),
                 onTap: () {
                   Navigator.pop(ctx);
-                  showDialog(
+                  showModalBottomSheet(
                     context: context,
-                    builder: (_) => const ApplyRegularizationDialog(),
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => const ApplyRegularizationSheet(),
                   );
                 },
               ),
@@ -118,9 +121,20 @@ class _MainShellState extends State<MainShell> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
+      drawer: AppDrawer(
+        onNavigateIndex: (idx) {
+          setState(() => _currentIndex = idx);
+        },
+      ),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F172A),
         elevation: 0,
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
+        ),
         title: Row(
           children: [
             Container(

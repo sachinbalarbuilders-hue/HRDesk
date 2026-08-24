@@ -6,7 +6,8 @@ import { clsx } from 'clsx';
 type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 interface ModalProps {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   title?: string;
   description?: string;
@@ -25,6 +26,7 @@ const sizeClasses: Record<ModalSize, string> = {
 
 export const Modal: React.FC<ModalProps> = ({
   open,
+  isOpen,
   onClose,
   title,
   description,
@@ -34,9 +36,10 @@ export const Modal: React.FC<ModalProps> = ({
   className,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const isModalOpen = open ?? isOpen ?? false;
 
   useEffect(() => {
-    if (!open) return;
+    if (!isModalOpen) return;
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -46,9 +49,9 @@ export const Modal: React.FC<ModalProps> = ({
       document.removeEventListener('keydown', handleEsc);
       document.body.style.overflow = '';
     };
-  }, [open, onClose]);
+  }, [isModalOpen, onClose]);
 
-  if (!open) return null;
+  if (!isModalOpen) return null;
 
   return createPortal(
     <div

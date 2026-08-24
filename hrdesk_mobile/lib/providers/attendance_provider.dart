@@ -12,12 +12,31 @@ class AttendanceProvider with ChangeNotifier {
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
 
+  List<dynamic> _teamMatrixItems = [];
+  int _teamDaysInMonth = 31;
+  bool _teamLoading = false;
+  bool _teamLoadingMore = false;
+  String? _teamError;
+  int _teamPage = 1;
+  final int _teamPageSize = 25;
+  int _teamTotalCount = 0;
+  int _teamTotalPages = 1;
+
   bool get loading => _loading;
   String? get error => _error;
   MonthlyAttendanceSummary get summary => _summary;
   List<AttendanceDayItem> get monthDays => _monthDays;
   int get selectedYear => _selectedYear;
   int get selectedMonth => _selectedMonth;
+
+  List<dynamic> get teamMatrixItems => _teamMatrixItems;
+  int get teamDaysInMonth => _teamDaysInMonth;
+  bool get teamLoading => _teamLoading;
+  bool get teamLoadingMore => _teamLoadingMore;
+  String? get teamError => _teamError;
+  int get teamTotalCount => _teamTotalCount;
+  int get teamPage => _teamPage;
+  bool get hasMoreTeam => _teamPage < _teamTotalPages;
 
   Future<void> fetchAttendance({int? employeeId, int? year, int? month}) async {
     _loading = true;
@@ -59,6 +78,71 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
+  Future<void> fetchTeamMatrix({int? year, int? month, String? search, int? branchId, bool refresh = true}) async {
+    if (refresh) {
+      _teamLoading = true;
+      _teamPage = 1;
+      _teamMatrixItems = [];
+    }
+    _teamError = null;
+    notifyListeners();
+
+    _selectedYear = year ?? _selectedYear;
+    _selectedMonth = month ?? _selectedMonth;
+
+    try {
+      final response = await _api.dio.get(
+        '/attendance/monthly-sheet',
+        queryParameters: {
+          'year': _selectedYear,
+          'month': _selectedMonth,
+          if (search != null && search.isNotEmpty) 'search': search,
+          if (branchId != null && branchId > 0) 'branchId': branchId,
+          'page': _teamPage,
+          'pageSize': _teamPageSize,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          _teamDaysInMonth = (data['daysInMonth'] as num?)?.toInt() ?? 31;
+          _teamTotalCount = (data['totalCount'] as num?)?.toInt() ?? 0;
+          _teamTotalPages = (data['totalPages'] as num?)?.toInt() ?? 1;
+          final newItems = (data['items'] as List<dynamic>?) ?? [];
+          if (refresh) {
+            _teamMatrixItems = newItems;
+          } else {
+            _teamMatrixItems.addAll(newItems);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AttendanceProvider] fetchTeamMatrix error: $e');
+      _teamError = 'Failed to load team attendance matrix.';
+    } finally {
+      _teamLoading = false;
+      _teamLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMoreTeamMatrix({String? search, int? branchId}) async {
+    if (_teamLoading || _teamLoadingMore || !hasMoreTeam) return;
+
+    _teamLoadingMore = true;
+    _teamPage++;
+    notifyListeners();
+
+    await fetchTeamMatrix(
+      year: _selectedYear,
+      month: _selectedMonth,
+      search: search,
+      branchId: branchId,
+      refresh: false,
+    );
+  }
+
   Future<DayDetailsModel?> fetchDayDetails({required int employeeId, required String date}) async {
     try {
       final response = await _api.dio.get(
@@ -78,7 +162,7 @@ class AttendanceProvider with ChangeNotifier {
     return null;
   }
 
-  void changeMonth(int delta, {int? employeeId}) {
+  void changeMonth(int delta, {int? employeeId, String? search, int? branchId}) {
     var newMonth = _selectedMonth + delta;
     var newYear = _selectedYear;
     if (newMonth > 12) {
@@ -88,6 +172,9 @@ class AttendanceProvider with ChangeNotifier {
       newMonth = 12;
       newYear--;
     }
+    _selectedYear = newYear;
+    _selectedMonth = newMonth;
     fetchAttendance(employeeId: employeeId, year: newYear, month: newMonth);
+    fetchTeamMatrix(year: newYear, month: newMonth, search: search, branchId: branchId);
   }
 }

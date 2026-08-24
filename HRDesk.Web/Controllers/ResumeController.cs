@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using HRDesk.Web.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize(Roles = "SuperAdmin,Super Admin,Admin,HR")]
 public class ResumeController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _context;
@@ -27,8 +28,6 @@ public class ResumeController : ControllerBase
         }
 
         var contentType = candidate.ResumeContentType ?? "application/octet-stream";
-        // By omitting the third parameter (fileName), ASP.NET sets Content-Disposition to "inline"
-        // which tells the browser to view the PDF/image instead of downloading it.
         return File(candidate.ResumeData, contentType);
     }
 }

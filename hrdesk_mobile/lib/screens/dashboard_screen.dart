@@ -6,7 +6,11 @@ import 'package:intl/intl.dart';
 import '../core/location_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/punch_provider.dart';
+import '../providers/branch_provider.dart';
+import '../providers/dashboard_provider.dart';
+import '../models/dashboard_model.dart';
 import 'face_punch_screen.dart';
+import '../widgets/employee_avatar.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -30,6 +34,8 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().tryAutoLogin();
       context.read<PunchProvider>().fetchTodayStatus();
+      context.read<BranchProvider>().fetchCompaniesAndBranches();
+      context.read<DashboardProvider>().fetchDashboardOverview();
     });
 
     // 1-second ticker for live digital clock & live elapsed work shift timer
@@ -86,90 +92,98 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
   }
 
   String _formatDuration(Duration d) {
-    final h = d.inHours.toString().padLeft(2, '0');
-    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$h:$m:$s';
+    final hours = d.inHours.toString().padLeft(2, '0');
+    final minutes = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$hours:$minutes:$seconds';
   }
 
-  // Standard punch (non-face employees: GPS only)
-  Future<void> _standardPunch(String punchType) async {
-    final user = context.read<AuthProvider>().user;
-    if (user?.employeeId == null) {
-      setState(() {
-        _statusMessage = 'No employee profile linked to this account. Please contact HR.';
-        _lastPunchSuccess = false;
-      });
-      return;
-    }
+  Future<void> _handlePunch(String punchType) async {
+    final auth = context.read<AuthProvider>();
+    final punch = context.read<PunchProvider>();
+    final user = auth.user;
 
-    final employeeId = user!.employeeId!;
-    final punchProvider = context.read<PunchProvider>();
-
-    setState(() {
-      _locationPunching = true;
-      _statusMessage = null;
-      _lastPunchSuccess = null;
-    });
-
-    double? lat, lng;
-    try {
-      final pos = await LocationService().getFreshPosition(
-        timeout: const Duration(seconds: 4),
-      );
-      lat = pos?.latitude;
-      lng = pos?.longitude;
-    } catch (_) {
-      // GPS optional for non-geo employees
-    }
-
-    final success = await punchProvider.punch(
-      employeeId: employeeId,
-      punchType: punchType,
-      latitude: lat,
-      longitude: lng,
-    );
-
-    if (!mounted) return;
-    setState(() {
-      _locationPunching = false;
-      _statusMessage = punchProvider.message;
-      _lastPunchSuccess = success;
-    });
-  }
-
-  // Navigate to face punch screen
-  Future<void> _facePunch(String punchType) async {
-    final result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => FacePunchScreen(punchType: punchType),
-      ),
-    );
-
-    if (result == true && mounted) {
-      setState(() {
-        _statusMessage = context.read<PunchProvider>().message;
-        _lastPunchSuccess = true;
-      });
-    }
-  }
-
-  void _handlePunch(String punchType) {
-    final user = context.read<AuthProvider>().user;
     if (user == null) return;
 
-    if (user.isBiometricOnly) {
-      setState(() {
-        _statusMessage = 'Mobile clock-in is disabled. Please punch via the office Biometric Machine.';
-        _lastPunchSuccess = false;
-      });
+    if (user.requiresFace) {
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => FacePunchScreen(punchType: punchType),
+        ),
+      );
+      if (result == true) {
+        punch.fetchTodayStatus();
+        if (mounted) {
+          context.read<DashboardProvider>().fetchDashboardOverview();
+          setState(() {
+            _statusMessage = 'Clock-$punchType successful with Face ID verification.';
+            _lastPunchSuccess = true;
+          });
+        }
+      }
       return;
     }
 
-    if (user.requiresFace) {
-      _facePunch(punchType);
-    } else {
-      _standardPunch(punchType);
+    if (user.requiresLocation) {
+      setState(() {
+        _locationPunching = true;
+        _statusMessage = 'Fetching precise GPS coordinates...';
+      });
+
+      try {
+        final loc = await LocationService().getFreshPosition();
+        if (loc == null) {
+          setState(() {
+            _locationPunching = false;
+            _statusMessage = 'Location required. Please enable high-accuracy GPS.';
+            _lastPunchSuccess = false;
+          });
+          return;
+        }
+
+        final success = await punch.punch(
+          employeeId: user.employeeId ?? user.id,
+          punchType: punchType,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+        );
+
+        if (mounted) {
+          context.read<DashboardProvider>().fetchDashboardOverview();
+          setState(() {
+            _locationPunching = false;
+            _statusMessage = success
+                ? 'Clock-$punchType recorded at (${loc.latitude.toStringAsFixed(4)}, ${loc.longitude.toStringAsFixed(4)})'
+                : (punch.message ?? 'Clock-$punchType failed.');
+            _lastPunchSuccess = success;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _locationPunching = false;
+            _statusMessage = 'GPS Error: $e';
+            _lastPunchSuccess = false;
+          });
+        }
+      }
+      return;
+    }
+
+    final success = await punch.punch(
+      employeeId: user.employeeId ?? user.id,
+      punchType: punchType,
+    );
+
+    if (mounted) {
+      context.read<DashboardProvider>().fetchDashboardOverview();
+      setState(() {
+        _statusMessage = success
+            ? 'Clock-$punchType recorded successfully.'
+            : (punch.message ?? 'Clock-$punchType failed.');
+        _lastPunchSuccess = success;
+      });
     }
   }
 
@@ -177,29 +191,41 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final punch = context.watch<PunchProvider>();
+    final dashProvider = context.watch<DashboardProvider>();
     final user = auth.user;
-    if (user == null) return const SizedBox();
 
     const accent = Color(0xFF0D9488);
-    final dateStr = DateFormat('EEEE, MMMM d, yyyy').format(_currentTime);
+
+    if (user == null) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0F172A),
+        body: Center(
+          child: CircularProgressIndicator(color: accent),
+        ),
+      );
+    }
+
     final isClockedIn = punch.isClockedIn;
     final inTime = punch.inTime;
     final outTime = punch.outTime;
 
     final elapsed = _getElapsedWorkDuration(inTime, outTime, isClockedIn);
-    final shiftTargetSecs = (punch.targetHours * 3600).toInt();
-    final standardShiftSeconds = shiftTargetSecs > 0 ? shiftTargetSecs : 9 * 3600;
-    final progress = (elapsed.inSeconds / standardShiftSeconds).clamp(0.0, 1.0);
+    final targetShiftSeconds = punch.targetHours > 0 ? (punch.targetHours * 3600).toInt() : 8 * 3600;
+    final progress = (elapsed.inSeconds / targetShiftSeconds).clamp(0.0, 1.0);
     final progressPercent = (progress * 100).toInt();
+
+    final dateStr = DateFormat('EEEE, dd MMMM yyyy').format(_currentTime);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: RefreshIndicator(
         color: accent,
+        backgroundColor: const Color(0xFF1E293B),
         onRefresh: () async {
           await Future.wait([
             auth.tryAutoLogin(),
             punch.fetchTodayStatus(),
+            context.read<DashboardProvider>().fetchDashboardOverview(),
           ]);
         },
         child: SingleChildScrollView(
@@ -208,26 +234,38 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Greeting Header
+              // 1. Greeting Header with Avatar
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      Text(
-                        '$_greeting,',
-                        style: const TextStyle(fontSize: 14, color: Colors.white60),
+                      EmployeeAvatar(
+                        employeeId: user.employeeId,
+                        name: user.fullName ?? user.username,
+                        radius: 22,
+                        backgroundColor: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                        textColor: const Color(0xFF0D9488),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        user.fullName?.split(' ').first ?? user.username,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$_greeting,',
+                            style: const TextStyle(fontSize: 13, color: Colors.white60),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            user.fullName?.split(' ').first ?? user.username,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -267,14 +305,14 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
               const SizedBox(height: 4),
               Text(
                 dateStr,
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
+                style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 16),
 
-              // Hero Live Circular Timer Card
+              // 2. Hero Live Circular Timer & Punch Card
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
@@ -348,17 +386,17 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
 
                     // Circular Progress Dial
                     SizedBox(
-                      width: 190,
-                      height: 190,
+                      width: 180,
+                      height: 180,
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
                           CustomPaint(
-                            size: const Size(190, 190),
+                            size: const Size(180, 180),
                             painter: _ShiftProgressPainter(
                               progress: isClockedIn || (inTime != null && outTime != null) ? progress : 0.0,
                               isClockedIn: isClockedIn,
@@ -373,7 +411,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                                     : DateFormat('hh:mm a').format(_currentTime),
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 26,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: -0.5,
                                 ),
@@ -396,7 +434,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                         ],
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 20),
 
                     // In / Out Punch Tiles Row
                     Row(
@@ -427,7 +465,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // Status message
               if (_statusMessage != null) ...[
@@ -466,65 +504,14 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
               ],
 
-              // Clock In / Out Toggle Button or Biometric Info
-              if (user.isBiometricOnly) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: accent.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: accent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.fingerprint,
-                          color: accent,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Biometric Device Mode',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Your attendance is recorded via office Biometric hardware. Mobile clock-in is disabled.',
-                              style: TextStyle(
-                                color: Colors.white60,
-                                fontSize: 11,
-                                height: 1.3,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ] else ...[
+              // Clock In / Out Toggle Button
+              if (!user.isBiometricOnly) ...[
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
+                  height: 52,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isClockedIn ? const Color(0xFFDC2626) : const Color(0xFF0D9488),
@@ -550,7 +537,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                                 isClockedIn ? 'CLOCK OUT' : 'CLOCK IN',
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.5,
                                 ),
@@ -559,10 +546,26 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                           ),
                   ),
                 ),
+                const SizedBox(height: 18),
               ],
-              const SizedBox(height: 20),
 
-              // Shift & Employment Snapshot Card
+              // 3. 📢 Announcements & Notice Section
+              _buildAnnouncementsSection(dashProvider.announcements),
+              const SizedBox(height: 18),
+
+              // 4. 👥 My Team Section (Present Today / Attendance Matrix)
+              _buildMyTeamSection(
+                dashProvider.myTeam,
+                dashProvider.teamPresentCount,
+                dashProvider.teamTotalCount,
+              ),
+              const SizedBox(height: 18),
+
+              // 5. 🎉 Celebrations & Milestones (Birthdays & Anniversaries)
+              _buildCelebrationsSection(dashProvider.celebrations),
+              const SizedBox(height: 18),
+
+              // 6. Shift & Work Snapshot
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -575,7 +578,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Shift & Work Details',
+                      'Shift & Work Snapshot',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -584,7 +587,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                     ),
                     const SizedBox(height: 12),
                     _buildSnapshotRow(Icons.schedule, 'Shift Timing', '${punch.shiftName} (${punch.shiftStart} - ${punch.shiftEnd})'),
-                    _buildSnapshotRow(Icons.pin_drop_outlined, 'Location Policy', user.isGeoFencing ? 'Office Geofence (100m)' : 'Standard Office Branch'),
+                    _buildSnapshotRow(Icons.how_to_reg_outlined, 'Attendance Mode', user.locationPolicyDescription),
                     _buildSnapshotRow(Icons.badge_outlined, 'Employee Code', user.employeeCode ?? '#${user.employeeId ?? '-'}'),
                     _buildSnapshotRow(Icons.security, 'Role / Access', user.role ?? 'Employee'),
                   ],
@@ -595,6 +598,405 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           ),
         ),
       ),
+    );
+  }
+
+  // 📢 Announcements Component
+  Widget _buildAnnouncementsSection(List<AnnouncementModel> announcements) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.campaign_outlined, color: Color(0xFF38BDF8), size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Company Announcements',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (announcements.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.campaign_outlined, color: Color(0xFF38BDF8), size: 24),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'All Caught Up',
+                        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'No active company notices or upcoming holiday announcements.',
+                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          SizedBox(
+            height: 110,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: announcements.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (ctx, i) {
+                final a = announcements[i];
+                final isHoliday = a.category.toLowerCase().contains('holiday');
+
+                return Container(
+                  width: 280,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isHoliday
+                          ? [const Color(0xFF064E3B), const Color(0xFF0F172A)]
+                          : [const Color(0xFF1E293B), const Color(0xFF0F172A)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isHoliday ? const Color(0xFF10B981).withValues(alpha: 0.4) : Colors.white12,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isHoliday
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                                  : const Color(0xFF38BDF8).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              a.category.toUpperCase(),
+                              style: TextStyle(
+                                color: isHoliday ? const Color(0xFF34D399) : const Color(0xFF38BDF8),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            a.date,
+                            style: const TextStyle(color: Colors.white38, fontSize: 10),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        a.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        a.message,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white60, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  // 👥 My Team Section
+  Widget _buildMyTeamSection(List<TeamMemberTodayModel> team, int presentCount, int totalCount) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.groups_outlined, color: Color(0xFF0D9488), size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'My Team Today',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            if (totalCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF059669).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  '$presentCount / $totalCount In Office',
+                  style: const TextStyle(color: Color(0xFF34D399), fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (team.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: const Center(
+              child: Text(
+                'No team members active under this branch.',
+                style: TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+            ),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: math.min(team.length, 6),
+              separatorBuilder: (_, __) => const Divider(color: Colors.white10, height: 1),
+              itemBuilder: (ctx, i) {
+                final m = team[i];
+                final isPresent = m.isPresent;
+                final isOnLeave = m.isOnLeave;
+
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  leading: EmployeeAvatar(
+                    employeeId: m.employeeId,
+                    name: m.employeeName,
+                    radius: 20,
+                  ),
+                  title: Text(
+                    m.employeeName,
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    '${m.designation} • ${m.department}',
+                    style: const TextStyle(color: Colors.white54, fontSize: 11),
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isPresent
+                          ? const Color(0xFF059669).withValues(alpha: 0.2)
+                          : isOnLeave
+                              ? Colors.purple.withValues(alpha: 0.2)
+                              : Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isPresent
+                                ? const Color(0xFF34D399)
+                                : isOnLeave
+                                    ? Colors.purpleAccent
+                                    : Colors.white38,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          m.inTime != null ? m.inTime! : (isOnLeave ? 'On Leave' : 'Not In'),
+                          style: TextStyle(
+                            color: isPresent
+                                ? const Color(0xFF34D399)
+                                : isOnLeave
+                                    ? Colors.purpleAccent
+                                    : Colors.white54,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  // 🎉 Celebrations Component
+  Widget _buildCelebrationsSection(List<CelebrationModel> celebrations) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.celebration, color: Colors.amberAccent, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Celebrations & Milestones',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (celebrations.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.cake_outlined, color: Colors.pinkAccent, size: 24),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'No Milestones This Month',
+                        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'No upcoming birthdays or work anniversaries in the near schedule.',
+                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          SizedBox(
+            height: 90,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: celebrations.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (ctx, i) {
+                final c = celebrations[i];
+                final isBday = c.isBirthday;
+                final isNewJoiner = c.type.toLowerCase().contains('joiner');
+                final icon = isBday
+                    ? Icons.cake
+                    : (isNewJoiner ? Icons.waving_hand : Icons.workspace_premium);
+                final iconColor = isBday
+                    ? Colors.pinkAccent
+                    : (isNewJoiner ? const Color(0xFF2DD4BF) : Colors.amberAccent);
+                final label = isBday
+                    ? (c.isToday ? 'Birthday Today! 🎂' : 'Birthday on ${c.day}th')
+                    : (isNewJoiner ? 'New Joiner! 👋' : '${c.years ?? 1} Yrs Anniversary 🎉');
+
+                return Container(
+                  width: 240,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: c.isToday ? Colors.amberAccent.withValues(alpha: 0.5) : Colors.white10,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      EmployeeAvatar(
+                        employeeId: c.employeeId,
+                        name: c.employeeName,
+                        radius: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  icon,
+                                  color: iconColor,
+                                  size: 13,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: iconColor,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              c.employeeName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              c.department,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white38, fontSize: 10),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 

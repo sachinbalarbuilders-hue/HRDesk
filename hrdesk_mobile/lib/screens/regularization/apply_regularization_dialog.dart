@@ -4,21 +4,33 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/regularization_provider.dart';
 
-class ApplyRegularizationDialog extends StatefulWidget {
-  const ApplyRegularizationDialog({super.key});
+class ApplyRegularizationSheet extends StatefulWidget {
+  final DateTime? initialDate;
+  const ApplyRegularizationSheet({super.key, this.initialDate});
 
   @override
-  State<ApplyRegularizationDialog> createState() => _ApplyRegularizationDialogState();
+  State<ApplyRegularizationSheet> createState() => _ApplyRegularizationSheetState();
 }
 
-class _ApplyRegularizationDialogState extends State<ApplyRegularizationDialog> {
-  DateTime _requestDate = DateTime.now().subtract(const Duration(days: 1));
-  String _requestType = 'Missed Punch';
-  String _punchTarget = 'both';
+// Backward compatibility typedef
+typedef ApplyRegularizationDialog = ApplyRegularizationSheet;
+
+class _ApplyRegularizationSheetState extends State<ApplyRegularizationSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late DateTime _requestDate;
+  String _requestType = 'Late Coming';
+  String _punchTarget = 'in';
+  final bool _waivePenalty = true;
   TimeOfDay _inTime = const TimeOfDay(hour: 9, minute: 30);
   TimeOfDay _outTime = const TimeOfDay(hour: 18, minute: 30);
   final _reasonController = TextEditingController();
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _requestDate = widget.initialDate ?? DateTime.now().subtract(const Duration(days: 1));
+  }
 
   @override
   void dispose() {
@@ -83,15 +95,10 @@ class _ApplyRegularizationDialogState extends State<ApplyRegularizationDialog> {
   }
 
   Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final auth = context.read<AuthProvider>();
     if (auth.user?.employeeId == null) return;
-
-    if (_reasonController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a reason for regularization.')),
-      );
-      return;
-    }
 
     setState(() => _submitting = true);
     final regProvider = context.read<RegularizationProvider>();
@@ -108,6 +115,7 @@ class _ApplyRegularizationDialogState extends State<ApplyRegularizationDialog> {
       punchTimeIn: _punchTarget == 'in' || _punchTarget == 'both' ? inStr : null,
       punchTimeOut: _punchTarget == 'out' || _punchTarget == 'both' ? outStr : null,
       reason: _reasonController.text.trim(),
+      waivePenalty: _waivePenalty,
     );
 
     setState(() => _submitting = false);
@@ -117,7 +125,7 @@ class _ApplyRegularizationDialogState extends State<ApplyRegularizationDialog> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Regularization request submitted!'),
+          content: Text('Regularization request submitted successfully!'),
           backgroundColor: Color(0xFF059669),
         ),
       );
@@ -133,33 +141,59 @@ class _ApplyRegularizationDialogState extends State<ApplyRegularizationDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+    return Container(
+      padding: EdgeInsets.only(
+        top: 16,
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E293B),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Form(
+        key: _formKey,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              // Title & Close Button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     'Regularize Attendance',
-                    style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                    icon: const Icon(Icons.close, color: Colors.white60),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // Date Selector
-              const Text('Date of Attendance', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              // Date of Attendance
+              const Text('Date of Attendance', style: TextStyle(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 6),
               GestureDetector(
                 onTap: _pickDate,
@@ -167,7 +201,7 @@ class _ApplyRegularizationDialogState extends State<ApplyRegularizationDialog> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white12),
                   ),
                   child: Row(
@@ -182,16 +216,16 @@ class _ApplyRegularizationDialogState extends State<ApplyRegularizationDialog> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // Request Type
-              const Text('Reason Type', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              // Request Type Dropdown
+              const Text('Request Type', style: TextStyle(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white12),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -200,115 +234,167 @@ class _ApplyRegularizationDialogState extends State<ApplyRegularizationDialog> {
                     dropdownColor: const Color(0xFF0F172A),
                     isExpanded: true,
                     icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
-                    items: ['Missed Punch', 'Client / Outdoor Duty', 'Biometric Error', 'Late Coming Waiver'].map((t) {
-                      return DropdownMenuItem<String>(
-                        value: t,
-                        child: Text(t, style: const TextStyle(color: Colors.white, fontSize: 13)),
-                      );
-                    }).toList(),
+                    items: const [
+                      DropdownMenuItem(value: 'Late Coming', child: Text('Late Coming', style: TextStyle(color: Colors.white, fontSize: 13))),
+                      DropdownMenuItem(value: 'Early Go', child: Text('Early Go', style: TextStyle(color: Colors.white, fontSize: 13))),
+                      DropdownMenuItem(value: 'Missed Punch', child: Text('Missed Punch', style: TextStyle(color: Colors.white, fontSize: 13))),
+                      DropdownMenuItem(value: 'Outdoor / On Duty', child: Text('Outdoor / On Duty', style: TextStyle(color: Colors.white, fontSize: 13))),
+                    ],
                     onChanged: (val) {
-                      if (val != null) setState(() => _requestType = val);
+                      if (val != null) {
+                        setState(() {
+                          _requestType = val;
+                          if (val == 'Late Coming') {
+                            _punchTarget = 'in';
+                          } else if (val == 'Early Go') {
+                            _punchTarget = 'out';
+                          } else {
+                            _punchTarget = 'both';
+                          }
+                        });
+                      }
                     },
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              // Target punch
-              const Text('Punch to Fix', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              // Punch to Correct (Segmented selection like Leave Day Type)
+              const Text('Punch to Correct', style: TextStyle(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 6),
               Row(
                 children: [
-                  _buildRadioOption('both', 'Both (In & Out)'),
-                  _buildRadioOption('in', 'In Only'),
-                  _buildRadioOption('out', 'Out Only'),
+                  _buildSegmentOption('in', 'In Only'),
+                  _buildSegmentOption('out', 'Out Only'),
+                  _buildSegmentOption('both', 'Both (In & Out)'),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
               // Time Pickers
               Row(
                 children: [
                   if (_punchTarget == 'in' || _punchTarget == 'both')
                     Expanded(
-                      child: GestureDetector(
-                        onTap: () => _pickTime(true),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0F172A),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Correct In Time', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: () => _pickTime(true),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F172A),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.access_time, color: Color(0xFF0D9488), size: 16),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _inTime.format(context),
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Correct In Time', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                              const SizedBox(height: 2),
-                              Text(_inTime.format(context), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
+                        ],
                       ),
                     ),
-                  if (_punchTarget == 'both') const SizedBox(width: 8),
+                  if (_punchTarget == 'both') const SizedBox(width: 12),
                   if (_punchTarget == 'out' || _punchTarget == 'both')
                     Expanded(
-                      child: GestureDetector(
-                        onTap: () => _pickTime(false),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0F172A),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Correct Out Time', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: () => _pickTime(false),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F172A),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.access_time, color: Color(0xFF0D9488), size: 16),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _outTime.format(context),
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Correct Out Time', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                              const SizedBox(height: 2),
-                              Text(_outTime.format(context), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
+                        ],
                       ),
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
               // Reason
-              const Text('Explanation / Remarks', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              const Text('Reason / Remarks', style: TextStyle(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 6),
-              TextField(
+              TextFormField(
                 controller: _reasonController,
-                maxLines: 2,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                maxLines: 3,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
-                  hintText: 'Enter reason...',
-                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                  hintText: 'Explain the reason for regularization...',
+                  hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
                   fillColor: const Color(0xFF0F172A),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white12)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.white12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.white12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF0D9488)),
+                  ),
                 ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Please enter a reason for regularization';
+                  }
+                  return null;
+                },
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 24),
 
               // Submit Button
               SizedBox(
                 width: double.infinity,
-                height: 44,
+                height: 48,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0D9488),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: _submitting ? null : _submit,
                   child: _submitting
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Submit Request', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Submit Regularization Request',
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
                 ),
               ),
             ],
@@ -318,24 +404,27 @@ class _ApplyRegularizationDialogState extends State<ApplyRegularizationDialog> {
     );
   }
 
-  Widget _buildRadioOption(String value, String label) {
+  Widget _buildSegmentOption(String value, String label) {
     final isSelected = _punchTarget == value;
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _punchTarget = value),
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected ? const Color(0xFF0D9488) : const Color(0xFF0F172A),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF0D9488) : Colors.white12,
+            ),
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.white60,
-              fontSize: 10,
+              color: isSelected ? Colors.white : Colors.white70,
+              fontSize: 12,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),

@@ -147,6 +147,22 @@ public class OnboardingApiController : ControllerBase
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "No file uploaded." });
 
+        // Security: File size limit (10MB)
+        if (file.Length > 10 * 1024 * 1024)
+            return BadRequest(new { message = "File size cannot exceed 10MB." });
+
+        // Security: File extension whitelist
+        var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" };
+        var fileExtension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
+        if (string.IsNullOrEmpty(fileExtension) || !allowedExtensions.Contains(fileExtension))
+            return BadRequest(new { message = $"File type '{fileExtension}' is not allowed. Accepted: {string.Join(", ", allowedExtensions)}" });
+
+        // Security: MIME type validation
+        var allowedMimeTypes = new[] { "application/pdf", "image/jpeg", "image/png", "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
+        if (!allowedMimeTypes.Contains(file.ContentType?.ToLowerInvariant()))
+            return BadRequest(new { message = "Invalid file content type." });
+
         if (string.IsNullOrWhiteSpace(documentType))
             return BadRequest(new { message = "Document type is required." });
 

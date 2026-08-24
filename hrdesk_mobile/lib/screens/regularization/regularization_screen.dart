@@ -20,9 +20,11 @@ class _RegularizationScreenState extends State<RegularizationScreen> {
   }
 
   void _openApplyDialog() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (_) => const ApplyRegularizationDialog(),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const ApplyRegularizationSheet(),
     );
   }
 

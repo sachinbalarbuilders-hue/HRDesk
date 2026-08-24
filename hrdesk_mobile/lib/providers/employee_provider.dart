@@ -59,7 +59,7 @@ class EmployeeProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final endpoint = employeeId != null ? '/employees/$employeeId' : '/employees/me';
+      final endpoint = (employeeId != null && employeeId > 0) ? '/employees/$employeeId' : '/employees/me';
       final response = await _api.dio.get(endpoint);
       if (response.statusCode == 200 && response.data != null) {
         _profile = EmployeeProfileModel.fromJson(response.data);

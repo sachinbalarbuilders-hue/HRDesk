@@ -9,6 +9,7 @@ namespace HRDesk.Web.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class ThumbnailController : ControllerBase
 {
     private readonly IConfiguration _configuration;

@@ -290,7 +290,10 @@ public class AttendanceController : ControllerBase
                     employeeName = emp.EmployeeName,
                     department = emp.Department?.DepartmentName ?? "General",
                     departmentName = emp.Department?.DepartmentName ?? "General",
-                    weekoff = emp.Weekoff
+                    weekoff = emp.Weekoff,
+                    photoPath = emp.PhotoPath,
+                    photoUrl = $"/api/employees/{emp.EmployeeId}/public-photo",
+                    avatarUrl = $"/api/employees/{emp.EmployeeId}/public-photo"
                 },
                 dailyRecords,
                 dailyStatus,

@@ -19,6 +19,7 @@ const Shifts = lazy(() => import('./pages/Shifts').then(m => ({ default: m.Shift
 const Regularizations = lazy(() => import('./pages/Regularizations').then(m => ({ default: m.Regularizations })));
 const Leaves = lazy(() => import('./pages/Leaves').then(m => ({ default: m.Leaves })));
 const Holidays = lazy(() => import('./pages/Holidays').then(m => ({ default: m.Holidays })));
+const Announcements = lazy(() => import('./pages/Announcements').then(m => ({ default: m.AnnouncementsPage })));
 const Loans = lazy(() => import('./pages/Loans').then(m => ({ default: m.Loans })));
 const ViewLoan = lazy(() => import('./pages/loans/ViewLoan').then(m => ({ default: m.ViewLoan })));
 const Payroll = lazy(() => import('./pages/Payroll').then(m => ({ default: m.Payroll })));
@@ -121,6 +122,7 @@ export const App: React.FC = () => {
                   }
                 >
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/announcements" element={<Announcements />} />
                   <Route
                     path="/employees"
                     element={

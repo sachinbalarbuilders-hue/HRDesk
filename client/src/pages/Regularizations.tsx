@@ -320,7 +320,6 @@ export const Regularizations: React.FC = () => {
         'Type': r.requestType,
         'Punch In': r.punchTimeIn ? new Date(r.punchTimeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
         'Punch Out': r.punchTimeOut ? new Date(r.punchTimeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
-        'Waive Penalty': r.waivePenalty ? 'Yes' : 'No',
         Status: r.status,
         Reason: r.reason || '',
         'Approved By': r.approvedBy || '',
@@ -512,17 +511,6 @@ export const Regularizations: React.FC = () => {
 
                       <td className="p-3.5">
                         <div className="font-medium text-[var(--ink)]">{r.requestType}</div>
-                        <div className="mt-1">
-                          {r.waivePenalty ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-                              Waive LOP
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300">
-                              Apply Penalty
-                            </span>
-                          )}
-                        </div>
                       </td>
 
                       <td className="p-3.5 max-w-[200px] truncate text-[var(--ink-muted)]" title={r.reason || ''}>

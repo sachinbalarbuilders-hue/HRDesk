@@ -863,38 +863,38 @@ export const Attendance: React.FC = () => {
             </span>
           </div>
 
-          <div className="overflow-x-auto max-h-[70vh]">
-            <table className="ledger-table w-full text-xs">
-              <thead className="sticky top-0 z-10 bg-[var(--paper-subtle)]">
+          <div className="overflow-x-auto max-h-[72vh] border border-[var(--rule)] rounded-b-lg">
+            <table className="ledger-table min-w-max w-full text-xs border-collapse">
+              <thead className="sticky top-0 z-20 bg-[var(--surface)]">
                 <tr>
-                  <th className="sticky left-0 z-20 bg-[var(--paper-subtle)] border-r border-[var(--rule)] w-12 text-center font-mono text-[11px] text-[var(--ink-muted)] shadow-xs">
+                  <th className="sticky left-0 z-30 bg-[var(--surface)] border-r border-[var(--rule)] w-12 min-w-[48px] text-center font-mono text-[11px] text-[var(--ink-muted)] shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
                     Sr.
                   </th>
-                  <th className="sticky left-12 z-20 bg-[var(--paper-subtle)] border-r border-[var(--rule)] min-w-[180px] shadow-sm text-left py-2 px-3">
+                  <th className="sticky left-12 z-30 bg-[var(--surface)] border-r-2 border-[var(--rule)] min-w-[190px] max-w-[220px] text-left py-2 px-3 font-semibold text-[var(--ink)] shadow-[4px_0_8px_rgba(0,0,0,0.15)]">
                     Employee Name
                   </th>
 
                   {data?.daysInMonth &&
                     Array.from({ length: data.daysInMonth }, (_, i) => i + 1).map((d) => (
-                      <th key={d} className="w-8 text-center p-1 font-mono text-[10px] text-[var(--ink-muted)]">
+                      <th key={d} className="w-9 min-w-[34px] max-w-[36px] text-center p-1 font-mono text-[11px] text-[var(--ink-muted)] border-r border-[var(--rule)]/40">
                         {d}
                       </th>
                     ))}
-                  <th className="border-l border-[var(--rule)] text-center font-bold text-[var(--ok-600)] w-10">P</th>
-                  <th className="text-center font-bold text-[var(--err-600)] w-10">A</th>
-                  <th className="text-center font-bold text-[var(--ink-muted)] w-10">WO</th>
-                  <th className="text-center font-bold text-[var(--accent)] w-12 bg-[var(--paper)]">Payable</th>
+                  <th className="border-l-2 border-[var(--rule)] text-center font-bold text-[var(--ok-600)] w-11 min-w-[44px]">P</th>
+                  <th className="text-center font-bold text-[var(--err-600)] w-11 min-w-[44px]">A</th>
+                  <th className="text-center font-bold text-[var(--ink-muted)] w-11 min-w-[44px]">WO</th>
+                  <th className="text-center font-bold text-[var(--accent)] w-16 min-w-[64px] bg-[var(--surface-secondary)]">Payable</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--rule)]">
                 {data?.items?.map((row: any, idx: number) => {
                   const srNo = ((page - 1) * pageSize) + idx + 1;
                   return (
-                    <tr key={row.employee.employeeId} className="hover:bg-[var(--paper-subtle)] transition-colors">
-                      <td className="sticky left-0 z-10 bg-[var(--paper)] border-r border-[var(--rule)] font-mono text-xs text-center text-[var(--ink-muted)] py-2 px-1 shadow-xs">
+                    <tr key={row.employee.employeeId} className="hover:bg-[var(--surface-hover)] transition-colors">
+                      <td className="sticky left-0 z-10 bg-[var(--surface)] border-r border-[var(--rule)] font-mono text-xs text-center text-[var(--ink-muted)] py-2 px-1 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
                         {srNo}
                       </td>
-                      <td className="sticky left-12 z-10 bg-[var(--paper)] border-r border-[var(--rule)] font-semibold text-[var(--ink)] whitespace-nowrap py-2 px-3 shadow-xs">
+                      <td className="sticky left-12 z-10 bg-[var(--surface)] border-r-2 border-[var(--rule)] font-semibold text-[var(--ink)] whitespace-nowrap py-2 px-3 shadow-[4px_0_8px_rgba(0,0,0,0.15)]">
                         {row.employee.employeeName}
                       </td>
 
@@ -909,22 +909,22 @@ export const Attendance: React.FC = () => {
                             key={d}
                             title={tooltip ? `${tooltip} • Click to view all punch logs` : `Day ${d} • Click to view all punch logs`}
                             onClick={() => handleOpenDayActivity(row, d)}
-                            className="text-center p-1 font-data text-xs border-r border-[var(--rule)]/50 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:outline hover:outline-1 hover:outline-[var(--accent)] transition-all select-none"
+                            className="w-9 min-w-[34px] max-w-[36px] text-center p-1 font-data text-xs border-r border-[var(--rule)]/40 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:outline hover:outline-1 hover:outline-[var(--accent)] transition-all select-none"
                           >
                             {getStatusBadge(status)}
                           </td>
                         );
                       })}
-                      <td className="border-l border-[var(--rule)] text-center font-data font-bold text-[var(--ok-600)]">
+                      <td className="border-l-2 border-[var(--rule)] text-center font-data font-bold text-[var(--ok-600)] px-2">
                         {row.summary?.presentDays || 0}
                       </td>
-                      <td className="text-center font-data font-bold text-[var(--err-600)]">
+                      <td className="text-center font-data font-bold text-[var(--err-600)] px-2">
                         {row.summary?.absentDays || 0}
                       </td>
-                      <td className="text-center font-data text-[var(--ink-muted)]">
+                      <td className="text-center font-data text-[var(--ink-muted)] px-2">
                         {row.summary?.weekoffDays || 0}
                       </td>
-                      <td className="text-center font-data font-bold text-[var(--accent)] bg-[var(--paper-subtle)]">
+                      <td className="text-center font-data font-bold text-[var(--accent)] bg-[var(--paper-subtle)] px-2">
                         {row.summary?.payableDays || 0}
                       </td>
                     </tr>

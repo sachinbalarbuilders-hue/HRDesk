@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 
@@ -6,7 +6,7 @@ namespace HRDesk.Web.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin,Super Admin")]
     public class ServiceLogsController : ControllerBase
     {
         private const string LogFilePath = @"C:\HRServices\Z903AttendanceService\Logs\service.log";

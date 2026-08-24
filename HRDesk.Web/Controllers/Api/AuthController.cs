@@ -126,9 +126,16 @@ public class AuthController : ControllerBase
         var permissions = await _permissionService.GetUserPermissionsAsync(principal);
         var permissionScopes = await _permissionService.GetUserPermissionScopesAsync(principal);
 
-        var rawOrgs = await _context.Organizations
+        var orgQuery = _context.Organizations
             .AsNoTracking()
-            .Where(o => o.IsActive)
+            .Where(o => o.IsActive);
+
+        if (user.Role != "SuperAdmin")
+        {
+            orgQuery = orgQuery.Where(o => o.Id == user.OrganizationId);
+        }
+
+        var rawOrgs = await orgQuery
             .OrderBy(o => o.Id)
             .ToListAsync();
 
@@ -281,9 +288,16 @@ public class AuthController : ControllerBase
         var permissions = await _permissionService.GetUserPermissionsAsync(User);
         var permissionScopes = await _permissionService.GetUserPermissionScopesAsync(User);
 
-        var rawOrgs = await _context.Organizations
+        var orgQuery = _context.Organizations
             .AsNoTracking()
-            .Where(o => o.IsActive)
+            .Where(o => o.IsActive);
+
+        if (user.Role != "SuperAdmin")
+        {
+            orgQuery = orgQuery.Where(o => o.Id == user.OrganizationId);
+        }
+
+        var rawOrgs = await orgQuery
             .OrderBy(o => o.Id)
             .ToListAsync();
 
