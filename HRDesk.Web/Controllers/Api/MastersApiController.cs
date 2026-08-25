@@ -468,8 +468,13 @@ public class MastersController : ControllerBase
             TimeOnly.TryParse(dto.EndTime, out var endTime);
 
             var totalMinutes = (endTime.ToTimeSpan() - startTime.ToTimeSpan()).TotalMinutes;
+            if (totalMinutes < 0) totalMinutes += 24 * 60;
             var breakMins = dto.BreakMinutes ?? 60;
-            var workingHours = Math.Round((decimal)(totalMinutes - breakMins) / 60m, 2);
+            var workingHours = Math.Round((decimal)Math.Max(0, totalMinutes - breakMins) / 60m, 2);
+
+            var halfMinutes = totalMinutes / 2;
+            var halfTimeSpan = startTime.ToTimeSpan().Add(TimeSpan.FromMinutes(halfMinutes));
+            if (halfTimeSpan.TotalHours >= 24) halfTimeSpan = halfTimeSpan.Subtract(TimeSpan.FromHours(24));
 
             var shift = new Shift
             {
@@ -483,7 +488,7 @@ public class MastersController : ControllerBase
                 WorkingHours = workingHours > 0 ? workingHours : 8m,
                 HalfTime = !string.IsNullOrWhiteSpace(dto.HalfTime) && TimeOnly.TryParse(dto.HalfTime, out var hTimeCustom)
                     ? hTimeCustom
-                    : TimeOnly.FromTimeSpan(startTime.ToTimeSpan() + TimeSpan.FromMinutes(totalMinutes / 2)),
+                    : TimeOnly.FromTimeSpan(halfTimeSpan),
                 LateComingGraceMinutes = dto.LateComingGraceMinutes ?? 15,
                 EarlyLeaveGraceMinutes = dto.EarlyLeaveGraceMinutes ?? 15,
                 ColorCode = dto.ColorCode ?? "#4e73df",
@@ -522,8 +527,9 @@ public class MastersController : ControllerBase
         if (dto.BranchId.HasValue) shift.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
 
         var totalMinutes = (shift.EndTime.ToTimeSpan() - shift.StartTime.ToTimeSpan()).TotalMinutes;
+        if (totalMinutes < 0) totalMinutes += 24 * 60;
         var breakMins = shift.LunchBreakDuration;
-        var workingHours = Math.Round((decimal)(totalMinutes - breakMins) / 60m, 2);
+        var workingHours = Math.Round((decimal)Math.Max(0, totalMinutes - breakMins) / 60m, 2);
         shift.WorkingHours = workingHours > 0 ? workingHours : 8m;
         
         if (!string.IsNullOrWhiteSpace(dto.HalfTime) && TimeOnly.TryParse(dto.HalfTime, out var hTimeEdit))
@@ -532,7 +538,10 @@ public class MastersController : ControllerBase
         }
         else
         {
-            shift.HalfTime = TimeOnly.FromTimeSpan(shift.StartTime.ToTimeSpan() + TimeSpan.FromMinutes(totalMinutes / 2));
+            var halfMinutes = totalMinutes / 2;
+            var halfTimeSpan = shift.StartTime.ToTimeSpan().Add(TimeSpan.FromMinutes(halfMinutes));
+            if (halfTimeSpan.TotalHours >= 24) halfTimeSpan = halfTimeSpan.Subtract(TimeSpan.FromHours(24));
+            shift.HalfTime = TimeOnly.FromTimeSpan(halfTimeSpan);
         }
 
         await _db.SaveChangesAsync();

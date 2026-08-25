@@ -90,6 +90,9 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
     public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
     public DbSet<SubscriptionPayment> SubscriptionPayments => Set<SubscriptionPayment>();
+    public DbSet<ShiftCycle> ShiftCycles => Set<ShiftCycle>();
+    public DbSet<ShiftCycleSlot> ShiftCycleSlots => Set<ShiftCycleSlot>();
+    public DbSet<ShiftChangeRequest> ShiftChangeRequests => Set<ShiftChangeRequest>();
     public DbSet<GateActivityLog> GateActivityLogs => Set<GateActivityLog>();
     public DbSet<InAppNotification> InAppNotifications => Set<InAppNotification>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
@@ -141,6 +144,9 @@ public sealed class BiometricAttendanceDbContext : DbContext
         modelBuilder.Entity<ShiftRoster>().HasIndex(s => s.RosterDate);
         modelBuilder.Entity<Holiday>().HasIndex(h => new { h.StartDate, h.EndDate });
         modelBuilder.Entity<Announcement>().HasIndex(a => new { a.OrganizationId, a.IsActive, a.StartDate, a.EndDate });
+        modelBuilder.Entity<ShiftCycle>().HasIndex(c => new { c.OrganizationId, c.IsActive });
+        modelBuilder.Entity<ShiftCycleSlot>().HasIndex(s => new { s.CycleId, s.SlotIndex }).IsUnique();
+        modelBuilder.Entity<ShiftChangeRequest>().HasIndex(r => new { r.OrganizationId, r.EmployeeId, r.RequestDate });
 
         // Opaque public-facing identifiers (used in URLs/API responses instead of the
         // internal integer Id) must be unique so they safely resolve back to one row.
@@ -556,6 +562,43 @@ public sealed class BiometricAttendanceDbContext : DbContext
         modelBuilder.Entity<ShiftRoster>(entity =>
         {
             entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
+        });
+
+        modelBuilder.Entity<ShiftCycle>(entity =>
+        {
+            entity.ToTable("shift_cycles");
+            entity.HasKey(e => e.Id);
+            entity.HasMany(e => e.Slots)
+                .WithOne(s => s.Cycle)
+                .HasForeignKey(s => s.CycleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ShiftCycleSlot>(entity =>
+        {
+            entity.ToTable("shift_cycle_slots");
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Shift)
+                .WithMany()
+                .HasForeignKey(e => e.ShiftId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<EmployeeShiftAssignment>(entity =>
+        {
+            entity.HasOne(e => e.Cycle)
+                .WithMany()
+                .HasForeignKey(e => e.CycleId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ShiftChangeRequest>(entity =>
+        {
+            entity.ToTable("shift_change_requests");
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Employee)
+                .WithMany()
+                .HasForeignKey(e => new { e.OrganizationId, e.EmployeeId });
         });
                 modelBuilder.Entity<CompOffCredit>(entity =>
         {

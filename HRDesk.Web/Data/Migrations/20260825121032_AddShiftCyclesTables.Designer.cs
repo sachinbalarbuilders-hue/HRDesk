@@ -4,16 +4,19 @@ using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace HRDesk.Web.Migrations
+namespace HRDesk.Web.Data.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260825121032_AddShiftCyclesTables")]
+    partial class AddShiftCyclesTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2697,88 +2700,6 @@ namespace HRDesk.Web.Migrations
                     b.ToTable("shifts", (string)null);
                 });
 
-            modelBuilder.Entity("HRDesk.Web.Models.ShiftChangeRequest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("BranchId")
-                        .HasColumnType("int")
-                        .HasColumnName("branch_id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at");
-
-                    b.Property<int?>("CurrentShiftId")
-                        .HasColumnType("int")
-                        .HasColumnName("current_shift_id");
-
-                    b.Property<int>("EmployeeId")
-                        .HasColumnType("int")
-                        .HasColumnName("employee_id");
-
-                    b.Property<bool>("IsCurrentWeekOff")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_current_week_off");
-
-                    b.Property<bool>("IsRequestedWeekOff")
-                        .HasColumnType("bit")
-                        .HasColumnName("is_requested_week_off");
-
-                    b.Property<int>("OrganizationId")
-                        .HasColumnType("int")
-                        .HasColumnName("organization_id");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("reason");
-
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("rejection_reason");
-
-                    b.Property<DateOnly>("RequestDate")
-                        .HasColumnType("date")
-                        .HasColumnName("request_date");
-
-                    b.Property<int?>("RequestedShiftId")
-                        .HasColumnType("int")
-                        .HasColumnName("requested_shift_id");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("reviewed_at");
-
-                    b.Property<string>("ReviewedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("reviewed_by");
-
-                    b.Property<string>("Status")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("status");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
-
-                    b.HasIndex("CurrentShiftId");
-
-                    b.HasIndex("RequestedShiftId");
-
-                    b.HasIndex("OrganizationId", "EmployeeId", "RequestDate");
-
-                    b.ToTable("shift_change_requests", (string)null);
-                });
-
             modelBuilder.Entity("HRDesk.Web.Models.ShiftCycle", b =>
                 {
                     b.Property<int>("Id")
@@ -4092,46 +4013,6 @@ namespace HRDesk.Web.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("HRDesk.Web.Models.ShiftChangeRequest", b =>
-                {
-                    b.HasOne("HRDesk.Web.Models.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("HRDesk.Web.Models.Shift", "CurrentShift")
-                        .WithMany()
-                        .HasForeignKey("CurrentShiftId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("HRDesk.Web.Models.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("HRDesk.Web.Models.Shift", "RequestedShift")
-                        .WithMany()
-                        .HasForeignKey("RequestedShiftId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("HRDesk.Web.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Branch");
-
-                    b.Navigation("CurrentShift");
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("Organization");
-
-                    b.Navigation("RequestedShift");
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.ShiftCycle", b =>

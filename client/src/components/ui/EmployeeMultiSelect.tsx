@@ -18,6 +18,7 @@ interface EmployeeMultiSelectProps {
   required?: boolean;
   pageSize?: number;
   branchId?: string | number | null;
+  departmentId?: string | number | null;
 }
 
 export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
@@ -28,6 +29,7 @@ export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
   required = false,
   pageSize = 20,
   branchId,
+  departmentId,
 }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -39,6 +41,14 @@ export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    if (initialSelected && initialSelected.length > 0) {
+      setSelectedCache(initialSelected);
+    } else if (selectedIds.length === 0) {
+      setSelectedCache([]);
+    }
+  }, [initialSelected, selectedIds.length]);
 
   // Close on click outside
   useEffect(() => {
@@ -60,6 +70,7 @@ export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
         params: {
           search: searchQuery || undefined,
           branchId: branchId || undefined,
+          departmentId: departmentId || undefined,
           page: pageNum,
           pageSize,
           status: 'active',
@@ -83,7 +94,7 @@ export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [branchId, pageSize]);
+  }, [branchId, departmentId, pageSize]);
 
   // Load on open
   useEffect(() => {

@@ -23,12 +23,27 @@ public class EmployeeShiftAssignment : IMustHaveTenant
     [Column("to_date")]
     public DateOnly? ToDate { get; set; }
 
+    /// <summary>
+    /// If this assignment was generated from a ShiftCycle, stores the cycle reference.
+    /// </summary>
+    [Column("cycle_id")]
+    public int? CycleId { get; set; }
+
+    /// <summary>
+    /// The calendar date that corresponds to slot index 0 of the cycle.
+    /// Used to compute which slot applies on any given date:
+    ///   slotIndex = (date - CycleStartDate).Days % cycle.CycleLengthDays
+    /// </summary>
+    [Column("cycle_start_date")]
+    public DateOnly? CycleStartDate { get; set; }
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     // Navigation
     public Employee? Employee { get; set; }
     public Shift? Shift { get; set; }
+    public ShiftCycle? Cycle { get; set; }
 
     [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
     public int OrganizationId { get; set; }
