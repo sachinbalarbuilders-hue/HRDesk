@@ -14,6 +14,7 @@ import 'profile/profile_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'leaves/apply_leave_sheet.dart';
 import 'regularization/apply_regularization_dialog.dart';
+import 'scanner/qr_scanner_screen.dart';
 import '../widgets/app_drawer.dart';
 
 class MainShell extends StatefulWidget {
@@ -173,6 +174,21 @@ class _MainShellState extends State<MainShell> {
           ],
         ),
         actions: [
+          // QR Badge Scanner
+          IconButton(
+            tooltip: 'QR Badge Scanner',
+            icon: Icon(
+              Icons.qr_code_scanner_rounded,
+              color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0D9488),
+              size: 22,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+              );
+            },
+          ),
           // Theme Toggle Button (Light / Dark)
           IconButton(
             tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../leaves/apply_leave_sheet.dart';
 import '../../regularization/apply_regularization_dialog.dart';
+import '../../scanner/qr_scanner_screen.dart';
 
 class QuickActionsGrid extends StatelessWidget {
   final bool isDark;
@@ -46,7 +47,7 @@ class QuickActionsGrid extends StatelessWidget {
                 },
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildQuickActionCard(
                 label: 'Regularize',
@@ -63,14 +64,29 @@ class QuickActionsGrid extends StatelessWidget {
                 },
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildQuickActionCard(
-                label: 'Punch History',
+                label: 'History',
                 icon: Icons.history_rounded,
                 iconColor: const Color(0xFF10B981),
                 bgColor: const Color(0xFF10B981).withValues(alpha: isDark ? 0.25 : 0.12),
                 onTap: onOpenHistory,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildQuickActionCard(
+                label: 'QR Scan',
+                icon: Icons.qr_code_scanner_rounded,
+                iconColor: const Color(0xFF0D9488),
+                bgColor: const Color(0xFF0D9488).withValues(alpha: isDark ? 0.25 : 0.12),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+                  );
+                },
               ),
             ),
           ],
@@ -90,7 +106,7 @@ class QuickActionsGrid extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(14),
@@ -109,8 +125,10 @@ class QuickActionsGrid extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               label,
-              style: TextStyle(color: textPrimary, fontSize: 11, fontWeight: FontWeight.w600),
+              style: TextStyle(color: textPrimary, fontSize: 10.5, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

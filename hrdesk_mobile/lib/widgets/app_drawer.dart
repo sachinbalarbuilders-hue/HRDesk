@@ -9,6 +9,7 @@ import '../widgets/branch_switcher_sheet.dart';
 import '../screens/profile/directory_screen.dart';
 import '../screens/holidays/holidays_screen.dart';
 import '../screens/regularization/regularization_screen.dart';
+import '../screens/scanner/qr_scanner_screen.dart';
 import '../screens/login_screen.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -231,6 +232,16 @@ class AppDrawer extends StatelessWidget {
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const DirectoryScreen()));
+                    },
+                  ),
+                  _buildNavTile(
+                    context,
+                    icon: Icons.qr_code_scanner_rounded,
+                    title: 'QR Badge Scanner',
+                    textPrimary: textPrimary,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerScreen()));
                     },
                   ),
                   _buildNavTile(
