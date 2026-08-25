@@ -228,23 +228,17 @@ namespace HRDesk.Web.Data.Migrations
                 oldType: "nvarchar(20)",
                 oldMaxLength: 20);
 
-            migrationBuilder.AlterColumn<string>(
-                name: "outside_attendance_policy",
-                table: "branches",
-                type: "nvarchar(50)",
-                maxLength: 50,
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(50)",
-                oldMaxLength: 50);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('branches') AND name = 'outside_attendance_policy')
+                    ALTER TABLE branches ADD outside_attendance_policy nvarchar(50) NULL;
+                ELSE
+                    ALTER TABLE branches ALTER COLUMN outside_attendance_policy nvarchar(50) NULL;
+            ");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_employee_documents_Organizations_organization_id",
-                table: "employee_documents",
-                column: "organization_id",
-                principalTable: "Organizations",
-                principalColumn: "id",
-                onDelete: ReferentialAction.Restrict);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_employee_documents_Organizations_organization_id')
+                    ALTER TABLE employee_documents ADD CONSTRAINT FK_employee_documents_Organizations_organization_id FOREIGN KEY (organization_id) REFERENCES Organizations(id) ON DELETE NO ACTION;
+            ");
         }
 
         /// <inheritdoc />

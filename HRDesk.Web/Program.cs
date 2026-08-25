@@ -26,7 +26,7 @@ builder.Services.Configure<HostOptions>(options =>
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 
-// Require authentication by default for all endpoints (Controllers & Pages) supporting both Cookies and JWT Bearer
+// Configure Authorization: Controllers use [Authorize]/[AllowAnonymous] attributes
 builder.Services.AddAuthorization(options =>
 {
     var defaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(
@@ -36,7 +36,6 @@ builder.Services.AddAuthorization(options =>
         .Build();
 
     options.DefaultPolicy = defaultPolicy;
-    options.FallbackPolicy = defaultPolicy;
 });
 
 // Swagger & OpenAPI
@@ -80,41 +79,20 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<HRDesk.Web.Services.ICurrentTenantProvider, HRDesk.Web.Services.CurrentTenantProvider>();
 builder.Services.AddScoped<HRDesk.Web.Services.IDeviceCommunicationService, HRDesk.Web.Services.DeviceCommunicationService>();
-// Configure Authentication: Primary is Cookies for the Web Portal + JWT for SPA & Mobile
+// Configure Authentication: Primary is JWT for SPA & Mobile API + Cookies for backward compatibility
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddCookie(options =>
 {
-    options.LoginPath = "/Account/Login";
-    options.LogoutPath = "/Account/Logout";
-    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.LoginPath = "/login";
+    options.LogoutPath = "/logout";
     options.ExpireTimeSpan = TimeSpan.FromDays(30);
     options.SlidingExpiration = true;
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Events.OnRedirectToLogin = context =>
-    {
-        if (context.Request.Path.StartsWithSegments("/api"))
-        {
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return Task.CompletedTask;
-        }
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
-    };
-    options.Events.OnRedirectToAccessDenied = context =>
-    {
-        if (context.Request.Path.StartsWithSegments("/api"))
-        {
-            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return Task.CompletedTask;
-        }
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
-    };
 })
 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
 {
@@ -134,17 +112,6 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
         ValidIssuer = jwtIssuer
     };
-});
-
-builder.Services.AddAuthorization(options =>
-{
-    var defaultPolicy = new AuthorizationPolicyBuilder(
-        CookieAuthenticationDefaults.AuthenticationScheme,
-        JwtBearerDefaults.AuthenticationScheme)
-        .RequireAuthenticatedUser()
-        .Build();
-
-    options.DefaultPolicy = defaultPolicy;
 });
 
 builder.Services.AddDbContext<HRDesk.Web.Data.BiometricAttendanceDbContext>(options =>
@@ -237,6 +204,7 @@ else
 }
 
 app.UseHttpsRedirection();
+app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseSerilogRequestLogging();
 
@@ -256,6 +224,25 @@ using (var scope = app.Services.CreateScope())
     // Thumbnails will lazily fallback to disk until a dedicated migration job is run.
 
     
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            IF EXISTS (SELECT 1 FROM employees WHERE employee_id = 0)
+            BEGIN
+                UPDATE users SET employee_id = 1 WHERE employee_id = 0;
+                UPDATE daily_attendance SET employee_id = 1 WHERE employee_id = 0;
+                UPDATE leave_applications SET employee_id = 1 WHERE employee_id = 0;
+                UPDATE shift_rosters SET employee_id = 1 WHERE employee_id = 0;
+                UPDATE employee_shift_assignments SET employee_id = 1 WHERE employee_id = 0;
+                UPDATE employees SET employee_id = 1 WHERE employee_id = 0;
+            END
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Fix emp#000 warning: {ex.Message}");
+    }
+
     try
     {
         // 1. Create Companies table & columns if not exist
@@ -597,8 +584,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapControllers();
-app.MapFallbackToFile("index.html");
-app.MapHealthChecks("/health");
+app.MapFallbackToFile("index.html").AllowAnonymous();
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
 }

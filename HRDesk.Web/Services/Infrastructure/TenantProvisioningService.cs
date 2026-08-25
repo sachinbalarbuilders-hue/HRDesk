@@ -198,6 +198,7 @@ public class TenantProvisioningService : ITenantProvisioningService
             // 8. Create Administrator Employee Profile
             var adminEmp = new Employee
             {
+                EmployeeId = 1,
                 OrganizationId = org.Id,
                 BranchId = branch.Id,
                 DepartmentId = deptMgmt.Id,

@@ -215,3 +215,36 @@ impostor pair. Export an enrolled photo with
 `HRDesk.Web/wwwroot/attendance_photos/YYYY/MM/DD/`. Print cosine similarity per preprocessing
 variant (raw vs normalized, RGB vs BGR, aligned vs box-crop). Delete the harness and any
 exported photos afterward (they are PII).
+
+---
+
+## 🚀 SmarterASP / IIS Production Deployment & Hosting Guide
+
+This section documents the live deployment workflow, IIS file lock mechanics, and configuration rules for SmarterASP hosting.
+
+### 1. Automated Deployment Pipeline
+Always use the automated deployment script:
+```powershell
+.\Scripts\Deploy_To_SmarterAsp.ps1
+```
+This script automatically:
+1. Builds the React frontend (`/client` -> `npm run build` -> copies `dist/*` to `HRDesk.Web/wwwroot`).
+2. Publishes ASP.NET Core backend in Release mode (`-c Release -o ./publish`).
+3. Injects production `appsettings.json` / `appsettings.Production.json` from `appsettings.SmarterAsp.json`.
+4. Compresses output to `publish.zip` and uploads directly to `/site1/publish.zip` via high-speed FTP stream.
+
+### 2. Critical IIS Gotchas & Solutions
+
+| Issue / Gotcha | Root Cause | Solution |
+| :--- | :--- | :--- |
+| **IIS File Lock (`550 File unavailable` on `.dll`)** | In-process IIS (`w3wp.exe`) locks `HRDesk.Web.dll` in memory. Overwriting while running is blocked by Windows. | Upload `app_offline.htm` to `/site1/`, wait 5s for IIS worker process to exit and release file locks, replace DLLs/files, and delete `app_offline.htm`. |
+| **HTTP 401 on Root (`/`) or Login** | Missing `UseDefaultFiles()`, or global `FallbackPolicy` enforcing Cookie auth and redirecting to non-existent Razor `/Account/Login`. | Ensure `app.UseDefaultFiles()` is called before `app.UseStaticFiles()`, JWT is default scheme for APIs, and `app.MapFallbackToFile("index.html").AllowAnonymous()` is configured. |
+| **SmarterASP `default.asp` Blocking Traffic** | New sites on SmarterASP have a placeholder `default.asp` file that IIS serves before routing to .NET. | Delete `default.asp` from `/site1`. |
+| **Temporary URL Password Prompt** | SmarterASP enables basic auth on `.htempurl.com` by default. | Disable directory password protection in SmarterASP Control Panel -> Websites -> Security Settings. |
+
+### 3. Environment Variables Convention (SmarterASP Control Panel)
+If setting config in the SmarterASP Control Panel (Environment Variables):
+- `ConnectionStrings__AttendanceDb` (use double underscore `__` for nested keys)
+- `Jwt__Key`
+- `ASPNETCORE_ENVIRONMENT` = `Production`
+

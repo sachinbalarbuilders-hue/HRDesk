@@ -8,27 +8,37 @@ A comprehensive Human Resource Management System (HRMS) integrated with biometri
 
 ```
 HRDesk/
-├── HRDesk.Web/                      # ASP.NET Core Razor Pages web app
+├── HRDesk.Web/                      # ASP.NET Core (.NET 8) Web API & static host
+├── client/                          # React + TypeScript + Tailwind + shadcn/ui SPA
+├── hrdesk_mobile/                   # Flutter Mobile App (Android / iOS)
 ├── Z903AttendanceService/           # Windows Service (biometric sync)
-│   ├── Z903AttendanceService/       # Main service project (.NET Framework 4.8)
-│   └── BackendExample/              # Example API controller for reference
-├── biometric_attendance_schema.sql  # Full database schema
-├── Update_HRDeskWeb.bat             # One-click deploy for web app
-├── Update_Z903Service.bat           # One-click build & deploy for service
+├── Scripts/                         # One-click deployment & database scripts
+│   ├── Deploy_To_SmarterAsp.ps1     # Automated release build & FTP deploy pipeline
+│   └── upload_zip_to_smarterasp.ps1 # Fast FTP ZIP uploader
 └── README.md
 ```
 
 ---
 
-## 🛠️ Prerequisites
+## 🛠️ Technology Stack
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| MySQL | 8.x | Database |
-| .NET SDK | 8.0+ | HRDesk.Web web app |
-| .NET Framework | 4.8 | Z903 Windows Service |
-| Visual Studio Community | 2022+ | Building the Windows Service |
-| IIS | 10 | Hosting HRDesk.Web in production |
+| Component | Technology | Description |
+|---|---|---|
+| **Backend** | ASP.NET Core (.NET 8) | Unified REST API under `/api/...` |
+| **Database** | Microsoft SQL Server (MSSQL 2022) | Primary relational database with EF Core 8 |
+| **Web Frontend** | React 19 + Vite + TypeScript + Tailwind | Modern SPA client in `/client`, compiled to `wwwroot` |
+| **Mobile App** | Flutter | Cross-platform mobile app in `/hrdesk_mobile` |
+| **Deployment** | IIS / SmarterASP | Automated via `Deploy_To_SmarterAsp.ps1` |
+
+---
+
+## 🚀 Deployment to SmarterASP
+
+Run the one-click build and deployment script:
+```powershell
+.\Scripts\Deploy_To_SmarterAsp.ps1
+```
+See `AGENTS.md` for complete architectural and deployment notes.
 
 ---
 
