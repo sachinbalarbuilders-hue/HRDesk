@@ -95,7 +95,7 @@ export const AnnouncementsPage: React.FC = () => {
     setPriority('Normal');
     setStartDate(new Date().toISOString().split('T')[0]);
     setEndDate('');
-    setTargetBranchId(currentBranch?.id || branches[0]?.id || '');
+    setTargetBranchId(currentBranch?.id ? Number(currentBranch.id) : (branches[0]?.id ? Number(branches[0].id) : ''));
     setIsPinned(false);
     setFormError(null);
     setModalOpen(true);
@@ -109,7 +109,7 @@ export const AnnouncementsPage: React.FC = () => {
     setPriority(item.priority || 'Normal');
     setStartDate(item.startDate || new Date().toISOString().split('T')[0]);
     setEndDate(item.endDate || '');
-    setTargetBranchId(item.branchId || currentBranch?.id || branches[0]?.id || '');
+    setTargetBranchId(item.branchId ? Number(item.branchId) : (currentBranch?.id ? Number(currentBranch.id) : (branches[0]?.id ? Number(branches[0].id) : '')));
     setIsPinned(item.isPinned);
     setFormError(null);
     setModalOpen(true);
@@ -253,16 +253,11 @@ export const AnnouncementsPage: React.FC = () => {
           title="No announcements found"
           description="Click the button below to publish company notices, events, and holiday reminders."
           icon={<Megaphone size={36} className="text-[var(--text-muted)]" />}
-          action={
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="btn-primary flex items-center gap-2 text-xs px-3.5 py-1.5 cursor-pointer mt-3"
-            >
-              <Plus size={14} />
-              <span>Post Announcement</span>
-            </button>
-          }
+          action={{
+            label: 'Post Announcement',
+            onClick: openCreateModal,
+            icon: <Plus size={14} />,
+          }}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

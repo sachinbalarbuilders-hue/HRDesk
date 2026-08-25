@@ -911,17 +911,17 @@ export const Shifts: React.FC = () => {
               <div>
                 <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Select Employees *</label>
                 <EmployeeMultiSelect
+                  selectedIds={assignForm.employeeIds}
                   selectedEmployees={selectedEmployeesState}
                   departmentId={assignDeptFilter ? parseInt(assignDeptFilter) : undefined}
-                  onChange={(selected) => {
-                    setSelectedEmployeesState(selected);
+                  onChange={(ids, selectedEmps) => {
+                    setSelectedEmployeesState(selectedEmps);
                     setAssignForm({
                       ...assignForm,
-                      employeeIds: selected.map(e => e.employeeId),
+                      employeeIds: ids,
                     });
                   }}
                   branchId={currentBranch?.id ? parseInt(currentBranch.id) : undefined}
-                  placeholder="Search and select employees..."
                 />
                 <p className="text-[10px] text-[var(--text-muted)] mt-1">
                   {assignForm.employeeIds.length} employee(s) selected
