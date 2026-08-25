@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../models/dashboard_model.dart';
 import '../../../widgets/employee_avatar.dart';
@@ -24,6 +23,125 @@ class MyTeamSection extends StatelessWidget {
     required this.textPrimary,
     required this.textSecondary,
   });
+
+  void _showMemberDetailDialog(BuildContext context, TeamMemberTodayModel m) {
+    final isPresent = m.isPresent;
+    final isOnLeave = m.isOnLeave;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: cardBorder),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isPresent
+                      ? const Color(0xFF10B981)
+                      : isOnLeave
+                          ? Colors.purple
+                          : Colors.grey.withValues(alpha: 0.4),
+                  width: 2.5,
+                ),
+              ),
+              child: EmployeeAvatar(
+                employeeId: m.employeeId,
+                name: m.employeeName,
+                radius: 30,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              m.employeeName,
+              style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${m.designation} • ${m.department}',
+              style: TextStyle(color: textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isPresent
+                    ? const Color(0xFF059669).withValues(alpha: 0.12)
+                    : isOnLeave
+                        ? Colors.purple.withValues(alpha: 0.12)
+                        : (isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9)),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isPresent
+                      ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                      : isOnLeave
+                          ? Colors.purple.withValues(alpha: 0.3)
+                          : cardBorder,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isPresent
+                              ? const Color(0xFF10B981)
+                              : isOnLeave
+                                  ? Colors.purple
+                                  : Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isPresent ? 'In Office' : (isOnLeave ? 'On Approved Leave' : 'Not Clocked In Yet'),
+                        style: TextStyle(
+                          color: isPresent
+                              ? const Color(0xFF059669)
+                              : isOnLeave
+                                  ? Colors.purple
+                                  : textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (m.inTime != null)
+                    Text(
+                      'Punched: ${m.inTime}',
+                      style: TextStyle(color: textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
 
   void _showAllTeamMembersSheet(BuildContext context) {
     showModalBottomSheet(
@@ -133,11 +251,28 @@ class MyTeamSection extends StatelessWidget {
                               final isOnLeave = m.isOnLeave;
 
                               return ListTile(
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                  _showMemberDetailDialog(context, m);
+                                },
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                                leading: EmployeeAvatar(
-                                  employeeId: m.employeeId,
-                                  name: m.employeeName,
-                                  radius: 18,
+                                leading: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isPresent
+                                          ? const Color(0xFF10B981)
+                                          : isOnLeave
+                                              ? Colors.purple
+                                              : Colors.grey.withValues(alpha: 0.3),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: EmployeeAvatar(
+                                    employeeId: m.employeeId,
+                                    name: m.employeeName,
+                                    radius: 18,
+                                  ),
                                 ),
                                 title: Text(
                                   m.employeeName,
@@ -206,6 +341,7 @@ class MyTeamSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Section Header Row
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -219,22 +355,42 @@ class MyTeamSection extends StatelessWidget {
                 ),
               ],
             ),
-            if (totalCount > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF059669).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  '$presentCount / $totalCount In Office',
-                  style: const TextStyle(color: Color(0xFF059669), fontSize: 10.5, fontWeight: FontWeight.bold),
-                ),
-              ),
+            Row(
+              children: [
+                if (totalCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF059669).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      '$presentCount / $totalCount In Office',
+                      style: const TextStyle(color: Color(0xFF059669), fontSize: 10.5, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                if (team.length > 5) ...[
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _showAllTeamMembersSheet(context),
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Text(
+                        'See All',
+                        style: TextStyle(color: Color(0xFF0D9488), fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
+
+        // Horizontal Story/Round Scroll Layout
         if (team.isEmpty)
           Container(
             width: double.infinity,
@@ -252,109 +408,159 @@ class MyTeamSection extends StatelessWidget {
             ),
           )
         else
-          Container(
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: cardBorder),
-            ),
-            child: Column(
-              children: [
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: math.min(team.length, 5),
-                  separatorBuilder: (_, __) => Divider(color: cardBorder, height: 1),
-                  itemBuilder: (ctx, i) {
-                    final m = team[i];
-                    final isPresent = m.isPresent;
-                    final isOnLeave = m.isOnLeave;
+          SizedBox(
+            height: 106,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: team.length + (team.length > 5 ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(width: 14),
+              itemBuilder: (ctx, i) {
+                // If last item and team > 5, show "View All" circular button
+                if (i == team.length && team.length > 5) {
+                  return InkWell(
+                    onTap: () => _showAllTeamMembersSheet(context),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      width: 68,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                              border: Border.all(color: const Color(0xFF0D9488).withValues(alpha: 0.4), width: 1.5),
+                            ),
+                            child: const Center(
+                              child: Icon(Icons.arrow_forward_rounded, color: Color(0xFF0D9488), size: 22),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'View All',
+                            style: TextStyle(
+                              color: textPrimary,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '${team.length} total',
+                            style: TextStyle(color: textSecondary, fontSize: 9),
+                            maxLines: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                      leading: EmployeeAvatar(
-                        employeeId: m.employeeId,
-                        name: m.employeeName,
-                        radius: 18,
-                      ),
-                      title: Text(
-                        m.employeeName,
-                        style: TextStyle(color: textPrimary, fontSize: 12.5, fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        '${m.designation} • ${m.department}',
-                        style: TextStyle(color: textSecondary, fontSize: 10.5),
-                      ),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isPresent
-                              ? const Color(0xFF059669).withValues(alpha: 0.15)
-                              : isOnLeave
-                                  ? Colors.purple.withValues(alpha: 0.15)
-                                  : (isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF1F5F9)),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                final m = team[i];
+                final isPresent = m.isPresent;
+                final isOnLeave = m.isOnLeave;
+                final firstName = m.employeeName.split(' ').first;
+
+                return InkWell(
+                  onTap: () => _showMemberDetailDialog(context, m),
+                  borderRadius: BorderRadius.circular(16),
+                  child: SizedBox(
+                    width: 68,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Circular Avatar with Status Ring & Online Indicator Dot
+                        Stack(
+                          clipBehavior: Clip.none,
                           children: [
                             Container(
-                              width: 6,
-                              height: 6,
+                              padding: const EdgeInsets.all(2.5),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: isPresent
-                                    ? const Color(0xFF10B981)
-                                    : isOnLeave
-                                        ? Colors.purple
-                                        : Colors.grey,
+                                border: Border.all(
+                                  color: isPresent
+                                      ? const Color(0xFF10B981)
+                                      : isOnLeave
+                                          ? Colors.purple
+                                          : (isDark ? Colors.white.withValues(alpha: 0.15) : const Color(0xFFCBD5E1)),
+                                  width: isPresent ? 2.2 : 1.5,
+                                ),
+                              ),
+                              child: EmployeeAvatar(
+                                employeeId: m.employeeId,
+                                name: m.employeeName,
+                                radius: 24,
                               ),
                             ),
-                            const SizedBox(width: 5),
-                            Text(
-                              m.inTime != null ? m.inTime! : (isOnLeave ? 'On Leave' : 'Not In'),
-                              style: TextStyle(
-                                color: isPresent
-                                    ? const Color(0xFF059669)
-                                    : isOnLeave
-                                        ? Colors.purple
-                                        : textSecondary,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.bold,
+                            // Status Dot Badge
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 13,
+                                height: 13,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isPresent
+                                      ? const Color(0xFF10B981)
+                                      : isOnLeave
+                                          ? Colors.purple
+                                          : Colors.grey,
+                                  border: Border.all(color: cardBg, width: 2),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  },
-                ),
-                if (team.length > 5) ...[
-                  Divider(color: cardBorder, height: 1),
-                  InkWell(
-                    onTap: () => _showAllTeamMembersSheet(context),
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'View all ${totalCount > 0 ? totalCount : team.length} members',
-                            style: const TextStyle(
-                              color: Color(0xFF0D9488),
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        const SizedBox(height: 6),
+                        // First Name
+                        Text(
+                          firstName,
+                          style: TextStyle(
+                            color: textPrimary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF0D9488)),
-                        ],
-                      ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 2),
+                        // Time or Status Chip
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: isPresent
+                                ? const Color(0xFF059669).withValues(alpha: 0.12)
+                                : isOnLeave
+                                    ? Colors.purple.withValues(alpha: 0.12)
+                                    : (isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF1F5F9)),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            m.inTime != null ? m.inTime! : (isOnLeave ? 'Leave' : 'Not In'),
+                            style: TextStyle(
+                              color: isPresent
+                                  ? const Color(0xFF059669)
+                                  : isOnLeave
+                                      ? Colors.purple
+                                      : textSecondary,
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ],
+                );
+              },
             ),
           ),
       ],
