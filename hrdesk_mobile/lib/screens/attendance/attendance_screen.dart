@@ -247,8 +247,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         IconButton(
                           icon: Icon(Icons.chevron_left, color: textSecondary, size: 22),
                           onPressed: () {
-                            final bp = context.read<BranchProvider>();
-                            attendance.changeMonth(-1, employeeId: auth.user?.employeeId, search: _searchQuery, branchId: bp.selectedBranch?.id);
+                            attendance.changeMonth(-1, employeeId: auth.user?.employeeId, search: _searchQuery);
                           },
                         ),
                         Row(
@@ -268,8 +267,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         IconButton(
                           icon: Icon(Icons.chevron_right, color: textSecondary, size: 22),
                           onPressed: () {
-                            final bp = context.read<BranchProvider>();
-                            attendance.changeMonth(1, employeeId: auth.user?.employeeId, search: _searchQuery, branchId: bp.selectedBranch?.id);
+                            attendance.changeMonth(1, employeeId: auth.user?.employeeId, search: _searchQuery);
                           },
                         ),
                       ],

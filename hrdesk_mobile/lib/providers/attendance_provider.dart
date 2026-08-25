@@ -162,7 +162,7 @@ class AttendanceProvider with ChangeNotifier {
     return null;
   }
 
-  void changeMonth(int delta, {int? employeeId, String? search, int? branchId}) {
+  Future<void> changeMonth(int delta, {int? employeeId, String? search, int? branchId}) async {
     var newMonth = _selectedMonth + delta;
     var newYear = _selectedYear;
     if (newMonth > 12) {
@@ -174,7 +174,9 @@ class AttendanceProvider with ChangeNotifier {
     }
     _selectedYear = newYear;
     _selectedMonth = newMonth;
-    fetchAttendance(employeeId: employeeId, year: newYear, month: newMonth);
-    fetchTeamMatrix(year: newYear, month: newMonth, search: search, branchId: branchId);
+    await Future.wait([
+      fetchAttendance(employeeId: employeeId, year: newYear, month: newMonth),
+      fetchTeamMatrix(year: newYear, month: newMonth, search: search, branchId: branchId, refresh: true),
+    ]);
   }
 }
