@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
-  static const String defaultBaseUrl = 'http://10.229.155.51:5283/api';
+  static const String defaultBaseUrl = 'https://hrdeskhrms-001-site1.htempurl.com/api';
 
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
@@ -21,13 +21,6 @@ class ApiClient {
       headers: {'Content-Type': 'application/json'},
     ));
 
-    // Load custom baseUrl if previously saved
-    _storage.read(key: 'custom_base_url').then((savedUrl) {
-      if (savedUrl != null && savedUrl.trim().isNotEmpty) {
-        _dio.options.baseUrl = savedUrl.trim();
-      }
-    }).catchError((_) {});
-
     // Auth interceptor — inject Bearer token on every request
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
@@ -41,18 +34,6 @@ class ApiClient {
         return handler.next(e);
       },
     ));
-  }
-
-  Future<void> setBaseUrl(String url) async {
-    final cleanUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
-    final finalUrl = cleanUrl.endsWith('/api') ? cleanUrl : '$cleanUrl/api';
-    _dio.options.baseUrl = finalUrl;
-    await _storage.write(key: 'custom_base_url', value: finalUrl);
-  }
-
-  Future<String> getBaseUrl() async {
-    final saved = await _storage.read(key: 'custom_base_url');
-    return (saved != null && saved.trim().isNotEmpty) ? saved : defaultBaseUrl;
   }
 
   Future<void> saveToken(String token) async {

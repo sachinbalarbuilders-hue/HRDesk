@@ -28,11 +28,41 @@ class BranchModel {
   });
 
   factory BranchModel.fromJson(Map<String, dynamic> json) {
+    int parsedId = 0;
+    final rawId = json['id'] ?? json['Id'];
+    if (rawId is int) {
+      parsedId = rawId;
+    } else if (rawId != null) {
+      parsedId = int.tryParse(rawId.toString()) ?? 0;
+    }
+
+    int? parsedOrgId;
+    final rawOrgId = json['organizationId'] ?? json['OrganizationId'];
+    if (rawOrgId is int) {
+      parsedOrgId = rawOrgId;
+    } else if (rawOrgId != null) {
+      parsedOrgId = int.tryParse(rawOrgId.toString());
+    }
+
+    double parsedRadius = 100.0;
+    final rawRadius = json['radiusMeters'] ?? json['RadiusMeters'];
+    if (rawRadius is num) {
+      parsedRadius = rawRadius.toDouble();
+    } else if (rawRadius != null) {
+      parsedRadius = double.tryParse(rawRadius.toString()) ?? 100.0;
+    }
+
+    bool parsedActive = true;
+    final rawActive = json['isActive'] ?? json['IsActive'];
+    if (rawActive is bool) {
+      parsedActive = rawActive;
+    } else if (rawActive != null) {
+      parsedActive = rawActive.toString().toLowerCase() == 'true';
+    }
+
     return BranchModel(
-      id: (json['id'] ?? json['Id'] ?? 0) as int,
-      organizationId: json['organizationId'] is int
-          ? json['organizationId'] as int
-          : int.tryParse(json['organizationId']?.toString() ?? ''),
+      id: parsedId,
+      organizationId: parsedOrgId,
       publicId: (json['publicId'] ?? json['PublicId'] ?? '').toString(),
       name: (json['name'] ?? json['Name'] ?? 'Branch').toString(),
       code: (json['code'] ?? json['Code'] ?? '').toString(),
@@ -41,8 +71,8 @@ class BranchModel {
       state: json['state']?.toString(),
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
-      radiusMeters: ((json['radiusMeters'] ?? 100) as num).toDouble(),
-      isActive: (json['isActive'] ?? true) as bool,
+      radiusMeters: parsedRadius,
+      isActive: parsedActive,
     );
   }
 }

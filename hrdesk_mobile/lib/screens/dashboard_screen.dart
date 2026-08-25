@@ -11,6 +11,8 @@ import '../providers/dashboard_provider.dart';
 import '../models/dashboard_model.dart';
 import 'face_punch_screen.dart';
 import '../widgets/employee_avatar.dart';
+import 'leaves/apply_leave_sheet.dart';
+import 'regularization/apply_regularization_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -61,7 +63,6 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     return 'Good evening';
   }
 
-  // Calculate elapsed time from today's InTime string (e.g. "09:15" or "09:15:00")
   Duration _getElapsedWorkDuration(String? inTimeStr, String? outTimeStr, bool isClockedIn) {
     if (inTimeStr == null || inTimeStr.isEmpty) return Duration.zero;
 
@@ -117,7 +118,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
         if (mounted) {
           context.read<DashboardProvider>().fetchDashboardOverview();
           setState(() {
-            _statusMessage = 'Clock-$punchType successful with Face ID verification.';
+            _statusMessage = 'Clock-$punchType verified & recorded with Face recognition.';
             _lastPunchSuccess = true;
           });
         }
@@ -128,7 +129,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     if (user.requiresLocation) {
       setState(() {
         _locationPunching = true;
-        _statusMessage = 'Fetching precise GPS coordinates...';
+        _statusMessage = 'Verifying GPS location...';
       });
 
       try {
@@ -136,7 +137,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
         if (loc == null) {
           setState(() {
             _locationPunching = false;
-            _statusMessage = 'Location required. Please enable high-accuracy GPS.';
+            _statusMessage = 'Location required. Please enable GPS permissions.';
             _lastPunchSuccess = false;
           });
           return;
@@ -194,12 +195,13 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     final dashProvider = context.watch<DashboardProvider>();
     final user = auth.user;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     const accent = Color(0xFF0D9488);
 
     if (user == null) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0F172A),
-        body: Center(
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const Center(
           child: CircularProgressIndicator(color: accent),
         ),
       );
@@ -215,12 +217,20 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     final progressPercent = (progress * 100).toInt();
 
     final dateStr = DateFormat('EEEE, dd MMMM yyyy').format(_currentTime);
+    final timeStr = DateFormat('hh:mm').format(_currentTime);
+    final periodStr = DateFormat('a').format(_currentTime);
+    final secondsStr = DateFormat('ss').format(_currentTime);
+
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final cardBorder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         color: accent,
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: cardBg,
         onRefresh: () async {
           await Future.wait([
             auth.tryAutoLogin(),
@@ -234,365 +244,553 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Greeting Header with Avatar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      EmployeeAvatar(
-                        employeeId: user.employeeId,
-                        name: user.fullName ?? user.username,
-                        radius: 22,
-                        backgroundColor: const Color(0xFF0D9488).withValues(alpha: 0.25),
-                        textColor: const Color(0xFF0D9488),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '$_greeting,',
-                            style: const TextStyle(fontSize: 13, color: Colors.white60),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            user.fullName?.split(' ').first ?? user.username,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+              // 1. Header Profile & Status Row
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
                       children: [
-                        Icon(
-                          user.requiresFace
-                              ? Icons.face_retouching_natural
-                              : user.isGeoFencing
-                                  ? Icons.location_on
-                                  : user.isIpRestricted
-                                      ? Icons.wifi
-                                      : user.isBiometricOnly
-                                          ? Icons.fingerprint
-                                          : Icons.touch_app,
-                          color: accent,
-                          size: 14,
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: accent.withValues(alpha: 0.6), width: 1.5),
+                          ),
+                          child: EmployeeAvatar(
+                            employeeId: user.employeeId,
+                            name: user.fullName ?? user.username,
+                            radius: 24,
+                            backgroundColor: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                            textColor: const Color(0xFF2DD4BF),
+                          ),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          user.attendanceType ?? 'Standard',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$_greeting,',
+                              style: TextStyle(fontSize: 12, color: textSecondary, fontWeight: FontWeight.w500),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              user.fullName?.split(' ').first ?? user.username,
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: textPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            Text(
+                              dateStr,
+                              style: TextStyle(color: textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                dateStr,
-                style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 16),
-
-              // 2. Hero Live Circular Timer & Punch Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: isClockedIn ? accent.withValues(alpha: 0.4) : Colors.white10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isClockedIn ? accent.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Status Pill
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isClockedIn
-                            ? const Color(0xFF059669).withValues(alpha: 0.2)
-                            : (inTime != null && outTime != null)
-                                ? Colors.blueAccent.withValues(alpha: 0.2)
-                                : Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isClockedIn
-                              ? const Color(0xFF059669)
-                              : (inTime != null && outTime != null)
-                                  ? Colors.blueAccent
-                                  : Colors.white24,
-                          width: 0.8,
-                        ),
+                        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.8) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: accent.withValues(alpha: 0.3)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isClockedIn
-                                  ? const Color(0xFF059669)
-                                  : (inTime != null && outTime != null)
-                                      ? Colors.blueAccent
-                                      : Colors.white60,
-                            ),
+                          Icon(
+                            user.requiresFace
+                                ? Icons.face_retouching_natural
+                                : user.isGeoFencing
+                                    ? Icons.location_on
+                                    : user.isIpRestricted
+                                        ? Icons.wifi
+                                        : user.isBiometricOnly
+                                            ? Icons.fingerprint
+                                            : Icons.touch_app,
+                            color: const Color(0xFF0D9488),
+                            size: 14,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Text(
-                            isClockedIn
-                                ? 'ACTIVE SHIFT'
-                                : (inTime != null && outTime != null)
-                                    ? 'SHIFT COMPLETED'
-                                    : 'NOT CLOCKED IN',
+                            user.attendanceType ?? 'Standard',
                             style: TextStyle(
-                              color: isClockedIn
-                                  ? const Color(0xFF34D399)
-                                  : (inTime != null && outTime != null)
-                                      ? Colors.lightBlueAccent
-                                      : Colors.white70,
+                              color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B),
                               fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Circular Progress Dial
-                    SizedBox(
-                      width: 180,
-                      height: 180,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          CustomPaint(
-                            size: const Size(180, 180),
-                            painter: _ShiftProgressPainter(
-                              progress: isClockedIn || (inTime != null && outTime != null) ? progress : 0.0,
-                              isClockedIn: isClockedIn,
-                            ),
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                isClockedIn
-                                    ? _formatDuration(elapsed)
-                                    : DateFormat('hh:mm a').format(_currentTime),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                isClockedIn
-                                    ? '$progressPercent% of ${punch.shiftName}'
-                                    : (inTime != null && outTime != null)
-                                        ? 'Total: ${_formatDuration(elapsed)}'
-                                        : '${punch.shiftName} (${punch.shiftStart} - ${punch.shiftEnd})',
-                                style: const TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // In / Out Punch Tiles Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildPunchTile(
-                            title: 'Clock In',
-                            time: inTime ?? '— —',
-                            icon: Icons.login,
-                            iconColor: const Color(0xFF059669),
-                            subtext: punch.isLate ? '${punch.lateMinutes}m Late' : (inTime != null ? 'Recorded' : 'Pending'),
-                            subtextColor: punch.isLate ? Colors.amberAccent : Colors.white60,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildPunchTile(
-                            title: 'Clock Out',
-                            time: outTime ?? (isClockedIn ? 'Active' : '— —'),
-                            icon: Icons.logout,
-                            iconColor: const Color(0xFFDC2626),
-                            subtext: outTime != null ? 'Completed' : (isClockedIn ? 'In Progress' : 'Pending'),
-                            subtextColor: isClockedIn ? const Color(0xFF34D399) : Colors.white60,
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 14),
 
-              // Status message
-              if (_statusMessage != null) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: (_lastPunchSuccess ?? false)
-                        ? const Color(0xFF059669).withValues(alpha: 0.15)
-                        : const Color(0xFFDC2626).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: (_lastPunchSuccess ?? false)
-                          ? const Color(0xFF059669).withValues(alpha: 0.4)
-                          : const Color(0xFFDC2626).withValues(alpha: 0.4),
-                    ),
+              // 2. Modern Enterprise Hero Attendance Card
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: isDark
+                      ? const LinearGradient(
+                          colors: [
+                            Color(0xFF1E293B),
+                            Color(0xFF131D31),
+                            Color(0xFF0F172A),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : const LinearGradient(
+                          colors: [
+                            Color(0xFFFFFFFF),
+                            Color(0xFFF8FAFC),
+                            Color(0xFFF1F5F9),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: isClockedIn
+                        ? const Color(0xFF0D9488).withValues(alpha: 0.5)
+                        : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                    width: 1.2,
                   ),
-                  child: Row(
+                  boxShadow: [
+                    BoxShadow(
+                      color: isClockedIn
+                          ? const Color(0xFF0D9488).withValues(alpha: isDark ? 0.2 : 0.15)
+                          : Colors.black.withValues(alpha: isDark ? 0.4 : 0.06),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
                     children: [
-                      Icon(
-                        (_lastPunchSuccess ?? false) ? Icons.check_circle : Icons.error_outline,
-                        color: (_lastPunchSuccess ?? false) ? const Color(0xFF34D399) : const Color(0xFFF87171),
-                        size: 18,
+                      // Shift Header & Live Status Row (Fixed with Expanded to prevent text collision)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0D9488).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.schedule_rounded, color: Color(0xFF0D9488), size: 14),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${punch.shiftName} (${punch.shiftStart} - ${punch.shiftEnd})',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: textSecondary,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isClockedIn
+                                  ? const Color(0xFF059669).withValues(alpha: 0.18)
+                                  : (inTime != null && outTime != null)
+                                      ? const Color(0xFF2563EB).withValues(alpha: 0.18)
+                                      : const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isClockedIn
+                                    ? const Color(0xFF10B981)
+                                    : (inTime != null && outTime != null)
+                                        ? const Color(0xFF60A5FA)
+                                        : const Color(0xFFF59E0B),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 7,
+                                  height: 7,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isClockedIn
+                                        ? const Color(0xFF10B981)
+                                        : (inTime != null && outTime != null)
+                                            ? const Color(0xFF3B82F6)
+                                            : const Color(0xFFF59E0B),
+                                    boxShadow: [
+                                      if (isClockedIn)
+                                        BoxShadow(
+                                          color: const Color(0xFF10B981).withValues(alpha: 0.8),
+                                          blurRadius: 6,
+                                          spreadRadius: 1,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  isClockedIn
+                                      ? 'ACTIVE'
+                                      : (inTime != null && outTime != null)
+                                          ? 'COMPLETED'
+                                          : 'NOT CLOCKED IN',
+                                  style: TextStyle(
+                                    color: isClockedIn
+                                        ? const Color(0xFF10B981)
+                                        : (inTime != null && outTime != null)
+                                            ? const Color(0xFF2563EB)
+                                            : const Color(0xFFD97706),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          _statusMessage!,
-                          style: TextStyle(
-                            color: (_lastPunchSuccess ?? false) ? const Color(0xFF34D399) : const Color(0xFFF87171),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                      const SizedBox(height: 18),
+
+                      // Clock & Live Shift Work Hours Display
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.7) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text(
+                                  timeStr,
+                                  style: TextStyle(
+                                    color: textPrimary,
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -1,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  ':$secondsStr',
+                                  style: TextStyle(
+                                    color: textSecondary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  periodStr,
+                                  style: const TextStyle(
+                                    color: Color(0xFF0D9488),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
 
-              // Clock In / Out Toggle Button
-              if (!user.isBiometricOnly) ...[
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isClockedIn ? const Color(0xFFDC2626) : const Color(0xFF0D9488),
-                      elevation: 4,
-                      shadowColor: isClockedIn ? const Color(0xFFDC2626).withValues(alpha: 0.4) : accent.withValues(alpha: 0.4),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    onPressed: (_locationPunching || punch.state == PunchState.loading)
-                        ? null
-                        : () => _handlePunch(isClockedIn ? 'out' : 'in'),
-                    child: (_locationPunching || punch.state == PunchState.loading)
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(isClockedIn ? Icons.logout : Icons.login, color: Colors.white, size: 20),
-                              const SizedBox(width: 10),
+                            // Shift Work Duration Progress Bar
+                            if (isClockedIn || (inTime != null && outTime != null)) ...[
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    isClockedIn
+                                        ? 'Logged: ${_formatDuration(elapsed)}'
+                                        : 'Total Logged: ${_formatDuration(elapsed)}',
+                                    style: TextStyle(
+                                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    '$progressPercent% completed',
+                                    style: TextStyle(
+                                      color: isClockedIn ? const Color(0xFF0D9488) : textSecondary,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 7,
+                                  backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    isClockedIn ? const Color(0xFF0D9488) : const Color(0xFF3B82F6),
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
                               Text(
-                                isClockedIn ? 'CLOCK OUT' : 'CLOCK IN',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
+                                'Tap Clock In below to begin your shift',
+                                style: TextStyle(color: textSecondary, fontSize: 11.5, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Punch In & Out Status Tiles Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildModernPunchTile(
+                              title: 'Clock In',
+                              time: inTime ?? '— —',
+                              icon: Icons.login_rounded,
+                              iconColor: const Color(0xFF10B981),
+                              statusBadge: punch.isLate
+                                  ? '${punch.lateMinutes}m Late'
+                                  : (inTime != null ? 'On Time' : 'Pending'),
+                              isSuccess: inTime != null,
+                              isLate: punch.isLate,
+                              isDark: isDark,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildModernPunchTile(
+                              title: 'Clock Out',
+                              time: outTime ?? (isClockedIn ? 'In Progress' : '— —'),
+                              icon: Icons.logout_rounded,
+                              iconColor: const Color(0xFFEF4444),
+                              statusBadge: outTime != null ? 'Completed' : (isClockedIn ? 'Active' : 'Pending'),
+                              isSuccess: outTime != null,
+                              isLate: false,
+                              isDark: isDark,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Status Alert Message
+                      if (_statusMessage != null) ...[
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: (_lastPunchSuccess ?? false)
+                                ? const Color(0xFF059669).withValues(alpha: 0.15)
+                                : const Color(0xFFDC2626).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: (_lastPunchSuccess ?? false)
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                                  : const Color(0xFFEF4444).withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                (_lastPunchSuccess ?? false) ? Icons.check_circle_outline : Icons.error_outline,
+                                color: (_lastPunchSuccess ?? false) ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _statusMessage!,
+                                  style: TextStyle(
+                                    color: (_lastPunchSuccess ?? false) ? const Color(0xFF10B981) : const Color(0xFFDC2626),
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
+                        ),
+                      ],
+
+                      // Primary Punch Action Button
+                      if (!user.isBiometricOnly) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isClockedIn ? const Color(0xFFE11D48) : const Color(0xFF0D9488),
+                              foregroundColor: Colors.white,
+                              elevation: 4,
+                              shadowColor: isClockedIn
+                                  ? const Color(0xFFE11D48).withValues(alpha: 0.4)
+                                  : const Color(0xFF0D9488).withValues(alpha: 0.4),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            onPressed: (_locationPunching || punch.state == PunchState.loading)
+                                ? null
+                                : () => _handlePunch(isClockedIn ? 'out' : 'in'),
+                            child: (_locationPunching || punch.state == PunchState.loading)
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        user.requiresFace
+                                            ? Icons.face_retouching_natural
+                                            : (isClockedIn ? Icons.logout_rounded : Icons.login_rounded),
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        isClockedIn
+                                            ? 'CLOCK OUT NOW'
+                                            : (user.requiresFace ? 'CLOCK IN (FACE VERIFICATION)' : 'CLOCK IN NOW'),
+                                        style: const TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(height: 18),
-              ],
-
-              // 3. 📢 Announcements & Notice Section
-              _buildAnnouncementsSection(dashProvider.announcements),
+              ),
               const SizedBox(height: 18),
 
-              // 4. 👥 My Team Section (Present Today / Attendance Matrix)
+              // 3. ⚡ Quick Action Shortcuts Hub
+              Text(
+                'Quick Actions',
+                style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      label: 'Apply Leave',
+                      icon: Icons.beach_access_rounded,
+                      iconColor: const Color(0xFF6366F1),
+                      bgColor: const Color(0xFF6366F1).withValues(alpha: isDark ? 0.25 : 0.12),
+                      cardBg: cardBg,
+                      cardBorder: cardBorder,
+                      textPrimary: textPrimary,
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) => const ApplyLeaveSheet(),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      label: 'Regularize',
+                      icon: Icons.edit_calendar_rounded,
+                      iconColor: const Color(0xFFF59E0B),
+                      bgColor: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.25 : 0.12),
+                      cardBg: cardBg,
+                      cardBorder: cardBorder,
+                      textPrimary: textPrimary,
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) => const ApplyRegularizationSheet(),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      label: 'Punch History',
+                      icon: Icons.history_rounded,
+                      iconColor: const Color(0xFF10B981),
+                      bgColor: const Color(0xFF10B981).withValues(alpha: isDark ? 0.25 : 0.12),
+                      cardBg: cardBg,
+                      cardBorder: cardBorder,
+                      textPrimary: textPrimary,
+                      onTap: () {
+                        context.read<PunchProvider>().fetchTodayStatus();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // 4. 📢 Announcements & Notice Section
+              _buildAnnouncementsSection(dashProvider.announcements, isDark, cardBg, cardBorder, textPrimary, textSecondary),
+              const SizedBox(height: 20),
+
+              // 5. 👥 My Team Section (Present Today / Attendance Matrix)
               _buildMyTeamSection(
                 dashProvider.myTeam,
                 dashProvider.teamPresentCount,
                 dashProvider.teamTotalCount,
+                isDark,
+                cardBg,
+                cardBorder,
+                textPrimary,
+                textSecondary,
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 20),
 
-              // 5. 🎉 Celebrations & Milestones (Birthdays & Anniversaries)
-              _buildCelebrationsSection(dashProvider.celebrations),
-              const SizedBox(height: 18),
-
-              // 6. Shift & Work Snapshot
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Shift & Work Snapshot',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSnapshotRow(Icons.schedule, 'Shift Timing', '${punch.shiftName} (${punch.shiftStart} - ${punch.shiftEnd})'),
-                    _buildSnapshotRow(Icons.how_to_reg_outlined, 'Attendance Mode', user.locationPolicyDescription),
-                    _buildSnapshotRow(Icons.badge_outlined, 'Employee Code', user.employeeCode ?? '#${user.employeeId ?? '-'}'),
-                    _buildSnapshotRow(Icons.security, 'Role / Access', user.role ?? 'Employee'),
-                  ],
-                ),
-              ),
+              // 6. 🎉 Celebrations & Milestones (Birthdays & Anniversaries)
+              _buildCelebrationsSection(dashProvider.celebrations, isDark, cardBg, cardBorder, textPrimary, textSecondary),
               const SizedBox(height: 24),
             ],
           ),
@@ -601,18 +799,139 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     );
   }
 
+  Widget _buildQuickActionCard({
+    required String label,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required Color cardBg,
+    required Color cardBorder,
+    required Color textPrimary,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cardBorder),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(color: textPrimary, fontSize: 11, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernPunchTile({
+    required String title,
+    required String time,
+    required IconData icon,
+    required Color iconColor,
+    required String statusBadge,
+    required bool isSuccess,
+    required bool isLate,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.8) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isSuccess ? iconColor.withValues(alpha: 0.4) : (isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE2E8F0)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Icon(icon, color: iconColor, size: 16),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            time,
+            style: TextStyle(
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isLate
+                  ? const Color(0xFFF59E0B).withValues(alpha: 0.15)
+                  : (isSuccess
+                      ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                      : (isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0))),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              statusBadge,
+              style: TextStyle(
+                color: isLate
+                    ? const Color(0xFFD97706)
+                    : (isSuccess ? const Color(0xFF059669) : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // 📢 Announcements Component
-  Widget _buildAnnouncementsSection(List<AnnouncementModel> announcements) {
+  Widget _buildAnnouncementsSection(
+    List<AnnouncementModel> announcements,
+    bool isDark,
+    Color cardBg,
+    Color cardBorder,
+    Color textPrimary,
+    Color textSecondary,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.campaign_outlined, color: Color(0xFF38BDF8), size: 20),
-            SizedBox(width: 8),
+            const Icon(Icons.campaign_rounded, color: Color(0xFF0284C7), size: 18),
+            const SizedBox(width: 8),
             Text(
               'Company Announcements',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -622,26 +941,26 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: cardBorder),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.campaign_outlined, color: Color(0xFF38BDF8), size: 24),
-                SizedBox(width: 12),
+                const Icon(Icons.campaign_outlined, color: Color(0xFF0284C7), size: 22),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'All Caught Up',
-                        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
                         'No active company notices or upcoming holiday announcements.',
-                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                        style: TextStyle(color: textSecondary, fontSize: 11),
                       ),
                     ],
                   ),
@@ -651,7 +970,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           )
         else
           SizedBox(
-            height: 110,
+            height: 115,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: announcements.length,
@@ -664,16 +983,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                   width: 280,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isHoliday
-                          ? [const Color(0xFF064E3B), const Color(0xFF0F172A)]
-                          : [const Color(0xFF1E293B), const Color(0xFF0F172A)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: cardBg,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isHoliday ? const Color(0xFF10B981).withValues(alpha: 0.4) : Colors.white12,
+                      color: isHoliday ? const Color(0xFF10B981).withValues(alpha: 0.5) : cardBorder,
                     ),
                   ),
                   child: Column(
@@ -686,14 +999,14 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
                               color: isHoliday
-                                  ? const Color(0xFF10B981).withValues(alpha: 0.2)
-                                  : const Color(0xFF38BDF8).withValues(alpha: 0.2),
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                  : const Color(0xFF0284C7).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               a.category.toUpperCase(),
                               style: TextStyle(
-                                color: isHoliday ? const Color(0xFF34D399) : const Color(0xFF38BDF8),
+                                color: isHoliday ? const Color(0xFF059669) : const Color(0xFF0284C7),
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -701,7 +1014,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                           ),
                           Text(
                             a.date,
-                            style: const TextStyle(color: Colors.white38, fontSize: 10),
+                            style: TextStyle(color: textSecondary, fontSize: 10),
                           ),
                         ],
                       ),
@@ -710,14 +1023,14 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                         a.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         a.message,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white60, fontSize: 11),
+                        style: TextStyle(color: textSecondary, fontSize: 11),
                       ),
                     ],
                   ),
@@ -730,20 +1043,29 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
   }
 
   // 👥 My Team Section
-  Widget _buildMyTeamSection(List<TeamMemberTodayModel> team, int presentCount, int totalCount) {
+  Widget _buildMyTeamSection(
+    List<TeamMemberTodayModel> team,
+    int presentCount,
+    int totalCount,
+    bool isDark,
+    Color cardBg,
+    Color cardBorder,
+    Color textPrimary,
+    Color textSecondary,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.groups_outlined, color: Color(0xFF0D9488), size: 20),
-                SizedBox(width: 8),
+                const Icon(Icons.groups_rounded, color: Color(0xFF0D9488), size: 18),
+                const SizedBox(width: 8),
                 Text(
                   'My Team Today',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w800),
                 ),
               ],
             ),
@@ -757,7 +1079,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                 ),
                 child: Text(
                   '$presentCount / $totalCount In Office',
-                  style: const TextStyle(color: Color(0xFF34D399), fontSize: 11, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Color(0xFF059669), fontSize: 10.5, fontWeight: FontWeight.bold),
                 ),
               ),
           ],
@@ -766,59 +1088,59 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
         if (team.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: cardBorder),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
                 'No team members active under this branch.',
-                style: TextStyle(color: Colors.white38, fontSize: 12),
+                style: TextStyle(color: textSecondary, fontSize: 11.5),
               ),
             ),
           )
         else
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: cardBorder),
             ),
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: math.min(team.length, 6),
-              separatorBuilder: (_, __) => const Divider(color: Colors.white10, height: 1),
+              separatorBuilder: (_, __) => Divider(color: cardBorder, height: 1),
               itemBuilder: (ctx, i) {
                 final m = team[i];
                 final isPresent = m.isPresent;
                 final isOnLeave = m.isOnLeave;
 
                 return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
                   leading: EmployeeAvatar(
                     employeeId: m.employeeId,
                     name: m.employeeName,
-                    radius: 20,
+                    radius: 18,
                   ),
                   title: Text(
                     m.employeeName,
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: textPrimary, fontSize: 12.5, fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
                     '${m.designation} • ${m.department}',
-                    style: const TextStyle(color: Colors.white54, fontSize: 11),
+                    style: TextStyle(color: textSecondary, fontSize: 10.5),
                   ),
                   trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: isPresent
-                          ? const Color(0xFF059669).withValues(alpha: 0.2)
+                          ? const Color(0xFF059669).withValues(alpha: 0.15)
                           : isOnLeave
-                              ? Colors.purple.withValues(alpha: 0.2)
-                              : Colors.white.withValues(alpha: 0.08),
+                              ? Colors.purple.withValues(alpha: 0.15)
+                              : (isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF1F5F9)),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -830,10 +1152,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isPresent
-                                ? const Color(0xFF34D399)
+                                ? const Color(0xFF10B981)
                                 : isOnLeave
-                                    ? Colors.purpleAccent
-                                    : Colors.white38,
+                                    ? Colors.purple
+                                    : Colors.grey,
                           ),
                         ),
                         const SizedBox(width: 5),
@@ -841,11 +1163,11 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                           m.inTime != null ? m.inTime! : (isOnLeave ? 'On Leave' : 'Not In'),
                           style: TextStyle(
                             color: isPresent
-                                ? const Color(0xFF34D399)
+                                ? const Color(0xFF059669)
                                 : isOnLeave
-                                    ? Colors.purpleAccent
-                                    : Colors.white54,
-                            fontSize: 11,
+                                    ? Colors.purple
+                                    : textSecondary,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -861,17 +1183,24 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
   }
 
   // 🎉 Celebrations Component
-  Widget _buildCelebrationsSection(List<CelebrationModel> celebrations) {
+  Widget _buildCelebrationsSection(
+    List<CelebrationModel> celebrations,
+    bool isDark,
+    Color cardBg,
+    Color cardBorder,
+    Color textPrimary,
+    Color textSecondary,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.celebration, color: Colors.amberAccent, size: 20),
-            SizedBox(width: 8),
+            const Icon(Icons.celebration_rounded, color: Colors.amber, size: 18),
+            const SizedBox(width: 8),
             Text(
               'Celebrations & Milestones',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -881,26 +1210,26 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: cardBorder),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.cake_outlined, color: Colors.pinkAccent, size: 24),
-                SizedBox(width: 12),
+                const Icon(Icons.cake_outlined, color: Colors.pinkAccent, size: 22),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'No Milestones This Month',
-                        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
                         'No upcoming birthdays or work anniversaries in the near schedule.',
-                        style: TextStyle(color: Colors.white38, fontSize: 11),
+                        style: TextStyle(color: textSecondary, fontSize: 11),
                       ),
                     ],
                   ),
@@ -910,7 +1239,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           )
         else
           SizedBox(
-            height: 90,
+            height: 85,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: celebrations.length,
@@ -920,11 +1249,11 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                 final isBday = c.isBirthday;
                 final isNewJoiner = c.type.toLowerCase().contains('joiner');
                 final icon = isBday
-                    ? Icons.cake
-                    : (isNewJoiner ? Icons.waving_hand : Icons.workspace_premium);
+                    ? Icons.cake_rounded
+                    : (isNewJoiner ? Icons.waving_hand_rounded : Icons.workspace_premium_rounded);
                 final iconColor = isBday
                     ? Colors.pinkAccent
-                    : (isNewJoiner ? const Color(0xFF2DD4BF) : Colors.amberAccent);
+                    : (isNewJoiner ? const Color(0xFF0D9488) : Colors.amber);
                 final label = isBday
                     ? (c.isToday ? 'Birthday Today! 🎂' : 'Birthday on ${c.day}th')
                     : (isNewJoiner ? 'New Joiner! 👋' : '${c.years ?? 1} Yrs Anniversary 🎉');
@@ -933,10 +1262,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                   width: 240,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
+                    color: cardBg,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: c.isToday ? Colors.amberAccent.withValues(alpha: 0.5) : Colors.white10,
+                      color: c.isToday ? Colors.amber.withValues(alpha: 0.6) : cardBorder,
                     ),
                   ),
                   child: Row(
@@ -944,7 +1273,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                       EmployeeAvatar(
                         employeeId: c.employeeId,
                         name: c.employeeName,
-                        radius: 20,
+                        radius: 18,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -979,13 +1308,13 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                               c.employeeName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: textPrimary, fontSize: 12.5, fontWeight: FontWeight.bold),
                             ),
                             Text(
                               c.department,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.white38, fontSize: 10),
+                              style: TextStyle(color: textSecondary, fontSize: 10),
                             ),
                           ],
                         ),
@@ -999,123 +1328,5 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       ],
     );
   }
-
-  Widget _buildPunchTile({
-    required String title,
-    required String time,
-    required IconData icon,
-    required Color iconColor,
-    required String subtext,
-    required Color subtextColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: iconColor, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(color: Colors.white60, fontSize: 11)),
-                const SizedBox(height: 2),
-                Text(
-                  time,
-                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  subtext,
-                  style: TextStyle(color: subtextColor, fontSize: 10, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSnapshotRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 15, color: const Color(0xFF0D9488)),
-          const SizedBox(width: 8),
-          Text('$label: ', style: const TextStyle(color: Colors.white60, fontSize: 12)),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-class _ShiftProgressPainter extends CustomPainter {
-  final double progress;
-  final bool isClockedIn;
-
-  _ShiftProgressPainter({required this.progress, required this.isClockedIn});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width - 16) / 2;
-    const strokeWidth = 10.0;
-
-    // Background track
-    final bgPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-
-    canvas.drawCircle(center, radius, bgPaint);
-
-    // Active progress arc
-    if (progress > 0) {
-      final sweepAngle = 2 * math.pi * progress;
-      final progressPaint = Paint()
-        ..shader = LinearGradient(
-          colors: isClockedIn
-              ? [const Color(0xFF0D9488), const Color(0xFF10B981)]
-              : [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
-        ).createShader(Rect.fromCircle(center: center, radius: radius))
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = strokeWidth;
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -math.pi / 2,
-        sweepAngle,
-        false,
-        progressPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ShiftProgressPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.isClockedIn != isClockedIn;
-  }
-}

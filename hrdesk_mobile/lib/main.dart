@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'core/api_client.dart';
+import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/punch_provider.dart';
 import 'providers/attendance_provider.dart';
@@ -31,6 +32,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => BranchProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
@@ -53,20 +55,59 @@ class HRDeskApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProv = context.watch<ThemeProvider>();
+    const brandTeal = Color(0xFF0D9488);
+
+    final lightTheme = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorSchemeSeed: brandTeal,
+      scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+      cardColor: Colors.white,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: Color(0xFF0F172A),
+        elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+        ),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Colors.white,
+        selectedItemColor: brandTeal,
+        unselectedItemColor: Color(0xFF64748B),
+      ),
+    );
+
+    final darkTheme = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorSchemeSeed: brandTeal,
+      scaffoldBackgroundColor: const Color(0xFF0B1120),
+      cardColor: const Color(0xFF1E293B),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF0B1120),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+        ),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Color(0xFF1E293B),
+        selectedItemColor: brandTeal,
+        unselectedItemColor: Colors.white60,
+      ),
+    );
+
     return MaterialApp(
       title: 'HRDesk',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF0D9488),
-        useMaterial3: true,
-        fontFamily: 'Roboto',
-        appBarTheme: const AppBarTheme(
-          systemOverlayStyle: SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.light,
-          ),
-        ),
-      ),
+      themeMode: themeProv.themeMode,
+      theme: lightTheme,
+      darkTheme: darkTheme,
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),

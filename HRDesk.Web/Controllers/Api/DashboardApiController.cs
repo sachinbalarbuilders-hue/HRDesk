@@ -286,7 +286,7 @@ public class DashboardController : ControllerBase
             .ToList();
 
         var allWithJoining = await celQuery
-            .Where(e => e.JoiningDate.HasValue && e.JoiningDate.Value.Year <= today.Year)
+            .Where(e => e.JoiningDate.HasValue && e.JoiningDate.Value.Year < today.Year)
             .ToListAsync();
 
         var anniversaries = allWithJoining
@@ -296,7 +296,7 @@ public class DashboardController : ControllerBase
                 var nextAnniv = new DateOnly(today.Year, jd.Month, jd.Day);
                 if (nextAnniv < today) nextAnniv = new DateOnly(today.Year + 1, jd.Month, jd.Day);
                 var daysUntil = nextAnniv.DayNumber - today.DayNumber;
-                var years = Math.Max(1, today.Year - jd.Year);
+                var years = today.Year - jd.Year;
                 return new
                 {
                     employeeId = e.EmployeeId,
@@ -312,6 +312,7 @@ public class DashboardController : ControllerBase
                     type = "Work Anniversary"
                 };
             })
+            .Where(a => a.years > 0)
             .OrderBy(a => a.daysUntil)
             .Take(5)
             .ToList();
@@ -374,20 +375,6 @@ public class DashboardController : ControllerBase
                 category = "Holiday",
                 date = h.StartDate.ToString("yyyy-MM-dd"),
                 priority = "Normal",
-                isPinned = false
-            });
-        }
-
-        if (announcements.Count == 0)
-        {
-            announcements.Add(new
-            {
-                id = "sys-cutoff",
-                title = "Monthly Attendance Regularization",
-                message = "Remember to submit regularization requests for any punch discrepancies before month-end cutoff.",
-                category = "Notice",
-                date = today.ToString("yyyy-MM-dd"),
-                priority = "High",
                 isPinned = false
             });
         }

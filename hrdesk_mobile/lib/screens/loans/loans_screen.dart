@@ -34,10 +34,10 @@ class _LoansScreenState extends State<LoansScreen> {
     );
   }
 
-  void _viewEmiSchedule(LoanModel loan) {
+  void _viewEmiSchedule(LoanModel loan, bool isDark, Color cardBg, Color textPrimary, Color textSecondary, Color borderCol) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: cardBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -53,26 +53,26 @@ class _LoansScreenState extends State<LoansScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('EMI Schedule — ${loan.loanNumber}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text('EMI Schedule — ${loan.loanNumber}', style: TextStyle(color: textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 2),
-                    Text('${loan.loanTypeName} • ${_currency.format(loan.principalAmount)}', style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                    Text('${loan.loanTypeName} • ${_currency.format(loan.principalAmount)}', style: TextStyle(color: textSecondary, fontSize: 12)),
                   ],
                 ),
-                IconButton(icon: const Icon(Icons.close, color: Colors.white60), onPressed: () => Navigator.pop(ctx)),
+                IconButton(icon: Icon(Icons.close, color: textSecondary), onPressed: () => Navigator.pop(ctx)),
               ],
             ),
             const SizedBox(height: 16),
             if (loan.schedule.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: Text('No EMI installment records found.', style: TextStyle(color: Colors.white60))),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: Text('No EMI installment records found.', style: TextStyle(color: textSecondary))),
               )
             else
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: loan.schedule.length,
-                  separatorBuilder: (_, __) => const Divider(color: Colors.white10),
+                  separatorBuilder: (_, __) => Divider(color: borderCol),
                   itemBuilder: (context, idx) {
                     final emi = loan.schedule[idx];
                     final isPaid = emi.status.toLowerCase() == 'paid';
@@ -80,19 +80,25 @@ class _LoansScreenState extends State<LoansScreen> {
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
                         radius: 14,
-                        backgroundColor: isPaid ? const Color(0xFF059669).withValues(alpha: 0.2) : Colors.white12,
-                        child: Text('${emi.installmentNumber}', style: TextStyle(color: isPaid ? const Color(0xFF059669) : Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                        backgroundColor: isPaid ? const Color(0xFF059669).withValues(alpha: 0.2) : Colors.amber.withValues(alpha: 0.2),
+                        child: Text('${emi.installmentNumber}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isPaid ? const Color(0xFF059669) : Colors.amber.shade700)),
                       ),
-                      title: Text(emi.dueDate, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
-                      subtitle: Text('Principal: ${_currency.format(emi.principalAmount)}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(_currency.format(emi.emiAmount), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                          const SizedBox(height: 2),
-                          Text(emi.status, style: TextStyle(color: isPaid ? const Color(0xFF059669) : Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ],
+                      title: Text(_currency.format(emi.emiAmount), style: TextStyle(color: textPrimary, fontWeight: FontWeight.w600, fontSize: 14)),
+                      subtitle: Text('Due: ${emi.dueDate}', style: TextStyle(color: textSecondary, fontSize: 11)),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: (isPaid ? const Color(0xFF059669) : Colors.amber).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          emi.status,
+                          style: TextStyle(
+                            color: isPaid ? const Color(0xFF059669) : Colors.amber.shade700,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     );
                   },
@@ -108,11 +114,17 @@ class _LoansScreenState extends State<LoansScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final loanProvider = context.watch<LoanProvider>();
-    final active = loanProvider.activeLoan;
     final loans = loanProvider.myLoans;
+    final active = loanProvider.activeLoan;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderCol = isDark ? Colors.white10 : const Color(0xFFE2E8F0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: loanProvider.loading && loans.isEmpty
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF0D9488)))
           : RefreshIndicator(
@@ -128,10 +140,10 @@ class _LoansScreenState extends State<LoansScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Loans & Advances',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: textPrimary,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -153,15 +165,15 @@ class _LoansScreenState extends State<LoansScreen> {
 
                     // Active Loan Hero Card
                     if (active != null) ...[
-                      _buildActiveLoanCard(active),
+                      _buildActiveLoanCard(active, isDark, textPrimary, textSecondary),
                       const SizedBox(height: 24),
                     ],
 
                     // Loan History
-                    const Text(
+                    Text(
                       'Application History',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: textPrimary,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -173,12 +185,12 @@ class _LoansScreenState extends State<LoansScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
+                          color: cardBg,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10),
+                          border: Border.all(color: borderCol),
                         ),
-                        child: const Center(
-                          child: Text('No loan applications on record.', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                        child: Center(
+                          child: Text('No loan applications on record.', style: TextStyle(color: textSecondary, fontSize: 13)),
                         ),
                       )
                     else
@@ -208,9 +220,9 @@ class _LoansScreenState extends State<LoansScreen> {
                           return Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1E293B),
+                              color: cardBg,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.white10),
+                              border: Border.all(color: borderCol),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,7 +230,7 @@ class _LoansScreenState extends State<LoansScreen> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(l.loanNumber, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                    Text(l.loanNumber, style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
@@ -236,17 +248,17 @@ class _LoansScreenState extends State<LoansScreen> {
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(l.loanTypeName, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                                        Text(l.loanTypeName, style: TextStyle(color: textSecondary, fontSize: 11)),
                                         const SizedBox(height: 2),
-                                        Text(_currency.format(l.principalAmount), style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                                        Text(_currency.format(l.principalAmount), style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
                                       ],
                                     ),
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
-                                        Text('${l.tenureMonths} Months (${_currency.format(l.emiAmount)}/mo)', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                        Text('${l.tenureMonths} Months (${_currency.format(l.emiAmount)}/mo)', style: TextStyle(color: textSecondary, fontSize: 12)),
                                         const SizedBox(height: 2),
-                                        Text('Start: ${l.startDate}', style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                                        Text('Start: ${l.startDate}', style: TextStyle(color: textSecondary, fontSize: 11)),
                                       ],
                                     ),
                                   ],
@@ -259,7 +271,7 @@ class _LoansScreenState extends State<LoansScreen> {
                                       style: TextButton.styleFrom(padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                                       icon: const Icon(Icons.table_chart_outlined, size: 14, color: Color(0xFF0D9488)),
                                       label: const Text('View Repayments', style: TextStyle(color: Color(0xFF0D9488), fontSize: 12)),
-                                      onPressed: () => _viewEmiSchedule(l),
+                                      onPressed: () => _viewEmiSchedule(l, isDark, cardBg, textPrimary, textSecondary, borderCol),
                                     ),
                                   ),
                                 ],
@@ -275,15 +287,17 @@ class _LoansScreenState extends State<LoansScreen> {
     );
   }
 
-  Widget _buildActiveLoanCard(LoanModel loan) {
+  Widget _buildActiveLoanCard(LoanModel loan, bool isDark, Color textPrimary, Color textSecondary) {
     final paidPercent = loan.totalAmount > 0 ? (loan.paidAmount / loan.totalAmount).clamp(0.0, 1.0) : 0.0;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+        gradient: LinearGradient(
+          colors: isDark
+              ? const [Color(0xFF1E293B), Color(0xFF0F172A)]
+              : const [Color(0xFFF0FDFA), Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -291,7 +305,7 @@ class _LoansScreenState extends State<LoansScreen> {
         border: Border.all(color: const Color(0xFF0D9488).withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -306,7 +320,7 @@ class _LoansScreenState extends State<LoansScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D9488).withValues(alpha: 0.2),
+                  color: const Color(0xFF0D9488).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -316,16 +330,16 @@ class _LoansScreenState extends State<LoansScreen> {
               ),
               Text(
                 'EMI: ${_currency.format(loan.emiAmount)} / mo',
-                style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(color: textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          const Text('Remaining Balance', style: TextStyle(color: Colors.white60, fontSize: 12)),
+          Text('Remaining Balance', style: TextStyle(color: textSecondary, fontSize: 12)),
           const SizedBox(height: 2),
           Text(
             _currency.format(loan.balanceAmount),
-            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+            style: TextStyle(color: textPrimary, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5),
           ),
           const SizedBox(height: 14),
 
@@ -335,7 +349,7 @@ class _LoansScreenState extends State<LoansScreen> {
             child: LinearProgressIndicator(
               value: paidPercent,
               minHeight: 8,
-              backgroundColor: Colors.white12,
+              backgroundColor: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
               valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D9488)),
             ),
           ),
@@ -343,8 +357,8 @@ class _LoansScreenState extends State<LoansScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${(paidPercent * 100).toInt()}% Paid', style: const TextStyle(color: Colors.white60, fontSize: 11)),
-              Text('Sanctioned: ${_currency.format(loan.principalAmount)}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+              Text('${(paidPercent * 100).toInt()}% Paid', style: TextStyle(color: textSecondary, fontSize: 11)),
+              Text('Sanctioned: ${_currency.format(loan.principalAmount)}', style: TextStyle(color: textSecondary, fontSize: 11)),
             ],
           ),
         ],

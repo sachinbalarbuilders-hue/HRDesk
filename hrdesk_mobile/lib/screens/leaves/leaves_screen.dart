@@ -48,8 +48,14 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
     final balances = leaveProvider.balances;
     final allApps = leaveProvider.myApplications;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderCol = isDark ? Colors.white10 : const Color(0xFFE2E8F0);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: leaveProvider.loading && balances.isEmpty
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF0D9488)))
           : RefreshIndicator(
@@ -67,10 +73,10 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
+                              Text(
                                 'Leave Balances',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: textPrimary,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -95,14 +101,15 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1E293B),
+                                color: cardBg,
                                 borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: borderCol),
                               ),
-                              child: const Row(
+                              child: Row(
                                 children: [
-                                  Icon(Icons.info_outline, color: Colors.white60, size: 18),
-                                  SizedBox(width: 10),
-                                  Text('No leave balances configured.', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                                  Icon(Icons.info_outline, color: textSecondary, size: 18),
+                                  const SizedBox(width: 10),
+                                  Text('No leave balances configured.', style: TextStyle(color: textSecondary, fontSize: 13)),
                                 ],
                               ),
                             )
@@ -115,17 +122,17 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                                 itemBuilder: (ctx, i) {
                                   final b = balances[i];
-                                  return _buildBalanceCard(b.leaveTypeCode, b.leaveTypeName, b.remaining, b.totalAllocated);
+                                  return _buildBalanceCard(b.leaveTypeCode, b.leaveTypeName, b.remaining, b.totalAllocated, cardBg, borderCol, textPrimary, textSecondary);
                                 },
                               ),
                             ),
                           const SizedBox(height: 24),
 
                           // History section title & Tabs
-                          const Text(
+                          Text(
                             'My Applications',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: textPrimary,
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -134,7 +141,7 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                           Container(
                             height: 38,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1E293B),
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: TabBar(
@@ -144,7 +151,7 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               labelColor: Colors.white,
-                              unselectedLabelColor: Colors.white60,
+                              unselectedLabelColor: textSecondary,
                               labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                               tabs: const [
                                 Tab(text: 'All'),
@@ -164,9 +171,9 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                     child: TabBarView(
                       controller: _tabController,
                       children: [
-                        _buildApplicationList(allApps),
-                        _buildApplicationList(allApps.where((a) => a.status == 'Pending').toList()),
-                        _buildApplicationList(allApps.where((a) => a.status == 'Approved').toList()),
+                        _buildApplicationList(allApps, cardBg, borderCol, textPrimary, textSecondary),
+                        _buildApplicationList(allApps.where((a) => a.status == 'Pending').toList(), cardBg, borderCol, textPrimary, textSecondary),
+                        _buildApplicationList(allApps.where((a) => a.status == 'Approved').toList(), cardBg, borderCol, textPrimary, textSecondary),
                       ],
                     ),
                   ),
@@ -176,14 +183,14 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildBalanceCard(String code, String name, double remaining, double total) {
+  Widget _buildBalanceCard(String code, String name, double remaining, double total, Color cardBg, Color borderCol, Color textPrimary, Color textSecondary) {
     return Container(
       width: 130,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: borderCol),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,28 +207,28 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                 ),
                 child: Text(code, style: const TextStyle(color: Color(0xFF0D9488), fontSize: 10, fontWeight: FontWeight.bold)),
               ),
-              Text('${total.toInt()} total', style: const TextStyle(color: Colors.white38, fontSize: 10)),
+              Text('${total.toInt()} total', style: TextStyle(color: textSecondary, fontSize: 10)),
             ],
           ),
           Text(
             remaining.toStringAsFixed(remaining.truncateToDouble() == remaining ? 0 : 1),
-            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(color: textPrimary, fontSize: 24, fontWeight: FontWeight.bold),
           ),
           Text(
             name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white60, fontSize: 11),
+            style: TextStyle(color: textSecondary, fontSize: 11),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildApplicationList(List applications) {
+  Widget _buildApplicationList(List applications, Color cardBg, Color borderCol, Color textPrimary, Color textSecondary) {
     if (applications.isEmpty) {
-      return const Center(
-        child: Text('No leave applications found.', style: TextStyle(color: Colors.white38, fontSize: 14)),
+      return Center(
+        child: Text('No leave applications found.', style: TextStyle(color: textSecondary, fontSize: 14)),
       );
     }
 
@@ -246,9 +253,9 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
         return Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: cardBg,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(color: borderCol),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,7 +279,7 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                       const SizedBox(width: 8),
                       Text(
                         '${app.totalDays} Day${app.totalDays > 1 ? 's' : ''}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -292,11 +299,11 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.date_range, color: Colors.white60, size: 14),
+                  Icon(Icons.date_range, color: textSecondary, size: 14),
                   const SizedBox(width: 6),
                   Text(
                     '${app.startDate} → ${app.endDate} (${app.dayType})',
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                    style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -304,7 +311,7 @@ class _LeavesScreenState extends State<LeavesScreen> with SingleTickerProviderSt
                 const SizedBox(height: 6),
                 Text(
                   app.reason!,
-                  style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  style: TextStyle(color: textSecondary, fontSize: 12),
                 ),
               ],
             ],

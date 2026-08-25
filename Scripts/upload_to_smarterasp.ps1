@@ -1,8 +1,8 @@
-$ftpServer = "WIN9071.site4now.net"
-$ftpUser = "hrdesk001-001"
+$ftpServer = "WIN8167.site4now.net"
+$ftpUser = "hrdeskhrms-001"
 $ftpPass = "Man_yooooh199#"
 $remoteRoot = "/site1"
-$localPath = "C:\Users\Admin\HRDesk\HRDesk.Web\publish"
+$localPath = if (Test-Path "$PSScriptRoot\..\HRDesk.Web\publish") { (Resolve-Path "$PSScriptRoot\..\HRDesk.Web\publish").Path } else { "d:\HRDesk\HRDesk.Web\publish" }
 
 $credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
 

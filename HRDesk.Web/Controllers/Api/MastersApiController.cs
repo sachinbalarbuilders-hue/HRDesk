@@ -943,9 +943,9 @@ public class MastersController : ControllerBase
 
         return Ok(branches.Select(b => new
         {
-            id = b.Id.ToString(),
+            id = b.Id,
             publicId = b.PublicId,
-            organizationId = b.OrganizationId.ToString(),
+            organizationId = b.OrganizationId,
             name = b.Name,
             code = b.Code ?? "",
             address = b.Address,

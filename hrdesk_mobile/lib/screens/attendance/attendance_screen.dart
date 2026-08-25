@@ -7,7 +7,6 @@ import 'day_activity_sheet.dart';
 import '../regularization/apply_regularization_dialog.dart';
 import '../../widgets/employee_avatar.dart';
 import '../../providers/branch_provider.dart';
-import '../../widgets/branch_switcher_sheet.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -73,11 +72,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         width: 22,
         height: 22,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: Colors.grey.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(5),
         ),
         alignment: Alignment.center,
-        child: const Text('—', style: TextStyle(color: Colors.white24, fontSize: 10)),
+        child: const Text('—', style: TextStyle(color: Colors.grey, fontSize: 10)),
       );
     }
 
@@ -98,44 +97,43 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       label = 'CO';
     } else if (s == 'COHF' || s.contains('CO')) {
       bg = const Color(0xFF4F46E5);
-      label = 'CO½';
-    } else if (s == 'HLD' || s == 'HOLIDAY') {
+      label = 'COHF';
+    } else if (s.contains('HF') || s.contains('HALF')) {
+      bg = Colors.amber.shade700;
+      label = 'HF';
+    } else if (s == 'H' || s == 'HOLIDAY') {
       bg = const Color(0xFF9333EA);
       label = 'H';
-    } else if (s.contains('HF') || s == '1H' || s == '2H' || s == 'HALF DAY') {
-      bg = Colors.amber.shade700;
-      label = '½';
+    } else if (s == 'L' || s == 'LEAVE' || s.contains('PL') || s.contains('SL')) {
+      bg = const Color(0xFF0D9488);
+      label = s.length > 3 ? s.substring(0, 3) : s;
     }
 
     return Container(
-      width: 24,
-      height: 24,
+      width: 26,
+      height: 22,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [
-          BoxShadow(
-            color: bg.withValues(alpha: 0.3),
-            blurRadius: 3,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(5),
       ),
       alignment: Alignment.center,
       child: Text(
         label,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
   }
 
-  String _formatCount(double count) {
-    if (count % 1 == 0) return count.toInt().toString();
-    return count.toStringAsFixed(1);
+  String _formatCount(dynamic val) {
+    if (val == null) return '0';
+    if (val is double) {
+      return val.truncateToDouble() == val ? val.toInt().toString() : val.toStringAsFixed(1);
+    }
+    return val.toString();
   }
 
   @override
@@ -143,10 +141,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final auth = context.watch<AuthProvider>();
     final attendance = context.watch<AttendanceProvider>();
     final mySummary = attendance.summary;
+    final monthName = DateFormat('MMMM yyyy').format(DateTime(attendance.selectedYear, attendance.selectedMonth));
 
-    final monthName = DateFormat('MMMM yyyy').format(
-      DateTime(attendance.selectedYear, attendance.selectedMonth),
-    );
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final borderCol = isDark ? Colors.white10 : const Color(0xFFE2E8F0);
+    final innerTileBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9);
 
     final rawItems = attendance.teamMatrixItems;
     final filteredItems = rawItems.where((item) {
@@ -161,7 +163,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final todayDay = (now.year == attendance.selectedYear && now.month == attendance.selectedMonth) ? now.day : -1;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           color: const Color(0xFF0D9488),
@@ -185,10 +187,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Monthly Attendance',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: textPrimary,
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
@@ -206,38 +208,28 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       ),
                       Row(
                         children: [
-                          GestureDetector(
-                            onTap: () {
-                              CompanyBranchSwitcherSheet.show(context, onSelectionChanged: () {
-                                final bp = context.read<BranchProvider>();
-                                attendance.fetchTeamMatrix(branchId: bp.selectedBranch?.id, search: _searchQuery);
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1E293B),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: const Color(0xFF0D9488).withValues(alpha: 0.3)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.business_outlined, size: 13, color: Color(0xFF0D9488)),
-                                  const SizedBox(width: 4),
-                                  ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 90),
-                                    child: Text(
-                                      context.watch<BranchProvider>().branchDisplayName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                    ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: cardBg,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: borderCol),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.apartment, size: 13, color: Color(0xFF0D9488)),
+                                const SizedBox(width: 4),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 110),
+                                  child: Text(
+                                    context.watch<BranchProvider>().branchDisplayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
                                   ),
-                                  const SizedBox(width: 2),
-                                  const Icon(Icons.arrow_drop_down, size: 14, color: Colors.white70),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -274,15 +266,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
+                      color: cardBg,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(color: borderCol),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.chevron_left, color: Colors.white70, size: 22),
+                          icon: Icon(Icons.chevron_left, color: textSecondary, size: 22),
                           onPressed: () {
                             final bp = context.read<BranchProvider>();
                             attendance.changeMonth(-1, employeeId: auth.user?.employeeId, search: _searchQuery, branchId: bp.selectedBranch?.id);
@@ -294,8 +286,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             const SizedBox(width: 8),
                             Text(
                               monthName,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: textPrimary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
                               ),
@@ -303,7 +295,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           ],
                         ),
                         IconButton(
-                          icon: const Icon(Icons.chevron_right, color: Colors.white70, size: 22),
+                          icon: Icon(Icons.chevron_right, color: textSecondary, size: 22),
                           onPressed: () {
                             final bp = context.read<BranchProvider>();
                             attendance.changeMonth(1, employeeId: auth.user?.employeeId, search: _searchQuery, branchId: bp.selectedBranch?.id);
@@ -323,12 +315,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildSummaryPill('Present', _formatCount(mySummary.presentCount), const Color(0xFF059669)),
-                        _buildSummaryPill('Absent', _formatCount(mySummary.absentCount), const Color(0xFFDC2626)),
-                        _buildSummaryPill('Half Day', _formatCount(mySummary.halfDayCount), Colors.amber.shade700),
-                        _buildSummaryPill('Week Off', _formatCount(mySummary.weekoffCount), const Color(0xFF2563EB)),
-                        _buildSummaryPill('Holiday', _formatCount(mySummary.holidayCount), const Color(0xFF9333EA)),
-                        _buildSummaryPill('Payable', _formatCount(mySummary.payableDays), const Color(0xFF0D9488), isBold: true),
+                        _buildSummaryPill('Present', _formatCount(mySummary.presentCount), const Color(0xFF059669), cardBg, textPrimary, textSecondary),
+                        _buildSummaryPill('Absent', _formatCount(mySummary.absentCount), const Color(0xFFDC2626), cardBg, textPrimary, textSecondary),
+                        _buildSummaryPill('Half Day', _formatCount(mySummary.halfDayCount), Colors.amber.shade700, cardBg, textPrimary, textSecondary),
+                        _buildSummaryPill('Week Off', _formatCount(mySummary.weekoffCount), const Color(0xFF2563EB), cardBg, textPrimary, textSecondary),
+                        _buildSummaryPill('Holiday', _formatCount(mySummary.holidayCount), const Color(0xFF9333EA), cardBg, textPrimary, textSecondary),
+                        _buildSummaryPill('Payable', _formatCount(mySummary.payableDays), const Color(0xFF0D9488), cardBg, textPrimary, textSecondary, isBold: true),
                       ],
                     ),
                   ),
@@ -342,20 +334,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   child: Container(
                     height: 42,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
+                      color: cardBg,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(color: borderCol),
                     ),
                     child: TextField(
                       controller: _searchController,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      style: TextStyle(color: textPrimary, fontSize: 13),
                       decoration: InputDecoration(
                         hintText: 'Search members by name or department...',
-                        hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                        prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 18),
+                        hintStyle: TextStyle(color: textSecondary, fontSize: 13),
+                        prefixIcon: Icon(Icons.search, color: textSecondary, size: 18),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, color: Colors.white54, size: 16),
+                                icon: Icon(Icons.clear, color: textSecondary, size: 16),
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() => _searchQuery = '');
@@ -385,11 +377,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.people_outline, size: 48, color: Colors.white24),
+                        Icon(Icons.people_outline, size: 48, color: textSecondary),
                         const SizedBox(height: 12),
                         Text(
                           _searchQuery.isNotEmpty ? 'No members match "$_searchQuery"' : 'No attendance records found.',
-                          style: const TextStyle(color: Colors.white60, fontSize: 14),
+                          style: TextStyle(color: textSecondary, fontSize: 14),
                         ),
                       ],
                     ),
@@ -413,15 +405,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
+                            color: cardBg,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isMe ? const Color(0xFF0D9488).withValues(alpha: 0.5) : Colors.white10,
+                              color: isMe ? const Color(0xFF0D9488).withValues(alpha: 0.5) : borderCol,
                               width: isMe ? 1.5 : 1,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.15),
+                                color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2),
                               ),
@@ -441,8 +433,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                       name: empName,
                                       photoUrl: emp['photoUrl']?.toString() ?? emp['photoPath']?.toString(),
                                       radius: 18,
-                                      backgroundColor: isMe ? const Color(0xFF0D9488) : const Color(0xFF334155),
-                                      textColor: Colors.white,
+                                      backgroundColor: isMe ? const Color(0xFF0D9488) : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                      textColor: isMe ? Colors.white : (isDark ? Colors.white : const Color(0xFF0F172A)),
                                     ),
                                     const SizedBox(width: 10),
 
@@ -458,8 +450,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                                   empName,
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
+                                                  style: TextStyle(
+                                                    color: textPrimary,
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 14,
                                                   ),
@@ -482,7 +474,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                           const SizedBox(height: 2),
                                           Text(
                                             dept.isNotEmpty ? dept : 'General',
-                                            style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                            style: TextStyle(color: textSecondary, fontSize: 11),
                                           ),
                                         ],
                                       ),
@@ -503,7 +495,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                 ),
                               ),
 
-                              const Divider(color: Colors.white10, height: 1),
+                              Divider(color: borderCol, height: 1),
 
                               // Horizontal 31-Day Swipe Strip
                               SizedBox(
@@ -527,10 +519,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                         decoration: BoxDecoration(
                                           color: isToday
                                               ? const Color(0xFF0D9488).withValues(alpha: 0.15)
-                                              : const Color(0xFF0F172A),
+                                              : innerTileBg,
                                           borderRadius: BorderRadius.circular(8),
                                           border: Border.all(
-                                            color: isToday ? const Color(0xFF0D9488) : Colors.white12,
+                                            color: isToday ? const Color(0xFF0D9488) : borderCol,
                                             width: isToday ? 1.5 : 1,
                                           ),
                                         ),
@@ -540,7 +532,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                             Text(
                                               dayNum.toString().padLeft(2, '0'),
                                               style: TextStyle(
-                                                color: isToday ? const Color(0xFF0D9488) : Colors.white70,
+                                                color: isToday ? const Color(0xFF0D9488) : textPrimary,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -548,7 +540,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                             Text(
                                               weekdayLetter,
                                               style: TextStyle(
-                                                color: (weekdayLetter == 'S') ? Colors.amber.shade400 : Colors.white38,
+                                                color: (weekdayLetter == 'S') ? Colors.amber.shade700 : textSecondary,
                                                 fontSize: 8,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -592,7 +584,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     child: Center(
                       child: Text(
                         'Showing all ${attendance.teamTotalCount} members',
-                        style: const TextStyle(color: Colors.white38, fontSize: 11),
+                        style: TextStyle(color: textSecondary, fontSize: 11),
                       ),
                     ),
                   ),
@@ -604,12 +596,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _buildSummaryPill(String label, String value, Color color, {bool isBold = false}) {
+  Widget _buildSummaryPill(String label, String value, Color color, Color cardBg, Color textPrimary, Color textSecondary, {bool isBold = false}) {
     return Container(
       margin: const EdgeInsets.only(right: 6),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: cardBg,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
@@ -622,11 +614,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 6),
-          Text('$label: ', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+          Text('$label: ', style: TextStyle(color: textSecondary, fontSize: 11)),
           Text(
             value,
             style: TextStyle(
-              color: Colors.white,
+              color: textPrimary,
               fontSize: 11,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
             ),

@@ -1,34 +1,40 @@
-$ftpServer = "WIN9071.site4now.net"
-$ftpUser = "hrdesk001-001"
+$ftpServer = "WIN8167.site4now.net"
+$ftpUser = "hrdeskhrms-001"
 $ftpPass = "Man_yooooh199#"
 $remoteRoot = "/site1"
-$localPath = "C:\Users\Admin\HRDesk\HRDesk.Web\publish"
+$localPath = if (Test-Path "$PSScriptRoot\..\HRDesk.Web\publish") { (Resolve-Path "$PSScriptRoot\..\HRDesk.Web\publish").Path } else { "d:\HRDesk\HRDesk.Web\publish" }
 
 $credentials = New-Object System.Net.NetworkCredential($ftpUser, $ftpPass)
 
-Write-Host "Creating all remote directories first..."
+Write-Host "Ensuring remote directory structure..."
 $dirs = Get-ChildItem -Path $localPath -Recurse -Directory
+$uniquePaths = [System.Collections.Generic.HashSet[string]]::new()
 foreach ($dir in $dirs) {
     $rel = $dir.FullName.Substring($localPath.Length).Replace("\", "/").Trim("/")
     $parts = $rel.Split("/")
     $curr = $remoteRoot
     foreach ($p in $parts) {
         $curr += "/" + $p
-        try {
-            $req = [System.Net.FtpWebRequest]::Create("ftp://$ftpServer$curr")
-            $req.Credentials = $credentials
-            $req.Method = [System.Net.WebRequestMethods+Ftp]::MakeDirectory
-            $req.UsePassive = $true
-            $resp = $req.GetResponse()
-            $resp.Close()
-        } catch { }
+        [void]$uniquePaths.Add($curr)
     }
 }
 
-Write-Host "Starting parallel upload with 10 concurrent streams..."
+foreach ($curr in ($uniquePaths | Sort-Object Length)) {
+    try {
+        $req = [System.Net.FtpWebRequest]::Create("ftp://$ftpServer$curr")
+        $req.Credentials = $credentials
+        $req.Method = [System.Net.WebRequestMethods+Ftp]::MakeDirectory
+        $req.UsePassive = $true
+        $req.Timeout = 4000
+        $resp = $req.GetResponse()
+        $resp.Close()
+    } catch { }
+}
+
+Write-Host "Starting parallel upload with 12 concurrent streams..."
 $files = Get-ChildItem -Path $localPath -Recurse -File
 
-$runspacePool = [runspacefactory]::CreateRunspacePool(1, 10)
+$runspacePool = [runspacefactory]::CreateRunspacePool(1, 12)
 $runspacePool.Open()
 
 $tasks = New-Object System.Collections.ArrayList
@@ -42,26 +48,36 @@ foreach ($file in $files) {
     $ps.RunspacePool = $runspacePool
     [void]$ps.AddScript({
         param($filePath, $targetUrl, $user, $pass)
-        try {
-            $req = [System.Net.FtpWebRequest]::Create($targetUrl)
-            $req.Credentials = New-Object System.Net.NetworkCredential($user, $pass)
-            $req.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
-            $req.UseBinary = $true
-            $req.UsePassive = $true
-            $req.KeepAlive = $false
-            
-            $fileBytes = [System.IO.File]::ReadAllBytes($filePath)
-            $req.ContentLength = $fileBytes.Length
-            
-            $stream = $req.GetRequestStream()
-            $stream.Write($fileBytes, 0, $fileBytes.Length)
-            $stream.Close()
-            
-            $resp = $req.GetResponse()
-            $resp.Close()
-            return "Uploaded: $targetUrl"
-        } catch {
-            return "Error ($targetUrl): $_"
+        $attempts = 0
+        $maxAttempts = 3
+        while ($attempts -lt $maxAttempts) {
+            $attempts++
+            try {
+                $req = [System.Net.FtpWebRequest]::Create($targetUrl)
+                $req.Credentials = New-Object System.Net.NetworkCredential($user, $pass)
+                $req.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
+                $req.UseBinary = $true
+                $req.UsePassive = $true
+                $req.KeepAlive = $false
+                $req.Timeout = 60000
+                $req.ReadWriteTimeout = 60000
+                
+                $fileBytes = [System.IO.File]::ReadAllBytes($filePath)
+                $req.ContentLength = $fileBytes.Length
+                
+                $stream = $req.GetRequestStream()
+                $stream.Write($fileBytes, 0, $fileBytes.Length)
+                $stream.Close()
+                
+                $resp = $req.GetResponse()
+                $resp.Close()
+                return "Uploaded: $targetUrl"
+            } catch {
+                if ($attempts -ge $maxAttempts) {
+                    return "Error ($targetUrl): $_"
+                }
+                Start-Sleep -Milliseconds (500 * $attempts)
+            }
         }
     }).AddArgument($filePath).AddArgument($targetUrl).AddArgument($ftpUser).AddArgument($ftpPass)
 

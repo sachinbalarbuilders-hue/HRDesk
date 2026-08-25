@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../core/api_client.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -21,68 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
-  }
-
-  void _showServerConfigDialog() async {
-    final currentUrl = await ApiClient().getBaseUrl();
-    if (!mounted) return;
-    final urlCtrl = TextEditingController(text: currentUrl);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.wifi, color: Color(0xFF0D9488)),
-            SizedBox(width: 8),
-            Text('Server / Network URL', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter the backend server IP and port (e.g. Wi-Fi IP):',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlCtrl,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Base URL',
-                hintText: 'http://10.229.155.51:5283/api',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () => Navigator.pop(ctx),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D9488)),
-            child: const Text('Save & Apply', style: TextStyle(color: Colors.white)),
-            onPressed: () async {
-              final newUrl = urlCtrl.text.trim();
-              if (newUrl.isNotEmpty) {
-                await ApiClient().setBaseUrl(newUrl);
-                if (ctx.mounted) {
-                  Navigator.pop(ctx);
-                }
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Server URL set to: $newUrl')),
-                  );
-                }
-              }
-            },
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _submit() async {
@@ -107,17 +44,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_ethernet, color: Color(0xFF64748B)),
-            tooltip: 'Configure Server Network URL',
-            onPressed: _showServerConfigDialog,
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

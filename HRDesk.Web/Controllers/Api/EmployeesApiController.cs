@@ -492,7 +492,7 @@ END;";
 
         _permissionService.ClearCache();
 
-        return CreatedAtAction(nameof(GetEmployeeById), new { publicId = employee.PublicId }, new { employee.EmployeeId, employee.PublicId, message = "Employee created successfully." });
+        return CreatedAtAction(nameof(GetEmployeeByGuid), new { publicId = employee.PublicId }, new { employee.EmployeeId, employee.PublicId, message = "Employee created successfully." });
     }
 
     [HttpPut("{publicId:guid}")]
@@ -513,13 +513,34 @@ END;";
         }
 
         var editScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesEdit);
-        if (string.IsNullOrEmpty(editScope))
-        {
-            editScope = User.IsInRole("SuperAdmin") ? AppPermissions.Scopes.EditAllDetails : AppPermissions.Scopes.EditBasicInfo;
-        }
+        var isSuperOrAdmin = User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("Administrator");
 
-        // 1. Personal / Basic Details (Allowed under "Basic Information" or "All Details" or SuperAdmin)
-        if (editScope == AppPermissions.Scopes.EditBasicInfo || editScope == AppPermissions.Scopes.EditAllDetails || User.IsInRole("SuperAdmin"))
+        bool canEditBasic = isSuperOrAdmin 
+            || string.IsNullOrEmpty(editScope) 
+            || editScope == AppPermissions.Scopes.EditBasicInfo 
+            || editScope == AppPermissions.Scopes.EditAllDetails 
+            || editScope == AppPermissions.Scopes.All 
+            || editScope == AppPermissions.Scopes.OwnBranch 
+            || editScope == AppPermissions.Scopes.Department;
+
+        bool canEditJobDetails = isSuperOrAdmin 
+            || string.IsNullOrEmpty(editScope)
+            || editScope == AppPermissions.Scopes.EditAllDetails 
+            || editScope == AppPermissions.Scopes.All 
+            || editScope == AppPermissions.Scopes.OwnBranch 
+            || editScope == AppPermissions.Scopes.Department 
+            || (editScope != AppPermissions.Scopes.EditBasicInfo && editScope != AppPermissions.Scopes.EditStatusChanges && editScope != AppPermissions.Scopes.EditCompensation);
+
+        bool canEditLifecycle = isSuperOrAdmin 
+            || string.IsNullOrEmpty(editScope)
+            || editScope == AppPermissions.Scopes.EditStatusChanges 
+            || editScope == AppPermissions.Scopes.EditAllDetails 
+            || editScope == AppPermissions.Scopes.All 
+            || editScope == AppPermissions.Scopes.OwnBranch 
+            || editScope == AppPermissions.Scopes.Department;
+
+        // 1. Personal / Basic Details
+        if (canEditBasic)
         {
             if (!string.IsNullOrWhiteSpace(dto.EmployeeName)) employee.EmployeeName = dto.EmployeeName.Trim();
             employee.Phone = dto.Phone?.Trim();
@@ -533,8 +554,8 @@ END;";
             if (dto.PermanentAddress != null) employee.PermanentAddress = dto.PermanentAddress.Trim();
         }
 
-        // 2. Job Structure, Corporate Work Email, Department, Designation, Manager, Role (ONLY allowed under "All Details" or SuperAdmin)
-        if (editScope == AppPermissions.Scopes.EditAllDetails || User.IsInRole("SuperAdmin"))
+        // 2. Job Structure, Corporate Work Email, Department, Designation, Manager, Role, Attendance Type
+        if (canEditJobDetails)
         {
             if (dto.WorkEmail != null) employee.WorkEmail = dto.WorkEmail.Trim();
             employee.DepartmentId = dto.DepartmentId;
@@ -543,7 +564,7 @@ END;";
             if (dto.BranchId.HasValue) employee.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
             employee.EmploymentType = dto.EmploymentType;
             if (!string.IsNullOrWhiteSpace(dto.Weekoff)) employee.Weekoff = dto.Weekoff;
-            employee.AttendanceType = dto.AttendanceType;
+            if (!string.IsNullOrWhiteSpace(dto.AttendanceType)) employee.AttendanceType = dto.AttendanceType.Trim();
             if (dto.JoiningDate.HasValue) employee.JoiningDate = dto.JoiningDate.Value;
 
             // Auto-provision or update user account & role
@@ -604,8 +625,8 @@ END;";
             }
         }
 
-        // 3. Status & Lifecycle changes (Allowed under "Status Changes" or "All Details" or SuperAdmin)
-        if (editScope == AppPermissions.Scopes.EditStatusChanges || editScope == AppPermissions.Scopes.EditAllDetails || User.IsInRole("SuperAdmin"))
+        // 3. Status & Lifecycle changes
+        if (canEditLifecycle)
         {
             employee.LastWorkingDate = dto.LastWorkingDate;
             employee.ResignationDate = dto.ResignationDate;

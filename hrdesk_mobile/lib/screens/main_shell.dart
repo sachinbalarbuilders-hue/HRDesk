@@ -5,6 +5,7 @@ import '../providers/attendance_provider.dart';
 import '../providers/employee_provider.dart';
 import '../providers/leave_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 import 'dashboard_screen.dart';
 import 'attendance/attendance_screen.dart';
 import 'leaves/leaves_screen.dart';
@@ -42,9 +43,10 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _showQuickActions() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -55,10 +57,10 @@ class _MainShellState extends State<MainShell> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Quick Actions',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -66,15 +68,21 @@ class _MainShellState extends State<MainShell> {
               const SizedBox(height: 16),
               ListTile(
                 leading: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0D9488).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFF0D9488).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.event_available, color: Color(0xFF0D9488)),
+                  child: const Icon(Icons.beach_access, color: Color(0xFF0D9488)),
                 ),
-                title: const Text('Apply for Leave', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                subtitle: const Text('Submit a casual, sick or earned leave', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                title: Text(
+                  'Apply Leave',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: const Text('Request time off or vacation'),
                 onTap: () {
                   Navigator.pop(ctx);
                   showModalBottomSheet(
@@ -85,18 +93,23 @@ class _MainShellState extends State<MainShell> {
                   );
                 },
               ),
-              const Divider(color: Colors.white12),
               ListTile(
                 leading: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.amber.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.edit_calendar, color: Colors.amberAccent),
+                  child: const Icon(Icons.edit_calendar, color: Colors.amber),
                 ),
-                title: const Text('Attendance Regularization', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                subtitle: const Text('Request fix for missed or late punch', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                title: Text(
+                  'Apply Regularization',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: const Text('Correct missing or mismatched punches'),
                 onTap: () {
                   Navigator.pop(ctx);
                   showModalBottomSheet(
@@ -117,21 +130,23 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final notifProvider = context.watch<NotificationProvider>();
+    final themeProv = context.watch<ThemeProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final unread = notifProvider.unreadCount;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: AppDrawer(
         onNavigateIndex: (idx) {
           setState(() => _currentIndex = idx);
         },
       ),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
+            icon: Icon(Icons.menu, color: isDark ? Colors.white : const Color(0xFF0F172A)),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
@@ -146,10 +161,10 @@ class _MainShellState extends State<MainShell> {
               child: const Icon(Icons.business_center, color: Color(0xFF0D9488), size: 20),
             ),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'HRDesk',
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
                 letterSpacing: -0.5,
@@ -158,11 +173,26 @@ class _MainShellState extends State<MainShell> {
           ],
         ),
         actions: [
+          // Theme Toggle Button (Light / Dark)
+          IconButton(
+            tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+            icon: Icon(
+              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: isDark ? Colors.amberAccent : const Color(0xFF64748B),
+              size: 22,
+            ),
+            onPressed: () {
+              themeProv.toggleTheme();
+            },
+          ),
           Stack(
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: Colors.white70),
+                icon: Icon(
+                  Icons.notifications_outlined,
+                  color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                ),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -197,7 +227,7 @@ class _MainShellState extends State<MainShell> {
         index: _currentIndex,
         children: _screens,
       ),
-      floatingActionButton: _currentIndex == 0 || _currentIndex == 1 || _currentIndex == 2
+      floatingActionButton: _currentIndex == 1 || _currentIndex == 2
           ? FloatingActionButton(
               backgroundColor: const Color(0xFF0D9488),
               foregroundColor: Colors.white,
@@ -208,19 +238,23 @@ class _MainShellState extends State<MainShell> {
           : null,
       bottomNavigationBar: NavigationBarTheme(
         data: NavigationBarThemeData(
-          backgroundColor: const Color(0xFF1E293B),
-          indicatorColor: const Color(0xFF0D9488).withValues(alpha: 0.25),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          indicatorColor: const Color(0xFF0D9488).withValues(alpha: 0.2),
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return const TextStyle(color: Color(0xFF0D9488), fontSize: 12, fontWeight: FontWeight.w600);
+              return const TextStyle(color: Color(0xFF0D9488), fontSize: 12, fontWeight: FontWeight.w700);
             }
-            return const TextStyle(color: Colors.white60, fontSize: 12);
+            return TextStyle(
+              color: isDark ? Colors.white60 : const Color(0xFF64748B),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            );
           }),
           iconTheme: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
               return const IconThemeData(color: Color(0xFF0D9488));
             }
-            return const IconThemeData(color: Colors.white60);
+            return IconThemeData(color: isDark ? Colors.white60 : const Color(0xFF64748B));
           }),
         ),
         child: NavigationBar(

@@ -27,10 +27,11 @@ class BranchProvider with ChangeNotifier {
   /// Returns only branches belonging to the currently selected organization
   List<BranchModel> get branchesForSelectedOrg {
     if (_selectedOrganization == null) return _allBranches;
-    return _allBranches.where((b) {
+    final filtered = _allBranches.where((b) {
       if (b.organizationId == null) return true;
       return b.organizationId == _selectedOrganization!.id;
     }).toList();
+    return filtered.isNotEmpty ? filtered : _allBranches;
   }
 
   String get companyDisplayName => _selectedOrganization?.name ?? 'Company';
