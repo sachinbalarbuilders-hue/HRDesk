@@ -6,7 +6,9 @@ import '../providers/auth_provider.dart';
 import '../providers/punch_provider.dart';
 import '../providers/branch_provider.dart';
 import '../providers/dashboard_provider.dart';
+import 'package:intl/intl.dart';
 import 'face_punch_screen.dart';
+import 'attendance/day_activity_sheet.dart';
 import 'dashboard/widgets/dashboard_header.dart';
 import 'dashboard/widgets/hero_shift_card.dart';
 import 'dashboard/widgets/quick_actions_grid.dart';
@@ -145,6 +147,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _openPunchHistory() {
+    final auth = context.read<AuthProvider>();
+    final user = auth.user;
+    if (user == null) return;
+
+    final empId = user.employeeId ?? user.id;
+    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DayActivitySheet(
+        employeeId: empId,
+        date: todayStr,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -221,7 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 cardBg: cardBg,
                 cardBorder: cardBorder,
                 textPrimary: textPrimary,
-                onRefreshHistory: () => context.read<PunchProvider>().fetchTodayStatus(),
+                onOpenHistory: _openPunchHistory,
               ),
               const SizedBox(height: 20),
 

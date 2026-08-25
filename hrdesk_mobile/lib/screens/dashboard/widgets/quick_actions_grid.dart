@@ -7,7 +7,7 @@ class QuickActionsGrid extends StatelessWidget {
   final Color cardBg;
   final Color cardBorder;
   final Color textPrimary;
-  final VoidCallback onRefreshHistory;
+  final VoidCallback onOpenHistory;
 
   const QuickActionsGrid({
     super.key,
@@ -15,7 +15,7 @@ class QuickActionsGrid extends StatelessWidget {
     required this.cardBg,
     required this.cardBorder,
     required this.textPrimary,
-    required this.onRefreshHistory,
+    required this.onOpenHistory,
   });
 
   @override
@@ -70,7 +70,7 @@ class QuickActionsGrid extends StatelessWidget {
                 icon: Icons.history_rounded,
                 iconColor: const Color(0xFF10B981),
                 bgColor: const Color(0xFF10B981).withValues(alpha: isDark ? 0.25 : 0.12),
-                onTap: onRefreshHistory,
+                onTap: onOpenHistory,
               ),
             ),
           ],
