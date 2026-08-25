@@ -22,16 +22,8 @@ builder.Services.Configure<HostOptions>(options =>
     options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
 });
 
-// Add services to the container.
-builder.Services.AddRazorPages(options =>
-{
-    // Secure the entire application by default (no login bypass)
-    options.Conventions.AuthorizeFolder("/");
-    
-    // Only allow anonymous access to the Account folder (Login, AccessDenied)
-    options.Conventions.AllowAnonymousToFolder("/Account");
-}).AddRazorRuntimeCompilation();
-builder.Services.AddControllersWithViews();
+// Add API controllers & services
+builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 
 // Require authentication by default for all endpoints (Controllers & Pages) supporting both Cookies and JWT Bearer
@@ -605,7 +597,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapControllers();
-app.MapRazorPages();
+app.MapFallbackToFile("index.html");
 app.MapHealthChecks("/health");
 
 app.Run();
