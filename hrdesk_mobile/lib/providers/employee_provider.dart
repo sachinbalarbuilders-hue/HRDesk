@@ -6,18 +6,27 @@ class EmployeeProvider with ChangeNotifier {
   final ApiClient _api = ApiClient();
 
   bool _loading = false;
+  bool _loadingMore = false;
   String? _error;
   EmployeeProfileModel? _profile;
   List<DirectoryEmployeeItem> _directory = [];
   String _searchQuery = '';
   String? _selectedDepartment;
+  int _page = 1;
+  final int _pageSize = 30;
+  int _totalCount = 0;
+  int _totalPages = 1;
 
   bool get loading => _loading;
+  bool get loadingMore => _loadingMore;
   String? get error => _error;
   EmployeeProfileModel? get profile => _profile;
   List<DirectoryEmployeeItem> get directory => _directory;
   String get searchQuery => _searchQuery;
   String? get selectedDepartment => _selectedDepartment;
+  int get page => _page;
+  int get totalCount => _totalCount;
+  bool get hasMoreDirectory => _page < _totalPages;
 
   List<DirectoryEmployeeItem> get filteredDirectory {
     return _directory.where((emp) {
@@ -73,17 +82,31 @@ class EmployeeProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchDirectory() async {
-    _loading = true;
+  Future<void> fetchDirectory({bool refresh = true, String? search, int? branchId}) async {
+    if (refresh) {
+      _loading = true;
+      _page = 1;
+      _directory = [];
+    }
     _error = null;
     notifyListeners();
 
     try {
-      final response = await _api.dio.get('/employees', queryParameters: {'pageSize': 200});
+      final response = await _api.dio.get(
+        '/employees',
+        queryParameters: {
+          'page': _page,
+          'pageSize': _pageSize,
+          if (search != null && search.isNotEmpty) 'search': search,
+          if (branchId != null && branchId > 0) 'branchId': branchId,
+        },
+      );
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
         List<DirectoryEmployeeItem> list = [];
         if (data is Map && data['items'] is List) {
+          _totalCount = (data['totalCount'] as num?)?.toInt() ?? 0;
+          _totalPages = (data['totalPages'] as num?)?.toInt() ?? 1;
           list = (data['items'] as List)
               .map((e) => DirectoryEmployeeItem.fromJson(e as Map<String, dynamic>))
               .toList();
@@ -91,15 +114,33 @@ class EmployeeProvider with ChangeNotifier {
           list = data
               .map((e) => DirectoryEmployeeItem.fromJson(e as Map<String, dynamic>))
               .toList();
+          _totalCount = list.length;
+          _totalPages = 1;
         }
-        _directory = list;
+
+        if (refresh) {
+          _directory = list;
+        } else {
+          _directory.addAll(list);
+        }
       }
     } catch (e) {
       debugPrint('[EmployeeProvider] fetchDirectory error: $e');
       _error = 'Failed to load company directory.';
     } finally {
       _loading = false;
+      _loadingMore = false;
       notifyListeners();
     }
+  }
+
+  Future<void> loadMoreDirectory({String? search, int? branchId}) async {
+    if (_loading || _loadingMore || !hasMoreDirectory) return;
+
+    _loadingMore = true;
+    _page++;
+    notifyListeners();
+
+    await fetchDirectory(refresh: false, search: search, branchId: branchId);
   }
 }

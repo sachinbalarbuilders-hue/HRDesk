@@ -11,12 +11,30 @@ class RegularizationScreen extends StatefulWidget {
 }
 
 class _RegularizationScreenState extends State<RegularizationScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RegularizationProvider>().fetchRegularizations();
     });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      final reg = context.read<RegularizationProvider>();
+      if (reg.hasMore && !reg.loadingMore && !reg.loading) {
+        reg.loadMoreRegularizations();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _openApplyDialog() {
@@ -50,7 +68,7 @@ class _RegularizationScreenState extends State<RegularizationScreen> {
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF0D9488)))
           : RefreshIndicator(
               color: const Color(0xFF0D9488),
-              onRefresh: () => regProvider.fetchRegularizations(),
+              onRefresh: () => regProvider.fetchRegularizations(refresh: true),
               child: requests.isEmpty
                   ? Center(
                       child: Column(
@@ -72,10 +90,25 @@ class _RegularizationScreenState extends State<RegularizationScreen> {
                       ),
                     )
                   : ListView.separated(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.all(16),
-                      itemCount: requests.length,
+                      itemCount: requests.length + (regProvider.loadingMore ? 1 : 0),
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (ctx, i) {
+                        if (i == requests.length) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            child: Center(
+                              child: SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(color: Color(0xFF0D9488), strokeWidth: 2.5),
+                              ),
+                            ),
+                          );
+                        }
+
                         final item = requests[i];
                         Color statusColor;
                         switch (item.status) {
