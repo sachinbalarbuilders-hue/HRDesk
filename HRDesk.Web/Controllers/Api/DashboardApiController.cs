@@ -1,4 +1,5 @@
 using HRDesk.Web.Constants;
+using HRDesk.Web.Core;
 using HRDesk.Web.Data;
 using HRDesk.Web.Services;
 using HRDesk.Web.Services.Infrastructure;
@@ -31,7 +32,7 @@ public class DashboardController : ControllerBase
     [HttpGet("stats")]
     public async Task<IActionResult> GetDashboardSummary([FromQuery] int? branchId = null)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = IstDateTime.Today;
         var currentYear = today.Year;
         var currentMonth = today.Month;
         var activeBranch = branchId ?? _tenantProvider.BranchId;
@@ -197,7 +198,7 @@ public class DashboardController : ControllerBase
     [HttpGet("overview")]
     public async Task<IActionResult> GetDashboardOverview([FromQuery] int? branchId = null)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = IstDateTime.Today;
         var currentMonth = today.Month;
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 
@@ -390,7 +391,7 @@ public class DashboardController : ControllerBase
     [HttpGet("celebrations")]
     public async Task<IActionResult> GetCelebrations([FromQuery] int? branchId = null)
     {
-        var today = DateTime.Today;
+        var today = IstDateTime.Today;
         var currentMonth = today.Month;
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 

@@ -1,4 +1,5 @@
 using HRDesk.Web.Constants;
+using HRDesk.Web.Core;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
@@ -56,8 +57,8 @@ public class AttendanceController : ControllerBase
             return Forbid();
         }
 
-        var selectedYear = year ?? DateTime.Now.Year;
-        var selectedMonth = month ?? DateTime.Now.Month;
+        var selectedYear = year ?? IstDateTime.Now.Year;
+        var selectedMonth = month ?? IstDateTime.Now.Month;
 
         var startDate = new DateOnly(selectedYear, selectedMonth, 1);
         var daysInMonth = DateTime.DaysInMonth(selectedYear, selectedMonth);
@@ -337,8 +338,8 @@ public class AttendanceController : ControllerBase
     [HttpGet("summary/{employeeId}")]
     public async Task<IActionResult> GetEmployeeSummary(int employeeId, [FromQuery] int? year, [FromQuery] int? month)
     {
-        var targetYear = year ?? DateTime.Today.Year;
-        var targetMonth = month ?? DateTime.Today.Month;
+        var targetYear = year ?? IstDateTime.Today.Year;
+        var targetMonth = month ?? IstDateTime.Today.Month;
         
         var query = _db.Employees.AsNoTracking().Where(e => e.EmployeeId == employeeId);
         query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.EmployeesView);
@@ -363,7 +364,7 @@ public class AttendanceController : ControllerBase
             return Forbid();
         }
 
-        var targetDate = date ?? DateOnly.FromDateTime(DateTime.Today);
+        var targetDate = date ?? IstDateTime.Today;
 
         var query = _db.DailyAttendance
             .AsNoTracking()
@@ -427,7 +428,7 @@ public class AttendanceController : ControllerBase
         }
 
         var targetEmpId = dto.EmployeeId ?? currentEmpId!.Value;
-        var now = DateTime.Now;
+        var now = IstDateTime.Now;
         var today = DateOnly.FromDateTime(now);
         var timeOnly = TimeOnly.FromDateTime(now);
 
@@ -847,7 +848,7 @@ public class AttendanceController : ControllerBase
             return Ok(new { hasEmployee = false, isClockedIn = false, inTime = (string?)null, outTime = (string?)null });
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = IstDateTime.Today;
         var log = await _db.DailyAttendance
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.EmployeeId == currentEmpId.Value && a.RecordDate == today);
@@ -1149,8 +1150,8 @@ public class AttendanceController : ControllerBase
             return BadRequest(new { message = "No employee found." });
         }
 
-        var selectedYear = year ?? DateTime.Now.Year;
-        var selectedMonth = month ?? DateTime.Now.Month;
+        var selectedYear = year ?? IstDateTime.Now.Year;
+        var selectedMonth = month ?? IstDateTime.Now.Month;
         var startDate = new DateOnly(selectedYear, selectedMonth, 1);
         var daysInMonth = DateTime.DaysInMonth(selectedYear, selectedMonth);
         var endDate = startDate.AddMonths(1);
@@ -1184,7 +1185,7 @@ public class AttendanceController : ControllerBase
             .Where(r => r.EmployeeId == targetEmpId.Value && r.RosterDate >= startDate && r.RosterDate < endDate)
             .ToListAsync();
 
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = IstDateTime.Today;
 
         // Quick check for today's live punches only if today's DailyAttendance is missing
         if (selectedYear == today.Year && selectedMonth == today.Month)
