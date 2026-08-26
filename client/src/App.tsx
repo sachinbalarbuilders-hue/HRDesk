@@ -9,6 +9,7 @@ import { PageSkeleton } from './components/ui/PageSkeleton';
 
 // Route-Level Lazy Loading (Code Splitting)
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const Employees = lazy(() => import('./pages/Employees').then(m => ({ default: m.Employees })));
 const AddEmployee = lazy(() => import('./pages/employees/AddEmployee').then(m => ({ default: m.AddEmployee })));
@@ -40,6 +41,8 @@ const LeaveTypesTab = lazy(() => import('./pages/settings/LeaveTypesTab').then(m
 const WorkShiftsTab = lazy(() => import('./pages/settings/WorkShiftsTab').then(m => ({ default: m.WorkShiftsTab })));
 const SubscriptionTab = lazy(() => import('./pages/settings/SubscriptionTab').then(m => ({ default: m.SubscriptionTab })));
 const AuditLogsTab = lazy(() => import('./pages/settings/AuditLogsTab').then(m => ({ default: m.AuditLogsTab })));
+const ChangePasswordTab = lazy(() => import('./pages/settings/ChangePasswordTab').then(m => ({ default: m.ChangePasswordTab })));
+const EmailSettingsTab = lazy(() => import('./pages/settings/EmailSettingsTab').then(m => ({ default: m.EmailSettingsTab })));
 const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
 const EmployeeOnboarding = lazy(() => import('./pages/public/EmployeeOnboarding').then(m => ({ default: m.EmployeeOnboarding })));
 const RegisterTenant = lazy(() => import('./pages/RegisterTenant').then(m => ({ default: m.RegisterTenant })));
@@ -102,6 +105,7 @@ export const App: React.FC = () => {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/landing" element={<LandingPage />} />
                 <Route path="/auth/sign-in" element={<Login />} />
+                <Route path="/auth/forgot-password" element={<ForgotPassword />} />
                 <Route path="/login" element={<Navigate to="/auth/sign-in" replace />} />
                 <Route path="/register" element={<RegisterTenant />} />
                 <Route path="/verify/:id" element={<VerifyEmployee />} />
@@ -253,6 +257,8 @@ export const App: React.FC = () => {
                     <Route path="organizations" element={<OrganizationsTab />} />
                     <Route path="subscription" element={<SubscriptionTab />} />
                     <Route path="audit-logs" element={<AuditLogsTab />} />
+                    <Route path="change-password" element={<ChangePasswordTab />} />
+                    <Route path="email" element={<EmailSettingsTab />} />
                     <Route path="departments" element={<DepartmentsTab />} />
                     <Route path="designations" element={<DesignationsTab />} />
                     <Route path="leaves" element={<LeaveTypesTab />} />

@@ -96,6 +96,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<GateActivityLog> GateActivityLogs => Set<GateActivityLog>();
     public DbSet<InAppNotification> InAppNotifications => Set<InAppNotification>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

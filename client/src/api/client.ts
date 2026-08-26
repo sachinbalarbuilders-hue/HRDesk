@@ -46,7 +46,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('hrdesk_token');
       localStorage.removeItem('hrdesk_user');
 
-      const publicPaths = ['/auth/sign-in', '/login', '/register', '/landing', '/verify', '/onboarding'];
+      const publicPaths = ['/auth/sign-in', '/auth/forgot-password', '/login', '/register', '/landing', '/verify', '/onboarding'];
       const isPublicPath = window.location.pathname === '/' || publicPaths.some(p => window.location.pathname.startsWith(p));
 
       if (!isPublicPath) {

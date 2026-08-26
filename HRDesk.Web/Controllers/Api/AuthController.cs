@@ -5,6 +5,7 @@ using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.RateLimiting;
 using HRDesk.Web.Services.Infrastructure;
+using HRDesk.Web.Services.Email;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,17 +21,20 @@ public class AuthController : ControllerBase
     private readonly IConfiguration _config;
     private readonly IPermissionService _permissionService;
     private readonly ITenantProvisioningService _provisioningService;
+    private readonly IEmailService _emailService;
 
     public AuthController(
         BiometricAttendanceDbContext context,
         IConfiguration config,
         IPermissionService permissionService,
-        ITenantProvisioningService provisioningService)
+        ITenantProvisioningService provisioningService,
+        IEmailService emailService)
     {
         _context = context;
         _config = config;
         _permissionService = permissionService;
         _provisioningService = provisioningService;
+        _emailService = emailService;
     }
 
     public record LoginRequest(string Username, string Password);
@@ -373,6 +377,149 @@ public class AuthController : ControllerBase
         }
 
         return $"{cleanSeries}{connector}{employee.EmployeeId.ToString($"D{padding}")}";
+    }
+
+    // ── Forgot Password ─────────────────────────────────────────────
+    public record ForgotPasswordRequest(string Email);
+
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("login")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest(new { message = "Email is required." });
+
+        var email = request.Email.Trim().ToLowerInvariant();
+
+        // Find user by username or linked employee email
+        var user = await _context.Users
+            .IgnoreQueryFilters()
+            .Include(u => u.Employee)
+            .FirstOrDefaultAsync(u => u.IsActive && (
+                u.Username.ToLower() == email ||
+                (u.Employee != null && (u.Employee.WorkEmail!.ToLower() == email || u.Employee.PersonalEmail!.ToLower() == email))
+            ));
+
+        // Always return success to prevent email enumeration
+        if (user == null)
+            return Ok(new { message = "If an account with that email exists, a reset code has been sent." });
+
+        // Generate 6-digit OTP
+        var otp = Random.Shared.Next(100000, 999999).ToString();
+
+        // Invalidate previous unused tokens
+        var oldTokens = await _context.PasswordResetTokens
+            .Where(t => t.UserId == user.Id && !t.IsUsed)
+            .ToListAsync();
+        foreach (var t in oldTokens) t.IsUsed = true;
+
+        // Create new token (expires in 10 minutes)
+        _context.PasswordResetTokens.Add(new PasswordResetToken
+        {
+            UserId = user.Id,
+            OtpCode = otp,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+            OrganizationId = user.OrganizationId
+        });
+        await _context.SaveChangesAsync();
+
+        // Send email
+        var htmlBody = $@"
+            <div style='font-family:Inter,sans-serif;max-width:400px;margin:0 auto;padding:24px;'>
+                <h2 style='color:#0F172A;'>Password Reset</h2>
+                <p style='color:#64748B;font-size:14px;'>Your verification code is:</p>
+                <div style='background:#F1F5F9;border-radius:8px;padding:16px;text-align:center;margin:16px 0;'>
+                    <span style='font-size:32px;font-weight:bold;letter-spacing:8px;color:#0D9488;'>{otp}</span>
+                </div>
+                <p style='color:#64748B;font-size:13px;'>This code expires in 10 minutes. If you didn't request this, ignore this email.</p>
+            </div>";
+
+        var result = await _emailService.SendAsync(user.OrganizationId, email, "HRDesk — Password Reset Code", htmlBody);
+
+        if (!result.Success)
+            return StatusCode(500, new { message = result.ErrorMessage ?? "Failed to send email. Please contact your administrator." });
+
+        return Ok(new { message = "If an account with that email exists, a reset code has been sent." });
+    }
+
+    // ── Reset Password (with OTP) ───────────────────────────────────
+    public record ResetPasswordRequest(string Email, string Otp, string NewPassword);
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("login")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Otp) || string.IsNullOrWhiteSpace(request.NewPassword))
+            return BadRequest(new { message = "Email, OTP, and new password are required." });
+
+        if (request.NewPassword.Length < 6)
+            return BadRequest(new { message = "Password must be at least 6 characters." });
+
+        var email = request.Email.Trim().ToLowerInvariant();
+
+        var user = await _context.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.IsActive && (
+                u.Username.ToLower() == email ||
+                (u.Employee != null && (u.Employee.WorkEmail!.ToLower() == email || u.Employee.PersonalEmail!.ToLower() == email))
+            ));
+
+        if (user == null)
+            return BadRequest(new { message = "Invalid email or OTP." });
+
+        var token = await _context.PasswordResetTokens
+            .Where(t => t.UserId == user.Id && t.OtpCode == request.Otp.Trim() && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (token == null)
+            return BadRequest(new { message = "Invalid or expired OTP. Please request a new code." });
+
+        // Mark token as used
+        token.IsUsed = true;
+
+        // Update password
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, workFactor: 12);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Password reset successfully. You can now log in with your new password." });
+    }
+
+    // ── Change Password (authenticated) ─────────────────────────────
+    public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+            return BadRequest(new { message = "Current and new password are required." });
+
+        if (request.NewPassword.Length < 6)
+            return BadRequest(new { message = "New password must be at least 6 characters." });
+
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username))
+            return Unauthorized();
+
+        var user = await _context.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
+
+        if (user == null)
+            return Unauthorized();
+
+        // Verify current password
+        if (!VerifyPassword(request.CurrentPassword, user.PasswordHash))
+            return BadRequest(new { message = "Current password is incorrect." });
+
+        // Set new password
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, workFactor: 12);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Password changed successfully." });
     }
 
     private string GenerateJwtToken(User user)

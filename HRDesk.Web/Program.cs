@@ -136,6 +136,7 @@ builder.Services.AddScoped<HRDesk.Web.Services.IAttendanceSummaryService, HRDesk
 builder.Services.AddScoped<HRDesk.Web.Services.IPayrollService, HRDesk.Web.Services.PayrollService>();
 builder.Services.AddScoped<HRDesk.Web.Services.ICompOffService, HRDesk.Web.Services.CompOffService>();
 builder.Services.AddScoped<HRDesk.Web.Services.ILeaveAdjustmentService, HRDesk.Web.Services.LeaveAdjustmentService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Email.IEmailService, HRDesk.Web.Services.Email.EmailService>();
 builder.Services.AddSingleton<HRDesk.Web.Services.IReferenceDataCacheService, HRDesk.Web.Services.ReferenceDataCacheService>();
 builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceRecognitionService, HRDesk.Web.Services.AI.FaceRecognitionService>();
 builder.Services.AddScoped<HRDesk.Web.Services.IImageGenerationService, HRDesk.Web.Services.ImageGenerationService>();

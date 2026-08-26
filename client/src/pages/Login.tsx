@@ -117,6 +117,12 @@ export const Login: React.FC = () => {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
+
+            <div className="text-right">
+              <Link to="/auth/forgot-password" className="text-xs text-[var(--accent)] hover:underline">
+                Forgot password?
+              </Link>
+            </div>
           </form>
 
           <div className="pt-3 border-t border-[var(--border)] text-center">

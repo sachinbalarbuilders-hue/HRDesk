@@ -16,6 +16,8 @@ import 'providers/branch_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
+import 'screens/auth/forgot_password_screen.dart';
+import 'screens/auth/change_password_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -112,6 +114,8 @@ class HRDeskApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/change-password': (context) => const ChangePasswordScreen(),
         '/dashboard': (context) => const MainShell(),
       },
     );

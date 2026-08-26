@@ -299,6 +299,26 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
 
+            // Change Password
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: ListTile(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                leading:
+                    Icon(Icons.lock_outline, color: textSecondary, size: 20),
+                title: Text('Change Password',
+                    style: TextStyle(
+                        color: textPrimary,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14)),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/change-password');
+                },
+              ),
+            ),
+
             // 4. Log Out Footer
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

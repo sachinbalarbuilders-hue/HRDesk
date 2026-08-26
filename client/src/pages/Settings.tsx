@@ -4,7 +4,7 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Tabs } from '../components/ui/Tabs';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
-import { Building2, FolderTree, Award, CalendarCheck, Layers, CreditCard, History } from 'lucide-react';
+import { Building2, FolderTree, Award, CalendarCheck, Layers, CreditCard, History, Mail, Lock } from 'lucide-react';
 
 // Each settings tab is its own nested route (lazy-loaded, see App.tsx),
 // so only the currently visited tab's JS/data is ever fetched.
@@ -12,6 +12,8 @@ const SETTINGS_TABS = [
   { id: 'organizations', label: 'Organizations', icon: <Building2 size={14} />, path: '/settings/organizations' },
   { id: 'subscription', label: 'Subscription & Plans', icon: <CreditCard size={14} />, path: '/settings/subscription' },
   { id: 'audit-logs', label: 'Audit Logs', icon: <History size={14} />, path: '/settings/audit-logs' },
+  { id: 'email', label: 'Email', icon: <Mail size={14} />, path: '/settings/email' },
+  { id: 'change-password', label: 'Password', icon: <Lock size={14} />, path: '/settings/change-password' },
   { id: 'departments', label: 'Departments', icon: <FolderTree size={14} />, path: '/settings/departments' },
   { id: 'designations', label: 'Designations', icon: <Award size={14} />, path: '/settings/designations' },
   { id: 'leaves', label: 'Leave Types', icon: <CalendarCheck size={14} />, path: '/settings/leaves' },
