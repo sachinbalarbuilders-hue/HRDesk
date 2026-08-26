@@ -159,29 +159,61 @@ export const SubscriptionTab: React.FC = () => {
   const handleProcessPayment = async () => {
     if (!checkoutOrder) return;
 
-    try {
-      setVerifyingPayment(true);
-
-      // Simulation/Gateway execution
-      const fakePaymentId = `pay_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
-      const res = await apiClient.post('/payments/verify', {
-        orderId: checkoutOrder.orderId,
-        paymentId: fakePaymentId,
-        signature: 'sandbox_verified_signature',
+    // Load Razorpay Checkout JS dynamically
+    const loadRazorpay = (): Promise<any> => {
+      return new Promise((resolve) => {
+        if ((window as any).Razorpay) { resolve((window as any).Razorpay); return; }
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => resolve((window as any).Razorpay);
+        document.body.appendChild(script);
       });
+    };
 
-      showSuccess('Subscription Activated!', res.data.message || `Switched to ${checkoutOrder.planName}`);
-      setCheckoutOrder(null);
-      if (res.data.quota) {
-        setQuota(res.data.quota);
-      }
-      await fetchPaymentHistory();
-    } catch (err: any) {
-      showError('Verification Failed', err.response?.data?.message || 'Payment verification could not be completed.');
-    } finally {
-      setVerifyingPayment(false);
-    }
+    const Razorpay = await loadRazorpay();
+    if (!Razorpay) { showError('Error', 'Failed to load payment gateway.'); return; }
+
+    const options = {
+      key: checkoutOrder.keyId,
+      amount: Math.round(checkoutOrder.totalAmount * 100), // paise
+      currency: checkoutOrder.currency,
+      name: 'HRDesk',
+      description: `${checkoutOrder.planName} - ${checkoutOrder.billingCycle}`,
+      order_id: checkoutOrder.orderId,
+      handler: async (response: any) => {
+        // Payment successful — verify on backend
+        try {
+          setVerifyingPayment(true);
+          const res = await apiClient.post('/payments/verify', {
+            orderId: response.razorpay_order_id,
+            paymentId: response.razorpay_payment_id,
+            signature: response.razorpay_signature,
+          });
+
+          showSuccess('Subscription Activated!', res.data.message || `Switched to ${checkoutOrder.planName}`);
+          setCheckoutOrder(null);
+          if (res.data.quota) {
+            setQuota(res.data.quota);
+          }
+          await fetchPaymentHistory();
+        } catch (err: any) {
+          showError('Verification Failed', err.response?.data?.message || 'Payment verification could not be completed.');
+        } finally {
+          setVerifyingPayment(false);
+        }
+      },
+      prefill: {},
+      theme: { color: '#0D9488' },
+      modal: {
+        ondismiss: () => { /* User closed Razorpay popup */ },
+      },
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', (response: any) => {
+      showError('Payment Failed', response.error?.description || 'Payment was not successful. Please try again.');
+    });
+    rzp.open();
   };
 
   if (loading) {

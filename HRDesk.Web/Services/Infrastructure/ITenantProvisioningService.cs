@@ -11,7 +11,8 @@ public record TenantRegistrationDto(
     string? AdminPhone,
     string Password,
     string? HeadOfficeCity,
-    string? EmployeeCountRange
+    string? EmployeeCountRange,
+    string? PlanCode
 );
 
 public record ProvisioningResult(

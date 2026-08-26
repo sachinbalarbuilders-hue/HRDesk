@@ -42,6 +42,7 @@ public class SubscriptionController : ControllerBase
     }
 
     [HttpGet("plans")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetPlans()
     {
         var plans = await _db.SubscriptionPlans

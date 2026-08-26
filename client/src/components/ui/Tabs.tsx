@@ -17,7 +17,7 @@ interface TabsProps {
 
 export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange, className }) => {
   return (
-    <div className={clsx('flex items-center gap-1 border-b border-[var(--border)]', className)}>
+    <div className={clsx('flex items-center gap-1 border-b border-[var(--border)] overflow-x-auto scrollbar-hide', className)}>
       {tabs.map((tab) => {
         const isActive = tab.id === activeTab;
         return (
@@ -25,7 +25,7 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange, className
             key={tab.id}
             onClick={() => onChange(tab.id)}
             className={clsx(
-              'relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium cursor-pointer rounded-t-[var(--radius-md)] transition-colors',
+              'relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium cursor-pointer rounded-t-[var(--radius-md)] transition-colors whitespace-nowrap flex-shrink-0',
               isActive
                 ? 'text-[var(--accent)] bg-[var(--surface)]'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'

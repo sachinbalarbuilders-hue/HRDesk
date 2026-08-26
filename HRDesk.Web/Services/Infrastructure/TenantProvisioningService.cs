@@ -240,16 +240,18 @@ public class TenantProvisioningService : ITenantProvisioningService
             );
             await _db.SaveChangesAsync();
 
-            // 11. Assign 14-Day Free Trial on Growth Plan
-            var growthPlan = await _db.SubscriptionPlans.FirstOrDefaultAsync(p => p.Code == "growth")
+            // 11. Assign 14-Day Free Trial on selected plan (or Growth as default)
+            var selectedPlanCode = !string.IsNullOrWhiteSpace(dto.PlanCode) ? dto.PlanCode.Trim().ToLowerInvariant() : "growth";
+            var trialPlan = await _db.SubscriptionPlans.FirstOrDefaultAsync(p => p.Code == selectedPlanCode && p.IsActive)
+                ?? await _db.SubscriptionPlans.FirstOrDefaultAsync(p => p.Code == "growth")
                 ?? await _db.SubscriptionPlans.FirstOrDefaultAsync();
 
-            if (growthPlan != null)
+            if (trialPlan != null)
             {
                 _db.TenantSubscriptions.Add(new TenantSubscription
                 {
                     OrganizationId = org.Id,
-                    PlanId = growthPlan.Id,
+                    PlanId = trialPlan.Id,
                     Status = "Trialing",
                     BillingCycle = "Monthly",
                     TrialEndsAt = DateTime.Now.AddDays(14),

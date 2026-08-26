@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
@@ -15,6 +15,8 @@ import {
   MapPin,
   Users,
   Sparkles,
+  Crown,
+  Check,
 } from 'lucide-react';
 
 export const RegisterTenant: React.FC = () => {
@@ -22,8 +24,13 @@ export const RegisterTenant: React.FC = () => {
   const [searchParams] = useSearchParams();
   const selectedPlan = searchParams.get('plan');
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [submitting, setSubmitting] = useState(false);
+
+  // Plan selection state
+  const [plans, setPlans] = useState<any[]>([]);
+  const [selectedPlanCode, setSelectedPlanCode] = useState<string>(selectedPlan || 'growth');
+  const [plansLoading, setPlansLoading] = useState(true);
 
   // Form Fields
   const [companyName, setCompanyName] = useState('');
@@ -41,10 +48,39 @@ export const RegisterTenant: React.FC = () => {
   const [city, setCity] = useState('');
   const [headcount, setHeadcount] = useState('11-50');
 
+  // Fetch plans on mount
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        setPlansLoading(true);
+        const res = await apiClient.get('/subscription/plans');
+        setPlans(res.data);
+      } catch {
+        // Fallback plans if API is unavailable
+        setPlans([]);
+      } finally {
+        setPlansLoading(false);
+      }
+    };
+    fetchPlans();
+  }, []);
+
+  // Auto-select plan from URL param
+  useEffect(() => {
+    if (selectedPlan && plans.length > 0) {
+      const match = plans.find(
+        (p: any) => p.code?.toLowerCase() === selectedPlan.toLowerCase() || p.name?.toLowerCase() === selectedPlan.toLowerCase()
+      );
+      if (match) {
+        setSelectedPlanCode(match.code || match.name);
+      }
+    }
+  }, [selectedPlan, plans]);
+
   // Slug auto-generator from company name
   const handleCompanyNameChange = (val: string) => {
     setCompanyName(val);
-    if (step === 1 && (!workspaceSlug || workspaceSlug === slugify(companyName))) {
+    if (step === 2 && (!workspaceSlug || workspaceSlug === slugify(companyName))) {
       const generated = slugify(val);
       setWorkspaceSlug(generated);
       if (generated.length >= 3) {
@@ -88,6 +124,12 @@ export const RegisterTenant: React.FC = () => {
   const handleNextStep = (e: React.FormEvent) => {
     e.preventDefault();
     if (step === 1) {
+      if (!selectedPlanCode) {
+        showError('Validation Error', 'Please select a plan to continue.');
+        return;
+      }
+      setStep(2);
+    } else if (step === 2) {
       if (!companyName.trim()) {
         showError('Validation Error', 'Company name is required.');
         return;
@@ -100,8 +142,8 @@ export const RegisterTenant: React.FC = () => {
         showError('Validation Error', 'This workspace URL is already taken. Please choose another.');
         return;
       }
-      setStep(2);
-    } else if (step === 2) {
+      setStep(3);
+    } else if (step === 3) {
       if (!adminName.trim() || !adminEmail.trim() || !adminPassword) {
         showError('Validation Error', 'All admin credentials are required.');
         return;
@@ -114,7 +156,7 @@ export const RegisterTenant: React.FC = () => {
         showError('Validation Error', 'Passwords do not match.');
         return;
       }
-      setStep(3);
+      setStep(4);
     }
   };
 
@@ -132,6 +174,7 @@ export const RegisterTenant: React.FC = () => {
         password: adminPassword,
         headOfficeCity: city.trim() || undefined,
         employeeCountRange: headcount,
+        planCode: selectedPlanCode,
       };
 
       const res = await apiClient.post('/auth/register-tenant', payload);
@@ -152,6 +195,23 @@ export const RegisterTenant: React.FC = () => {
     }
   };
 
+  const formatPrice = (price: number) => {
+    if (price === 0) return 'Free';
+    return `₹${price.toLocaleString('en-IN')}`;
+  };
+
+  const getPlanFeatures = (plan: any) => {
+    const features: string[] = [];
+    if (plan.maxEmployees) features.push(`Up to ${plan.maxEmployees} employees`);
+    if (plan.maxBranches) features.push(`${plan.maxBranches} branch${plan.maxBranches > 1 ? 'es' : ''}`);
+    if (plan.biometrics) features.push('Biometric attendance');
+    if (plan.payroll) features.push('Payroll management');
+    if (plan.recruitment) features.push('Recruitment module');
+    if (plan.loans) features.push('Loan management');
+    if (plan.customDomain) features.push('Custom domain');
+    return features;
+  };
+
   return (
     <div className="min-h-screen bg-[var(--canvas)] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -170,16 +230,9 @@ export const RegisterTenant: React.FC = () => {
           Start your <strong className="text-[var(--gold-600)] dark:text-[var(--gold-400)]">14-day full free trial</strong>. No credit card required.
         </p>
 
-        {selectedPlan && (
-          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--gold-500)]/10 border border-[var(--gold-500)]/20 text-[var(--gold-600)] dark:text-[var(--gold-400)] text-[11px] font-bold">
-            <Sparkles size={12} />
-            <span>Selected Tier: {selectedPlan.replace('_', ' ')}</span>
-          </div>
-        )}
-
         {/* Step Indicator */}
         <div className="mt-6 flex items-center justify-center gap-2">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${
@@ -192,17 +245,128 @@ export const RegisterTenant: React.FC = () => {
               >
                 {step > s ? '✓' : s}
               </div>
-              {s < 3 && <div className={`w-8 h-[2px] ${step > s ? 'bg-emerald-500' : 'bg-[var(--rule)]'}`} />}
+              {s < 4 && <div className={`w-8 h-[2px] ${step > s ? 'bg-emerald-500' : 'bg-[var(--rule)]'}`} />}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className={`mt-6 sm:mx-auto sm:w-full ${step === 1 ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}>
         <div className="bg-[var(--surface)] py-8 px-6 shadow-xl rounded-[var(--radius-lg)] border border-[var(--rule)] sm:px-10">
-          {/* STEP 1: Organization Details */}
+          {/* STEP 1: Plan Selection */}
           {step === 1 && (
+            <form onSubmit={handleNextStep} className="space-y-5">
+              <div className="text-center mb-2">
+                <h3 className="text-sm font-display font-bold text-[var(--ink)]">Choose your plan</h3>
+                <p className="text-[11px] text-[var(--ink-muted)] font-ui mt-0.5">
+                  All plans include a 14-day free trial. Upgrade or downgrade anytime.
+                </p>
+              </div>
+
+              {plansLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 size={24} className="animate-spin text-[var(--ink-muted)]" />
+                  <span className="ml-2 text-xs text-[var(--ink-muted)]">Loading plans...</span>
+                </div>
+              ) : plans.length === 0 ? (
+                <div className="text-center py-8 text-xs text-[var(--ink-muted)]">
+                  <p>Unable to load plans. You can continue with the default plan.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {plans.map((plan: any) => {
+                    const isSelected = selectedPlanCode === (plan.code || plan.name);
+                    const isFree = plan.price === 0 || plan.pricePerMonth === 0;
+                    const price = plan.pricePerMonth ?? plan.price ?? 0;
+                    const features = getPlanFeatures(plan);
+
+                    return (
+                      <button
+                        key={plan.code || plan.name}
+                        type="button"
+                        onClick={() => setSelectedPlanCode(plan.code || plan.name)}
+                        className={`relative text-left p-4 rounded-[var(--radius-lg)] border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-[var(--gold-500)] ring-2 ring-[var(--gold-500)]/30 bg-[var(--gold-500)]/5'
+                            : 'border-[var(--rule)] bg-[var(--surface)] hover:border-[var(--gold-500)]/50'
+                        }`}
+                      >
+                        {/* Selected checkmark */}
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-5 h-5 bg-[var(--gold-500)] rounded-full flex items-center justify-center">
+                            <Check size={12} className="text-white" />
+                          </div>
+                        )}
+
+                        {/* Free badge */}
+                        {isFree && (
+                          <span className="inline-block mb-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            Free Forever
+                          </span>
+                        )}
+
+                        {!isFree && (
+                          <span className="inline-block mb-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--gold-500)]/10 text-[var(--gold-600)] dark:text-[var(--gold-400)] border border-[var(--gold-500)]/20">
+                            <Sparkles size={9} className="inline mr-0.5 -mt-px" />
+                            14-day trial
+                          </span>
+                        )}
+
+                        <div className="flex items-center gap-1.5 mb-1">
+                          {plan.code === 'enterprise' || plan.name?.toLowerCase().includes('enterprise') ? (
+                            <Crown size={14} className="text-[var(--gold-500)]" />
+                          ) : null}
+                          <span className="text-xs font-bold text-[var(--ink)] font-display">
+                            {plan.name}
+                          </span>
+                        </div>
+
+                        <div className="mb-3">
+                          <span className="text-lg font-bold text-[var(--ink)] font-display">
+                            {formatPrice(price)}
+                          </span>
+                          {!isFree && (
+                            <span className="text-[10px] text-[var(--ink-muted)] font-ui">/month</span>
+                          )}
+                        </div>
+
+                        <ul className="space-y-1">
+                          {features.slice(0, 5).map((feature, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5 text-[11px] text-[var(--ink-muted)]">
+                              <CheckCircle2 size={11} className="text-emerald-500 shrink-0 mt-0.5" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={!selectedPlanCode && plans.length > 0}
+                  className="btn-primary w-full py-2 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <span>Continue to Company Details</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 2: Organization Details */}
+          {step === 2 && (
             <form onSubmit={handleNextStep} className="space-y-4">
+              {selectedPlanCode && (
+                <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--gold-500)]/10 border border-[var(--gold-500)]/20 text-[var(--gold-600)] dark:text-[var(--gold-400)] text-[11px] font-bold">
+                  <Sparkles size={12} />
+                  <span>Plan: {selectedPlanCode.replace(/_/g, ' ')}</span>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
                   Company / Organization Name *
@@ -259,11 +423,18 @@ export const RegisterTenant: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-4">
+              <div className="pt-4 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="btn-secondary flex-1 py-2 text-xs"
+                >
+                  Back
+                </button>
                 <button
                   type="submit"
                   disabled={slugChecking || slugAvailable === false}
-                  className="btn-primary w-full py-2 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="btn-primary flex-1 py-2 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <span>Continue to Admin Setup</span>
                   <ArrowRight size={14} />
@@ -272,8 +443,8 @@ export const RegisterTenant: React.FC = () => {
             </form>
           )}
 
-          {/* STEP 2: Administrator Credentials */}
-          {step === 2 && (
+          {/* STEP 3: Administrator Credentials */}
+          {step === 3 && (
             <form onSubmit={handleNextStep} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
@@ -366,7 +537,7 @@ export const RegisterTenant: React.FC = () => {
               <div className="pt-4 flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(2)}
                   className="btn-secondary flex-1 py-2 text-xs"
                 >
                   Back
@@ -382,8 +553,8 @@ export const RegisterTenant: React.FC = () => {
             </form>
           )}
 
-          {/* STEP 3: Head Office & Headcount */}
-          {step === 3 && (
+          {/* STEP 4: Head Office & Headcount */}
+          {step === 4 && (
             <form onSubmit={handleFinalSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
@@ -434,7 +605,7 @@ export const RegisterTenant: React.FC = () => {
                 <button
                   type="button"
                   disabled={submitting}
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(3)}
                   className="btn-secondary flex-1 py-2 text-xs"
                 >
                   Back

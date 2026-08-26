@@ -9,7 +9,6 @@ import { PageSkeleton } from './components/ui/PageSkeleton';
 
 // Route-Level Lazy Loading (Code Splitting)
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const Employees = lazy(() => import('./pages/Employees').then(m => ({ default: m.Employees })));
 const AddEmployee = lazy(() => import('./pages/employees/AddEmployee').then(m => ({ default: m.AddEmployee })));
@@ -105,7 +104,6 @@ export const App: React.FC = () => {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/landing" element={<LandingPage />} />
                 <Route path="/auth/sign-in" element={<Login />} />
-                <Route path="/auth/forgot-password" element={<ForgotPassword />} />
                 <Route path="/login" element={<Navigate to="/auth/sign-in" replace />} />
                 <Route path="/register" element={<RegisterTenant />} />
                 <Route path="/verify/:id" element={<VerifyEmployee />} />
