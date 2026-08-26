@@ -76,7 +76,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string;
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth/sign-in" replace />;
   }
 
   if (superAdminOnly && user.role !== 'SuperAdmin' && user.role !== 'Super Admin') {
@@ -101,7 +101,8 @@ export const App: React.FC = () => {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/landing" element={<LandingPage />} />
-                <Route path="/login" element={<Login />} />
+                <Route path="/auth/sign-in" element={<Login />} />
+                <Route path="/login" element={<Navigate to="/auth/sign-in" replace />} />
                 <Route path="/register" element={<RegisterTenant />} />
                 <Route path="/verify/:id" element={<VerifyEmployee />} />
                 <Route path="/onboarding/:token" element={<EmployeeOnboarding />} />

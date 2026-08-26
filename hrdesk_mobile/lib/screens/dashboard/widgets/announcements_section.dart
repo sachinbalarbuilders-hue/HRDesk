@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/dashboard_model.dart';
+import '../../../core/api_client.dart';
 
 class AnnouncementsSection extends StatelessWidget {
   final List<AnnouncementModel> announcements;
@@ -19,6 +20,13 @@ class AnnouncementsSection extends StatelessWidget {
     required this.textSecondary,
   });
 
+  String _buildMediaUrl(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    final base =
+        ApiClient().dio.options.baseUrl.replaceAll(RegExp(r'/api/?$'), '');
+    return '$base$path';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -26,11 +34,15 @@ class AnnouncementsSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(Icons.campaign_rounded, color: Color(0xFF0284C7), size: 18),
+            const Icon(Icons.campaign_rounded,
+                color: Color(0xFF0284C7), size: 18),
             const SizedBox(width: 8),
             Text(
               'Company Announcements',
-              style: TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                  color: textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -46,7 +58,8 @@ class AnnouncementsSection extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.campaign_outlined, color: Color(0xFF0284C7), size: 22),
+                const Icon(Icons.campaign_outlined,
+                    color: Color(0xFF0284C7), size: 22),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -54,7 +67,10 @@ class AnnouncementsSection extends StatelessWidget {
                     children: [
                       Text(
                         'All Caught Up',
-                        style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -69,7 +85,10 @@ class AnnouncementsSection extends StatelessWidget {
           )
         else
           SizedBox(
-            height: 115,
+            height: announcements
+                    .any((a) => a.imagePath != null || a.videoPath != null)
+                ? 180
+                : 115,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: announcements.length,
@@ -77,6 +96,7 @@ class AnnouncementsSection extends StatelessWidget {
               itemBuilder: (ctx, i) {
                 final a = announcements[i];
                 final isHoliday = a.category.toLowerCase().contains('holiday');
+                final hasMedia = a.imagePath != null || a.videoPath != null;
 
                 return Container(
                   width: 280,
@@ -85,27 +105,71 @@ class AnnouncementsSection extends StatelessWidget {
                     color: cardBg,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isHoliday ? const Color(0xFF10B981).withValues(alpha: 0.5) : cardBorder,
+                      color: isHoliday
+                          ? const Color(0xFF10B981).withValues(alpha: 0.5)
+                          : cardBorder,
                     ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Media thumbnail
+                      if (a.imagePath != null)
+                        GestureDetector(
+                          onTap: () => _showMediaDialog(context, a),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              _buildMediaUrl(a.imagePath!),
+                              height: 60,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink(),
+                            ),
+                          ),
+                        )
+                      else if (a.videoPath != null)
+                        GestureDetector(
+                          onTap: () => _showMediaDialog(context, a),
+                          child: Container(
+                            height: 60,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Center(
+                              child: Icon(Icons.play_circle_fill,
+                                  size: 32, color: Color(0xFF0D9488)),
+                            ),
+                          ),
+                        ),
+                      if (hasMedia) const SizedBox(height: 8),
+
+                      // Category + date row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
                               color: isHoliday
-                                  ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                                  : const Color(0xFF0284C7).withValues(alpha: 0.15),
+                                  ? const Color(0xFF10B981)
+                                      .withValues(alpha: 0.15)
+                                  : const Color(0xFF0284C7)
+                                      .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               a.category.toUpperCase(),
                               style: TextStyle(
-                                color: isHoliday ? const Color(0xFF059669) : const Color(0xFF0284C7),
+                                color: isHoliday
+                                    ? const Color(0xFF059669)
+                                    : const Color(0xFF0284C7),
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -113,7 +177,8 @@ class AnnouncementsSection extends StatelessWidget {
                           ),
                           Text(
                             a.date,
-                            style: TextStyle(color: textSecondary, fontSize: 10),
+                            style:
+                                TextStyle(color: textSecondary, fontSize: 10),
                           ),
                         ],
                       ),
@@ -122,14 +187,19 @@ class AnnouncementsSection extends StatelessWidget {
                         a.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        a.message,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: textSecondary, fontSize: 11),
+                      Expanded(
+                        child: Text(
+                          a.message,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: textSecondary, fontSize: 11),
+                        ),
                       ),
                     ],
                   ),
@@ -138,6 +208,65 @@ class AnnouncementsSection extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+
+  void _showMediaDialog(BuildContext context, AnnouncementModel a) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Close button
+            Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ),
+            if (a.imagePath != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  _buildMediaUrl(a.imagePath!),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Text(
+                      'Failed to load image',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              )
+            else if (a.videoPath != null)
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.videocam, color: Colors.white70, size: 48),
+                    const SizedBox(height: 12),
+                    Text(
+                      a.title,
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Video playback available in browser',
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

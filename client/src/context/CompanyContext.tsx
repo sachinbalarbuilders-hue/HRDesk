@@ -191,6 +191,23 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     fetchOrganizationsAndBranches();
   }, []);
 
+  // Re-fetch when user logs in (token appears in localStorage)
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'hrdesk_token' && e.newValue) {
+        fetchOrganizationsAndBranches();
+      }
+    };
+    // Also listen for login events dispatched within the same tab
+    const handleLogin = () => fetchOrganizationsAndBranches();
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('hrdesk:login', handleLogin);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('hrdesk:login', handleLogin);
+    };
+  }, []);
+
   useEffect(() => {
     if (currentOrganization?.primaryColor) {
       document.documentElement.style.setProperty('--gold-500', currentOrganization.primaryColor);

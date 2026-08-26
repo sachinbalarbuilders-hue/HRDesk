@@ -27,7 +27,8 @@ class AppDrawer extends StatelessWidget {
     final drawerBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
     final borderCol = isDark ? Colors.white10 : const Color(0xFFE2E8F0);
 
     return Drawer(
@@ -48,7 +49,8 @@ class AppDrawer extends StatelessWidget {
                     employeeId: user?.employeeId,
                     name: user?.fullName ?? user?.username ?? 'Employee',
                     radius: 26,
-                    backgroundColor: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                    backgroundColor:
+                        const Color(0xFF0D9488).withValues(alpha: 0.25),
                     textColor: const Color(0xFF0D9488),
                   ),
                   const SizedBox(width: 14),
@@ -69,13 +71,17 @@ class AppDrawer extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text(
                           user?.role ?? 'Employee',
-                          style: const TextStyle(color: Color(0xFF0D9488), fontSize: 12, fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                              color: Color(0xFF0D9488),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700),
                         ),
                         if (user?.employeeCode != null) ...[
                           const SizedBox(height: 2),
                           Text(
                             user!.employeeCode!,
-                            style: TextStyle(color: textSecondary, fontSize: 11),
+                            style:
+                                TextStyle(color: textSecondary, fontSize: 11),
                           ),
                         ],
                       ],
@@ -91,7 +97,8 @@ class AppDrawer extends StatelessWidget {
               decoration: BoxDecoration(
                 color: cardBg,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF0D9488).withValues(alpha: 0.3)),
+                border: Border.all(
+                    color: const Color(0xFF0D9488).withValues(alpha: 0.3)),
               ),
               child: Material(
                 color: Colors.transparent,
@@ -99,10 +106,13 @@ class AppDrawer extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   onTap: () {
                     Navigator.pop(context);
-                    WorkspaceSwitcherSheet.show(context, onSelectionChanged: () {
+                    WorkspaceSwitcherSheet.show(context,
+                        onSelectionChanged: () {
                       context.read<PunchProvider>().fetchTodayStatus();
                       final bp = context.read<BranchProvider>();
-                      context.read<AttendanceProvider>().fetchTeamMatrix(branchId: bp.selectedBranch?.id);
+                      context
+                          .read<AttendanceProvider>()
+                          .fetchTeamMatrix(branchId: bp.selectedBranch?.id);
                     });
                   },
                   child: Padding(
@@ -113,10 +123,12 @@ class AppDrawer extends StatelessWidget {
                           width: 42,
                           height: 42,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0D9488).withValues(alpha: 0.15),
+                            color:
+                                const Color(0xFF0D9488).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.business, color: Color(0xFF0D9488), size: 22),
+                          child: const Icon(Icons.business,
+                              color: Color(0xFF0D9488), size: 22),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -148,17 +160,24 @@ class AppDrawer extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0D9488).withValues(alpha: 0.15),
+                            color:
+                                const Color(0xFF0D9488).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('Switch', style: TextStyle(color: Color(0xFF0D9488), fontSize: 11, fontWeight: FontWeight.bold)),
+                              Text('Switch',
+                                  style: TextStyle(
+                                      color: Color(0xFF0D9488),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold)),
                               SizedBox(width: 3),
-                              Icon(Icons.swap_horiz, color: Color(0xFF0D9488), size: 14),
+                              Icon(Icons.swap_horiz,
+                                  color: Color(0xFF0D9488), size: 14),
                             ],
                           ),
                         ),
@@ -221,7 +240,10 @@ class AppDrawer extends StatelessWidget {
                     textPrimary: textPrimary,
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const RegularizationScreen()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const RegularizationScreen()));
                     },
                   ),
                   _buildNavTile(
@@ -231,7 +253,10 @@ class AppDrawer extends StatelessWidget {
                     textPrimary: textPrimary,
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const DirectoryScreen()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const DirectoryScreen()));
                     },
                   ),
                   _buildNavTile(
@@ -241,7 +266,10 @@ class AppDrawer extends StatelessWidget {
                     textPrimary: textPrimary,
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerScreen()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const QrScannerScreen()));
                     },
                   ),
                   _buildNavTile(
@@ -251,7 +279,10 @@ class AppDrawer extends StatelessWidget {
                     textPrimary: textPrimary,
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const HolidaysScreen()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const HolidaysScreen()));
                     },
                   ),
                   _buildNavTile(
@@ -275,34 +306,51 @@ class AppDrawer extends StatelessWidget {
                 border: Border(top: BorderSide(color: borderCol)),
               ),
               child: ListTile(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                tileColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFFEE2E2).withValues(alpha: 0.5),
-                leading: const Icon(Icons.logout, color: Color(0xFFEF4444), size: 20),
-                title: const Text('Log Out', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                tileColor: isDark
+                    ? const Color(0xFF1E293B)
+                    : const Color(0xFFFEE2E2).withValues(alpha: 0.5),
+                leading: const Icon(Icons.logout,
+                    color: Color(0xFFEF4444), size: 20),
+                title: const Text('Log Out',
+                    style: TextStyle(
+                        color: Color(0xFFEF4444),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14)),
                 onTap: () async {
-                  Navigator.pop(context);
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
                       backgroundColor: cardBg,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      title: Text('Log Out', style: TextStyle(color: textPrimary)),
-                      content: Text('Are you sure you want to log out of HRDesk?', style: TextStyle(color: textSecondary)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      title:
+                          Text('Log Out', style: TextStyle(color: textPrimary)),
+                      content: Text(
+                          'Are you sure you want to log out of HRDesk?',
+                          style: TextStyle(color: textSecondary)),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
-                          child: Text('Cancel', style: TextStyle(color: textSecondary)),
+                          child: Text('Cancel',
+                              style: TextStyle(color: textSecondary)),
                         ),
                         ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFDC2626)),
                           onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Log Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          child: const Text('Log Out',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
                   );
 
                   if (confirmed == true && context.mounted) {
+                    Navigator.pop(context); // close drawer
                     await auth.logout();
                     if (context.mounted) {
                       Navigator.of(context).pushAndRemoveUntil(
@@ -320,14 +368,20 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildNavTile(BuildContext context, {required IconData icon, required String title, required Color textPrimary, required VoidCallback onTap}) {
+  Widget _buildNavTile(BuildContext context,
+      {required IconData icon,
+      required String title,
+      required Color textPrimary,
+      required VoidCallback onTap}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         dense: true,
         leading: Icon(icon, color: const Color(0xFF0D9488), size: 20),
-        title: Text(title, style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+        title: Text(title,
+            style: TextStyle(
+                color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 16),
         onTap: onTap,
       ),

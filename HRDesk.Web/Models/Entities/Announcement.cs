@@ -39,4 +39,12 @@ public sealed class Announcement : IMustHaveTenant
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+    /// <summary>Relative path to uploaded image file (stored in App_Data/AnnouncementMedia/)</summary>
+    [Column("image_path")]
+    public string? ImagePath { get; set; }
+
+    /// <summary>Relative path to uploaded video file (stored in App_Data/AnnouncementMedia/)</summary>
+    [Column("video_path")]
+    public string? VideoPath { get; set; }
 }

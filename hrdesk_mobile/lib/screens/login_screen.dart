@@ -59,7 +59,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: accent,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.business, color: Colors.white, size: 32),
+                  child:
+                      const Icon(Icons.business, color: Colors.white, size: 32),
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -103,16 +104,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFFEF2F2),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFFECACA)),
+                              border:
+                                  Border.all(color: const Color(0xFFFECACA)),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 16),
+                                const Icon(Icons.error_outline,
+                                    color: Color(0xFFDC2626), size: 16),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     auth.error!,
-                                    style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13),
+                                    style: const TextStyle(
+                                        color: Color(0xFFDC2626), fontSize: 13),
                                   ),
                                 ),
                               ],
@@ -124,11 +128,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Username / Email
                         TextFormField(
                           controller: _usernameCtrl,
-                          decoration: _inputDecoration('Username or Email', Icons.person_outline),
+                          decoration: _inputDecoration(
+                              'Username or Email', Icons.person_outline),
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty) ? 'Username is required' : null,
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? 'Username is required'
+                              : null,
                         ),
                         const SizedBox(height: 16),
 
@@ -142,16 +148,20 @@ class _LoginScreenState extends State<LoginScreen> {
                           ).copyWith(
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
                                 color: const Color(0xFF94A3B8),
                               ),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword),
                             ),
                           ),
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _submit(),
-                          validator: (v) =>
-                              (v == null || v.isEmpty) ? 'Password is required' : null,
+                          validator: (v) => (v == null || v.isEmpty)
+                              ? 'Password is required'
+                              : null,
                         ),
                         const SizedBox(height: 24),
 
@@ -179,7 +189,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   )
                                 : const Text(
                                     'Sign In',
-                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600),
                                   ),
                           ),
                         ),
@@ -214,6 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
       filled: true,
       fillColor: const Color(0xFFF8FAFC),
       labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+      hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
     );
   }
 }

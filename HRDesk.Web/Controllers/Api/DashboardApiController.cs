@@ -65,6 +65,21 @@ public class DashboardController : ControllerBase
                                  a.RecordDate.Month == currentMonth &&
                                  a.Status == "Present");
 
+            // Leave balances for ESS
+            var leaveAllocations = await _db.LeaveAllocations
+                .AsNoTracking()
+                .Include(la => la.LeaveType)
+                .Where(la => la.EmployeeId == currentEmpId.Value && la.Year == currentYear)
+                .Select(la => new
+                {
+                    leaveType = la.LeaveType != null ? la.LeaveType.Name : "Leave",
+                    code = la.LeaveType != null ? la.LeaveType.Code : "",
+                    allocated = la.TotalAllocated + la.OpeningBalance,
+                    used = la.UsedCount,
+                    balance = la.TotalAllocated + la.OpeningBalance - la.UsedCount
+                })
+                .ToListAsync();
+
             return Ok(new
             {
                 isPersonal = true,
@@ -88,7 +103,8 @@ public class DashboardController : ControllerBase
                 {
                     monthPresentDays = monthPresentCount,
                     pendingLeaves = pendingLeavesCount
-                }
+                },
+                leaveBalances = leaveAllocations
             });
         }
 
@@ -177,6 +193,69 @@ public class DashboardController : ControllerBase
             .Select(g => new { name = g.Key, count = g.Count() })
             .ToListAsync();
 
+        // Pending Regularizations
+        var regQuery = _db.AttendanceRegularizations.AsNoTracking()
+            .Where(r => r.Status == "Pending");
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            regQuery = regQuery.Where(r => r.Employee != null && r.Employee.BranchId == activeBranch.Value);
+        }
+        var pendingRegularizations = await regQuery
+            .Include(r => r.Employee)
+            .OrderByDescending(r => r.RequestDate)
+            .Take(5)
+            .Select(r => new
+            {
+                id = r.Id,
+                employeeId = r.EmployeeId,
+                employeeName = r.Employee != null ? r.Employee.EmployeeName : "Employee",
+                requestDate = r.RequestDate.ToString("yyyy-MM-dd"),
+                reason = r.Reason,
+                type = r.RequestType ?? "Attendance"
+            })
+            .ToListAsync();
+
+        // Pending Loans
+        var loanQuery = _db.EmployeeLoans.AsNoTracking()
+            .Where(l => l.Status == "Pending" || l.Status == "Applied");
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            loanQuery = loanQuery.Where(l => l.BranchId == activeBranch.Value);
+        }
+        var pendingLoans = await loanQuery
+            .Include(l => l.Employee)
+            .Include(l => l.LoanType)
+            .OrderByDescending(l => l.ApplicationDate)
+            .Take(5)
+            .Select(l => new
+            {
+                id = l.Id,
+                employeeId = l.EmployeeId,
+                employeeName = l.Employee != null ? l.Employee.EmployeeName : "Employee",
+                loanType = l.LoanType != null ? l.LoanType.TypeName : "Loan",
+                amount = l.LoanAmount,
+                appliedDate = l.ApplicationDate.ToString("yyyy-MM-dd"),
+                status = l.Status
+            })
+            .ToListAsync();
+
+        // Who's on leave today
+        var onLeaveToday = await leaveQuery
+            .Include(la => la.Employee)
+            .Include(la => la.LeaveType)
+            .Where(la => la.Status == "Approved" && la.StartDate <= today && la.EndDate >= today)
+            .Take(10)
+            .Select(la => new
+            {
+                employeeId = la.EmployeeId,
+                employeeName = la.Employee != null ? la.Employee.EmployeeName : "Employee",
+                leaveType = la.LeaveType != null ? la.LeaveType.Name : "Leave",
+                startDate = la.StartDate.ToString("yyyy-MM-dd"),
+                endDate = la.EndDate.ToString("yyyy-MM-dd"),
+                days = la.TotalDays
+            })
+            .ToListAsync();
+
         return Ok(new
         {
             isPersonal = false,
@@ -187,10 +266,15 @@ public class DashboardController : ControllerBase
                 absentToday = absentCount,
                 onLeaveToday = onLeaveCount,
                 lateToday = lateCount,
-                pendingApprovals = pendingLeaveApprovals.Count
+                pendingApprovals = pendingLeaveApprovals.Count,
+                pendingRegularizations = pendingRegularizations.Count,
+                pendingLoans = pendingLoans.Count
             },
             recentPunches,
             pendingApprovals = pendingLeaveApprovals,
+            pendingRegularizations,
+            pendingLoans,
+            onLeaveToday,
             departmentCounts
         });
     }
@@ -353,7 +437,9 @@ public class DashboardController : ControllerBase
                 category = a.Category,
                 date = a.StartDate.ToString("yyyy-MM-dd"),
                 priority = a.Priority,
-                isPinned = a.IsPinned
+                isPinned = a.IsPinned,
+                imagePath = a.ImagePath != null ? $"/api/announcements/media/{a.ImagePath}" : null,
+                videoPath = a.VideoPath != null ? $"/api/announcements/media/{a.VideoPath}" : null
             })
             .ToListAsync();
 

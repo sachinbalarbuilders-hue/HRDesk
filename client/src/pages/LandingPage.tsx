@@ -211,7 +211,7 @@ export const LandingPage: React.FC = () => {
             ) : (
               <>
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate('/auth/sign-in')}
                   className="px-3.5 py-1.5 text-xs font-semibold text-[var(--ink)] hover:text-[var(--gold-600)] transition-colors cursor-pointer"
                 >
                   Sign In
@@ -1180,7 +1180,7 @@ export const LandingPage: React.FC = () => {
             <a href="#modules" className="hover:text-[var(--ink)]">Core Modules</a>
             <a href="#calculator" className="hover:text-[var(--ink)]">ROI Calculator</a>
             <a href="#pricing" className="hover:text-[var(--ink)]">Pricing</a>
-            <Link to="/login" className="hover:text-[var(--ink)]">Sign In</Link>
+            <Link to="/auth/sign-in" className="hover:text-[var(--ink)]">Sign In</Link>
             <Link to="/register" className="hover:text-[var(--ink)] font-semibold text-[var(--gold-600)]">Register Workspace</Link>
           </div>
         </div>

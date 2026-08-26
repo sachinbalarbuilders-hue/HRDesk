@@ -23,6 +23,10 @@ import {
   Send,
   PartyPopper,
   Calendar,
+  ClipboardList,
+  Banknote,
+  UserPlus,
+  Building2,
 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -34,14 +38,34 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
 import { Modal } from '../components/ui/Modal';
 
+// ─── Tab Button ───────────────────────────────────────────────
+const TabButton: React.FC<{ active: boolean; label: string; count?: number; onClick: () => void }> = ({ active, label, count, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`px-3 py-1.5 text-xs font-medium rounded-[var(--radius-md)] cursor-pointer transition-all ${
+      active
+        ? 'bg-[var(--accent)] text-white'
+        : 'text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)]'
+    }`}
+  >
+    {label}
+    {typeof count === 'number' && count > 0 && (
+      <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+        active ? 'bg-white/20' : 'bg-[var(--danger-light)] text-[var(--danger)]'
+      }`}>
+        {count}
+      </span>
+    )}
+  </button>
+);
+
 export const Dashboard: React.FC = () => {
   const { user, isAdmin } = useAuth();
   const { currentOrganization, currentBranch } = useOrganization();
   const [stats, setStats] = useState<any>(null);
   const [overview, setOverview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [punching, setPunching] = useState(false);
-  const [punchMessage, setPunchMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'leaves' | 'regularizations' | 'loans'>('leaves');
 
   // Wish Modal State
   const [wishModalOpen, setWishModalOpen] = useState(false);
@@ -53,20 +77,11 @@ export const Dashboard: React.FC = () => {
     try {
       setLoading(true);
       const [summaryRes, overviewRes] = await Promise.allSettled([
-        apiClient.get('/dashboard/summary', {
-          params: { branchId: currentBranch?.id || undefined },
-        }),
-        apiClient.get('/dashboard/overview', {
-          params: { branchId: currentBranch?.id || undefined },
-        }),
+        apiClient.get('/dashboard/summary', { params: { branchId: currentBranch?.id || undefined } }),
+        apiClient.get('/dashboard/overview', { params: { branchId: currentBranch?.id || undefined } }),
       ]);
-
-      if (summaryRes.status === 'fulfilled') {
-        setStats(summaryRes.value.data);
-      }
-      if (overviewRes.status === 'fulfilled') {
-        setOverview(overviewRes.value.data);
-      }
+      if (summaryRes.status === 'fulfilled') setStats(summaryRes.value.data);
+      if (overviewRes.status === 'fulfilled') setOverview(overviewRes.value.data);
     } catch (err) {
       console.error('Failed to load dashboard data', err);
     } finally {
@@ -74,9 +89,7 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [currentOrganization?.id, currentBranch?.id]);
+  useEffect(() => { fetchDashboardData(); }, [currentOrganization?.id, currentBranch?.id]);
 
   useEffect(() => {
     const handleReload = () => fetchDashboardData();
@@ -88,58 +101,13 @@ export const Dashboard: React.FC = () => {
     };
   }, [currentOrganization?.id, currentBranch?.id]);
 
-  const handleWebPunch = async (punchType: string) => {
-    try {
-      setPunching(true);
-      setPunchMessage(null);
-
-      let coords: { latitude?: number; longitude?: number } = {};
-      let locationFailed = false;
-      if (navigator.geolocation) {
-        try {
-          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: false,
-              timeout: 15000,
-              maximumAge: 0,
-            });
-          });
-          coords = {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          };
-        } catch {
-          locationFailed = true;
-        }
-      }
-
-      if (locationFailed) {
-        setPunchMessage('Could not get your location. Please ensure location access is allowed for this site and try again.');
-        return;
-      }
-
-      const res = await apiClient.post('/attendance/punch', {
-        employeeId: user?.employeeId,
-        punchType,
-        source: 'Web',
-        ...coords,
-      });
-      setPunchMessage(res.data.message || 'Punch logged successfully.');
-      fetchDashboardData();
-    } catch (err: any) {
-      setPunchMessage(err.response?.data?.message || 'Failed to record punch.');
-    } finally {
-      setPunching(false);
-    }
+  // ─── Handlers ───────────────────────────────────────────────
+  const handleLeaveDecision = async (id: number, status: string) => {
+    try { await apiClient.put(`/leaves/${id}/status`, { status }); fetchDashboardData(); } catch {}
   };
 
-  const handleLeaveDecision = async (id: number, status: string) => {
-    try {
-      await apiClient.put(`/leaves/${id}/status`, { status });
-      fetchDashboardData();
-    } catch (err) {
-      console.error('Failed to process leave', err);
-    }
+  const handleRegularizationDecision = async (id: number, status: string) => {
+    try { await apiClient.put(`/regularizations/${id}/status`, { status }); fetchDashboardData(); } catch {}
   };
 
   const openWishModal = (celebrant: any) => {
@@ -147,8 +115,8 @@ export const Dashboard: React.FC = () => {
     const isBirthday = celebrant.type?.toLowerCase().includes('birthday');
     setWishMessage(
       isBirthday
-        ? `Happy Birthday, ${celebrant.employeeName}! 🎂 Wishing you a wonderful day filled with joy and success!`
-        : `Congratulations on your ${celebrant.years || 1}-year work anniversary at ${currentOrganization?.name || 'our company'}, ${celebrant.employeeName}! 🎉 Wishing you continued success!`
+        ? `Happy Birthday, ${celebrant.employeeName}! 🎂 Wishing you a wonderful day!`
+        : `Congratulations on your ${celebrant.years || 1}-year work anniversary, ${celebrant.employeeName}! 🎉`
     );
     setWishSent(false);
     setWishModalOpen(true);
@@ -156,27 +124,139 @@ export const Dashboard: React.FC = () => {
 
   const sendWish = () => {
     setWishSent(true);
-    setTimeout(() => {
-      setWishModalOpen(false);
-      setWishSent(false);
-    }, 1600);
+    setTimeout(() => { setWishModalOpen(false); setWishSent(false); }, 1600);
   };
 
   if (loading) return <PageSkeleton />;
 
   const isPersonal = stats?.isPersonal;
   const metrics = stats?.metrics || {};
+
+  // ─── EMPLOYEE SELF-SERVICE VIEW ─────────────────────────────
+  if (isPersonal) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${user?.fullName?.split(' ')[0] || 'there'}`}
+          description={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+        />
+
+        {/* My Today + Leave Balance */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <div className="flex items-center justify-between mb-4">
+              <CardTitle>My Today</CardTitle>
+              <Badge variant={stats?.todayAttendance?.status === 'Present' ? 'success' : stats?.todayAttendance?.status === 'Not Checked In' ? 'neutral' : 'warning'}>
+                {stats?.todayAttendance?.status || 'Not Checked In'}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-[11px] text-[var(--text-muted)] uppercase">Punch In</p>
+                <p className="text-lg font-bold font-data text-[var(--text-primary)]">{stats?.todayAttendance?.inTime || '--:--'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-[var(--text-muted)] uppercase">Punch Out</p>
+                <p className="text-lg font-bold font-data text-[var(--text-primary)]">{stats?.todayAttendance?.outTime || '--:--'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] text-[var(--text-muted)] uppercase">Shift</p>
+                <p className="text-sm font-medium text-[var(--text-primary)]">{stats?.todayAttendance?.shiftName || 'General'}</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <CardTitle>Leave Balance</CardTitle>
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              {(stats?.leaveBalances || []).slice(0, 4).map((lb: any, idx: number) => (
+                <div key={idx} className="p-3 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] text-center">
+                  <p className="text-lg font-bold font-data text-[var(--text-primary)]">{lb.balance}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{lb.leaveType}</p>
+                </div>
+              ))}
+              {(!stats?.leaveBalances || stats.leaveBalances.length === 0) && (
+                <p className="col-span-2 text-xs text-[var(--text-muted)] text-center py-4">No allocations yet</p>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Stats + Notices */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
+            <StatCard label="Present Days" value={metrics.monthPresentDays || 0} icon={<UserCheck size={20} />} variant="success" subtitle="This month" />
+            <StatCard label="Pending Leaves" value={metrics.pendingLeaves || 0} icon={<FileText size={20} />} variant="warning" />
+          </div>
+
+          {overview?.announcements?.length > 0 && (
+            <Card padding="none">
+              <div className="px-5 py-3.5 border-b border-[var(--border)]">
+                <CardTitle>Notices</CardTitle>
+              </div>
+              <div className="divide-y divide-[var(--border)]">
+                {overview.announcements.slice(0, 3).map((a: any, idx: number) => (
+                  <div key={idx} className="px-5 py-3">
+                    <p className="text-xs font-medium text-[var(--text-primary)]">{a.title}</p>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-1">{a.message}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </div>
+
+        {/* Quick Links */}
+        <Card>
+          <CardTitle>Quick Links</CardTitle>
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { label: 'Apply Leave', href: '/leaves', icon: <FileText size={14} /> },
+              { label: 'Attendance', href: '/attendance', icon: <Clock size={14} /> },
+              { label: 'Payslip', href: '/payroll', icon: <CreditCard size={14} /> },
+              { label: 'Regularization', href: '/regularizations', icon: <ClipboardList size={14} /> },
+            ].map((link) => (
+              <Link key={link.href} to={link.href} className="flex items-center gap-2 px-3 py-2.5 rounded-[var(--radius-md)] text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]">
+                <span className="text-[var(--accent)]">{link.icon}</span>
+                <span className="font-medium">{link.label}</span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      </PageContainer>
+    );
+  }
+
+  // ─── ADMIN / MANAGER VIEW ──────────────────────────────────
   const totalStaff = metrics.totalEmployees || 0;
   const presentCount = metrics.presentToday || 0;
   const leaveCount = metrics.onLeaveToday || 0;
   const absentCount = Math.max(0, totalStaff - (presentCount + leaveCount));
   const attendanceRate = totalStaff > 0 ? Math.round((presentCount / totalStaff) * 100) : 0;
 
+  const pendingLeaves = stats?.pendingApprovals || [];
+  const pendingRegs = stats?.pendingRegularizations || [];
+  const pendingLoansData = stats?.pendingLoans || [];
+  const onLeaveTodayList = stats?.onLeaveToday || [];
+  const departmentCounts: { name: string; count: number }[] = stats?.departmentCounts || [];
+
   const announcements = overview?.announcements || [];
   const celebrationsList = [
     ...(overview?.celebrations?.birthdays || []),
     ...(overview?.celebrations?.anniversaries || []),
   ];
+  const newJoiners = overview?.celebrations?.newJoiners || [];
+
+  // Department chart: compute max for bar width
+  const maxDeptCount = Math.max(1, ...departmentCounts.map((d) => d.count));
+
+  // Pending requests summary
+  const pendingRequestItems = [
+    { label: 'Leave Requests', count: pendingLeaves.length, href: '/leaves', icon: <CalendarOff size={14} /> },
+    { label: 'Attendance Corrections', count: pendingRegs.length, href: '/regularizations', icon: <ClipboardList size={14} /> },
+    { label: 'Loan / Advance Requests', count: pendingLoansData.length, href: '/loans', icon: <Banknote size={14} /> },
+  ];
+  const totalPendingCount = pendingRequestItems.reduce((sum, r) => sum + r.count, 0);
 
   return (
     <PageContainer>
@@ -186,378 +266,420 @@ export const Dashboard: React.FC = () => {
         description={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
       />
 
-      {/* 📢 Announcements & Notices Banner */}
-      {announcements.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-          {announcements.map((item: any, idx: number) => {
-            const isHoliday = item.category?.toLowerCase().includes('holiday');
-            return (
-              <div
-                key={idx}
-                className={`relative overflow-hidden rounded-[var(--radius-lg)] p-4 border transition-all ${
-                  isHoliday
-                    ? 'bg-gradient-to-r from-emerald-950/40 via-emerald-900/20 to-transparent border-emerald-500/30'
-                    : 'bg-gradient-to-r from-sky-950/40 via-sky-900/20 to-transparent border-sky-500/30'
-                }`}
-              >
-                <div className="flex items-start gap-3.5">
-                  <div
-                    className={`p-2.5 rounded-[var(--radius-md)] flex-shrink-0 ${
-                      isHoliday ? 'bg-emerald-500/15 text-emerald-400' : 'bg-sky-500/15 text-sky-400'
-                    }`}
-                  >
-                    {isHoliday ? <Calendar size={18} /> : <Megaphone size={18} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span
-                        className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full ${
-                          isHoliday ? 'bg-emerald-500/20 text-emerald-300' : 'bg-sky-500/20 text-sky-300'
-                        }`}
-                      >
-                        {item.category || 'Announcement'}
-                      </span>
-                      <span className="text-[11px] text-[var(--text-muted)] font-data">{item.date}</span>
-                    </div>
-                    <h4 className="text-sm font-semibold text-[var(--text-primary)] truncate">{item.title}</h4>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5 line-clamp-2 leading-relaxed">{item.message}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* ── Row 1: KPI Stats ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <StatCard label="Total Employees" value={totalStaff} icon={<Users size={20} />} variant="default" subtitle="Active headcount" />
+        <StatCard label="Present Today" value={presentCount} icon={<UserCheck size={20} />} variant="success" trend={{ value: attendanceRate, label: 'rate' }} />
+        <StatCard label="On Leave" value={leaveCount} icon={<CalendarOff size={20} />} variant="warning" />
+        <StatCard label="Absent" value={absentCount} icon={<UserX size={20} />} variant="danger" />
+      </div>
 
-      {/* KPI Stats Grid */}
-      {!isPersonal ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            label="Total Employees"
-            value={totalStaff}
-            icon={<Users size={20} />}
-            variant="default"
-            subtitle="Active headcount"
-          />
-          <StatCard
-            label="Present Today"
-            value={presentCount}
-            icon={<UserCheck size={20} />}
-            variant="success"
-            trend={{ value: attendanceRate, label: 'rate' }}
-          />
-          <StatCard
-            label="On Leave"
-            value={leaveCount}
-            icon={<CalendarOff size={20} />}
-            variant="warning"
-          />
-          <StatCard
-            label="Absent"
-            value={absentCount}
-            icon={<UserX size={20} />}
-            variant="danger"
-          />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard
-            label="Payable Days"
-            value={stats?.myAttendance?.payableDays || 0}
-            icon={<TrendingUp size={20} />}
-            variant="default"
-            subtitle="This month"
-          />
-          <StatCard
-            label="Present Days"
-            value={stats?.myAttendance?.presentDays || 0}
-            icon={<UserCheck size={20} />}
-            variant="success"
-          />
-          <StatCard
-            label="Absences (LOP)"
-            value={stats?.myAttendance?.absentDays || 0}
-            icon={<UserX size={20} />}
-            variant="danger"
-          />
-        </div>
-      )}
-
-      {/* Main Grid: 2/3 + 1/3 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Today's Activity & Celebrations */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* 🎉 Celebrations & Wishes Section */}
-          <Card padding="none" className="overflow-hidden border-amber-500/20">
-            <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-amber-950/30 via-orange-950/20 to-transparent border-b border-[var(--border)]">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-400">
-                  <PartyPopper size={18} />
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-semibold text-amber-200">Celebrations & Milestones This Month</CardTitle>
-                  <p className="text-[11px] text-[var(--text-muted)]">Birthdays & Work Anniversaries</p>
-                </div>
-              </div>
-              <Badge variant="warning" className="bg-amber-500/20 text-amber-300 border-amber-500/30">
-                {celebrationsList.length} Upcoming
-              </Badge>
+      {/* ── Row 2: Today's Attendance + Pending Requests ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Today's Attendance — 3/5 */}
+        <Card padding="none" className="lg:col-span-3">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+            <div>
+              <CardTitle>Today's Attendance</CardTitle>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Real-time punch logs</p>
             </div>
+            <Link to="/attendance" className="text-xs font-medium text-[var(--accent)] hover:underline flex items-center gap-1">
+              View all <ArrowRight size={12} />
+            </Link>
+          </div>
+          {stats?.recentPunches?.length > 0 ? (
+            <div className="divide-y divide-[var(--border)]">
+              {stats.recentPunches.slice(0, 8).map((punch: any, idx: number) => (
+                <div key={idx} className="flex items-center gap-3 px-5 py-2.5">
+                  <Avatar name={punch.employeeName || 'E'} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-[var(--text-primary)] truncate">{punch.employeeName}</p>
+                    <p className="text-[11px] text-[var(--text-muted)]">{punch.department}</p>
+                  </div>
+                  <p className="text-[11px] font-data text-[var(--text-secondary)]">{punch.inTime} → {punch.outTime}</p>
+                  <Badge variant={punch.status === 'Present' ? 'success' : punch.isLate ? 'warning' : 'neutral'} dot>{punch.status}</Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="No punches yet" description="Activity will appear as employees clock in." icon={<Clock size={24} className="text-[var(--text-muted)]" />} />
+          )}
+        </Card>
 
-            {celebrationsList.length > 0 ? (
-              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {celebrationsList.map((item: any, idx: number) => {
-                  const isBday = item.type?.toLowerCase().includes('birthday');
-                  const isToday = item.isToday || item.day === new Date().getDate();
+        {/* Pending Requests — 2/5 */}
+        <Card className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <CardTitle>Pending Requests</CardTitle>
+            {totalPendingCount > 0 && <Badge variant="danger">{totalPendingCount}</Badge>}
+          </div>
+          <div className="space-y-2">
+            {pendingRequestItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className="flex items-center justify-between p-3 rounded-[var(--radius-md)] border border-[var(--border)] hover:bg-[var(--surface-secondary)] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-[var(--accent)]">{item.icon}</span>
+                  <span className="text-xs font-medium text-[var(--text-primary)]">{item.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {item.count > 0 ? (
+                    <Badge variant="danger">{item.count}</Badge>
+                  ) : (
+                    <span className="text-[11px] text-[var(--text-muted)]">0</span>
+                  )}
+                  <ArrowRight size={12} className="text-[var(--text-muted)]" />
+                </div>
+              </Link>
+            ))}
+          </div>
 
+          {/* On Leave Today mini-list */}
+          {onLeaveTodayList.length > 0 && (
+            <div className="mt-5 pt-4 border-t border-[var(--border)]">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[var(--text-primary)]">On Leave Today</p>
+                <Badge variant="warning">{onLeaveTodayList.length}</Badge>
+              </div>
+              <div className="space-y-2">
+                {onLeaveTodayList.slice(0, 4).map((emp: any, idx: number) => (
+                  <div key={idx} className="flex items-center gap-2.5">
+                    <Avatar name={emp.employeeName || 'E'} size="xs" />
+                    <span className="text-[11px] text-[var(--text-primary)] truncate flex-1">{emp.employeeName}</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">{emp.leaveType}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* ── Row 3: Department Distribution + New Joiners ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Department Distribution — 3/5 */}
+        <Card className="lg:col-span-3">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Building2 size={16} className="text-[var(--accent)]" />
+              <CardTitle>Department Distribution</CardTitle>
+            </div>
+            <span className="text-[11px] text-[var(--text-muted)]">{totalStaff} total</span>
+          </div>
+          {departmentCounts.length > 0 ? (
+            <div className="flex items-center gap-8">
+              {/* Donut Chart */}
+              <div className="relative flex-shrink-0">
+                <svg width="160" height="160" viewBox="0 0 160 160">
+                  {(() => {
+                    const colors = ['#14b8a6', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+                    let accumulated = 0;
+                    const radius = 60;
+                    const cx = 80, cy = 80;
+                    const circumference = 2 * Math.PI * radius;
+                    return departmentCounts.map((dept, idx) => {
+                      const pct = totalStaff > 0 ? dept.count / totalStaff : 0;
+                      const dashLength = pct * circumference;
+                      const dashOffset = -accumulated * circumference;
+                      accumulated += pct;
+                      return (
+                        <circle
+                          key={idx}
+                          cx={cx}
+                          cy={cy}
+                          r={radius}
+                          fill="none"
+                          stroke={colors[idx % colors.length]}
+                          strokeWidth="24"
+                          strokeDasharray={`${dashLength} ${circumference - dashLength}`}
+                          strokeDashoffset={dashOffset}
+                          transform={`rotate(-90 ${cx} ${cy})`}
+                        />
+                      );
+                    });
+                  })()}
+                  <text x="80" y="76" textAnchor="middle" className="fill-[var(--text-primary)]" fontSize="20" fontWeight="700">{totalStaff}</text>
+                  <text x="80" y="94" textAnchor="middle" className="fill-[var(--text-muted)]" fontSize="11">employees</text>
+                </svg>
+              </div>
+
+              {/* Legend */}
+              <div className="flex-1 space-y-2.5">
+                {departmentCounts.map((dept, idx) => {
+                  const colors = ['#14b8a6', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+                  const pct = totalStaff > 0 ? Math.round((dept.count / totalStaff) * 100) : 0;
                   return (
-                    <div
-                      key={idx}
-                      className={`flex items-center justify-between p-3 rounded-[var(--radius-md)] border transition-all ${
-                        isToday
-                          ? 'bg-amber-500/10 border-amber-500/40 shadow-sm'
-                          : 'bg-[var(--surface-secondary)] border-[var(--border)] hover:border-[var(--border-hover)]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Avatar name={item.employeeName || 'E'} size="sm" />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{item.employeeName}</p>
-                            {isToday && (
-                              <span className="text-[9px] font-bold uppercase bg-amber-500 text-black px-1.5 py-0.2 rounded-full">
-                                TODAY
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] mt-0.5">
-                            {isBday ? (
-                              <>
-                                <Cake size={12} className="text-pink-400" />
-                                <span>Birthday on {item.dateStr || `${item.day}th`}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Award size={12} className="text-amber-400" />
-                                <span>{item.years || 1} Yrs Anniversary ({item.dateStr || `${item.day}th`})</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => openWishModal(item)}
-                        className="px-2.5 py-1 text-xs font-medium rounded-[var(--radius-md)] bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 flex items-center gap-1 cursor-pointer transition-all"
-                      >
-                        <Sparkles size={11} />
-                        <span>Wish</span>
-                      </button>
+                    <div key={idx} className="flex items-center gap-3">
+                      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: colors[idx % colors.length] }} />
+                      <span className="text-xs text-[var(--text-primary)] flex-1 truncate">{dept.name}</span>
+                      <span className="text-xs font-data font-semibold text-[var(--text-primary)]">{dept.count}</span>
+                      <span className="text-[10px] text-[var(--text-muted)] w-8 text-right">{pct}%</span>
                     </div>
                   );
                 })}
               </div>
-            ) : (
-              <div className="p-6 text-center">
-                <div className="inline-flex p-3 rounded-full bg-amber-500/10 text-amber-400 mb-2">
-                  <Cake size={24} />
-                </div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">No Celebrations This Month</p>
-                <p className="text-xs text-[var(--text-muted)] mt-1">No upcoming birthdays or work anniversaries in the active schedule.</p>
-              </div>
-            )}
-          </Card>
+            </div>
+          ) : (
+            <p className="text-xs text-[var(--text-muted)] text-center py-6">No department data available</p>
+          )}
+        </Card>
 
-          {/* Today's Activity */}
-          <Card padding="none">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
-              <div>
-                <CardTitle>Today's Attendance Activity</CardTitle>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Real-time biometric & mobile logs</p>
-              </div>
-              <Link to="/attendance" className="text-xs font-medium text-[var(--accent)] hover:underline flex items-center gap-1">
-                View all <ArrowRight size={12} />
+        {/* New Joiners — 2/5 */}
+        <Card padding="none" className="lg:col-span-2">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+            <div className="flex items-center gap-2">
+              <UserPlus size={16} className="text-[var(--accent)]" />
+              <CardTitle>New Joiners</CardTitle>
+            </div>
+            {newJoiners.length > 3 && (
+              <Link to="/employees" className="text-[11px] text-[var(--accent)] hover:underline flex items-center gap-0.5">
+                View all <ArrowRight size={10} />
               </Link>
-            </div>
-
-            {stats?.recentPunches?.length > 0 ? (
-              <div className="divide-y divide-[var(--border)]">
-                {stats.recentPunches.map((punch: any, idx: number) => (
-                  <div key={idx} className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--surface-hover)]">
-                    <Avatar name={punch.employeeName || 'E'} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[var(--text-primary)] truncate">{punch.employeeName}</p>
-                      <p className="text-xs text-[var(--text-muted)]">{punch.department || 'General'}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-data text-[var(--text-primary)]">
-                        {punch.inTime || '--:--'} → {punch.outTime || '--:--'}
-                      </p>
-                    </div>
-                    <Badge variant={punch.status === 'Present' ? 'success' : 'warning'} dot>
-                      {punch.status}
-                    </Badge>
+            )}
+          </div>
+          {newJoiners.length > 0 ? (
+            <div className="divide-y divide-[var(--border)]">
+              {newJoiners.slice(0, 4).map((nj: any, idx: number) => (
+                <div key={idx} className="flex items-center gap-3 px-5 py-3">
+                  <Avatar name={nj.employeeName || 'E'} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-[var(--text-primary)] truncate">{nj.employeeName}</p>
+                    <p className="text-[11px] text-[var(--text-muted)]">{nj.department}</p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                title="No punches recorded yet"
-                description="Activity logs will appear here as employees clock in."
-                icon={<Clock size={24} className="text-[var(--text-muted)]" />}
-              />
-            )}
-          </Card>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Web Punch Widget */}
-          <Card>
-            <CardTitle>Quick Punch</CardTitle>
-            <p className="text-xs text-[var(--text-secondary)] mt-1 mb-4">Record attendance from browser</p>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                disabled={punching}
-                onClick={() => handleWebPunch('In')}
-                className="btn-primary py-3 text-center text-sm font-semibold disabled:opacity-50 cursor-pointer"
-              >
-                Punch IN
-              </button>
-              <button
-                disabled={punching}
-                onClick={() => handleWebPunch('Out')}
-                className="btn-secondary py-3 text-center text-sm font-semibold disabled:opacity-50 cursor-pointer"
-              >
-                Punch OUT
-              </button>
-            </div>
-
-            {punchMessage && (
-              <p className="text-xs text-[var(--accent)] mt-3 text-center font-medium">{punchMessage}</p>
-            )}
-          </Card>
-
-          {/* Pending Approvals */}
-          {isAdmin && stats?.pendingApprovals?.length > 0 && (
-            <Card padding="none">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
-                <div className="flex items-center gap-2">
-                  <CardTitle>Pending Approvals</CardTitle>
-                  <Badge variant="danger">{stats.pendingApprovals.length}</Badge>
+                  <span className="text-[10px] text-[var(--text-muted)] font-data">{nj.dateStr}</span>
                 </div>
-                <Link to="/leaves" className="text-xs font-medium text-[var(--accent)] hover:underline">
-                  View all
-                </Link>
-              </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-5 py-8 text-center">
+              <p className="text-xs text-[var(--text-muted)]">No recent joiners</p>
+            </div>
+          )}
+        </Card>
+      </div>
 
-              <div className="divide-y divide-[var(--border)]">
-                {stats.pendingApprovals.slice(0, 5).map((leave: any) => (
+      {/* ── Row 4: Pending Actions (Tabbed — detailed) + Announcements ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Pending Actions Detailed — 3/5 */}
+        {(pendingLeaves.length > 0 || pendingRegs.length > 0 || pendingLoansData.length > 0) && (
+          <Card padding="none" className="lg:col-span-3">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+              <CardTitle>Pending Actions</CardTitle>
+              <div className="flex items-center gap-1">
+                <TabButton active={activeTab === 'leaves'} label="Leaves" count={pendingLeaves.length} onClick={() => setActiveTab('leaves')} />
+                <TabButton active={activeTab === 'regularizations'} label="Corrections" count={pendingRegs.length} onClick={() => setActiveTab('regularizations')} />
+                <TabButton active={activeTab === 'loans'} label="Loans" count={pendingLoansData.length} onClick={() => setActiveTab('loans')} />
+              </div>
+            </div>
+            <div className="divide-y divide-[var(--border)]">
+              {activeTab === 'leaves' && (
+                pendingLeaves.length > 0 ? pendingLeaves.map((leave: any) => (
                   <div key={leave.id} className="px-5 py-3 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <Avatar name={leave.employeeName || 'E'} size="xs" />
+                      <Avatar name={leave.employeeName || 'E'} size="sm" />
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-[var(--text-primary)] truncate">{leave.employeeName}</p>
-                        <p className="text-[11px] text-[var(--text-muted)]">{leave.leaveType} · {leave.days} day(s)</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">{leave.leaveType} · {leave.days}d · {leave.startDate}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button
-                        onClick={() => handleLeaveDecision(leave.id, 'Approved')}
-                        className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center hover:opacity-80 cursor-pointer"
-                      >
-                        <Check size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleLeaveDecision(leave.id, 'Rejected')}
-                        className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--danger-light)] text-[var(--danger)] flex items-center justify-center hover:opacity-80 cursor-pointer"
-                      >
-                        <X size={14} />
-                      </button>
+                      <button onClick={() => handleLeaveDecision(leave.id, 'Approved')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center hover:opacity-80 cursor-pointer"><Check size={14} /></button>
+                      <button onClick={() => handleLeaveDecision(leave.id, 'Rejected')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--danger-light)] text-[var(--danger)] flex items-center justify-center hover:opacity-80 cursor-pointer"><X size={14} /></button>
                     </div>
                   </div>
-                ))}
+                )) : <div className="px-5 py-8 text-center text-xs text-[var(--text-muted)]">No pending leave requests</div>
+              )}
+              {activeTab === 'regularizations' && (
+                pendingRegs.length > 0 ? pendingRegs.map((reg: any) => (
+                  <div key={reg.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar name={reg.employeeName || 'E'} size="sm" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-[var(--text-primary)] truncate">{reg.employeeName}</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">{reg.type} · {reg.requestDate}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button onClick={() => handleRegularizationDecision(reg.id, 'Approved')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center hover:opacity-80 cursor-pointer"><Check size={14} /></button>
+                      <button onClick={() => handleRegularizationDecision(reg.id, 'Rejected')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--danger-light)] text-[var(--danger)] flex items-center justify-center hover:opacity-80 cursor-pointer"><X size={14} /></button>
+                    </div>
+                  </div>
+                )) : <div className="px-5 py-8 text-center text-xs text-[var(--text-muted)]">No pending corrections</div>
+              )}
+              {activeTab === 'loans' && (
+                pendingLoansData.length > 0 ? pendingLoansData.map((loan: any) => (
+                  <div key={loan.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar name={loan.employeeName || 'E'} size="sm" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-[var(--text-primary)] truncate">{loan.employeeName}</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">{loan.loanType} · ₹{loan.amount?.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <Link to={`/loans/${loan.id}`} className="text-xs text-[var(--accent)] hover:underline font-medium">View</Link>
+                  </div>
+                )) : <div className="px-5 py-8 text-center text-xs text-[var(--text-muted)]">No pending loan requests</div>
+              )}
+            </div>
+          </Card>
+        )}
+
+        {/* Announcements + Celebrations — 2/5 */}
+        <div className={`space-y-6 ${(pendingLeaves.length > 0 || pendingRegs.length > 0 || pendingLoansData.length > 0) ? 'lg:col-span-2' : 'lg:col-span-5'}`}>
+          {/* Announcements */}
+          {announcements.length > 0 && (
+            <Card padding="none">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+                <CardTitle>Announcements</CardTitle>
+                <Link to="/announcements" className="text-[11px] text-[var(--accent)] hover:underline flex items-center gap-0.5">
+                  View all <ArrowRight size={10} />
+                </Link>
+              </div>
+              <div className="divide-y divide-[var(--border)]">
+                {announcements.slice(0, 3).map((item: any, idx: number) => {
+                  const isHoliday = item.category?.toLowerCase().includes('holiday');
+                  return (
+                    <div key={idx} className="flex items-start gap-3 px-5 py-3">
+                      {item.imagePath ? (
+                        <img src={item.imagePath} alt="" className="w-12 h-12 rounded-[var(--radius-md)] object-cover flex-shrink-0 border border-[var(--border)]" />
+                      ) : item.videoPath ? (
+                        <div className="w-12 h-12 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-center flex-shrink-0">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-[var(--accent)]"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        </div>
+                      ) : (
+                        <div className={`p-1.5 rounded-[var(--radius-md)] flex-shrink-0 mt-0.5 ${isHoliday ? 'bg-[var(--success-light)] text-[var(--success)]' : 'bg-[var(--info-light)] text-[var(--info)]'}`}>
+                          {isHoliday ? <Calendar size={12} /> : <Megaphone size={12} />}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-[var(--text-primary)] truncate">{item.title}</p>
+                        <p className="text-[11px] text-[var(--text-muted)] line-clamp-1 mt-0.5">{item.message}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </Card>
           )}
 
-          {/* Quick Links */}
-          <Card>
-            <CardTitle>Quick Links</CardTitle>
-            <div className="mt-3 space-y-2">
-              {[
-                { label: 'Monthly Payroll', href: '/payroll', icon: <CreditCard size={15} /> },
-                { label: 'Leave Applications', href: '/leaves', icon: <FileText size={15} /> },
-                { label: 'Regularizations', href: '/regularizations', icon: <AlertCircle size={15} /> },
-              ].map((link) => (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] text-sm text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  <span className="text-[var(--accent)]">{link.icon}</span>
-                  <span className="font-medium">{link.label}</span>
-                  <ArrowRight size={13} className="ml-auto text-[var(--text-muted)]" />
-                </Link>
-              ))}
-            </div>
-          </Card>
         </div>
       </div>
 
-      {/* 🎉 Send Wish Modal */}
+      {/* ── Row 5: Celebrations Carousel ── */}
+      {celebrationsList.length > 0 && (
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <CardTitle>Team Celebrations</CardTitle>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{celebrationsList.length} upcoming events</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => { const el = document.getElementById('celebrations-scroll'); if (el) el.scrollBy({ left: -280, behavior: 'smooth' }); }}
+                className="w-7 h-7 rounded-[var(--radius-md)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface-secondary)] cursor-pointer text-[var(--text-muted)]"
+              >
+                <ArrowRight size={14} className="rotate-180" />
+              </button>
+              <button
+                onClick={() => { const el = document.getElementById('celebrations-scroll'); if (el) el.scrollBy({ left: 280, behavior: 'smooth' }); }}
+                className="w-7 h-7 rounded-[var(--radius-md)] border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface-secondary)] cursor-pointer text-[var(--text-muted)]"
+              >
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+
+          <div id="celebrations-scroll" className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            {celebrationsList.map((item: any, idx: number) => {
+              const isBday = item.type?.toLowerCase().includes('birthday');
+              const daysLeft = item.daysUntil ?? 0;
+              const birthdayMessages = [
+                "Wishing you a year filled with growth, success, and happiness in everything you do!",
+                "May this year bring groundbreaking achievements, limitless growth, and the fulfillment of your highest ambitions!",
+                "Here's to celebrating your unique impact today and unlocking even greater opportunities in the year to come!",
+                "May your special day be as wonderful as the energy you bring to the team every single day!",
+                "Cheers to another year of making a difference — your dedication inspires us all!",
+              ];
+              const anniversaryMessages = [
+                "Your momentum is inspiring; keep mastering your craft, breaking barriers, and setting new benchmarks!",
+                "Thank you for your dedication and hard work. Your contribution makes a real difference every day!",
+                "Congratulations on this milestone! Your commitment and passion drive our team forward!",
+                "Your journey with us has been remarkable. Here's to many more years of shared success!",
+                "Every year you grow stronger. Your resilience and work ethic are truly admirable!",
+              ];
+              const messages = isBday ? birthdayMessages : anniversaryMessages;
+              const message = messages[idx % messages.length];
+
+              return (
+                <div
+                  key={idx}
+                  className="flex-shrink-0 w-64 p-4 rounded-[var(--radius-lg)] bg-[var(--surface-secondary)] border border-[var(--border)] text-center flex flex-col"
+                >
+                  <div className="flex justify-center mb-3">
+                    <div className="relative">
+                      <Avatar name={item.employeeName || 'E'} size="lg" />
+                      <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center">
+                        {isBday ? <Cake size={12} className="text-[var(--danger)]" /> : <Award size={12} className="text-[var(--warning)]" />}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">{item.employeeName}</p>
+                  <Badge variant={isBday ? 'danger' : 'warning'} size="sm" className="mt-1.5 mx-auto">
+                    {isBday ? '🎂 Birthday' : `🎉 ${item.years || 1}yr Anniversary`}
+                  </Badge>
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-3 leading-relaxed italic line-clamp-3 flex-1">"{message}"</p>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border)]">
+                    <span className="text-[11px] text-[var(--text-muted)] font-data">{item.dateStr}</span>
+                    {item.isToday ? (
+                      <Badge variant="success" size="sm">Today!</Badge>
+                    ) : (
+                      <span className="text-[11px] font-medium text-[var(--accent)]">{daysLeft} days left</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => openWishModal(item)}
+                    className="mt-3 w-full py-1.5 text-xs font-medium rounded-[var(--radius-md)] border border-[var(--border)] hover:bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Sparkles size={12} /> Send Wish
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Wish Modal ── */}
       {wishModalOpen && selectedCelebrant && (
-        <Modal
-          isOpen={wishModalOpen}
-          onClose={() => setWishModalOpen(false)}
-          title={`Send Wishes to ${selectedCelebrant.employeeName}`}
-        >
+        <Modal isOpen={wishModalOpen} onClose={() => setWishModalOpen(false)} title={`Send Wishes to ${selectedCelebrant.employeeName}`}>
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 rounded-[var(--radius-md)] bg-amber-500/10 border border-amber-500/20">
+            <div className="flex items-center gap-3 p-3 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)]">
               <Avatar name={selectedCelebrant.employeeName || 'E'} size="md" />
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)]">{selectedCelebrant.employeeName}</p>
-                <p className="text-xs text-amber-300">
-                  {selectedCelebrant.type?.toLowerCase().includes('birthday')
-                    ? '🎂 Birthday Celebration'
-                    : `🎉 ${selectedCelebrant.years || 1}-Year Work Anniversary`}
+                <p className="text-xs text-[var(--text-secondary)]">
+                  {selectedCelebrant.type?.toLowerCase().includes('birthday') ? '🎂 Birthday' : `🎉 ${selectedCelebrant.years || 1}-Year Anniversary`}
                 </p>
               </div>
             </div>
-
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
-                Personalize Your Message
-              </label>
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Your Message</label>
               <textarea
                 value={wishMessage}
                 onChange={(e) => setWishMessage(e.target.value)}
-                rows={4}
+                rows={3}
                 className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] resize-none"
               />
             </div>
-
             {wishSent ? (
-              <div className="p-3 text-center rounded-[var(--radius-md)] bg-emerald-500/15 text-emerald-400 text-sm font-semibold flex items-center justify-center gap-2">
-                <Check size={16} /> Wish sent successfully!
+              <div className="p-3 text-center rounded-[var(--radius-md)] bg-[var(--success-light)] text-[var(--success)] text-sm font-semibold flex items-center justify-center gap-2">
+                <Check size={16} /> Wish sent!
               </div>
             ) : (
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setWishModalOpen(false)}
-                  className="btn-secondary px-4 py-2 text-sm cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={sendWish}
-                  className="btn-primary px-4 py-2 text-sm flex items-center gap-2 cursor-pointer"
-                >
-                  <Send size={14} /> Send Wish
-                </button>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setWishModalOpen(false)} className="btn-secondary px-4 py-2 text-sm cursor-pointer">Cancel</button>
+                <button type="button" onClick={sendWish} className="btn-primary px-4 py-2 text-sm flex items-center gap-2 cursor-pointer"><Send size={14} /> Send</button>
               </div>
             )}
           </div>

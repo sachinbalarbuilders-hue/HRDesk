@@ -145,7 +145,25 @@ END;";
         if (pageSize <= 0) pageSize = 50;
         if (pageSize > 200) pageSize = 200;
 
-        var items = await query
+        // Load prefix settings for employee code formatting
+        var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var prefixBranch = _tenantProvider.BranchId;
+        var prefixSettings = await _db.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == targetOrgId && s.SettingKey.StartsWith("Employee_Prefix_") && (s.BranchId == prefixBranch || s.BranchId == null))
+            .ToListAsync();
+
+        string prefixSeries = prefixSettings.FirstOrDefault(s => s.BranchId == prefixBranch && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+            ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+            ?? "EMP";
+        string prefixConnector = prefixSettings.FirstOrDefault(s => s.BranchId == prefixBranch && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+            ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+            ?? "#";
+        int prefixPadding = int.TryParse(
+            prefixSettings.FirstOrDefault(s => s.BranchId == prefixBranch && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue
+            ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue, out var pp) ? pp : 3;
+
+        var rawItems = await query
             .OrderBy(e => e.EmployeeName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -154,9 +172,6 @@ END;";
                 e.EmployeeId,
                 e.PublicId,
                 e.EmployeeName,
-                employeeCode = e.Branch != null && !string.IsNullOrWhiteSpace(e.Branch.Code) 
-                    ? (e.Branch.Code.EndsWith('#') || e.Branch.Code.EndsWith('-') || e.Branch.Code.EndsWith('_') || e.Branch.Code.EndsWith('/') ? $"{e.Branch.Code}{e.EmployeeId:D3}" : $"{e.Branch.Code}#{e.EmployeeId:D3}")
-                    : $"EMP#{e.EmployeeId:D3}",
                 e.Phone,
                 Department = e.Department != null ? e.Department.DepartmentName : null,
                 DepartmentId = e.DepartmentId,
@@ -173,6 +188,34 @@ END;";
                 e.PhotoPath
             })
             .ToListAsync();
+
+        var items = rawItems.Select(e =>
+        {
+            var code = prefixSeries.EndsWith('#') || prefixSeries.EndsWith('-') || prefixSeries.EndsWith('_') || prefixSeries.EndsWith('/')
+                ? $"{prefixSeries}{e.EmployeeId.ToString($"D{prefixPadding}")}"
+                : $"{prefixSeries}{prefixConnector}{e.EmployeeId.ToString($"D{prefixPadding}")}";
+            return new
+            {
+                e.EmployeeId,
+                e.PublicId,
+                e.EmployeeName,
+                employeeCode = code,
+                e.Phone,
+                e.Department,
+                e.DepartmentId,
+                e.Designation,
+                e.DesignationId,
+                e.ReportingManager,
+                e.ReportingManagerId,
+                e.BranchId,
+                e.Branch,
+                e.BranchCode,
+                e.JoiningDate,
+                e.Status,
+                e.Weekoff,
+                e.PhotoPath
+            };
+        }).ToList();
 
         return Ok(new
         {
@@ -289,15 +332,35 @@ END;";
 
         var activeRoleId = user?.RoleId?.ToString() ?? (user != null && user.Role == "SuperAdmin" ? "1" : (user != null && user.Role == "DepartmentManager" ? "2" : (user != null ? "3" : "")));
 
+        // Format employee code from prefix settings
+        var detailOrgId = employee.OrganizationId;
+        var detailBranchId = employee.BranchId;
+        var detailPrefixSettings = await _db.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == detailOrgId && s.SettingKey.StartsWith("Employee_Prefix_") && (s.BranchId == detailBranchId || s.BranchId == null))
+            .ToListAsync();
+
+        string detailSeries = detailPrefixSettings.FirstOrDefault(s => s.BranchId == detailBranchId && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+            ?? detailPrefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+            ?? "EMP";
+        string detailConnector = detailPrefixSettings.FirstOrDefault(s => s.BranchId == detailBranchId && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+            ?? detailPrefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+            ?? "#";
+        int detailPadding = int.TryParse(
+            detailPrefixSettings.FirstOrDefault(s => s.BranchId == detailBranchId && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue
+            ?? detailPrefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue, out var dp) ? dp : 3;
+
+        var detailEmployeeCode = detailSeries.EndsWith('#') || detailSeries.EndsWith('-') || detailSeries.EndsWith('_') || detailSeries.EndsWith('/')
+            ? $"{detailSeries}{employee.EmployeeId.ToString($"D{detailPadding}")}"
+            : $"{detailSeries}{detailConnector}{employee.EmployeeId.ToString($"D{detailPadding}")}";
+
         return Ok(new
         {
             employee.EmployeeId,
             employee.PublicId,
             employee.VerificationId,
             employee.EmployeeName,
-            employeeCode = employee.Branch != null && !string.IsNullOrWhiteSpace(employee.Branch.Code)
-                ? (employee.Branch.Code.EndsWith('#') || employee.Branch.Code.EndsWith('-') || employee.Branch.Code.EndsWith('_') || employee.Branch.Code.EndsWith('/') ? $"{employee.Branch.Code}{employee.EmployeeId:D3}" : $"{employee.Branch.Code}#{employee.EmployeeId:D3}")
-                : $"EMP#{employee.EmployeeId:D3}",
+            employeeCode = detailEmployeeCode,
             employee.Phone,
             employee.DateOfBirth,
             employee.JoiningDate,

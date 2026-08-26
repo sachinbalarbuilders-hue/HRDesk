@@ -463,7 +463,7 @@ export const RegisterTenant: React.FC = () => {
           <div className="mt-6 border-t border-[var(--rule)] pt-4 text-center">
             <p className="text-xs text-[var(--ink-muted)] font-ui">
               Already have an organization?{' '}
-              <Link to="/login" className="font-semibold text-[var(--gold-600)] dark:text-[var(--gold-400)] hover:underline">
+              <Link to="/auth/sign-in" className="font-semibold text-[var(--gold-600)] dark:text-[var(--gold-400)] hover:underline">
                 Sign in here
               </Link>
             </p>

@@ -90,6 +90,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     localStorage.removeItem('hrdesk_db_branches');
     localStorage.removeItem('hrdesk_active_branch');
+
+    // Notify OrganizationProvider to re-fetch orgs & branches
+    window.dispatchEvent(new Event('hrdesk:login'));
   };
 
   const logout = () => {

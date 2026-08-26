@@ -40,3 +40,8 @@ HRDesk.Web/Controllers/*.txt
 HRDesk.Web/wwwroot/attendance_photos/
 *.zip
 
+
+HRDesk.Web/wwwroot/assets/
+HRDesk.Web/publish_temp/
+.idea/
+

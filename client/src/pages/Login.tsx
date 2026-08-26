@@ -24,7 +24,7 @@ export const Login: React.FC = () => {
       setError('');
       setLoading(true);
       await login(username, password);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err: any) {
       if (!err.response) {
         // No response at all: connection refused, DNS failure, timeout, etc. —

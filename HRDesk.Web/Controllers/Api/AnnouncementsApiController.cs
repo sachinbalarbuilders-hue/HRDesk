@@ -94,7 +94,9 @@ public class AnnouncementsController : ControllerBase
                 branchId = a.BranchId,
                 branchName = a.Branch != null ? a.Branch.Name : "All Branches",
                 createdAt = a.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
-                createdByName = a.CreatedByUser != null ? a.CreatedByUser.FullName : "Admin"
+                createdByName = a.CreatedByUser != null ? a.CreatedByUser.FullName : "Admin",
+                imagePath = a.ImagePath != null ? $"/api/announcements/media/{a.ImagePath}" : null,
+                videoPath = a.VideoPath != null ? $"/api/announcements/media/{a.VideoPath}" : null
             })
             .ToListAsync();
 
@@ -126,7 +128,9 @@ public class AnnouncementsController : ControllerBase
             branchId = item.BranchId,
             branchName = item.Branch != null ? item.Branch.Name : "All Branches",
             createdAt = item.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
-            createdByName = item.CreatedByUser != null ? item.CreatedByUser.FullName : "Admin"
+            createdByName = item.CreatedByUser != null ? item.CreatedByUser.FullName : "Admin",
+            imagePath = item.ImagePath != null ? $"/api/announcements/media/{item.ImagePath}" : null,
+            videoPath = item.VideoPath != null ? $"/api/announcements/media/{item.VideoPath}" : null
         });
     }
 
@@ -206,5 +210,137 @@ public class AnnouncementsController : ControllerBase
         await _db.SaveChangesAsync();
 
         return Ok(new { message = item.IsPinned ? "Announcement pinned." : "Announcement unpinned.", isPinned = item.IsPinned });
+    }
+
+    // ── Media Upload ──────────────────────────────────────────────
+    private static readonly HashSet<string> AllowedImageExts = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+    private static readonly HashSet<string> AllowedVideoExts = new(StringComparer.OrdinalIgnoreCase) { ".mp4", ".webm", ".mov" };
+    private const long MaxImageSize = 10 * 1024 * 1024;  // 10 MB
+    private const long MaxVideoSize = 50 * 1024 * 1024;  // 50 MB
+
+    [HttpPost("{id:int}/media")]
+    [RequestSizeLimit(60 * 1024 * 1024)] // 60 MB overall limit
+    public async Task<IActionResult> UploadMedia(int id, IFormFile file)
+    {
+        var item = await _db.Announcements.FindAsync(id);
+        if (item == null) return NotFound(new { message = "Announcement not found." });
+
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "No file provided." });
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        bool isImage = AllowedImageExts.Contains(ext);
+        bool isVideo = AllowedVideoExts.Contains(ext);
+
+        if (!isImage && !isVideo)
+            return BadRequest(new { message = $"Unsupported file type '{ext}'. Allowed: {string.Join(", ", AllowedImageExts.Union(AllowedVideoExts))}" });
+
+        if (isImage && file.Length > MaxImageSize)
+            return BadRequest(new { message = "Image must be under 10 MB." });
+
+        if (isVideo && file.Length > MaxVideoSize)
+            return BadRequest(new { message = "Video must be under 50 MB." });
+
+        var mediaDir = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "AnnouncementMedia");
+        Directory.CreateDirectory(mediaDir);
+
+        var uniqueName = $"{Guid.NewGuid():N}{ext}";
+        var filePath = Path.Combine(mediaDir, uniqueName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        if (isImage)
+        {
+            // Delete old image if exists
+            if (!string.IsNullOrWhiteSpace(item.ImagePath))
+            {
+                var oldPath = Path.Combine(mediaDir, item.ImagePath);
+                if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
+            }
+            item.ImagePath = uniqueName;
+        }
+        else
+        {
+            // Delete old video if exists
+            if (!string.IsNullOrWhiteSpace(item.VideoPath))
+            {
+                var oldPath = Path.Combine(mediaDir, item.VideoPath);
+                if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
+            }
+            item.VideoPath = uniqueName;
+        }
+
+        item.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = $"{(isImage ? "Image" : "Video")} uploaded successfully.",
+            imagePath = item.ImagePath,
+            videoPath = item.VideoPath
+        });
+    }
+
+    [HttpDelete("{id:int}/media/{type}")]
+    public async Task<IActionResult> DeleteMedia(int id, string type)
+    {
+        var item = await _db.Announcements.FindAsync(id);
+        if (item == null) return NotFound(new { message = "Announcement not found." });
+
+        var mediaDir = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "AnnouncementMedia");
+
+        if (type.Equals("image", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(item.ImagePath))
+        {
+            var path = Path.Combine(mediaDir, item.ImagePath);
+            if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+            item.ImagePath = null;
+        }
+        else if (type.Equals("video", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(item.VideoPath))
+        {
+            var path = Path.Combine(mediaDir, item.VideoPath);
+            if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+            item.VideoPath = null;
+        }
+        else
+        {
+            return BadRequest(new { message = "No media of that type to delete." });
+        }
+
+        item.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = $"{type} removed." });
+    }
+
+    [HttpGet("media/{fileName}")]
+    [AllowAnonymous]
+    public IActionResult GetMedia(string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName) || fileName.Contains(".."))
+            return BadRequest();
+
+        var mediaDir = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "AnnouncementMedia");
+        var filePath = Path.Combine(mediaDir, fileName);
+
+        if (!System.IO.File.Exists(filePath))
+            return NotFound();
+
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        var contentType = ext switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".mp4" => "video/mp4",
+            ".webm" => "video/webm",
+            ".mov" => "video/quicktime",
+            _ => "application/octet-stream"
+        };
+
+        return PhysicalFile(filePath, contentType, enableRangeProcessing: true);
     }
 }

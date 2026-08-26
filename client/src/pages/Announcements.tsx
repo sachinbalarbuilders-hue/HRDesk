@@ -36,6 +36,8 @@ interface AnnouncementItem {
   branchName: string;
   createdAt: string;
   createdByName: string;
+  imagePath: string | null;
+  videoPath: string | null;
 }
 
 const CATEGORIES = ['All', 'General', 'Notice', 'Holiday', 'Event', 'Policy', 'Urgent'];
@@ -48,6 +50,10 @@ export const AnnouncementsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [search, setSearch] = useState('');
+
+  // Media Lightbox State
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxType, setLightboxType] = useState<'image' | 'video'>('image');
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -64,6 +70,10 @@ export const AnnouncementsPage: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [targetBranchId, setTargetBranchId] = useState<number | ''>('');
   const [isPinned, setIsPinned] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
 
   const fetchAnnouncements = async () => {
     try {
@@ -97,6 +107,10 @@ export const AnnouncementsPage: React.FC = () => {
     setEndDate('');
     setTargetBranchId(currentBranch?.id ? Number(currentBranch.id) : (branches[0]?.id ? Number(branches[0].id) : ''));
     setIsPinned(false);
+    setImageFile(null);
+    setVideoFile(null);
+    setImagePreview(null);
+    setVideoPreview(null);
     setFormError(null);
     setModalOpen(true);
   };
@@ -111,6 +125,10 @@ export const AnnouncementsPage: React.FC = () => {
     setEndDate(item.endDate || '');
     setTargetBranchId(item.branchId ? Number(item.branchId) : (currentBranch?.id ? Number(currentBranch.id) : (branches[0]?.id ? Number(branches[0].id) : '')));
     setIsPinned(item.isPinned);
+    setImageFile(null);
+    setVideoFile(null);
+    setImagePreview((item as any).imagePath || null);
+    setVideoPreview((item as any).videoPath || null);
     setFormError(null);
     setModalOpen(true);
   };
@@ -150,8 +168,31 @@ export const AnnouncementsPage: React.FC = () => {
 
       if (editingItem) {
         await apiClient.put(`/announcements/${editingItem.id}`, payload);
+        // Upload media if new files selected
+        if (imageFile) {
+          const fd = new FormData();
+          fd.append('file', imageFile);
+          await apiClient.post(`/announcements/${editingItem.id}/media`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        }
+        if (videoFile) {
+          const fd = new FormData();
+          fd.append('file', videoFile);
+          await apiClient.post(`/announcements/${editingItem.id}/media`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        }
       } else {
-        await apiClient.post('/announcements', payload);
+        const res = await apiClient.post('/announcements', payload);
+        const newId = res.data.id;
+        // Upload media after creation
+        if (imageFile && newId) {
+          const fd = new FormData();
+          fd.append('file', imageFile);
+          await apiClient.post(`/announcements/${newId}/media`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        }
+        if (videoFile && newId) {
+          const fd = new FormData();
+          fd.append('file', videoFile);
+          await apiClient.post(`/announcements/${newId}/media`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        }
       }
 
       setModalOpen(false);
@@ -327,6 +368,28 @@ export const AnnouncementsPage: React.FC = () => {
 
                   {/* Card Content */}
                   <div className="p-4">
+                    {/* Media Preview */}
+                    {item.imagePath && (
+                      <img
+                        src={item.imagePath}
+                        alt=""
+                        className="w-full h-36 object-cover rounded-[var(--radius-md)] mb-3 border border-[var(--border)] cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => { setLightboxUrl(item.imagePath); setLightboxType('image'); }}
+                      />
+                    )}
+                    {item.videoPath && !item.imagePath && (
+                      <div
+                        className="relative w-full h-36 rounded-[var(--radius-md)] mb-3 border border-[var(--border)] cursor-pointer overflow-hidden group"
+                        onClick={() => { setLightboxUrl(item.videoPath); setLightboxType('video'); }}
+                      >
+                        <video src={item.videoPath} className="w-full h-full object-cover" muted preload="metadata" />
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+                          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-[var(--accent)] ml-0.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <h3 className="text-base font-bold text-[var(--text-primary)] mb-2 leading-snug">
                       {item.title}
                     </h3>
@@ -470,6 +533,46 @@ export const AnnouncementsPage: React.FC = () => {
               />
             </div>
 
+            {/* Media Upload */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
+                  Attach Image (optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setImageFile(f);
+                    if (f) setImagePreview(URL.createObjectURL(f));
+                  }}
+                  className="w-full text-xs text-[var(--text-secondary)] file:mr-2 file:px-3 file:py-1.5 file:rounded-[var(--radius-md)] file:border-0 file:text-xs file:font-medium file:bg-[var(--accent-light)] file:text-[var(--accent)] file:cursor-pointer cursor-pointer"
+                />
+                {imagePreview && (
+                  <img src={imagePreview} alt="Preview" className="mt-2 h-20 rounded-[var(--radius-md)] object-cover border border-[var(--border)]" />
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
+                  Attach Video (optional)
+                </label>
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] || null;
+                    setVideoFile(f);
+                    if (f) setVideoPreview(URL.createObjectURL(f));
+                  }}
+                  className="w-full text-xs text-[var(--text-secondary)] file:mr-2 file:px-3 file:py-1.5 file:rounded-[var(--radius-md)] file:border-0 file:text-xs file:font-medium file:bg-[var(--accent-light)] file:text-[var(--accent)] file:cursor-pointer cursor-pointer"
+                />
+                {videoPreview && (
+                  <video src={videoPreview} className="mt-2 h-20 rounded-[var(--radius-md)] border border-[var(--border)]" controls muted />
+                )}
+              </div>
+            </div>
+
             <div className="flex items-center gap-2 pt-1">
               <input
                 type="checkbox"
@@ -502,6 +605,37 @@ export const AnnouncementsPage: React.FC = () => {
             </div>
           </form>
         </Modal>
+
+      {/* Media Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer text-xl font-bold"
+            onClick={() => setLightboxUrl(null)}
+          >
+            &times;
+          </button>
+          {lightboxType === 'image' ? (
+            <img
+              src={lightboxUrl}
+              alt=""
+              className="max-w-[90vw] max-h-[85vh] rounded-lg object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <video
+              src={lightboxUrl}
+              className="max-w-[90vw] max-h-[85vh] rounded-lg"
+              controls
+              autoPlay
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
+        </div>
+      )}
     </PageContainer>
   );
 };

@@ -26,9 +26,12 @@ class TeamMemberTodayModel {
   factory TeamMemberTodayModel.fromJson(Map<String, dynamic> json) {
     return TeamMemberTodayModel(
       employeeId: (json['employeeId'] ?? json['EmployeeId'] ?? 0) as int,
-      employeeName: (json['employeeName'] ?? json['EmployeeName'] ?? 'Staff').toString(),
-      department: (json['department'] ?? json['Department'] ?? 'General').toString(),
-      designation: (json['designation'] ?? json['Designation'] ?? 'Staff').toString(),
+      employeeName:
+          (json['employeeName'] ?? json['EmployeeName'] ?? 'Staff').toString(),
+      department:
+          (json['department'] ?? json['Department'] ?? 'General').toString(),
+      designation:
+          (json['designation'] ?? json['Designation'] ?? 'Staff').toString(),
       inTime: json['inTime']?.toString(),
       outTime: json['outTime']?.toString(),
       status: (json['status'] ?? json['Status'] ?? 'Not Checked In').toString(),
@@ -49,6 +52,8 @@ class AnnouncementModel {
   final String category;
   final String date;
   final String priority;
+  final String? imagePath;
+  final String? videoPath;
 
   AnnouncementModel({
     required this.id,
@@ -57,6 +62,8 @@ class AnnouncementModel {
     required this.category,
     required this.date,
     this.priority = 'Normal',
+    this.imagePath,
+    this.videoPath,
   });
 
   factory AnnouncementModel.fromJson(Map<String, dynamic> json) {
@@ -67,6 +74,8 @@ class AnnouncementModel {
       category: (json['category'] ?? 'General').toString(),
       date: (json['date'] ?? '').toString(),
       priority: (json['priority'] ?? 'Normal').toString(),
+      imagePath: json['imagePath'] as String?,
+      videoPath: json['videoPath'] as String?,
     );
   }
 }
@@ -93,8 +102,10 @@ class CelebrationModel {
   factory CelebrationModel.fromJson(Map<String, dynamic> json) {
     return CelebrationModel(
       employeeId: (json['employeeId'] ?? json['EmployeeId'] ?? 0) as int,
-      employeeName: (json['employeeName'] ?? json['EmployeeName'] ?? 'Staff').toString(),
-      department: (json['department'] ?? json['Department'] ?? 'General').toString(),
+      employeeName:
+          (json['employeeName'] ?? json['EmployeeName'] ?? 'Staff').toString(),
+      department:
+          (json['department'] ?? json['Department'] ?? 'General').toString(),
       day: (json['day'] ?? json['Day'] ?? 1) as int,
       years: (json['years'] ?? json['Years']) as int?,
       type: (json['type'] ?? json['Type'] ?? 'Celebration').toString(),

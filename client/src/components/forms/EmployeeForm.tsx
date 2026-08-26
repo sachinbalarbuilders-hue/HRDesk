@@ -90,6 +90,18 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     }
   }, [initialData]);
 
+  // Sync branchId from context once it resolves (handles case where currentBranch
+  // wasn't available at first render, causing branchId to be saved as null)
+  useEffect(() => {
+    if (!isEditing && currentBranch?.id) {
+      setFormData(prev => ({
+        ...prev,
+        // Only override if not already set (e.g. by initialData)
+        branchId: prev.branchId || String(currentBranch.id),
+      }));
+    }
+  }, [currentBranch?.id, isEditing]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);

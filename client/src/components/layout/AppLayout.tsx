@@ -90,7 +90,7 @@ export const AppLayout: React.FC = () => {
     },
   ];
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => { logout(); navigate('/auth/sign-in'); };
 
   const handleOrgSelect = (orgId: string, orgName: string) => {
     switchOrganization(orgId);

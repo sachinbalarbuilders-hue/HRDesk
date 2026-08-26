@@ -231,7 +231,16 @@ public class TenantProvisioningService : ITenantProvisioningService
             _db.Users.Add(adminUser);
             await _db.SaveChangesAsync();
 
-            // 10. Assign 14-Day Free Trial on Growth Plan
+            // 10. Seed Default Employee Prefix Settings (EMP#001)
+            _db.SystemSettings.AddRange(
+                new SystemSetting { OrganizationId = org.Id, BranchId = branch.Id, SettingKey = "Employee_Prefix_Series", SettingValue = "EMP", Description = "Employee Code Series Prefix", UpdatedAt = DateTime.Now },
+                new SystemSetting { OrganizationId = org.Id, BranchId = branch.Id, SettingKey = "Employee_Prefix_Connector", SettingValue = "#", Description = "Employee Code Connector / Delimiter", UpdatedAt = DateTime.Now },
+                new SystemSetting { OrganizationId = org.Id, BranchId = branch.Id, SettingKey = "Employee_Prefix_Padding", SettingValue = "3", Description = "Employee Code Sequence Padding Length", UpdatedAt = DateTime.Now },
+                new SystemSetting { OrganizationId = org.Id, BranchId = branch.Id, SettingKey = "Employee_Prefix_StartSeq", SettingValue = "1", Description = "Employee Code Starting Sequence", UpdatedAt = DateTime.Now }
+            );
+            await _db.SaveChangesAsync();
+
+            // 11. Assign 14-Day Free Trial on Growth Plan
             var growthPlan = await _db.SubscriptionPlans.FirstOrDefaultAsync(p => p.Code == "growth")
                 ?? await _db.SubscriptionPlans.FirstOrDefaultAsync();
 

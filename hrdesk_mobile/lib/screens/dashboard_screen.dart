@@ -29,6 +29,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool? _lastPunchSuccess;
   Timer? _tickerTimer;
   DateTime _currentTime = DateTime.now();
+  bool _initialLoading = true;
 
   @override
   void initState() {
@@ -36,10 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     LocationService().warmUp();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthProvider>().tryAutoLogin();
-      context.read<PunchProvider>().fetchTodayStatus();
-      context.read<BranchProvider>().fetchCompaniesAndBranches();
-      context.read<DashboardProvider>().fetchDashboardOverview();
+      _loadAllDashboardData();
     });
 
     // 1-second ticker for live digital clock & live elapsed work shift timer
@@ -50,6 +48,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         });
       }
     });
+  }
+
+  Future<void> _loadAllDashboardData() async {
+    if (!mounted) return;
+    setState(() => _initialLoading = true);
+
+    await Future.wait([
+      context.read<AuthProvider>().tryAutoLogin(),
+      context.read<PunchProvider>().fetchTodayStatus(),
+      context.read<BranchProvider>().fetchCompaniesAndBranches(),
+      context.read<DashboardProvider>().fetchDashboardOverview(),
+    ]);
+
+    if (mounted) setState(() => _initialLoading = false);
   }
 
   @override
@@ -77,7 +89,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (mounted) {
           context.read<DashboardProvider>().fetchDashboardOverview();
           setState(() {
-            _statusMessage = 'Clock-$punchType verified & recorded with Face recognition.';
+            _statusMessage =
+                'Clock-$punchType verified & recorded with Face recognition.';
             _lastPunchSuccess = true;
           });
         }
@@ -96,7 +109,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (loc == null) {
           setState(() {
             _locationPunching = false;
-            _statusMessage = 'Location required. Please enable GPS permissions.';
+            _statusMessage =
+                'Location required. Please enable GPS permissions.';
             _lastPunchSuccess = false;
           });
           return;
@@ -185,10 +199,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
+    if (_initialLoading) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const Center(
+          child: CircularProgressIndicator(color: accent),
+        ),
+      );
+    }
+
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textPrimary = isDark ? Colors.white : const Color(0xFF0F172A);
-    final textSecondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    final cardBorder = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textSecondary =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final cardBorder =
+        isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,

@@ -25,10 +25,6 @@ dependencies:
   # Camera
   camera: ^0.12.0+1
 
-  # Face liveness detection + Face ID (enrollment + verification)
-  # Replaces manual camera + google_mlkit_face_detection
-  flutter_face_liveness: ^3.2.0
-
   # State management
   provider: ^6.1.2
 
@@ -46,6 +42,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-
-dependency_overrides:
-  tflite_flutter: ^0.12.1
