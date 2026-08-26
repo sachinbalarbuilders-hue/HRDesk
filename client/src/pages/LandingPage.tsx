@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiClient } from '../api/client';
 import {
   Building2,
   Users,
@@ -64,82 +65,36 @@ export const LandingPage: React.FC = () => {
     setExpandedFaq(expandedFaq === index ? null : index);
   };
 
-  const plans = [
-    {
-      code: 'FREE_STARTER',
-      name: 'Free Starter',
-      tagline: 'Ideal for small startups & bootstrapping teams',
-      priceMonthly: 0,
-      priceYearly: 0,
-      maxEmployees: 10,
-      maxBranches: 1,
-      popular: false,
-      features: [
-        'Up to 10 Active Employees',
-        'Single Branch / Location',
-        'Daily Attendance & Real-Time Punch Tracking',
-        'Standard Leave Applications',
-        'Community Support',
-      ],
-    },
-    {
-      code: 'STARTER_CORE',
-      name: 'Starter Core',
-      tagline: 'Perfect for growing businesses needing shifts & leaves',
-      priceMonthly: 999,
-      priceYearly: 10190,
-      maxEmployees: 50,
-      maxBranches: 2,
-      popular: false,
-      features: [
-        'Up to 50 Active Employees',
-        '2 Branches / Office Locations',
-        'Automated Biometric Cloud Sync',
-        'Multi-Shift Rostering & Night Shifts',
-        'Full Leave & Holiday Management',
-        'Standard Email Notifications',
-      ],
-    },
-    {
-      code: 'GROWTH_ENTERPRISE',
-      name: 'Growth Enterprise',
-      tagline: 'The ultimate engine for scaling companies & multi-branch firms',
-      priceMonthly: 2499,
-      priceYearly: 25490,
-      maxEmployees: 250,
-      maxBranches: 10,
-      popular: true,
-      badge: 'Most Popular',
-      features: [
-        'Up to 250 Active Employees',
-        '10 Branch Locations with Geofencing',
-        'Single Source of Truth Payroll & LOP Engine',
-        'WhatsApp Automated Payslip Dispatch',
-        'Employee Loan & Advance Tracking',
-        'Enterprise Field-Level Audit Trails',
-        'Priority Phone & WhatsApp Support',
-      ],
-    },
-    {
-      code: 'ENTERPRISE_CUSTOM',
-      name: 'Enterprise Custom',
-      tagline: 'For large conglomerates requiring unlimited scale & white-labeling',
-      priceMonthly: 5999,
-      priceYearly: 61190,
-      maxEmployees: 1000,
-      maxBranches: 50,
-      popular: false,
-      features: [
-        'Unlimited Employee Capacity',
-        'Unlimited Branches & Warehouses',
-        'White-Label Custom Domain Routing',
-        'Custom Brand Logo & Color Theming',
-        'Dedicated Database Isolation Option',
-        'Custom Integration & 99.9% Uptime SLA',
-        '24/7 Dedicated Account Manager',
-      ],
-    },
-  ];
+  // Dynamic plans from API
+  const [plans, setPlans] = useState<any[]>([]);
+
+  useEffect(() => {
+    apiClient.get('/subscription/plans').then((res) => {
+      const fetched = (res.data || []).map((p: any) => {
+        const features: string[] = [];
+        features.push(`Up to ${p.maxEmployees.toLocaleString()} Active Employees`);
+        features.push(`${p.maxBranches} Branch${p.maxBranches > 1 ? 'es' : ''} / Location${p.maxBranches > 1 ? 's' : ''}`);
+        if (p.hasBiometricsModule) features.push('Biometric & Face Attendance Sync');
+        if (p.hasPayrollModule) features.push('Full Payroll & LOP Engine');
+        if (p.hasRecruitmentModule) features.push('Recruitment & Hiring Pipeline');
+        if (p.hasLoanManagement) features.push('Employee Loans & Advances');
+        if (p.hasCustomDomain) features.push('White-Label Custom Domain');
+        return {
+          code: p.code,
+          name: p.name,
+          tagline: p.description || '',
+          priceMonthly: p.pricePerMonth,
+          priceYearly: Math.round(p.pricePerMonth * 12 * 0.85),
+          maxEmployees: p.maxEmployees,
+          maxBranches: p.maxBranches,
+          popular: p.code === 'growth',
+          badge: p.code === 'growth' ? 'Most Popular' : undefined,
+          features,
+        };
+      });
+      setPlans(fetched);
+    }).catch(() => {});
+  }, []);
 
   const faqs = [
     {
@@ -1067,7 +1022,7 @@ export const LandingPage: React.FC = () => {
                     <div className="space-y-2 pt-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">Included Features</span>
                       <ul className="space-y-2 text-xs">
-                        {p.features.map((feat, fi) => (
+                        {p.features.map((feat: string, fi: number) => (
                           <li key={fi} className="flex items-start gap-2 text-[var(--ink)]">
                             <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
                             <span>{feat}</span>

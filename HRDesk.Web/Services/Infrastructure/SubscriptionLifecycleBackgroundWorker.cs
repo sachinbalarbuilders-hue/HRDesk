@@ -38,6 +38,7 @@ public class SubscriptionLifecycleBackgroundWorker : BackgroundService
                 try
                 {
                     await ProcessExpiredSubscriptionsAsync(stoppingToken);
+                    await CleanupStalePendingPaymentsAsync(stoppingToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -116,5 +117,28 @@ public class SubscriptionLifecycleBackgroundWorker : BackgroundService
 
         await db.SaveChangesAsync(stoppingToken);
         _logger.LogInformation("Successfully processed and downgraded {Count} expired subscriptions.", expiredSubs.Count);
+    }
+
+    private async Task CleanupStalePendingPaymentsAsync(CancellationToken stoppingToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<BiometricAttendanceDbContext>();
+        db.BypassTenantId = true;
+
+        var cutoff = DateTime.Now.AddMinutes(-30);
+
+        var stalePayments = await db.SubscriptionPayments
+            .Where(p => p.Status == "Pending" && p.CreatedAt < cutoff)
+            .ToListAsync(stoppingToken);
+
+        if (stalePayments.Count == 0) return;
+
+        foreach (var p in stalePayments)
+        {
+            p.Status = "Expired";
+        }
+
+        await db.SaveChangesAsync(stoppingToken);
+        _logger.LogInformation("Marked {Count} stale pending payments as Expired.", stalePayments.Count);
     }
 }

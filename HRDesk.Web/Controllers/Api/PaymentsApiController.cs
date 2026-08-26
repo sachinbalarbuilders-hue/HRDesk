@@ -133,4 +133,26 @@ public class PaymentsController : ControllerBase
             totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
         });
     }
+
+    [HttpPost("cancel")]
+    public async Task<IActionResult> CancelOrder([FromBody] CancelOrderDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.OrderId))
+            return BadRequest(new { message = "Order ID is required." });
+
+        var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+
+        var payment = await _db.SubscriptionPayments
+            .FirstOrDefaultAsync(p => p.GatewayOrderId == dto.OrderId && p.OrganizationId == orgId && p.Status == "Pending");
+
+        if (payment == null)
+            return NotFound(new { message = "Pending order not found." });
+
+        payment.Status = string.IsNullOrWhiteSpace(dto.Reason) ? "Cancelled" : "Failed";
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Order marked as " + payment.Status.ToLower() + "." });
+    }
+
+    public record CancelOrderDto(string OrderId, string? Reason);
 }

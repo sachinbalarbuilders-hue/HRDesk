@@ -33,6 +33,7 @@ import {
   Camera,
   PiggyBank,
   ShieldAlert,
+  ShieldCheck,
   Megaphone,
 } from 'lucide-react';
 
@@ -86,6 +87,12 @@ export const AppLayout: React.FC = () => {
       items: [
         { name: 'Settings', href: '/settings', icon: SettingsIcon, show: isAdmin },
         { name: 'Scanner', href: '/scanner', icon: Camera, show: true },
+      ],
+    },
+    {
+      group: 'Platform',
+      items: [
+        { name: 'Platform Admin', href: '/superadmin', icon: ShieldCheck, show: user?.role === 'SuperAdmin' },
       ],
     },
   ];

@@ -205,13 +205,20 @@ export const SubscriptionTab: React.FC = () => {
       prefill: {},
       theme: { color: '#0D9488' },
       modal: {
-        ondismiss: () => { /* User closed Razorpay popup */ },
+        ondismiss: async () => {
+          // User closed popup without paying — mark as cancelled
+          try { await apiClient.post('/payments/cancel', { orderId: checkoutOrder.orderId, reason: 'User dismissed checkout' }); } catch {}
+          setCheckoutOrder(null);
+        },
       },
     };
 
     const rzp = new Razorpay(options);
-    rzp.on('payment.failed', (response: any) => {
+    rzp.on('payment.failed', async (response: any) => {
       showError('Payment Failed', response.error?.description || 'Payment was not successful. Please try again.');
+      // Mark order as failed in backend
+      try { await apiClient.post('/payments/cancel', { orderId: checkoutOrder.orderId, reason: response.error?.description || 'Payment failed' }); } catch {}
+      setCheckoutOrder(null);
     });
     rzp.open();
   };
