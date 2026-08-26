@@ -365,7 +365,88 @@ public class SuperAdminApiController : ControllerBase
             totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
         });
     }
+
+    // ── Plan Management CRUD ─────────────────────────────────────
+    [HttpPost("plans")]
+    public async Task<IActionResult> CreatePlan([FromBody] PlanDto dto)
+    {
+        if (!IsAuthorized()) return Forbid();
+
+        var plan = new SubscriptionPlan
+        {
+            Name = dto.Name.Trim(),
+            Code = dto.Code.Trim().ToLowerInvariant(),
+            Description = dto.Description?.Trim() ?? "",
+            MaxEmployees = dto.MaxEmployees,
+            MaxBranches = dto.MaxBranches,
+            HasBiometricsModule = dto.HasBiometricsModule,
+            HasPayrollModule = dto.HasPayrollModule,
+            HasRecruitmentModule = dto.HasRecruitmentModule,
+            HasLoanManagement = dto.HasLoanManagement,
+            HasCustomDomain = dto.HasCustomDomain,
+            PricePerMonth = dto.PricePerMonth,
+            IsActive = true,
+            CreatedAt = DateTime.Now
+        };
+
+        _db.SubscriptionPlans.Add(plan);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Plan created successfully.", id = plan.Id });
+    }
+
+    [HttpPut("plans/{id:int}")]
+    public async Task<IActionResult> UpdatePlan(int id, [FromBody] PlanDto dto)
+    {
+        if (!IsAuthorized()) return Forbid();
+
+        var plan = await _db.SubscriptionPlans.FindAsync(id);
+        if (plan == null) return NotFound(new { message = "Plan not found." });
+
+        plan.Name = dto.Name.Trim();
+        plan.Code = dto.Code.Trim().ToLowerInvariant();
+        plan.Description = dto.Description?.Trim() ?? "";
+        plan.MaxEmployees = dto.MaxEmployees;
+        plan.MaxBranches = dto.MaxBranches;
+        plan.HasBiometricsModule = dto.HasBiometricsModule;
+        plan.HasPayrollModule = dto.HasPayrollModule;
+        plan.HasRecruitmentModule = dto.HasRecruitmentModule;
+        plan.HasLoanManagement = dto.HasLoanManagement;
+        plan.HasCustomDomain = dto.HasCustomDomain;
+        plan.PricePerMonth = dto.PricePerMonth;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Plan updated successfully." });
+    }
+
+    [HttpDelete("plans/{id:int}")]
+    public async Task<IActionResult> DeactivatePlan(int id)
+    {
+        if (!IsAuthorized()) return Forbid();
+
+        var plan = await _db.SubscriptionPlans.FindAsync(id);
+        if (plan == null) return NotFound(new { message = "Plan not found." });
+
+        // Don't hard delete — just deactivate (tenants may still reference it)
+        plan.IsActive = false;
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Plan deactivated. It will no longer appear for new subscriptions." });
+    }
 }
 
 public record ExtendTrialDto(int Days);
 public record OverridePlanDto(int PlanId);
+public record PlanDto(
+    string Name,
+    string Code,
+    string? Description,
+    int MaxEmployees,
+    int MaxBranches,
+    bool HasBiometricsModule,
+    bool HasPayrollModule,
+    bool HasRecruitmentModule,
+    bool HasLoanManagement,
+    bool HasCustomDomain,
+    decimal PricePerMonth
+);
