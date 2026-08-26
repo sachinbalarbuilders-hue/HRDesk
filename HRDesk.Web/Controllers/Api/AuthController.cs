@@ -469,13 +469,31 @@ public class AuthController : ControllerBase
         if (user == null)
             return BadRequest(new { message = "Invalid email or OTP." });
 
+        // Find the latest active token for this user (regardless of OTP match — to track attempts)
         var token = await _context.PasswordResetTokens
-            .Where(t => t.UserId == user.Id && t.OtpCode == request.Otp.Trim() && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
+            .Where(t => t.UserId == user.Id && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
             .OrderByDescending(t => t.CreatedAt)
             .FirstOrDefaultAsync();
 
         if (token == null)
-            return BadRequest(new { message = "Invalid or expired OTP. Please request a new code." });
+            return BadRequest(new { message = "No active reset request found. Please request a new code." });
+
+        // Check max attempts (3 wrong guesses = token invalidated)
+        if (token.Attempts >= 3)
+        {
+            token.IsUsed = true;
+            await _context.SaveChangesAsync();
+            return BadRequest(new { message = "Too many incorrect attempts. Please request a new code." });
+        }
+
+        // Verify OTP
+        if (token.OtpCode != request.Otp.Trim())
+        {
+            token.Attempts++;
+            await _context.SaveChangesAsync();
+            var remaining = 3 - token.Attempts;
+            return BadRequest(new { message = $"Invalid OTP. {remaining} attempt(s) remaining." });
+        }
 
         // Mark token as used
         token.IsUsed = true;

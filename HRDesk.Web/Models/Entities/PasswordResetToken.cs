@@ -26,6 +26,9 @@ public class PasswordResetToken
     [Column("is_used")]
     public bool IsUsed { get; set; } = false;
 
+    [Column("attempts")]
+    public int Attempts { get; set; } = 0;
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
