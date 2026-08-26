@@ -128,6 +128,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Username / Email
                         TextFormField(
                           controller: _usernameCtrl,
+                          style: const TextStyle(
+                              color: Color(0xFF0F172A), fontSize: 15),
                           decoration: _inputDecoration(
                               'Username or Email', Icons.person_outline),
                           keyboardType: TextInputType.emailAddress,
@@ -141,6 +143,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Password
                         TextFormField(
                           controller: _passwordCtrl,
+                          style: const TextStyle(
+                              color: Color(0xFF0F172A), fontSize: 15),
                           obscureText: _obscurePassword,
                           decoration: _inputDecoration(
                             'Password',

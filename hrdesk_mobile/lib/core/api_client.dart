@@ -1,8 +1,18 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
-  static const String defaultBaseUrl = 'https://hrdeskhrms-001-site1.htempurl.com/api';
+  /// Production server
+  static const String prodBaseUrl =
+      'https://hrdeskhrms-001-site1.htempurl.com/api';
+
+  /// Local development server (your machine's IP on the local network)
+  /// Change this IP to your PC's local IPv4 address (run `ipconfig` to find it)
+  static const String localBaseUrl = 'http://10.219.182.51:5283/api';
+
+  /// Uses local in debug mode, prod in release mode.
+  static String get baseUrl => kDebugMode ? localBaseUrl : prodBaseUrl;
 
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
@@ -15,7 +25,7 @@ class ApiClient {
 
   void init() {
     _dio = Dio(BaseOptions(
-      baseUrl: defaultBaseUrl,
+      baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
@@ -34,6 +44,8 @@ class ApiClient {
         return handler.next(e);
       },
     ));
+
+    debugPrint('[ApiClient] baseUrl = $baseUrl');
   }
 
   Future<void> saveToken(String token) async {
@@ -48,4 +60,3 @@ class ApiClient {
     await _storage.delete(key: 'auth_token');
   }
 }
-

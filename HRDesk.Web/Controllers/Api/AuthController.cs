@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
+using Microsoft.AspNetCore.RateLimiting;
 using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
@@ -199,6 +201,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("register-tenant")]
     [AllowAnonymous]
+    [EnableRateLimiting("register")]
     public async Task<IActionResult> RegisterTenant([FromBody] TenantRegistrationDto dto)
     {
         if (dto == null)

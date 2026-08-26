@@ -1,9 +1,11 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -156,6 +158,24 @@ builder.Services.AddCors(options => {
     });
 });
 
+// Rate Limiting — protect login from brute-force attacks
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddFixedWindowLimiter("login", opt =>
+    {
+        opt.PermitLimit = 10;          // 10 attempts
+        opt.Window = TimeSpan.FromMinutes(1); // per minute
+        opt.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("register", opt =>
+    {
+        opt.PermitLimit = 3;           // 3 registrations
+        opt.Window = TimeSpan.FromHours(1);   // per hour
+        opt.QueueLimit = 0;
+    });
+});
+
 // Register WhatsApp Services
 builder.Services.AddHttpClient<HRDesk.Web.Services.Notifications.IWhatsAppProvider, HRDesk.Web.Services.Notifications.NodeJsWhatsAppProvider>(client => 
 {
@@ -210,6 +230,7 @@ app.UseSerilogRequestLogging();
 
 app.UseRouting();
 app.UseCors("AllowAll");
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
