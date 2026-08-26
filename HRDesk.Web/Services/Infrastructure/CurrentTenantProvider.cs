@@ -18,42 +18,49 @@ public class CurrentTenantProvider : ICurrentTenantProvider
     {
         get
         {
+            // 0. Explicitly set by background services / provisioning
             if (_tenantId.HasValue)
             {
                 return _tenantId.Value;
             }
 
             var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext != null)
+            if (httpContext == null) return 0;
+
+            var user = httpContext.User;
+            var isAuthenticated = user?.Identity?.IsAuthenticated == true;
+
+            // Determine if this is a platform user (from JWT claim)
+            var isPlatformUser = isAuthenticated &&
+                string.Equals(user!.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+
+            if (isPlatformUser)
             {
-                // 1. First priority: Check X-Organization-Id request header
+                // PLATFORM USER: Trust X-Organization-Id header for cross-org access.
+                // Platform identity is verified via the IsPlatformUser JWT claim (server-signed, tamper-proof).
+                // If no header is sent, return 0 (no org context = platform dashboard mode).
                 var headerValue = httpContext.Request.Headers["X-Organization-Id"].ToString();
-                if (!string.IsNullOrEmpty(headerValue) && int.TryParse(headerValue, out var headerTenantId) && headerTenantId > 0)
+                if (!string.IsNullOrEmpty(headerValue) && int.TryParse(headerValue, out var headerOrgId) && headerOrgId > 0)
                 {
-                    return headerTenantId;
+                    return headerOrgId;
                 }
+                return 0; // Platform user, no active org context
+            }
 
-                // 2. Second priority: Check ActiveTenantId cookie
-                var cookieValue = httpContext.Request.Cookies["ActiveTenantId"];
-                if (!string.IsNullOrEmpty(cookieValue) && int.TryParse(cookieValue, out var activeTenantId) && activeTenantId > 0)
+            if (isAuthenticated)
+            {
+                // ORGANIZATION USER: Use ONLY their JWT OrganizationId claim.
+                // Do NOT trust X-Organization-Id header — prevents cross-org access by header manipulation.
+                var orgClaim = user!.FindFirst("OrganizationId");
+                if (orgClaim != null && int.TryParse(orgClaim.Value, out var claimOrgId) && claimOrgId > 0)
                 {
-                    return activeTenantId;
-                }
-
-                // 3. Third priority: Check User Claims
-                var user = httpContext.User;
-                if (user?.Identity?.IsAuthenticated == true)
-                {
-                    var tenantClaim = user.FindFirst("OrganizationId");
-                    if (tenantClaim != null && int.TryParse(tenantClaim.Value, out var tenantId) && tenantId > 0)
-                    {
-                        return tenantId;
-                    }
+                    return claimOrgId;
                 }
             }
-            
-            // Default fallback
-            return 1;
+
+            // Unauthenticated requests (public endpoints like /auth/login, /register)
+            // Return 0 — no tenant context. The [AllowAnonymous] endpoints use IgnoreQueryFilters().
+            return 0;
         }
     }
 

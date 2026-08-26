@@ -175,6 +175,12 @@ public sealed class BiometricAttendanceDbContext : DbContext
                     method?.Invoke(this, new object[] { modelBuilder });
                 }
             }
+
+            // Manual query filter for User (no longer implements IMustHaveTenant since OrganizationId is nullable).
+            // Platform users (IsPlatformUser=true, OrganizationId=NULL) are excluded from org-scoped queries.
+            // Org users are filtered to their tenant. BypassTenantId skips the filter entirely.
+            modelBuilder.Entity<User>().HasQueryFilter(u =>
+                BypassTenantId || u.IsPlatformUser || u.OrganizationId == _tenantProvider.TenantId);
         }
 
         modelBuilder.Entity<ApplicationSequence>(entity =>

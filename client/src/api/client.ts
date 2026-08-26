@@ -13,8 +13,12 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  const activeOrg = localStorage.getItem('hrdesk_active_organization') || '1';
-  config.headers['X-Organization-Id'] = activeOrg;
+  const activeOrg = localStorage.getItem('hrdesk_active_organization');
+  // Only send X-Organization-Id if there's an active org context.
+  // Platform users may not have one (platform dashboard mode).
+  if (activeOrg && activeOrg !== '0' && activeOrg !== '') {
+    config.headers['X-Organization-Id'] = activeOrg;
+  }
   
   const activeBranch = localStorage.getItem('hrdesk_active_branch');
   config.headers['X-Branch-Id'] = (activeBranch && activeBranch !== 'all') ? activeBranch : 'all';

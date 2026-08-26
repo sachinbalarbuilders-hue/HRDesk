@@ -40,13 +40,22 @@ public sealed class PermissionService : IPermissionService
             ?? user.FindFirst(ClaimTypes.Email)?.Value;
     }
 
+    /// <summary>
+    /// Checks if the authenticated user is a Platform Super Admin.
+    /// Authority comes from the server-signed IsPlatformUser JWT claim — cannot be forged.
+    /// </summary>
+    private static bool IsPlatformSuperAdmin(ClaimsPrincipal user)
+    {
+        return string.Equals(user.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+    }
+
     public async Task<bool> HasPermissionAsync(ClaimsPrincipal user, string permissionKey)
     {
         if (user.Identity == null || !user.Identity.IsAuthenticated)
             return false;
 
         // Only SuperAdmin has universal bypass
-        if (user.IsInRole("SuperAdmin"))
+        if (IsPlatformSuperAdmin(user))
             return true;
 
         var permissions = await GetUserPermissionEntriesAsync(user);
@@ -58,7 +67,7 @@ public sealed class PermissionService : IPermissionService
         if (user.Identity == null || !user.Identity.IsAuthenticated)
             return null;
 
-        if (user.IsInRole("SuperAdmin"))
+        if (IsPlatformSuperAdmin(user))
             return AppPermissions.Scopes.All;
 
         var permissions = await GetUserPermissionEntriesAsync(user);
@@ -71,7 +80,7 @@ public sealed class PermissionService : IPermissionService
         if (user.Identity == null || !user.Identity.IsAuthenticated)
             return Array.Empty<string>();
 
-        if (user.IsInRole("SuperAdmin"))
+        if (IsPlatformSuperAdmin(user))
             return AppPermissions.All.Select(p => p.Key).ToList();
 
         var permissions = await GetUserPermissionEntriesAsync(user);
@@ -83,7 +92,7 @@ public sealed class PermissionService : IPermissionService
         if (user.Identity == null || !user.Identity.IsAuthenticated)
             return new Dictionary<string, string>();
 
-        if (user.IsInRole("SuperAdmin"))
+        if (IsPlatformSuperAdmin(user))
             return AppPermissions.All.ToDictionary(p => p.Key, _ => AppPermissions.Scopes.All);
 
         var permissions = await GetUserPermissionEntriesAsync(user);
@@ -146,7 +155,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.EmployeesView)
     {
-        if (user.IsInRole("SuperAdmin"))
+        if (IsPlatformSuperAdmin(user))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -201,7 +210,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.AttendanceView)
     {
-        if (user.IsInRole("SuperAdmin"))
+        if (IsPlatformSuperAdmin(user))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -273,7 +282,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.LeavesView)
     {
-        if (user.IsInRole("SuperAdmin"))
+        if (IsPlatformSuperAdmin(user))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -345,7 +354,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.AttendanceRegularize)
     {
-        if (user.IsInRole("SuperAdmin"))
+        if (IsPlatformSuperAdmin(user))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);
@@ -417,7 +426,7 @@ public sealed class PermissionService : IPermissionService
         ClaimsPrincipal user, 
         string permissionKey = AppPermissions.Keys.CompOffApprove)
     {
-        if (user.IsInRole("SuperAdmin"))
+        if (IsPlatformSuperAdmin(user))
             return query;
 
         var scope = await GetPermissionScopeAsync(user, permissionKey);

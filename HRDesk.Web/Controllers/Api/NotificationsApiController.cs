@@ -156,7 +156,7 @@ public class NotificationsApiController : ControllerBase
         }
 
         int orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
-        if (dto.OrganizationId.HasValue && dto.OrganizationId.Value > 0 && (User.IsInRole("SuperAdmin") || User.IsInRole("Super Admin")))
+        if (dto.OrganizationId.HasValue && dto.OrganizationId.Value > 0 && string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase))
         {
             orgId = dto.OrganizationId.Value;
         }

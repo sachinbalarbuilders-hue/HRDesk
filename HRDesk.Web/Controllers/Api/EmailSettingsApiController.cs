@@ -77,7 +77,7 @@ public class EmailSettingsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> SaveEmailSettings([FromBody] EmailSettingsDto dto)
     {
-        if (!User.IsInRole("SuperAdmin") && !User.IsInRole("Admin"))
+        if (!string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) && !User.IsInRole("Admin"))
             return Forbid();
 
         if (string.IsNullOrWhiteSpace(dto.From))
@@ -133,7 +133,7 @@ public class EmailSettingsController : ControllerBase
     [HttpPost("test")]
     public async Task<IActionResult> SendTestEmail([FromBody] TestEmailDto dto)
     {
-        if (!User.IsInRole("SuperAdmin") && !User.IsInRole("Admin"))
+        if (!string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) && !User.IsInRole("Admin"))
             return Forbid();
 
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;

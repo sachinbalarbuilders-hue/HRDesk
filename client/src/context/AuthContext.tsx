@@ -11,7 +11,8 @@ export interface UserProfile {
   employeeId?: number;
   employeeName?: string;
   avatarUrl?: string;
-  organizationId: number;
+  organizationId?: number;
+  isPlatformUser?: boolean;
 }
 
 interface AuthContextType {
@@ -53,6 +54,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(res.data.user);
           setPermissions(res.data.permissions || []);
           setPermissionScopes(res.data.permissionScopes || {});
+          if (res.data.organizationSuspended) {
+            localStorage.setItem('hrdesk_suspended', 'true');
+          } else {
+            localStorage.removeItem('hrdesk_suspended');
+          }
           if (res.data.organizations && res.data.organizations.length > 0) {
             localStorage.setItem('hrdesk_db_orgs', JSON.stringify(res.data.organizations));
           }
@@ -71,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string) => {
     const res = await apiClient.post('/auth/login', { username, password });
-    const { token: newToken, user: newUser, permissions: newPerms, permissionScopes: newScopes, organizations: newOrgs } = res.data;
+    const { token: newToken, user: newUser, permissions: newPerms, permissionScopes: newScopes, organizations: newOrgs, organizationSuspended } = res.data;
 
     setToken(newToken);
     setUser(newUser);
@@ -82,6 +88,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('hrdesk_user', JSON.stringify(newUser));
     localStorage.setItem('hrdesk_permissions', JSON.stringify(newPerms || []));
     localStorage.setItem('hrdesk_permission_scopes', JSON.stringify(newScopes || {}));
+    if (organizationSuspended) {
+      localStorage.setItem('hrdesk_suspended', 'true');
+    } else {
+      localStorage.removeItem('hrdesk_suspended');
+    }
     if (newOrgs && newOrgs.length > 0) {
       localStorage.setItem('hrdesk_db_orgs', JSON.stringify(newOrgs));
       const activeOrg = newOrgs.find((o: any) => String(o.id) === String(newUser.organizationId)) || newOrgs[0];
@@ -113,17 +124,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasPermission = (permissionKey: string): boolean => {
     if (!user) return false;
-    if (user.role === 'SuperAdmin' || user.role === 'Admin') return true;
+    if (user.isPlatformUser) return true;
+    if (user.role === 'Admin') return true;
     return permissions.includes(permissionKey);
   };
 
   const getPermissionScope = (permissionKey: string): string | undefined => {
     if (!user) return undefined;
-    if (user.role === 'SuperAdmin' || user.role === 'Admin') return 'All';
+    if (user.isPlatformUser || user.role === 'Admin') return 'All';
     return permissionScopes[permissionKey];
   };
 
-  const isAdmin = user?.role === 'SuperAdmin' || user?.role === 'Admin' || user?.role === 'HR' || user?.role === 'Manager';
+  const isAdmin = user?.isPlatformUser || user?.role === 'Admin' || user?.role === 'HR' || user?.role === 'Manager';
 
   return (
     <AuthContext.Provider

@@ -576,7 +576,7 @@ END;";
         }
 
         var editScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesEdit);
-        var isSuperOrAdmin = User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("Administrator");
+        var isSuperOrAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin") || User.IsInRole("Administrator");
 
         bool canEditBasic = isSuperOrAdmin 
             || string.IsNullOrEmpty(editScope) 

@@ -145,7 +145,7 @@ public class MastersController : ControllerBase
     public async Task<IActionResult> GetOverview([FromQuery] int? branchId = null)
     {
         var activeBranch = branchId ?? _tenantProvider.BranchId;
-        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
         var userOrgId = _tenantProvider.TenantId;
 
         var orgQuery = _db.Organizations.AsNoTracking().Where(o => o.IsActive);
@@ -761,7 +761,7 @@ public class MastersController : ControllerBase
     [HttpGet("organizations")]
     public async Task<IActionResult> GetOrganizations()
     {
-        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
         var userOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
 
         var query = _db.Organizations.AsNoTracking().Where(o => o.IsActive);
@@ -836,7 +836,7 @@ public class MastersController : ControllerBase
         var org = await _db.Organizations.FirstOrDefaultAsync(o => o.PublicId == publicId);
         if (org == null) return NotFound(new { message = "Branch not found." });
 
-        bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+        bool isAdminOrSuper = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin");
         if (!isAdminOrSuper && org.Id != _tenantProvider.TenantId)
         {
             return Forbid();
@@ -885,7 +885,7 @@ public class MastersController : ControllerBase
         var org = await _db.Organizations.FirstOrDefaultAsync(o => o.PublicId == publicId);
         if (org == null) return NotFound(new { message = "Organization not found." });
 
-        bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+        bool isAdminOrSuper = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin");
         if (!isAdminOrSuper && org.Id != _tenantProvider.TenantId)
         {
             return Forbid();
@@ -924,7 +924,7 @@ public class MastersController : ControllerBase
     [HttpGet("branches")]
     public async Task<IActionResult> GetBranches([FromQuery] int? organizationId = null)
     {
-        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
         var userOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
 
         var query = _db.Branches.AsNoTracking().Where(b => b.IsActive);
@@ -1024,7 +1024,7 @@ public class MastersController : ControllerBase
         var branch = await _db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.PublicId == publicId);
         if (branch == null) return NotFound(new { message = "Branch not found." });
 
-        bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+        bool isAdminOrSuper = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin");
         if (!isAdminOrSuper && branch.OrganizationId != _tenantProvider.TenantId)
         {
             return Forbid();
@@ -1062,7 +1062,7 @@ public class MastersController : ControllerBase
         var branch = await _db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.PublicId == publicId);
         if (branch == null) return NotFound(new { message = "Branch not found." });
 
-        bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+        bool isAdminOrSuper = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin");
         if (!isAdminOrSuper && branch.OrganizationId != _tenantProvider.TenantId)
         {
             return Forbid();

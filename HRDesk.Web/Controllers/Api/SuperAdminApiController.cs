@@ -23,7 +23,9 @@ public class SuperAdminApiController : ControllerBase
 
     private bool IsAuthorized()
     {
-        return User.IsInRole("SuperAdmin") || User.IsInRole("Super Admin");
+        // Platform-level access is determined solely by the IsPlatformUser JWT claim.
+        // This claim is server-signed and cannot be forged by clients.
+        return string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
     }
 
     [HttpGet("metrics")]
@@ -217,7 +219,7 @@ public class SuperAdminApiController : ControllerBase
         _db.AuditLogs.Add(new AuditLog
         {
             OrganizationId = id,
-            UserName = User.Identity?.Name ?? "SuperAdmin",
+            UserName = User.Identity?.Name ?? "Platform",
             Action = "UPDATE",
             EntityName = "TenantSubscription",
             PrimaryKey = id.ToString(),
@@ -273,7 +275,7 @@ public class SuperAdminApiController : ControllerBase
         _db.AuditLogs.Add(new AuditLog
         {
             OrganizationId = id,
-            UserName = User.Identity?.Name ?? "SuperAdmin",
+            UserName = User.Identity?.Name ?? "Platform",
             Action = "UPDATE",
             EntityName = "TenantSubscription",
             PrimaryKey = id.ToString(),
@@ -301,7 +303,7 @@ public class SuperAdminApiController : ControllerBase
         _db.AuditLogs.Add(new AuditLog
         {
             OrganizationId = id,
-            UserName = User.Identity?.Name ?? "SuperAdmin",
+            UserName = User.Identity?.Name ?? "Platform",
             Action = "UPDATE",
             EntityName = "Organization",
             PrimaryKey = id.ToString(),

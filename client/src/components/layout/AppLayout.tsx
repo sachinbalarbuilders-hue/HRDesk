@@ -92,7 +92,7 @@ export const AppLayout: React.FC = () => {
     {
       group: 'Platform',
       items: [
-        { name: 'Platform Admin', href: '/superadmin', icon: ShieldCheck, show: user?.role === 'SuperAdmin' },
+        { name: 'Platform Admin', href: '/superadmin', icon: ShieldCheck, show: user?.isPlatformUser === true },
       ],
     },
   ];
@@ -328,7 +328,22 @@ export const AppLayout: React.FC = () => {
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto">
-            <Outlet />
+            {localStorage.getItem('hrdesk_suspended') === 'true' && !user?.isPlatformUser && !location.pathname.startsWith('/settings') ? (
+              <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-[var(--danger-light)] flex items-center justify-center">
+                  <ShieldCheck size={32} className="text-[var(--danger)]" />
+                </div>
+                <h2 className="text-xl font-bold text-[var(--text-primary)]">Workspace Suspended</h2>
+                <p className="text-sm text-[var(--text-secondary)] max-w-md">
+                  Your organization workspace has been suspended. Please renew your subscription or contact support to restore access.
+                </p>
+                <Link to="/settings/subscription" className="btn-primary px-6 py-2.5 text-sm font-semibold">
+                  Go to Subscription & Billing
+                </Link>
+              </div>
+            ) : (
+              <Outlet />
+            )}
           </div>
         </main>
       </div>

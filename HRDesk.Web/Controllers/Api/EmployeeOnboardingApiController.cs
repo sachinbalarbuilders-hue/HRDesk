@@ -58,7 +58,7 @@ public class EmployeeOnboardingController : ControllerBase
             .AsQueryable();
 
         // Strict Tenant Isolation
-        if (User.IsInRole("SuperAdmin") || User.IsInRole("Super Admin"))
+        if (string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase))
         {
             if (organizationId.HasValue && organizationId.Value > 0)
             {

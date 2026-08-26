@@ -93,7 +93,7 @@ END";
                 }
             }
         }
-        else if (_tenantProvider.TenantId > 0 && !User.IsInRole("SuperAdmin") && !User.IsInRole("Super Admin"))
+        else if (_tenantProvider.TenantId > 0 && !string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase))
         {
             query = query.Where(l => l.OrganizationId == _tenantProvider.TenantId);
         }
@@ -184,7 +184,7 @@ END";
                 }
             }
         }
-        else if (_tenantProvider.TenantId > 0 && !User.IsInRole("SuperAdmin") && !User.IsInRole("Super Admin"))
+        else if (_tenantProvider.TenantId > 0 && !string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase))
         {
             query = query.Where(l => l.OrganizationId == _tenantProvider.TenantId);
         }

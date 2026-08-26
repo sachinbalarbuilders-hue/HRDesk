@@ -40,7 +40,7 @@ public class DashboardController : ControllerBase
         var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
         var empScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesView);
 
-        bool isPersonalOnly = (empScope == AppPermissions.Scopes.Own) && !User.IsInRole("SuperAdmin") && !User.IsInRole("Admin");
+        bool isPersonalOnly = (empScope == AppPermissions.Scopes.Own) && !string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) && !User.IsInRole("Admin");
 
         if (isPersonalOnly && currentEmpId.HasValue)
         {
@@ -109,7 +109,7 @@ public class DashboardController : ControllerBase
         }
 
         // Team / Organization Dashboard (Admin & Managers)
-        bool isAdminOrSuper = User.IsInRole("SuperAdmin") || User.IsInRole("Admin");
+        bool isAdminOrSuper = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin");
 
         var empQuery = _db.Employees.AsNoTracking().Where(e => e.Status == null || e.Status.ToLower() == "active");
         if (activeBranch.HasValue && activeBranch.Value > 0)

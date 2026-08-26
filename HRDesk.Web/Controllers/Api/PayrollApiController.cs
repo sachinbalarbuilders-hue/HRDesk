@@ -57,7 +57,7 @@ public class PayrollController : ControllerBase
             query = query.Where(p => p.BranchId == activeBranch.Value || (p.Employee != null && p.Employee.BranchId == activeBranch.Value));
         }
 
-        if (!User.IsInRole("SuperAdmin") && !User.IsInRole("Admin"))
+        if (!string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) && !User.IsInRole("Admin"))
         {
             var empScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.PayrollView);
             var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
@@ -195,7 +195,7 @@ public class PayrollController : ControllerBase
         }
 
         // Security check for Own scope
-        if (!User.IsInRole("SuperAdmin") && !User.IsInRole("Admin"))
+        if (!string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) && !User.IsInRole("Admin"))
         {
             var empScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.PayrollView);
             var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);

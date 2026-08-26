@@ -81,7 +81,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string;
     return <Navigate to="/auth/sign-in" replace />;
   }
 
-  if (superAdminOnly && user.role !== 'SuperAdmin' && user.role !== 'Super Admin') {
+  if (superAdminOnly && !user.isPlatformUser) {
     return <Navigate to="/" replace />;
   }
 

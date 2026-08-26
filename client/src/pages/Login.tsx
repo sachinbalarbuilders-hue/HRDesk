@@ -34,7 +34,13 @@ export const Login: React.FC = () => {
       setError('');
       setLoading(true);
       await login(username, password);
-      navigate('/dashboard');
+      // Platform users go to platform dashboard; org users go to HRMS dashboard
+      const savedUser = JSON.parse(localStorage.getItem('hrdesk_user') || '{}');
+      if (savedUser.isPlatformUser) {
+        navigate('/superadmin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       if (!err.response) {
         setError('Cannot reach the server. Please check your connection.');

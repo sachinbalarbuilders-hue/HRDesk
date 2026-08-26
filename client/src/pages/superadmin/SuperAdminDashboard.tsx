@@ -208,7 +208,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
   /* ─── Access Denied ───────────────────────────────────── */
 
-  if (user && user.role !== 'SuperAdmin' && user.role !== 'Super Admin') {
+  if (user && !user.isPlatformUser) {
     return (
       <div className="min-h-screen bg-[var(--canvas)] flex flex-col items-center justify-center p-6 text-center font-ui">
         <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center mb-4">

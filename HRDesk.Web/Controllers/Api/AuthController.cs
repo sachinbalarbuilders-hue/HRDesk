@@ -51,17 +51,27 @@ public class AuthController : ControllerBase
 
         var cleanUsername = request.Username.Trim();
 
-        // 1. Match by username (for admin) or employee Work Email / Personal Email
+        // 1. Match by exact username first (highest priority — covers platform users and direct username logins)
         var user = await _context.Users
             .IgnoreQueryFilters()
             .Include(u => u.CustomRole)
             .Include(u => u.Employee)
                 .ThenInclude(e => e.Branch)
             .Include(u => u.Organization)
-            .FirstOrDefaultAsync(u => u.IsActive && (
-                u.Username == cleanUsername ||
-                (u.Employee != null && (u.Employee.WorkEmail == cleanUsername || u.Employee.PersonalEmail == cleanUsername))
-            ));
+            .FirstOrDefaultAsync(u => u.IsActive && u.Username == cleanUsername);
+
+        // 1b. If no direct username match, try matching by employee Work Email / Personal Email
+        if (user == null)
+        {
+            user = await _context.Users
+                .IgnoreQueryFilters()
+                .Include(u => u.CustomRole)
+                .Include(u => u.Employee)
+                    .ThenInclude(e => e.Branch)
+                .Include(u => u.Organization)
+                .FirstOrDefaultAsync(u => u.IsActive &&
+                    u.Employee != null && (u.Employee.WorkEmail == cleanUsername || u.Employee.PersonalEmail == cleanUsername));
+        }
 
         // 2. If User record doesn't exist yet, check Employee table strictly by Work Email or Personal Email
         if (user == null && cleanUsername.Contains("@"))
@@ -120,14 +130,19 @@ public class AuthController : ControllerBase
         await _context.SaveChangesAsync();
 
         var token = GenerateJwtToken(user);
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        var principalClaims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.Role, user.Role),
-            new Claim("OrganizationId", user.OrganizationId.ToString()),
             new Claim("RoleId", user.RoleId?.ToString() ?? ""),
             new Claim("EmployeeId", user.EmployeeId?.ToString() ?? "")
-        }, "Jwt"));
+        };
+        if (user.IsPlatformUser)
+            principalClaims.Add(new Claim("IsPlatformUser", "true"));
+        else
+            principalClaims.Add(new Claim("OrganizationId", (user.OrganizationId ?? 0).ToString()));
+
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(principalClaims, "Jwt"));
 
         var permissions = await _permissionService.GetUserPermissionsAsync(principal);
         var permissionScopes = await _permissionService.GetUserPermissionScopesAsync(principal);
@@ -136,7 +151,7 @@ public class AuthController : ControllerBase
             .AsNoTracking()
             .Where(o => o.IsActive);
 
-        if (user.Role != "SuperAdmin")
+        if (!user.IsPlatformUser)
         {
             orgQuery = orgQuery.Where(o => o.Id == user.OrganizationId);
         }
@@ -155,7 +170,8 @@ public class AuthController : ControllerBase
             isActive = o.IsActive
         }).ToList();
 
-        var empCode = await GetFormattedEmployeeCodeAsync(user.Employee, user.OrganizationId);
+        var empCode = user.IsPlatformUser ? null : await GetFormattedEmployeeCodeAsync(user.Employee, user.OrganizationId ?? 0);
+        var isSuspended = !user.IsPlatformUser && user.Organization != null && !user.Organization.IsActive;
 
         return Ok(new
         {
@@ -177,11 +193,13 @@ public class AuthController : ControllerBase
                 faceId = user.Employee?.FaceId,
                 avatarUrl = user.Employee?.PhotoPath,
                 organizationId = user.OrganizationId,
-                organizationName = user.Organization?.Name ?? "HRDesk Builders & Developers"
+                organizationName = user.Organization?.Name,
+                isPlatformUser = user.IsPlatformUser
             },
             permissions,
             permissionScopes,
-            organizations = orgs
+            organizations = orgs,
+            organizationSuspended = isSuspended
         });
     }
 
@@ -227,7 +245,7 @@ public class AuthController : ControllerBase
         {
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.Role, user.Role),
-            new Claim("OrganizationId", user.OrganizationId.ToString()),
+            new Claim("OrganizationId", (user.OrganizationId ?? 0).ToString()),
             new Claim("RoleId", user.RoleId?.ToString() ?? ""),
             new Claim("EmployeeId", user.EmployeeId?.ToString() ?? "")
         }, "Jwt"));
@@ -299,7 +317,7 @@ public class AuthController : ControllerBase
             .AsNoTracking()
             .Where(o => o.IsActive);
 
-        if (user.Role != "SuperAdmin")
+        if (!user.IsPlatformUser)
         {
             orgQuery = orgQuery.Where(o => o.Id == user.OrganizationId);
         }
@@ -318,7 +336,8 @@ public class AuthController : ControllerBase
             isActive = o.IsActive
         }).ToList();
 
-        var empCode = await GetFormattedEmployeeCodeAsync(user.Employee, user.OrganizationId);
+        var empCode = user.IsPlatformUser ? null : await GetFormattedEmployeeCodeAsync(user.Employee, user.OrganizationId ?? 0);
+        var isSuspended = !user.IsPlatformUser && user.Organization != null && !user.Organization.IsActive;
 
         return Ok(new
         {
@@ -339,11 +358,13 @@ public class AuthController : ControllerBase
                 faceId = user.Employee?.FaceId,
                 avatarUrl = user.Employee?.PhotoPath,
                 organizationId = user.OrganizationId,
-                organizationName = user.Organization?.Name ?? "HRDesk Builders & Developers"
+                organizationName = user.Organization?.Name,
+                isPlatformUser = user.IsPlatformUser
             },
             permissions,
             permissionScopes,
-            organizations = orgs
+            organizations = orgs,
+            organizationSuspended = isSuspended
         });
     }
 
@@ -420,7 +441,7 @@ public class AuthController : ControllerBase
             UserId = user.Id,
             OtpCode = otp,
             ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-            OrganizationId = user.OrganizationId
+            OrganizationId = user.OrganizationId ?? 0
         });
         await _context.SaveChangesAsync();
 
@@ -435,7 +456,7 @@ public class AuthController : ControllerBase
                 <p style='color:#64748B;font-size:13px;'>This code expires in 10 minutes. If you didn't request this, ignore this email.</p>
             </div>";
 
-        var result = await _emailService.SendAsync(user.OrganizationId, email, "HRDesk — Password Reset Code", htmlBody);
+        var result = await _emailService.SendAsync(user.OrganizationId ?? 0, email, "HRDesk — Password Reset Code", htmlBody);
 
         if (!result.Success)
             return StatusCode(500, new { message = result.ErrorMessage ?? "Failed to send email. Please contact your administrator." });
@@ -550,8 +571,18 @@ public class AuthController : ControllerBase
             new(ClaimTypes.Name, user.Username),
             new(ClaimTypes.GivenName, user.FullName ?? user.Username),
             new(ClaimTypes.Role, user.Role),
-            new("OrganizationId", user.OrganizationId.ToString())
         };
+
+        // Platform users get an explicit platform claim; org users get OrganizationId
+        if (user.IsPlatformUser)
+        {
+            claims.Add(new Claim("IsPlatformUser", "true"));
+            // No OrganizationId claim for platform users
+        }
+        else
+        {
+            claims.Add(new Claim("OrganizationId", (user.OrganizationId ?? 0).ToString()));
+        }
 
         if (user.RoleId.HasValue)
         {

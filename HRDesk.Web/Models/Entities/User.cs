@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HRDesk.Web.Models;
 
 [Table("users")]
-public class User : IMustHaveTenant
+public class User
 {
     [Key]
     [Column("id")]
@@ -53,8 +53,20 @@ public class User : IMustHaveTenant
 
     public Branch? Branch { get; set; }
 
+    /// <summary>
+    /// Organization this user belongs to. NULL for platform-level users (PlatformSuperAdmin).
+    /// Non-null for all organization-level users.
+    /// </summary>
     [Column("organization_id")]
-    public int OrganizationId { get; set; }
+    public int? OrganizationId { get; set; }
 
     public Organization? Organization { get; set; }
+
+    /// <summary>
+    /// Explicit platform-level identity flag. Only true for Platform Super Admin accounts.
+    /// This is the sole authority for platform-level access — NOT derived from Role string,
+    /// email, user ID, or organization ID.
+    /// </summary>
+    [Column("is_platform_user")]
+    public bool IsPlatformUser { get; set; } = false;
 }
