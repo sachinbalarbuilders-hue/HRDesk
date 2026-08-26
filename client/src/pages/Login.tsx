@@ -34,6 +34,8 @@ export const Login: React.FC = () => {
         // 5xx (including the Vite dev proxy's 502 when the backend isn't running)
         // means the server/proxy failed, not that the credentials were wrong.
         setError('Server is temporarily unavailable. Please try again in a moment.');
+      } else if (err.response.status === 429) {
+        setError('Too many login attempts. Please wait a minute and try again.');
       } else {
         setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
       }

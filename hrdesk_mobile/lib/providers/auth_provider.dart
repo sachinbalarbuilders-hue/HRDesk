@@ -68,6 +68,9 @@ class AuthProvider extends ChangeNotifier {
 
   String _parseError(dynamic e) {
     try {
+      final statusCode = (e as dynamic).response?.statusCode;
+      if (statusCode == 429)
+        return 'Too many login attempts. Please wait a minute and try again.';
       final data = (e as dynamic).response?.data;
       if (data is Map && data['message'] != null) return data['message'];
     } catch (_) {}
