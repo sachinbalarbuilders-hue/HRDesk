@@ -52,7 +52,8 @@ class PunchProvider extends ChangeNotifier {
         _shiftName = res.data['shiftName'] ?? _shiftName;
         _shiftStart = res.data['shiftStart'] ?? _shiftStart;
         _shiftEnd = res.data['shiftEnd'] ?? _shiftEnd;
-        _targetHours = (res.data['targetHours'] as num?)?.toDouble() ?? _targetHours;
+        _targetHours =
+            (res.data['targetHours'] as num?)?.toDouble() ?? _targetHours;
       }
     } catch (_) {
       // Leave previous state on failure.
@@ -81,7 +82,10 @@ class PunchProvider extends ChangeNotifier {
       final body = <String, dynamic>{
         'employeeId': employeeId,
         'punchType': punchType,
-        'source': (livenessVerified == true) ? 'Face' : 'Mobile',
+        // Drive source from photo presence — livenessVerified is always false now
+        // because liveness is determined server-side, not by the client.
+        'source':
+            (photoBase64 != null && photoBase64.isNotEmpty) ? 'Face' : 'Mobile',
       };
 
       if (latitude != null) body['latitude'] = latitude;

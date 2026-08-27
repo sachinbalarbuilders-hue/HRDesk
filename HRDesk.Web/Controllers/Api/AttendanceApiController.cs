@@ -8,6 +8,7 @@ using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace HRDesk.Web.Controllers.Api;
 
@@ -23,6 +24,8 @@ public class AttendanceController : ControllerBase
     private readonly IAttendanceProcessorService _processor;
     private readonly ICurrentTenantProvider _tenantProvider;
     private readonly IFaceRecognitionService _faceRecognitionService;
+    private readonly IFaceAntiSpoofingService _faceAntiSpoofingService;
+    private readonly IConfiguration _configuration;
 
     public AttendanceController(
         BiometricAttendanceDbContext db,
@@ -31,7 +34,9 @@ public class AttendanceController : ControllerBase
         IReferenceDataCacheService cache,
         IAttendanceProcessorService processor,
         ICurrentTenantProvider tenantProvider,
-        IFaceRecognitionService faceRecognitionService)
+        IFaceRecognitionService faceRecognitionService,
+        IFaceAntiSpoofingService faceAntiSpoofingService,
+        IConfiguration configuration)
     {
         _db = db;
         _attendanceSummaryService = attendanceSummaryService;
@@ -40,6 +45,8 @@ public class AttendanceController : ControllerBase
         _processor = processor;
         _tenantProvider = tenantProvider;
         _faceRecognitionService = faceRecognitionService;
+        _faceAntiSpoofingService = faceAntiSpoofingService;
+        _configuration = configuration;
     }
 
     [HttpGet("monthly-sheet")]
@@ -448,17 +455,22 @@ public class AttendanceController : ControllerBase
                 .FirstOrDefaultAsync(b => b.Id == employee.BranchId.Value);
         }
 
-        // ── 0. FACE LIVENESS + IDENTITY CHECK ───────────────────────────────
-        // Applies to AttendanceType containing "face".
-        // flutter_face_liveness runs on-device (FaceNet TFLite) and sends:
-        // ── 0. FACE LIVENESS + PROFILE PHOTO MATCH CHECK ───────────────────
-        // Applies to AttendanceType containing "face".
-        // Strict Rule: If no official profile picture is uploaded for the employee,
-        // face attendance is disallowed.
-        // ── 0. FACE LIVENESS + PROFILE PHOTO MATCH CHECK ───────────────────
-        // Applies to AttendanceType containing "face".
-        // Strict Rule: If no official profile picture is uploaded for the employee,
-        // face attendance is disallowed.
+        // ── 0. FACE QUALITY + SERVER-SIDE LIVENESS + IDENTITY GATE ──────────
+        // Applies to employees whose AttendanceType contains "face".
+        //
+        // Pipeline (all three must pass — fail-closed):
+        //   0a. Photo present and decodable
+        //   0b. Decode base64 → photoBytes (reused in section 3 for disk save + identity)
+        //   0c. Load enrolled profile photo
+        //   0d. FaceQualityValidator — brightness, blur, size (retry signal, NOT fraud)
+        //   0e. FaceAntiSpoofingService — MiniFASNetV2 + MiniFASNetV1SE ONNX fusion
+        //       Fail-closed: models missing → 503. Inference error → 503.
+        //       dto.LivenessVerified is IGNORED — retained in DTO for wire-compat only.
+        //   0f. First-punch enrollment marker (metadata, not a security check)
+        //   Identity check (ArcFace cosine similarity) runs in section 3 below.
+
+        byte[]? photoBytes = null;  // decoded punch photo; reused in section 3
+
         var attType = employee.AttendanceType?.ToLowerInvariant() ?? "";
         if (attType == "biometric")
         {
@@ -472,43 +484,64 @@ public class AttendanceController : ControllerBase
 
         if (requiresFace)
         {
-            // 1. Fetch PhotoData from database if available
+            // ── 0a. Photo must be present ─────────────────────────────────────
+            if (string.IsNullOrWhiteSpace(dto.PhotoBase64))
+            {
+                return BadRequest(new
+                {
+                    message = "A selfie photo is required for face attendance. Please retake and submit.",
+                    requiresFace = true,
+                    isFaceEnrolled = true
+                });
+            }
+
+            // ── 0b. Decode base64 punch photo ─────────────────────────────────
+            try
+            {
+                var b64 = dto.PhotoBase64.Contains(',')
+                    ? dto.PhotoBase64[(dto.PhotoBase64.IndexOf(',') + 1)..]
+                    : dto.PhotoBase64;
+                photoBytes = Convert.FromBase64String(b64);
+            }
+            catch
+            {
+                return BadRequest(new
+                {
+                    message = "Could not read the photo. Please try again.",
+                    requiresFace = true,
+                    isFaceEnrolled = true,
+                    retryable = true
+                });
+            }
+
+            // ── 0c. Load enrolled profile photo ───────────────────────────────
             try
             {
                 var conn = Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.GetDbConnection(_db.Database);
                 if (conn.State == System.Data.ConnectionState.Closed) await conn.OpenAsync();
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = "SELECT PhotoData FROM employees WHERE employee_id = @id AND organization_id = @org";
-                var pId = cmd.CreateParameter(); pId.ParameterName = "@id"; pId.Value = targetEmpId; cmd.Parameters.Add(pId);
+                var pId  = cmd.CreateParameter(); pId.ParameterName  = "@id";  pId.Value  = targetEmpId;           cmd.Parameters.Add(pId);
                 var pOrg = cmd.CreateParameter(); pOrg.ParameterName = "@org"; pOrg.Value = employee.OrganizationId; cmd.Parameters.Add(pOrg);
                 var dbPhoto = await cmd.ExecuteScalarAsync();
                 if (dbPhoto != null && dbPhoto != DBNull.Value)
-                {
                     enrolledPhotoBytes = (byte[])dbPhoto;
-                }
             }
-            catch {}
+            catch { }
 
-            // 2. Fallback to PhotoPath file on disk if PhotoData was empty
             if (enrolledPhotoBytes == null || enrolledPhotoBytes.Length == 0)
             {
                 if (!string.IsNullOrWhiteSpace(employee.PhotoPath))
                 {
-                    var cleanEnrolled = employee.PhotoPath.TrimStart('/', '\\');
+                    var cleanEnrolled   = employee.PhotoPath.TrimStart('/', '\\');
                     var enrolledDiskPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", cleanEnrolled);
                     if (!System.IO.File.Exists(enrolledDiskPath))
-                    {
                         enrolledDiskPath = Path.Combine(Directory.GetCurrentDirectory(), cleanEnrolled);
-                    }
-
                     if (System.IO.File.Exists(enrolledDiskPath))
-                    {
                         enrolledPhotoBytes = await System.IO.File.ReadAllBytesAsync(enrolledDiskPath);
-                    }
                 }
             }
 
-            // Strictly disallow punch if no profile photo exists in DB or disk
             if (enrolledPhotoBytes == null || enrolledPhotoBytes.Length == 0)
             {
                 return BadRequest(new
@@ -519,48 +552,63 @@ public class AttendanceController : ControllerBase
                 });
             }
 
-            if (dto.LivenessVerified != true)
+            // ── 0d. Face quality check (retry signal — not a fraud signal) ─────
+            var quality = FaceQualityValidator.Validate(photoBytes);
+            if (!quality.IsAcceptable)
             {
                 return BadRequest(new
                 {
-                    message = "Face liveness verification is required for this employee's attendance type.",
-                    requiresFace = true,
+                    message  = quality.UserMessage ?? "Photo quality is insufficient. Please try again.",
+                    requiresFace  = true,
+                    isFaceEnrolled = true,
+                    retryable = true
+                });
+            }
+
+            // ── 0e. Server-side liveness check (fail-closed) ──────────────────
+            // The backend independently determines liveness via ONNX inference.
+            // dto.LivenessVerified is IGNORED regardless of its value.
+            if (!_faceAntiSpoofingService.IsAvailable)
+            {
+                // Both spoof model files must be present in App_Data/models/.
+                // Until then, all face punches are blocked (fail-closed policy).
+                return StatusCode(503, new
+                {
+                    message = "Attendance verification is temporarily unavailable. Please try again later or contact your administrator."
+                });
+            }
+
+            var livenessThreshold = _configuration.GetValue<float>("FaceVerification:LivenessThreshold", 0.60f);
+            var livenessResult    = await _faceAntiSpoofingService.CheckLivenessAsync(photoBytes, livenessThreshold);
+
+            if (!livenessResult.IsSuccess)
+            {
+                // Inference error — fail closed
+                return StatusCode(503, new
+                {
+                    message = "Attendance verification is temporarily unavailable. Please try again later or contact your administrator."
+                });
+            }
+
+            if (!livenessResult.IsLive)
+            {
+                // Neutral message — does not expose anti-spoofing details to the client
+                return BadRequest(new
+                {
+                    message = "Face verification failed. Please ensure you are in good lighting and looking directly at the camera.",
+                    requiresFace  = true,
                     isFaceEnrolled = true
                 });
             }
 
+            // ── 0f. First-punch enrollment marker (metadata only) ─────────────
             if (string.IsNullOrEmpty(employee.FaceId))
             {
-                // First face punch — mark employee as enrolled
                 var enrollEmp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == targetEmpId);
                 if (enrollEmp != null)
                 {
                     enrollEmp.FaceId = "ENROLLED";
                     await _db.SaveChangesAsync();
-                }
-            }
-            else
-            {
-                // Verification: If the on-device biometric neural net indicates this is a different/new face, reject
-                if (dto.IsFaceIdNew == true)
-                {
-                    return BadRequest(new
-                    {
-                        message = "Face identity mismatch: The face in front of the camera does not match the enrolled face for this employee. Access denied.",
-                        requiresFace = true,
-                        isFaceEnrolled = true
-                    });
-                }
-
-                // Confidence threshold check
-                if (dto.FaceConfidence.HasValue && dto.FaceConfidence.Value < 0.65)
-                {
-                    return BadRequest(new
-                    {
-                        message = $"Face confidence score is too low ({dto.FaceConfidence.Value * 100:F0}%). Please align your face in good lighting and try again.",
-                        requiresFace = true,
-                        isFaceEnrolled = true
-                    });
                 }
             }
         }
@@ -640,20 +688,28 @@ public class AttendanceController : ControllerBase
             }
         }
 
-        // ── 3. PHOTO SAVE & ONNX SERVER-SIDE FACE VERIFICATION ──────────────
+        // ── 3. PHOTO SAVE & ONNX SERVER-SIDE IDENTITY VERIFICATION ─────────
+        // photoBytes was decoded in section 0 for face employees.
+        // For non-face employees who include a photo, decode it here.
         string? photoUrl = null;
-        double? calculatedConfidence = dto.FaceConfidence;
-        bool onDeviceVerified = dto.IsFaceIdNew == false;
+        double? calculatedConfidence = null;  // always server-measured; never seeded from client
 
-        if (!string.IsNullOrWhiteSpace(dto.PhotoBase64))
+        if (photoBytes == null && !string.IsNullOrWhiteSpace(dto.PhotoBase64))
         {
             try
             {
-                var base64Data = dto.PhotoBase64.Contains(',')
+                var b64 = dto.PhotoBase64.Contains(',')
                     ? dto.PhotoBase64[(dto.PhotoBase64.IndexOf(',') + 1)..]
                     : dto.PhotoBase64;
+                photoBytes = Convert.FromBase64String(b64);
+            }
+            catch { /* non-face photo decode failure is non-critical */ }
+        }
 
-                var photoBytes = Convert.FromBase64String(base64Data);
+        if (photoBytes != null)
+        {
+            try
+            {
                 var folderPath = Path.Combine(
                     Directory.GetCurrentDirectory(), "wwwroot", "attendance_photos",
                     today.Year.ToString(), today.Month.ToString("D2"), today.Day.ToString("D2"));
@@ -668,23 +724,23 @@ public class AttendanceController : ControllerBase
 
                 if (_faceRecognitionService.IsModelAvailable && enrolledPhotoBytes != null && enrolledPhotoBytes.Length > 0)
                 {
-                    // Threshold 0.40: with YuNet 5-point alignment, the genuine employee scores
-                    // ~0.9 and a different person ~0.1 (measured), so 0.40 separates them with a
-                    // wide safety margin in both directions.
-                    var matchResult = await _faceRecognitionService.CompareFacesAsync(photoBytes, enrolledPhotoBytes, threshold: 0.50f);
-                    
+                    // Read identity threshold from config (default 0.50 — do not change
+                    // until real calibration data is collected; see FaceVerification config).
+                    var identityThreshold = _configuration.GetValue<float>("FaceVerification:IdentityThreshold", 0.50f);
+                    var matchResult = await _faceRecognitionService.CompareFacesAsync(photoBytes, enrolledPhotoBytes, threshold: identityThreshold);
+
                     if (matchResult.IsSuccess)
                     {
                         calculatedConfidence = Math.Round((double)matchResult.SimilarityScore, 4);
-                        // Log score for threshold calibration
-                        Console.WriteLine($"[ONNX] score={matchResult.SimilarityScore:F4} isMatch={matchResult.IsMatch} onDevice={onDeviceVerified}");
+                        Console.WriteLine($"[ONNX] score={matchResult.SimilarityScore:F4} isMatch={matchResult.IsMatch} threshold={identityThreshold:F2}");
 
-                        if (requiresFace && !matchResult.IsMatch && !onDeviceVerified)
+                        // Server is the sole authority — no on-device bypass
+                        if (requiresFace && !matchResult.IsMatch)
                         {
                             return BadRequest(new
                             {
-                                message = $"Face identity mismatch: {matchResult.Message}",
-                                requiresFace = true,
+                                message    = $"Face identity mismatch: {matchResult.Message}",
+                                requiresFace   = true,
                                 isFaceEnrolled = true,
                                 confidence = calculatedConfidence
                             });
@@ -694,11 +750,8 @@ public class AttendanceController : ControllerBase
             }
             catch (Exception ex)
             {
-                // Photo saving/processing is non-critical for non-face fallback
-                if (requiresFace && ex is not FormatException)
-                {
-                    // Log warning and continue
-                }
+                if (requiresFace)
+                    Console.WriteLine($"[ONNX] Photo processing error: {ex.Message}");
             }
         }
 
@@ -1317,6 +1370,104 @@ public class AttendanceController : ControllerBase
         });
     }
 
+    // ── SuperAdmin calibration endpoint ─────────────────────────────────────
+    /// <summary>
+    /// PlatformSuperAdmin-only endpoint for calibrating liveness and identity thresholds.
+    ///
+    /// Accepts two photos and returns all intermediate AI pipeline scores without
+    /// recording any attendance. Use these scores to build an internal test dataset
+    /// and determine appropriate LivenessThreshold and IdentityThreshold values for
+    /// your specific camera, environment, and employee population.
+    ///
+    /// Security:
+    ///   - Requires IsPlatformUser JWT claim (server-signed, cannot be forged)
+    ///   - Returns 404 when CalibrationEndpointEnabled = false in config (invisible)
+    ///   - Does NOT create AttendanceLog or DailyAttendance records
+    ///   - Does NOT write images to disk
+    ///
+    /// Disable after calibration by setting:
+    ///   "FaceVerification": { "CalibrationEndpointEnabled": false }
+    /// </summary>
+    [HttpPost("debug-face-scores")]
+    public async Task<IActionResult> DebugFaceScores([FromBody] DebugFaceScoresRequestDto dto)
+    {
+        // ── Gate 1: disableable via config (returns 404 — endpoint is invisible) ──
+        var enabled = _configuration.GetValue<bool>("FaceVerification:CalibrationEndpointEnabled", false);
+        if (!enabled)
+            return NotFound();
+
+        // ── Gate 2: PlatformSuperAdmin only ──────────────────────────────────
+        var isPlatformAdmin = string.Equals(
+            User.FindFirst("IsPlatformUser")?.Value, "true",
+            StringComparison.OrdinalIgnoreCase);
+        if (!isPlatformAdmin)
+            return Forbid();
+
+        try
+        {
+            // ── Decode photos (never written to disk) ─────────────────────────
+            byte[] punchBytes;
+            byte[] enrolledBytes;
+            try
+            {
+                var p = dto.PunchPhotoBase64.Contains(',')
+                    ? dto.PunchPhotoBase64[(dto.PunchPhotoBase64.IndexOf(',') + 1)..]
+                    : dto.PunchPhotoBase64;
+                punchBytes = Convert.FromBase64String(p);
+
+                var e = dto.EnrolledPhotoBase64.Contains(',')
+                    ? dto.EnrolledPhotoBase64[(dto.EnrolledPhotoBase64.IndexOf(',') + 1)..]
+                    : dto.EnrolledPhotoBase64;
+                enrolledBytes = Convert.FromBase64String(e);
+            }
+            catch
+            {
+                return BadRequest(new { error = "Could not decode one or both base64 images." });
+            }
+
+            // ── Quality check ─────────────────────────────────────────────────
+            var quality = FaceQualityValidator.Validate(punchBytes);
+
+            // ── Liveness check ────────────────────────────────────────────────
+            var livenessThreshold = _configuration.GetValue<float>("FaceVerification:LivenessThreshold", 0.60f);
+            AntiSpoofResult? liveness = null;
+            if (_faceAntiSpoofingService.IsAvailable)
+                liveness = await _faceAntiSpoofingService.CheckLivenessAsync(punchBytes, livenessThreshold);
+
+            // ── Identity check ────────────────────────────────────────────────
+            var identityThreshold = _configuration.GetValue<float>("FaceVerification:IdentityThreshold", 0.50f);
+            FaceMatchResult? identity = null;
+            if (_faceRecognitionService.IsModelAvailable)
+                identity = await _faceRecognitionService.CompareFacesAsync(punchBytes, enrolledBytes, identityThreshold);
+
+            // ── Return all scores — no attendance side effects ─────────────────
+            return Ok(new
+            {
+                qualityAcceptable  = quality.IsAcceptable,
+                qualityFailReason  = quality.FailReason,
+                qualityUserMessage = quality.UserMessage,
+
+                livenessAvailable  = _faceAntiSpoofingService.IsAvailable,
+                livenessThreshold,
+                liveScoreV2        = liveness?.LiveScoreV2,
+                liveScoreV1SE      = liveness?.LiveScoreV1SE,
+                liveFusedScore     = liveness?.LiveScore,
+                isLive             = liveness?.IsLive,
+                livenessReason     = liveness?.Reason,
+
+                identityAvailable  = _faceRecognitionService.IsModelAvailable,
+                identityThreshold,
+                identitySimilarity = identity?.SimilarityScore,
+                isMatch            = identity?.IsMatch,
+                identityMessage    = identity?.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     // ── Haversine formula: returns distance in metres between two GPS points ──
     private static double HaversineDistanceMeters(double lat1, double lon1, double lat2, double lon2)
     {
@@ -1339,26 +1490,35 @@ public record PunchRequestDto(
     double? Longitude,
     string? PhotoBase64,
     /// <summary>
-    /// Set to true by the Flutter app after flutter_face_liveness passes.
-    /// Required for employees whose AttendanceType contains "face".
+    /// [IGNORED BY BACKEND] Retained for wire-compatibility with older app versions only.
+    /// The backend independently determines liveness via server-side ONNX inference
+    /// (MiniFASNetV2 + MiniFASNetV1SE fusion). The value sent by the client has no
+    /// effect on the attendance decision.
     /// </summary>
     bool? LivenessVerified = null,
     /// <summary>
-    /// Optional face similarity confidence score (0.0–1.0). Stored for audit.
+    /// Retained for wire-compatibility. The backend overwrites FaceConfidence in the
+    /// attendance log with the server-measured ONNX cosine similarity score.
     /// </summary>
     double? FaceConfidence = null,
     /// <summary>
-    /// Persistent face identity token from flutter_face_liveness FaceNet TFLite.
-    /// Format: "FID-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-    /// Null on first punch (enrollment). Must match stored FaceId on subsequent punches.
+    /// Retained for wire-compatibility. Not used in the server-side verification pipeline.
     /// </summary>
     string? FaceId = null,
     /// <summary>
-    /// Passed from flutter_face_liveness: false = on-device FaceNet already matched
-    /// this face against the stored embedding (same person). True = new/unrecognised face.
-    /// The backend uses this instead of string equality to handle slight embedding drift
-    /// between sessions.
+    /// [IGNORED BY BACKEND] Retained for wire-compatibility. The server does not trust
+    /// on-device face matching results. The onDeviceVerified bypass has been removed.
     /// </summary>
     bool? IsFaceIdNew = null
+);
+
+/// <summary>
+/// Request body for POST /api/attendance/debug-face-scores.
+/// Both images are base64-encoded JPEG (with or without data URI prefix).
+/// Neither image is written to disk — used only for in-memory AI pipeline scoring.
+/// </summary>
+public record DebugFaceScoresRequestDto(
+    string PunchPhotoBase64,
+    string EnrolledPhotoBase64
 );
 

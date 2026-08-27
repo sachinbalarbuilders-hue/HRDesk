@@ -26,7 +26,8 @@ builder.Services.Configure<HostOptions>(options =>
 
 // Add API controllers & services
 builder.Services.AddControllers();
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddCheck<HRDesk.Web.Services.AI.AiModelsHealthCheck>("ai_models");
 
 // Configure Authorization: Controllers use [Authorize]/[AllowAnonymous] attributes
 builder.Services.AddAuthorization(options =>
@@ -139,6 +140,7 @@ builder.Services.AddScoped<HRDesk.Web.Services.ILeaveAdjustmentService, HRDesk.W
 builder.Services.AddScoped<HRDesk.Web.Services.Email.IEmailService, HRDesk.Web.Services.Email.EmailService>();
 builder.Services.AddSingleton<HRDesk.Web.Services.IReferenceDataCacheService, HRDesk.Web.Services.ReferenceDataCacheService>();
 builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceRecognitionService, HRDesk.Web.Services.AI.FaceRecognitionService>();
+builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceAntiSpoofingService, HRDesk.Web.Services.AI.FaceAntiSpoofingService>();
 builder.Services.AddScoped<HRDesk.Web.Services.IImageGenerationService, HRDesk.Web.Services.ImageGenerationService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.CelebrationNotificationService>();
 builder.Services.AddHttpClient<HRDesk.Web.Services.Attendance.ITeamOfficeSyncService, HRDesk.Web.Services.Attendance.TeamOfficeSyncService>();

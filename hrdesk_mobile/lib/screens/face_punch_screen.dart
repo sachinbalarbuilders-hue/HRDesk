@@ -75,6 +75,9 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     setState(() => _capturing = true);
     try {
       final xFile = await _camera!.takePicture();
+      // Camera is initialized with ResolutionPreset.medium (~720p on most Android devices).
+      // This keeps JPEG payload to ~200–400 KB — suitable for mobile upload.
+      // Do not upgrade to ResolutionPreset.high; it will bloat the upload significantly.
       final bytes = await File(xFile.path).readAsBytes();
       setState(() {
         _capturedPhotoBase64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
@@ -96,7 +99,9 @@ class _FacePunchScreenState extends State<FacePunchScreen>
     final punchProvider = context.read<PunchProvider>();
     final user = authProvider.user;
     final employeeId = user?.employeeId;
-    if (user == null || employeeId == null || _capturedPhotoBase64 == null) return;
+    if (user == null || employeeId == null || _capturedPhotoBase64 == null) {
+      return;
+    }
 
     setState(() => _submitting = true);
     // Guarantee verified fresh position at time of punch
@@ -113,7 +118,8 @@ class _FacePunchScreenState extends State<FacePunchScreen>
       latitude: _position?.latitude,
       longitude: _position?.longitude,
       photoBase64: _capturedPhotoBase64,
-      livenessVerified: true, // selfie captured intentionally by the user
+      livenessVerified:
+          false, // Backend determines liveness via server-side ONNX — this field is ignored server-side
       faceConfidence: null,
       faceId: null,
       isFaceIdNew: null,
@@ -223,7 +229,9 @@ class _FacePunchScreenState extends State<FacePunchScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  _position != null ? Icons.location_on : Icons.location_searching,
+                  _position != null
+                      ? Icons.location_on
+                      : Icons.location_searching,
                   color: _position != null
                       ? const Color(0xFF0D9488)
                       : Colors.amberAccent,
