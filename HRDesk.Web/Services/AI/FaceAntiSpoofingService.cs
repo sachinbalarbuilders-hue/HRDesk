@@ -39,6 +39,7 @@ public sealed class FaceAntiSpoofingService : IFaceAntiSpoofingService, IDisposa
 
     private readonly ILogger<FaceAntiSpoofingService> _logger;
     private readonly IHostEnvironment _env;
+    private readonly IFaceRecognitionService _faceRecognition;
 
     private InferenceSession? _sessionV2;
     private InferenceSession? _sessionV1SE;
@@ -47,10 +48,12 @@ public sealed class FaceAntiSpoofingService : IFaceAntiSpoofingService, IDisposa
 
     public FaceAntiSpoofingService(
         ILogger<FaceAntiSpoofingService> logger,
-        IHostEnvironment env)
+        IHostEnvironment env,
+        IFaceRecognitionService faceRecognition)
     {
-        _logger = logger;
-        _env    = env;
+        _logger          = logger;
+        _env             = env;
+        _faceRecognition = faceRecognition;
         InitializeSessions();
     }
 
@@ -153,12 +156,32 @@ public sealed class FaceAntiSpoofingService : IFaceAntiSpoofingService, IDisposa
 
     /// <summary>
     /// Runs both models and fuses their live-class scores by simple averaging.
+    /// Uses YuNet face detection for the crop bounding box when available;
+    /// falls back to the center-crop heuristic if detection fails or returns null.
     /// </summary>
     private AntiSpoofResult RunFusion(byte[] imageBytes, float threshold)
     {
         using var image = Image.Load<Rgb24>(imageBytes);
 
-        var bbox = EstimateFaceBbox(image.Width, image.Height);
+        // ── Prefer YuNet-detected face bbox over the heuristic ────────────────
+        // The heuristic (centre 60%×70%) worked for genuine selfies but failed to
+        // expose screen texture artifacts for photo-on-screen attacks because it
+        // always crops around the centre regardless of where the face is.
+        // With a real detector the crop is face-centred and the scale-4.0 context
+        // window captures screen-frame / reflection cues outside the face region.
+        (int X, int Y, int W, int H) bbox;
+        var detectedBbox = _faceRecognition.DetectFaceBoundingBox(imageBytes);
+
+        if (detectedBbox.HasValue)
+        {
+            bbox = detectedBbox.Value;
+            Console.WriteLine($"[SPOOF] YuNet bbox: x={bbox.X} y={bbox.Y} w={bbox.W} h={bbox.H}");
+        }
+        else
+        {
+            bbox = EstimateFaceBbox(image.Width, image.Height);
+            Console.WriteLine($"[SPOOF] Heuristic bbox (no face detected): x={bbox.X} y={bbox.Y} w={bbox.W} h={bbox.H}");
+        }
 
         float liveV2   = RunModel(_sessionV2!,   image, bbox, ScaleV2);
         float liveV1SE = RunModel(_sessionV1SE!, image, bbox, ScaleV1SE);

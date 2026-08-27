@@ -393,6 +393,70 @@ public sealed class FaceRecognitionService : IFaceRecognitionService, IDisposabl
         return sim >= threshold;
     }
 
+    /// <summary>
+    /// Runs YuNet face detection and returns the bounding box (X, Y, W, H) of the
+    /// highest-confidence detected face in source-image coordinates, with padding.
+    ///
+    /// The bbox is derived from the 5 landmark points (min/max extents + 20% padding)
+    /// so it covers the full face area rather than just the landmark region.
+    ///
+    /// Returns null when YuNet is unavailable or no face is detected above confidence 0.6.
+    /// Callers should fall back to a center-crop heuristic when null is returned.
+    /// </summary>
+    public (int X, int Y, int W, int H)? DetectFaceBoundingBox(byte[] imageBytes)
+    {
+        if (imageBytes == null || imageBytes.Length == 0) return null;
+        if (_detectorSession == null) return null;
+
+        try
+        {
+            using var image = Image.Load<Rgb24>(imageBytes);
+            var landmarks = DetectFaceLandmarks(image);
+            if (landmarks == null) return null;
+
+            // Compute tight bbox from the 5 landmark points
+            float minX = float.MaxValue, minY = float.MaxValue;
+            float maxX = float.MinValue, maxY = float.MinValue;
+
+            for (int k = 0; k < 5; k++)
+            {
+                float lx = landmarks[k * 2];
+                float ly = landmarks[k * 2 + 1];
+                if (lx < minX) minX = lx;
+                if (ly < minY) minY = ly;
+                if (lx > maxX) maxX = lx;
+                if (ly > maxY) maxY = ly;
+            }
+
+            // Expand bbox by 40% each side to include forehead, chin, and ears —
+            // this matches the face region that MiniFASNet was trained on.
+            float landmarkW = maxX - minX;
+            float landmarkH = maxY - minY;
+            float side = Math.Max(landmarkW, landmarkH);
+            float pad  = side * 0.40f;
+
+            float cx = (minX + maxX) / 2f;
+            float cy = (minY + maxY) / 2f;
+
+            int bx = (int)Math.Max(0, cx - side / 2f - pad);
+            int by = (int)Math.Max(0, cy - side / 2f - pad * 1.2f); // extra top pad for forehead
+            int bx2 = (int)Math.Min(image.Width,  cx + side / 2f + pad);
+            int by2 = (int)Math.Min(image.Height, cy + side / 2f + pad);
+
+            int bw = bx2 - bx;
+            int bh = by2 - by;
+
+            if (bw < 20 || bh < 20) return null; // degenerate — ignore
+
+            return (bx, by, bw, bh);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[YuNet] DetectFaceBoundingBox failed; anti-spoofing will use heuristic bbox.");
+            return null;
+        }
+    }
+
     public async Task<FaceMatchResult> CompareFacesAsync(byte[] punchPhotoBytes, byte[] enrolledPhotoBytes, float threshold = 0.50f)
     {
         if (!IsModelAvailable)
