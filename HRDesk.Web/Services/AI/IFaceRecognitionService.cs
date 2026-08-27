@@ -29,4 +29,14 @@ public interface IFaceRecognitionService
     /// Used by <see cref="IFaceAntiSpoofingService"/> to replace the heuristic center-crop.
     /// </summary>
     (int X, int Y, int W, int H)? DetectFaceBoundingBox(byte[] imageBytes);
+
+    /// <summary>
+    /// Runs YuNet face detection and returns the raw 5-point landmark array
+    /// [rightEye_x, rightEye_y, leftEye_x, leftEye_y, nose_x, nose_y,
+    ///  rightMouth_x, rightMouth_y, leftMouth_x, leftMouth_y] in source-image
+    /// coordinates, or null when no face is detected above confidence 0.6.
+    /// Used by <see cref="IFaceMotionService"/> for temporal movement analysis.
+    /// Frame data is processed in memory and is NOT retained.
+    /// </summary>
+    float[]? DetectFaceLandmarks(byte[] imageBytes);
 }

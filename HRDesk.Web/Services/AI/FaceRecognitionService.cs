@@ -394,6 +394,30 @@ public sealed class FaceRecognitionService : IFaceRecognitionService, IDisposabl
     }
 
     /// <summary>
+    /// Public wrapper: runs YuNet on raw image bytes and returns the 5-point
+    /// landmark array [rx,ry, lx,ly, nx,ny, rmx,rmy, lmx,lmy] in source
+    /// coordinates, or null when no face is detected.
+    /// Used by FaceMotionService for temporal movement analysis.
+    /// The frame bytes are processed in memory and NOT retained.
+    /// </summary>
+    public float[]? DetectFaceLandmarks(byte[] imageBytes)
+    {
+        if (imageBytes == null || imageBytes.Length == 0) return null;
+        if (_detectorSession == null) return null;
+
+        try
+        {
+            using var image = Image.Load<Rgb24>(imageBytes);
+            return DetectFaceLandmarks(image);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[YuNet] DetectFaceLandmarks(bytes) failed.");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Runs YuNet face detection and returns the bounding box (X, Y, W, H) of the
     /// highest-confidence detected face in source-image coordinates, with padding.
     ///

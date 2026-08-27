@@ -25,6 +25,8 @@ public class AttendanceController : ControllerBase
     private readonly ICurrentTenantProvider _tenantProvider;
     private readonly IFaceRecognitionService _faceRecognitionService;
     private readonly IFaceAntiSpoofingService _faceAntiSpoofingService;
+    private readonly IFaceMotionService _faceMotionService;
+    private readonly IFaceChallengeService _faceChallengeService;
     private readonly IConfiguration _configuration;
 
     public AttendanceController(
@@ -36,6 +38,8 @@ public class AttendanceController : ControllerBase
         ICurrentTenantProvider tenantProvider,
         IFaceRecognitionService faceRecognitionService,
         IFaceAntiSpoofingService faceAntiSpoofingService,
+        IFaceMotionService faceMotionService,
+        IFaceChallengeService faceChallengeService,
         IConfiguration configuration)
     {
         _db = db;
@@ -46,6 +50,8 @@ public class AttendanceController : ControllerBase
         _tenantProvider = tenantProvider;
         _faceRecognitionService = faceRecognitionService;
         _faceAntiSpoofingService = faceAntiSpoofingService;
+        _faceMotionService = faceMotionService;
+        _faceChallengeService = faceChallengeService;
         _configuration = configuration;
     }
 
@@ -425,6 +431,63 @@ public class AttendanceController : ControllerBase
         return Ok(new { date = targetDate.ToString("yyyy-MM-dd"), total = logs.Count, items = logs, logs });
     }
 
+    // ── Active Liveness: Request Challenge ──────────────────────────────────
+    /// <summary>
+    /// Issues a one-time, short-lived, random head-movement challenge.
+    ///
+    /// The client must:
+    ///   1. Display the instruction to the user.
+    ///   2. Record exactly FrameCount JPEG frames at IntervalMs intervals
+    ///      starting immediately after the instruction appears.
+    ///   3. Send { challengeId, frames[] } to POST /api/attendance/punch.
+    ///      The client must NOT send any boolean like "challengeCompleted".
+    ///      The server independently verifies the frames.
+    ///
+    /// Security: challenge is bound to (employeeId, punchType), expires in
+    /// ChallengeTtlSeconds, and is one-time use. Replay attacks are rejected.
+    /// </summary>
+    [HttpPost("request-challenge")]
+    public async Task<IActionResult> RequestChallenge([FromBody] RequestChallengeDto dto)
+    {
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        var targetEmpId  = dto.EmployeeId ?? currentEmpId;
+
+        if (!targetEmpId.HasValue)
+        {
+            return BadRequest(new { message = "No employee profile associated with this account." });
+        }
+
+        // Confirm this is a face-attendance employee before issuing a challenge
+        var employee = await _db.Employees
+            .AsNoTracking()
+            .Select(e => new { e.EmployeeId, e.AttendanceType })
+            .FirstOrDefaultAsync(e => e.EmployeeId == targetEmpId.Value);
+
+        if (employee == null)
+            return BadRequest(new { message = "Employee not found." });
+
+        var attType = employee.AttendanceType?.ToLowerInvariant() ?? "";
+        if (!attType.Contains("face"))
+        {
+            return BadRequest(new
+            {
+                message = "Active liveness challenge is only required for face attendance employees."
+            });
+        }
+
+        var challenge = _faceChallengeService.Issue(targetEmpId.Value, dto.PunchType ?? "in");
+
+        return Ok(new
+        {
+            challengeId   = challenge.ChallengeId,
+            challengeType = challenge.ChallengeType.ToString(),
+            instruction   = challenge.Instruction,
+            expiresAt     = challenge.ExpiresAt,
+            frameCount    = challenge.FrameCount,
+            intervalMs    = challenge.IntervalMs,
+        });
+    }
+
     [HttpPost("punch")]
     public async Task<IActionResult> PunchIn([FromBody] PunchRequestDto dto)
     {
@@ -481,6 +544,106 @@ public class AttendanceController : ControllerBase
         }
         bool requiresFace = attType.Contains("face");
         byte[]? enrolledPhotoBytes = null;
+
+        if (requiresFace)
+        {
+            // ── -1. ACTIVE CHALLENGE VERIFICATION (fail-closed) ───────────────
+            // The client must obtain a challenge via POST /api/attendance/request-challenge
+            // BEFORE calling this endpoint and must send back the challengeId plus the
+            // raw frame sequence. The server independently verifies the head movement.
+            //
+            // Security properties:
+            //   - dto.ChallengeId is validated against server-side state (MemoryCache).
+            //   - Challenge is bound to (targetEmpId, punchType) — cannot reuse across employees.
+            //   - Challenge is one-time: marked used on first Consume(), replay → null.
+            //   - Challenge expires in ChallengeTtlSeconds (default 30s) regardless of use.
+            //   - The server runs YuNet on each frame to measure nose-offset delta across time.
+            //   - No client-supplied boolean can claim the challenge passed.
+
+            if (string.IsNullOrWhiteSpace(dto.ChallengeId))
+            {
+                return BadRequest(new
+                {
+                    message = "A liveness challenge is required. Please call /api/attendance/request-challenge first.",
+                    requiresChallenge = true,
+                    requiresFace = true
+                });
+            }
+
+            if (dto.Frames == null || dto.Frames.Count < 2)
+            {
+                return BadRequest(new
+                {
+                    message = "Frame sequence is missing or too short. Please complete the liveness challenge.",
+                    requiresChallenge = true,
+                    requiresFace = true
+                });
+            }
+
+            // Consume the challenge — validates binding and one-time use
+            var punchTypeForChallenge = (dto.PunchType ?? "in").Trim().ToLowerInvariant();
+            var challenge = _faceChallengeService.Consume(dto.ChallengeId, targetEmpId, punchTypeForChallenge);
+
+            if (challenge == null)
+            {
+                // Unknown, expired, already used, or binding mismatch — fail closed
+                return BadRequest(new
+                {
+                    message = "Liveness challenge is invalid, expired, or already used. Please start a new attendance attempt.",
+                    requiresChallenge = true,
+                    requiresFace = true
+                });
+            }
+
+            // Decode frames from base64
+            List<byte[]> frameBytesList;
+            try
+            {
+                frameBytesList = dto.Frames.Select(f =>
+                {
+                    var b64 = f.Contains(',') ? f[(f.IndexOf(',') + 1)..] : f;
+                    return Convert.FromBase64String(b64);
+                }).ToList();
+            }
+            catch
+            {
+                return BadRequest(new
+                {
+                    message = "One or more frames could not be decoded. Please retry the liveness challenge.",
+                    requiresChallenge = true,
+                    requiresFace = true,
+                    retryable = true
+                });
+            }
+
+            // Run temporal motion analysis using YuNet landmarks
+            var minTurnDelta = _configuration.GetValue<float>("FaceVerification:ChallengeMinTurnDelta", 0.15f);
+            var motionResult = await _faceMotionService.VerifyMotionAsync(
+                frameBytesList, challenge.ChallengeType, minTurnDelta);
+
+            Console.WriteLine(
+                $"[CHALLENGE] type={challenge.ChallengeType} verified={motionResult.IsVerified} " +
+                $"offsets=[{string.Join(",", motionResult.FrameOffsets.Select(o => o.ToString("F3")))}]");
+
+            if (!motionResult.IsVerified)
+            {
+                // Motion check failed — neutral message, does not reveal algorithm details
+                return BadRequest(new
+                {
+                    message = motionResult.FailReason ?? "Liveness challenge not completed. Please follow the on-screen instruction clearly.",
+                    requiresChallenge = true,
+                    requiresFace = true,
+                    retryable = true
+                });
+            }
+
+            // Challenge passed — use the last frame as the attendance photo
+            // (frame index = FrameCount-1, i.e. the most turned position)
+            // Override dto.PhotoBase64 with the last frame for the rest of the pipeline.
+            // The last frame is the final position — clearest face for identity matching.
+            var lastFrameB64 = dto.Frames[^1];
+            dto = dto with { PhotoBase64 = lastFrameB64 };
+        }
 
         if (requiresFace)
         {
@@ -1509,7 +1672,27 @@ public record PunchRequestDto(
     /// [IGNORED BY BACKEND] Retained for wire-compatibility. The server does not trust
     /// on-device face matching results. The onDeviceVerified bypass has been removed.
     /// </summary>
-    bool? IsFaceIdNew = null
+    bool? IsFaceIdNew = null,
+    /// <summary>
+    /// One-time challenge token obtained from POST /api/attendance/request-challenge.
+    /// Required for face attendance employees. The server validates this against
+    /// server-side state — sending a fake or reused ID will be rejected.
+    /// </summary>
+    string? ChallengeId = null,
+    /// <summary>
+    /// Sequence of base64-encoded JPEG frames captured during the challenge window.
+    /// Order matters: frame[0] = baseline (face forward), frame[N-1] = peak movement.
+    /// The server runs YuNet on each frame to verify temporal head movement.
+    /// Intermediate frames are processed in memory only — not written to disk.
+    /// The last frame is used as the attendance photo.
+    /// </summary>
+    IReadOnlyList<string>? Frames = null
+);
+
+/// <summary>Request body for POST /api/attendance/request-challenge.</summary>
+public record RequestChallengeDto(
+    int? EmployeeId = null,
+    string? PunchType = null
 );
 
 /// <summary>

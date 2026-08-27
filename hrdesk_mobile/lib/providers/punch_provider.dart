@@ -63,6 +63,8 @@ class PunchProvider extends ChangeNotifier {
     }
   }
 
+  /// Legacy punch — used for non-face attendance types (IP, GPS, web).
+  /// For face attendance the new [punchWithChallenge] method is used instead.
   Future<bool> punch({
     required int employeeId,
     required String punchType,
@@ -105,6 +107,81 @@ class PunchProvider extends ChangeNotifier {
         _message = '$_message (Match: ${(conf * 100).toStringAsFixed(1)}%)';
       }
       // Prefer the server's authoritative state; fall back to the requested action.
+      if (res.data is Map && res.data['isClockedIn'] != null) {
+        _isClockedIn = res.data['isClockedIn'] == true;
+      } else {
+        _isClockedIn = punchType == 'in';
+      }
+      await fetchTodayStatus();
+      return true;
+    } catch (e) {
+      _state = PunchState.error;
+      _message = _parseError(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── Active Liveness Challenge ──────────────────────────────────────────────
+
+  /// Calls POST /api/attendance/request-challenge.
+  /// Returns the raw response map on success, or null on failure.
+  /// _message is set to the error description on failure.
+  Future<Map<String, dynamic>?> requestChallenge({
+    required int? employeeId,
+    required String punchType,
+  }) async {
+    try {
+      final body = <String, dynamic>{
+        'punchType': punchType,
+        if (employeeId != null) 'employeeId': employeeId,
+      };
+      final res = await _api.dio.post(
+        '/attendance/request-challenge',
+        data: body,
+      );
+      return res.data as Map<String, dynamic>?;
+    } catch (e) {
+      _message = _parseError(e);
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Submits the completed challenge + captured frame sequence to
+  /// POST /api/attendance/punch. The server verifies movement independently.
+  /// Returns true on success.
+  Future<bool> punchWithChallenge({
+    required int employeeId,
+    required String punchType,
+    required String challengeId,
+    required List<String> frames,
+    double? latitude,
+    double? longitude,
+  }) async {
+    _state = PunchState.loading;
+    _message = null;
+    notifyListeners();
+
+    try {
+      final body = <String, dynamic>{
+        'employeeId': employeeId,
+        'punchType': punchType,
+        'source': 'Face',
+        'challengeId': challengeId,
+        'frames': frames,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+      };
+
+      final res = await _api.dio.post('/attendance/punch', data: body);
+
+      _state = PunchState.success;
+      _message = res.data['message'] ?? 'Attendance recorded.';
+      if (res.data['confidence'] != null) {
+        final double conf = (res.data['confidence'] as num).toDouble();
+        _message = '$_message (Match: ${(conf * 100).toStringAsFixed(1)}%)';
+      }
       if (res.data is Map && res.data['isClockedIn'] != null) {
         _isClockedIn = res.data['isClockedIn'] == true;
       } else {

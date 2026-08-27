@@ -7,7 +7,7 @@ import '../providers/punch_provider.dart';
 import '../providers/branch_provider.dart';
 import '../providers/dashboard_provider.dart';
 import 'package:intl/intl.dart';
-import 'face_punch_screen.dart';
+import 'face_challenge_screen.dart';
 import 'attendance/day_activity_sheet.dart';
 import 'dashboard/widgets/dashboard_header.dart';
 import 'dashboard/widgets/hero_shift_card.dart';
@@ -81,7 +81,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final result = await Navigator.push<bool>(
         context,
         MaterialPageRoute(
-          builder: (_) => FacePunchScreen(punchType: punchType),
+          builder: (_) => FaceChallengeScreen(punchType: punchType),
         ),
       );
       if (result == true) {

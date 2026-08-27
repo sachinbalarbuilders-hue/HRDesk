@@ -141,6 +141,8 @@ builder.Services.AddScoped<HRDesk.Web.Services.Email.IEmailService, HRDesk.Web.S
 builder.Services.AddSingleton<HRDesk.Web.Services.IReferenceDataCacheService, HRDesk.Web.Services.ReferenceDataCacheService>();
 builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceRecognitionService, HRDesk.Web.Services.AI.FaceRecognitionService>();
 builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceAntiSpoofingService, HRDesk.Web.Services.AI.FaceAntiSpoofingService>();
+builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceMotionService, HRDesk.Web.Services.AI.FaceMotionService>();
+builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceChallengeService, HRDesk.Web.Services.AI.FaceChallengeService>();
 builder.Services.AddScoped<HRDesk.Web.Services.IImageGenerationService, HRDesk.Web.Services.ImageGenerationService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.CelebrationNotificationService>();
 builder.Services.AddHttpClient<HRDesk.Web.Services.Attendance.ITeamOfficeSyncService, HRDesk.Web.Services.Attendance.TeamOfficeSyncService>();
