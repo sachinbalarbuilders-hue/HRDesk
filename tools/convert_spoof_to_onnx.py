@@ -72,11 +72,33 @@ def load_model(pth_path: str, model_type: str):
     # num_classes=3 matches the original repo training config (live / spoof / unknown)
     model = cls(conv6_kernel=(5, 5), num_classes=3)
 
-    checkpoint = torch.load(pth_path, map_location="cpu")
+    checkpoint = torch.load(pth_path, map_location="cpu", weights_only=False)
     # Checkpoints may be wrapped in a dict with a "state_dict" key
     state_dict = checkpoint.get("state_dict", checkpoint)
     # Strip any "module." prefix added by DataParallel
     state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
+
+    # Key-name compatibility fix for MiniFASNetV1SE / MiniFASNetSE:
+    # Older checkpoints stored SE sub-layer weights as flat attributes on
+    # Depth_Wise_SE (e.g. "...se_fc1.weight", "...se_bn1.weight") while the
+    # current MiniFASNet.py wraps them inside a nested SEModule
+    # ("...se_module.fc1.weight", "...se_module.bn1.weight").
+    # Remap so load_state_dict succeeds without strict=False data loss.
+    remap = {
+        "se_fc1":  "se_module.fc1",
+        "se_bn1":  "se_module.bn1",
+        "se_fc2":  "se_module.fc2",
+        "se_bn2":  "se_module.bn2",
+    }
+    remapped = {}
+    for k, v in state_dict.items():
+        new_k = k
+        for old_fragment, new_fragment in remap.items():
+            if old_fragment in k:
+                new_k = k.replace(old_fragment, new_fragment)
+                break
+        remapped[new_k] = v
+    state_dict = remapped
     model.load_state_dict(state_dict)
     model.eval()
 
@@ -85,28 +107,38 @@ def load_model(pth_path: str, model_type: str):
 
 
 def export_to_onnx(model, onnx_path: str) -> None:
-    """Export a PyTorch model to ONNX with opset 12.
+    """Export a PyTorch model to ONNX with opset 17, single self-contained file.
 
     Input shape: (1, 3, 80, 80)  — NCHW, float32, RGB, values in [0, 1]
     Output shape: (1, 3)         — raw logits for [spoof, live, unknown]
+
+    Uses the TorchScript-based (legacy) exporter explicitly via dynamo=False to
+    produce a single self-contained .onnx file without external data files.
+    This is required for ONNX Runtime in-process loading in the .NET backend.
     """
     import torch  # noqa: PLC0415
 
     dummy_input = torch.zeros(1, 3, 80, 80, dtype=torch.float32)
 
-    torch.onnx.export(
-        model,
-        dummy_input,
-        onnx_path,
-        opset_version=12,
-        input_names=["input"],
-        output_names=["output"],
-        dynamic_axes={
-            "input": {0: "batch_size"},
-            "output": {0: "batch_size"},
-        },
-        do_constant_folding=True,
-    )
+    # Force the legacy TorchScript tracer (dynamo=False) which always writes all
+    # weights inline into the .onnx file. The dynamo exporter (default in PT 2.x)
+    # produces external data format which ONNX Runtime cannot load as a single file.
+    with torch.no_grad():
+        torch.onnx.export(
+            model,
+            dummy_input,
+            onnx_path,
+            export_params=True,
+            opset_version=17,
+            do_constant_folding=True,
+            input_names=["input"],
+            output_names=["output"],
+            dynamic_axes={
+                "input":  {0: "batch_size"},
+                "output": {0: "batch_size"},
+            },
+            dynamo=False,
+        )
     print(f"  Exported ONNX -> '{onnx_path}'")
 
 
