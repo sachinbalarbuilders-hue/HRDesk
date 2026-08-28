@@ -213,6 +213,28 @@ public class PayGroupsApiController : ControllerBase
         return Ok(new { message = $"{employees.Count} employee(s) assigned to pay group." });
     }
 
+    // ── POST unassign employees ───────────────────────────────────────────────
+
+    [HttpPost("unassign")]
+    public async Task<IActionResult> UnassignEmployees([FromBody] AssignEmployeesDto dto)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
+            return Forbid();
+
+        if (dto.EmployeeIds == null || !dto.EmployeeIds.Any())
+            return BadRequest(new { message = "No employee IDs provided." });
+
+        var employees = await _db.Employees
+            .Where(e => dto.EmployeeIds.Contains(e.EmployeeId))
+            .ToListAsync();
+
+        foreach (var emp in employees)
+            emp.PayGroupId = null;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = $"{employees.Count} employee(s) removed from pay group." });
+    }
+
     // ── GET PT slabs ──────────────────────────────────────────────────────────
 
     [HttpGet("pt-slabs")]

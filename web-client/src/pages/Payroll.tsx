@@ -12,6 +12,7 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { PayGroupsTab } from './settings/PayGroupsTab';
 import { SalaryTemplatesTab } from './settings/SalaryTemplatesTab';
 import { SalaryComponentsTab } from './settings/SalaryComponentsTab';
+import { EmployeeSalariesTab } from './settings/EmployeeSalariesTab';
 import {
   DollarSign,
   CreditCard,
@@ -34,7 +35,7 @@ import {
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 
-type PayrollView = 'register' | 'pay-groups' | 'salary-templates' | 'components';
+type PayrollView = 'register' | 'pay-groups' | 'salary-templates' | 'components' | 'employee-salaries';
 
 export const Payroll: React.FC = () => {
   const { hasPermission, isAdmin } = useAuth();
@@ -273,7 +274,8 @@ export const Payroll: React.FC = () => {
         <div className="flex items-center gap-1 border-b border-[var(--rule)] mb-4">
           {[
             { id: 'register' as PayrollView, label: 'Payroll Register', icon: <IndianRupee size={13} /> },
-            { id: 'pay-groups' as PayrollView, label: 'Pay Groups', icon: <Users size={13} /> },
+            { id: 'employee-salaries' as PayrollView, label: 'Employee Salaries', icon: <Users size={13} /> },
+            { id: 'pay-groups' as PayrollView, label: 'Pay Groups', icon: <Settings2 size={13} /> },
             { id: 'salary-templates' as PayrollView, label: 'Salary Templates', icon: <LayoutTemplate size={13} /> },
             { id: 'components' as PayrollView, label: 'Salary Components', icon: <Layers size={13} /> },
           ].map(tab => (
@@ -291,6 +293,9 @@ export const Payroll: React.FC = () => {
           ))}
         </div>
       )}
+
+      {/* Employee Salaries view */}
+      {view === 'employee-salaries' && <EmployeeSalariesTab />}
 
       {/* Pay Groups view */}
       {view === 'pay-groups' && <PayGroupsTab />}

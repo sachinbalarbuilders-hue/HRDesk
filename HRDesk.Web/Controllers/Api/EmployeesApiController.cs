@@ -430,6 +430,96 @@ END;";
     }
 
 
+    // ── GET salary overview (for Payroll > Employee Salaries tab) ────────────
+
+    [HttpGet("salary-overview")]
+    public async Task<IActionResult> GetSalaryOverview(
+        [FromQuery] string? search = null,
+        [FromQuery] int? departmentId = null,
+        [FromQuery] int? payGroupId = null)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
+            return Forbid();
+
+        var query = _db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.Designation)
+            .Include(e => e.PayGroup)
+            .Where(e => e.Status == "active");
+
+        query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.PayrollManageSalary);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(e => e.EmployeeName.Contains(search) || e.EmployeeId.ToString().Contains(search));
+
+        if (departmentId.HasValue)
+            query = query.Where(e => e.DepartmentId == departmentId.Value);
+
+        if (payGroupId.HasValue && payGroupId.Value == 0)
+            query = query.Where(e => e.PayGroupId == null);        // unassigned only
+        else if (payGroupId.HasValue)
+            query = query.Where(e => e.PayGroupId == payGroupId.Value);
+
+        var employees = await query
+            .OrderBy(e => e.EmployeeName)
+            .Select(e => new
+            {
+                e.EmployeeId,
+                e.PublicId,
+                e.EmployeeName,
+                employeeCode = (string?)null,
+                department = e.Department != null ? e.Department.DepartmentName : null,
+                designation = e.Designation != null ? e.Designation.DesignationName : null,
+                e.PayGroupId,
+                payGroupName = e.PayGroup != null ? e.PayGroup.Name : null,
+                payGroupBasis = e.PayGroup != null ? e.PayGroup.SalaryBasis : null,
+            })
+            .ToListAsync();
+
+        // Fetch active CTC for all employees in one query
+        var empIds = employees.Select(e => e.EmployeeId).ToList();
+        var ctcRecords = await _db.EmployeeCTCs
+            .AsNoTracking()
+            .Include(c => c.Template)
+            .Where(c => empIds.Contains(c.EmployeeId) && c.EffectiveTo == null)
+            .Select(c => new
+            {
+                c.EmployeeId,
+                c.AnnualCTC,
+                c.TemplateId,
+                templateName = c.Template != null ? c.Template.Name : null,
+                effectiveFrom = c.EffectiveFrom.ToString("yyyy-MM-dd"),
+            })
+            .ToListAsync();
+
+        var ctcMap = ctcRecords.ToDictionary(c => c.EmployeeId);
+
+        var result = employees.Select(e =>
+        {
+            ctcMap.TryGetValue(e.EmployeeId, out var ctc);
+            return new
+            {
+                e.EmployeeId,
+                e.PublicId,
+                e.EmployeeName,
+                employeeCode     = $"EMP#{e.EmployeeId:D3}",
+                e.department,
+                e.designation,
+                e.PayGroupId,
+                e.payGroupName,
+                e.payGroupBasis,
+                annualCTC        = ctc?.AnnualCTC,
+                monthlyCTC       = ctc != null ? (decimal?)(ctc.AnnualCTC / 12) : null,
+                templateId       = ctc?.TemplateId,
+                templateName     = ctc?.templateName,
+                ctcEffectiveFrom = ctc?.effectiveFrom,
+            };
+        });
+
+        return Ok(result);
+    }
+
     [HttpGet("lookups")]
     public async Task<IActionResult> GetLookups()
     {
