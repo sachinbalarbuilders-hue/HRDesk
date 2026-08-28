@@ -34,12 +34,6 @@ const BASIS_LABELS: Record<string, string> = {
   PerDay: 'Per Day Rate',
 };
 
-const ROUNDING_LABELS: Record<string, string> = {
-  None: 'No rounding',
-  HalfDay: 'Round to nearest 0.5 day',
-  FullDay: 'Round up to full day',
-};
-
 const STATES = [
   'Andhra Pradesh', 'Karnataka', 'Maharashtra', 'Tamil Nadu', 'Telangana',
   'West Bengal', 'Kerala', 'Gujarat', 'Rajasthan', 'Madhya Pradesh',
@@ -47,7 +41,7 @@ const STATES = [
 ];
 
 const emptyForm = {
-  name: '', description: '', salaryBasis: 'CalendarDays', lopRounding: 'None',
+  name: '', description: '', salaryBasis: 'CalendarDays',
   pfApplicable: true, esiApplicable: true, ptApplicable: true,
   ptState: 'Telangana', templateId: '',
 };
@@ -84,7 +78,7 @@ export const PayGroupsTab: React.FC = () => {
     setEditId(g.id);
     setForm({
       name: g.name, description: g.description || '',
-      salaryBasis: g.salaryBasis, lopRounding: g.lopRounding,
+      salaryBasis: g.salaryBasis,
       pfApplicable: g.pfApplicable, esiApplicable: g.esiApplicable,
       ptApplicable: g.ptApplicable, ptState: g.ptState || 'Telangana',
       templateId: g.templateId?.toString() || '',
@@ -190,7 +184,6 @@ export const PayGroupsTab: React.FC = () => {
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-xs font-medium text-[var(--ink)]">{BASIS_LABELS[g.salaryBasis] ?? g.salaryBasis}</span>
-                      <p className="text-[10px] text-[var(--ink-muted)]">LOP: {ROUNDING_LABELS[g.lopRounding] ?? g.lopRounding}</p>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1.5 flex-wrap">
@@ -267,14 +260,6 @@ export const PayGroupsTab: React.FC = () => {
                 <label className="register-label">Salary Calculation Basis</label>
                 <select name="salaryBasis" value={form.salaryBasis} onChange={F} className="register-input w-full">
                   {Object.entries(BASIS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              </div>
-
-              {/* LOP Rounding */}
-              <div>
-                <label className="register-label">LOP Rounding</label>
-                <select name="lopRounding" value={form.lopRounding} onChange={F} className="register-input w-full">
-                  {Object.entries(ROUNDING_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
 
