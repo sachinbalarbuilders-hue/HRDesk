@@ -125,8 +125,17 @@ export const SalaryComponentsTab: React.FC = () => {
     }
   };
 
-  const F = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+  const F = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setForm(f => {
+      const updated = { ...f, [name]: value };
+      // Auto-generate code from name if code hasn't been manually edited
+      if (name === 'componentName' && !editId) {
+        updated.componentCode = value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+      }
+      return updated;
+    });
+  };
   const FC = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.checked }));
 
@@ -254,8 +263,8 @@ export const SalaryComponentsTab: React.FC = () => {
                   <input name="componentName" value={form.componentName} onChange={F} required placeholder="e.g. Travel Allowance" className="register-input w-full" />
                 </div>
                 <div>
-                  <label className="register-label">Code * <span className="text-[10px] text-[var(--ink-muted)] font-normal">(used in formulas)</span></label>
-                  <input name="componentCode" value={form.componentCode} onChange={F} required placeholder="e.g. TRAVEL" className="register-input w-full font-mono uppercase" />
+                  <label className="register-label">Code <span className="text-[10px] text-[var(--ink-muted)] font-normal">(auto-generated, used in formulas)</span></label>
+                  <input name="componentCode" value={form.componentCode} onChange={F} required placeholder="AUTO" className="register-input w-full font-mono uppercase" />
                 </div>
               </div>
 
