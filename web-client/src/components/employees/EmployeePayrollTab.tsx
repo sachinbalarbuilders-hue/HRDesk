@@ -29,7 +29,7 @@ interface Props {
   canEdit: boolean;
 }
 
-const empty = { annualCTC: '', templateId: '', effectiveFrom: '', salaryBasisOverride: '', remarks: '' };
+const empty = { annualCTC: '', templateId: '', effectiveFrom: '', remarks: '' };
 
 export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, canEdit }) => {
   const { showSuccess, showError } = useToast();
@@ -87,7 +87,6 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, canEdit }) => 
       annualCTC: active ? active.annualCTC.toString() : '',
       templateId: active ? active.templateId.toString() : '',
       effectiveFrom: new Date().toISOString().split('T')[0],
-      salaryBasisOverride: '',
       remarks: '',
     });
     setPreviewRows([]);
@@ -104,7 +103,7 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, canEdit }) => 
         annualCTC: parseFloat(form.annualCTC),
         templateId: parseInt(form.templateId),
         effectiveFrom: form.effectiveFrom,
-        salaryBasisOverride: form.salaryBasisOverride || null,
+        salaryBasisOverride: null,
         remarks: form.remarks || null,
       });
       showSuccess('CTC saved');
@@ -261,15 +260,13 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, canEdit }) => 
                 </select>
               </div>
               <div>
-                <label className="register-label">Salary Basis Override (optional)</label>
-                <select value={form.salaryBasisOverride} onChange={e => setForm(f => ({ ...f, salaryBasisOverride: e.target.value }))} className="register-input w-full">
-                  <option value="">— Use Pay Group default —</option>
-                  {Object.entries(BASIS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              </div>
-              <div>
                 <label className="register-label">Remarks</label>
-                <input value={form.remarks} onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))} placeholder="e.g. Annual increment 2026" className="register-input w-full" />
+                <input
+                  value={ctcForm.remarks}
+                  onChange={e => setCtcForm(f => ({ ...f, remarks: e.target.value }))}
+                  placeholder="e.g. Annual increment 2026"
+                  className="register-input w-full"
+                />
               </div>
 
               {/* Preview button */}
