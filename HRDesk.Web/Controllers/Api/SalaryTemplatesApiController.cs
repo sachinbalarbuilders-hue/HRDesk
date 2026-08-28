@@ -419,8 +419,8 @@ public class SalaryTemplatesApiController : ControllerBase
     private static string FormatFormula(TemplateComponent tc) => tc.CalculationType switch
     {
         "FixedAmount"        => $"Fixed ₹{tc.Value:N0}/month",
-        "PercentOfCTC"       => $"{tc.Value}% of Monthly CTC",
-        "PercentOfComponent" => $"{tc.Value}% of {tc.BaseComponentCode}",
+        "PercentOfCTC"       => $"{tc.Value:G29}% of Monthly CTC",
+        "PercentOfComponent" => $"{tc.Value:G29}% of {tc.BaseComponentCode}",
         "Remainder"          => "Monthly CTC − other earnings",
         "Statutory"          => "Auto-computed (PF/ESI/PT)",
         _                    => ""
