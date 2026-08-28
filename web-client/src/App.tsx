@@ -233,7 +233,7 @@ export const App: React.FC = () => {
                   >
                     <Route index element={<Payroll />} />
                     <Route path=":tab" element={<Payroll />} />
-                  />
+                  </Route>
                   <Route
                     path="recruitment"
                     element={
