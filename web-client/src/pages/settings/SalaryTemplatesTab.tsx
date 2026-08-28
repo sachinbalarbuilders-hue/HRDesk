@@ -183,7 +183,7 @@ export const SalaryTemplatesTab: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm text-[var(--ink)]">{t.name}</span>
-                      {t.isDefault && <span className="text-[10px] bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 px-1.5 py-0.5 rounded-[3px] font-bold">DEFAULT</span>}
+                      {t.isDefault && <span className="text-[10px] bg-[var(--accent-light)] text-[var(--accent)] px-1.5 py-0.5 rounded-[3px] font-bold">DEFAULT</span>}
                     </div>
                     {t.description && <p className="text-[11px] text-[var(--ink-muted)]">{t.description}</p>}
                   </div>
