@@ -20,9 +20,9 @@ const COMPONENT_TYPES = ['Earning', 'Deduction', 'Informational'];
 const CATEGORIES = ['Basic', 'Allowance', 'Statutory', 'Reimbursement', 'Bonus', 'Other'];
 
 const TYPE_COLORS: Record<string, string> = {
-  Earning: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-  Deduction: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-  Informational: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  Earning: 'bg-[var(--success-light)] text-[var(--success)]',
+  Deduction: 'bg-[var(--danger-light)] text-[var(--danger)]',
+  Informational: 'bg-[var(--info-light)] text-[var(--info)]',
 };
 
 const emptyForm = {
@@ -168,8 +168,8 @@ export const SalaryComponentsTab: React.FC = () => {
             onClick={() => setTypeFilter(t)}
             className={`text-xs px-3 py-1 rounded-full font-medium transition-colors ${
               typeFilter === t
-                ? 'bg-[var(--gold-500)] text-white'
-                : 'bg-[var(--surface-sunken)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             {t === 'all' ? 'All' : t}
@@ -188,7 +188,9 @@ export const SalaryComponentsTab: React.FC = () => {
         <div className="space-y-6">
           {grouped.map(({ type, items }) => (
             <div key={type}>
-              <p className="text-[11px] font-bold uppercase text-[var(--ink-muted)] mb-2 tracking-wider">{type}s</p>
+              <p className="text-[11px] font-bold uppercase text-[var(--ink-muted)] mb-2 tracking-wider flex items-center gap-2">
+                <span className={`px-2 py-0.5 rounded-[3px] text-[10px] font-bold ${TYPE_COLORS[type]}`}>{type}s</span>
+              </p>
               <div className="rounded-[4px] border border-[var(--rule)] overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-[var(--surface-sunken)] border-b border-[var(--rule)]">
@@ -225,7 +227,7 @@ export const SalaryComponentsTab: React.FC = () => {
                           <Dot on={c.isTaxable} />
                         </td>
                         <td className="px-4 py-2.5 text-center">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[3px] ${c.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--surface-sunken)] text-[var(--ink-muted)]'}`}>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[3px] ${c.isActive ? 'bg-[var(--success-light)] text-[var(--success)]' : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'}`}>
                             {c.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </td>
@@ -332,5 +334,5 @@ export const SalaryComponentsTab: React.FC = () => {
 
 // Small dot indicator
 const Dot: React.FC<{ on: boolean }> = ({ on }) => (
-  <span className={`inline-block w-2 h-2 rounded-full ${on ? 'bg-emerald-500' : 'bg-[var(--rule)]'}`} />
+  <span className={`inline-block w-2 h-2 rounded-full ${on ? 'bg-[var(--success)]' : 'bg-[var(--rule)]'}`} />
 );
