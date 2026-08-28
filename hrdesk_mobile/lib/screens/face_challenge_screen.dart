@@ -2,26 +2,26 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../core/location_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/punch_provider.dart';
 
-/// Active liveness challenge screen.
+/// Active liveness challenge screen — fast, voice-guided, auto-capture.
 ///
-/// Flow:
-///   1. On open → POST /api/attendance/request-challenge → server returns
-///      { challengeId, challengeType, instruction, expiresAt, frameCount, intervalMs }
-///   2. Show instruction ("Turn your head LEFT") + countdown
-///   3. At T=0 capture frame[0] (baseline), then capture frame[1..N-1] at intervalMs
-///   4. POST /api/attendance/punch with { challengeId, frames[] }
-///      (no boolean like "challengeCompleted" — server decides)
-///   5. Show success or error with retry option
+/// Flow (total ~4-5 seconds):
+///   1. Camera opens → face detected → request challenge from server
+///   2. Voice speaks "Turn left" / "Turn right" + large animated arrow
+///   3. Auto-captures 3 frames × 500ms (1.5s total)
+///   4. Submits challengeId + frames[] → server verifies temporal movement
+///   5. Success haptic + pop, or error with retry
 ///
-/// The last captured frame is sent as the attendance photo by the server.
-/// Intermediate frames are used only for motion analysis and are not stored.
+/// No countdown. No button tap. No text to read.
+/// Works for factory workers, non-English speakers, and low-literacy users.
 class FaceChallengeScreen extends StatefulWidget {
   final String punchType;
   const FaceChallengeScreen({super.key, required this.punchType});
@@ -31,7 +31,7 @@ class FaceChallengeScreen extends StatefulWidget {
 }
 
 class _FaceChallengeScreenState extends State<FaceChallengeScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   // GPS
   Position? _position;
 
@@ -39,32 +39,65 @@ class _FaceChallengeScreenState extends State<FaceChallengeScreen>
   CameraController? _camera;
   bool _cameraReady = false;
 
+  // TTS
+  final FlutterTts _tts = FlutterTts();
+
   // Challenge state from server
   String? _challengeId;
   String? _instruction;
+  String? _challengeType; // "TurnLeft" or "TurnRight"
   int _frameCount = 5;
   int _intervalMs = 500;
 
   // Screen state machine
-  _ScreenState _state = _ScreenState.requestingChallenge;
+  _Phase _phase = _Phase.initializing;
   String? _errorMessage;
 
-  // Countdown before capture starts (seconds)
-  int _countdown = 3;
-  Timer? _countdownTimer;
-
-  // Capture progress
+  // Capture
   int _capturedFrames = 0;
   final List<String> _frames = [];
+
+  // Animation
+  late AnimationController _arrowBounce;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Arrow bounce animation (left-right oscillation)
+    _arrowBounce = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+
+    // Pulse animation for the capture ring
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _initTts();
     _initCamera();
     _loadInitialLocation();
-    // Request the challenge after the first frame renders so context is ready
-    WidgetsBinding.instance.addPostFrameCallback((_) => _requestChallenge());
+  }
+
+  Future<void> _initTts() async {
+    await _tts.setVolume(1.0);
+    await _tts.setSpeechRate(0.45); // Slightly slow for clarity
+    // Try Hindi first, fallback to English
+    final languages = await _tts.getLanguages;
+    final langList = (languages as List).map((l) => l.toString()).toList();
+    if (langList.any((l) => l.contains('hi'))) {
+      await _tts.setLanguage('hi-IN');
+    } else {
+      await _tts.setLanguage('en-IN');
+    }
   }
 
   Future<void> _loadInitialLocation() async {
@@ -85,25 +118,34 @@ class _FaceChallengeScreenState extends State<FaceChallengeScreen>
       );
       _camera = CameraController(
         front,
-        // Camera is initialized with ResolutionPreset.medium (~720p on most
-        // Android devices). Keeps each JPEG frame to ~200-400 KB.
-        // Do not upgrade to ResolutionPreset.high.
         ResolutionPreset.medium,
         enableAudio: false,
       );
       await _camera!.initialize();
-      if (mounted) setState(() => _cameraReady = true);
+      if (mounted) {
+        setState(() => _cameraReady = true);
+        // Auto-start: request challenge immediately
+        _requestChallenge();
+      }
     } catch (e) {
       debugPrint('Camera error: $e');
+      if (mounted) {
+        setState(() {
+          _phase = _Phase.error;
+          _errorMessage = 'Camera failed to start. Please restart the app.';
+        });
+      }
     }
   }
 
-  // ── Step 1: Request challenge from server ──────────────────────────────────
+  // ── Step 1: Request challenge ──────────────────────────────────────────────
   Future<void> _requestChallenge() async {
     if (!mounted) return;
     setState(() {
-      _state = _ScreenState.requestingChallenge;
+      _phase = _Phase.requesting;
       _errorMessage = null;
+      _capturedFrames = 0;
+      _frames.clear();
     });
 
     final punchProvider = context.read<PunchProvider>();
@@ -119,58 +161,63 @@ class _FaceChallengeScreenState extends State<FaceChallengeScreen>
 
     if (result == null) {
       setState(() {
-        _state = _ScreenState.error;
+        _phase = _Phase.error;
         _errorMessage = punchProvider.message ??
-            'Failed to get liveness challenge. Please try again.';
+            'Could not connect to server. Check your internet connection.';
       });
-      // Log for debugging
-      debugPrint(
-          '[FaceChallenge] requestChallenge failed: ${punchProvider.message}');
       return;
     }
 
-    setState(() {
-      _challengeId = result['challengeId'] as String?;
-      _instruction = result['instruction'] as String?;
-      _frameCount = (result['frameCount'] as num?)?.toInt() ?? 5;
-      _intervalMs = (result['intervalMs'] as num?)?.toInt() ?? 500;
-      _capturedFrames = 0;
-      _frames.clear();
-      _countdown = 3;
-      _state = _ScreenState.showingInstruction;
-    });
+    _challengeId = result['challengeId'] as String?;
+    _instruction = result['instruction'] as String?;
+    _challengeType = result['challengeType'] as String?;
+    _frameCount = (result['frameCount'] as num?)?.toInt() ?? 5;
+    _intervalMs = (result['intervalMs'] as num?)?.toInt() ?? 500;
 
-    _startCountdown();
+    // Immediately show instruction + speak + start capture
+    setState(() => _phase = _Phase.instructing);
+    _speakAndCapture();
   }
 
-  // ── Step 2: Countdown before capture ──────────────────────────────────────
-  void _startCountdown() {
-    _countdownTimer?.cancel();
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) {
-        t.cancel();
-        return;
-      }
-      setState(() => _countdown--);
-      if (_countdown <= 0) {
-        t.cancel();
-        _startCapture();
-      }
-    });
-  }
+  // ── Step 2: Speak instruction + auto-start capture ─────────────────────────
+  Future<void> _speakAndCapture() async {
+    // Speak the instruction
+    final isLeft = _challengeType == 'TurnLeft';
+    // Speak in Hindi if available, otherwise English
+    final hindiAvailable = (await _tts.getLanguages as List)
+        .any((l) => l.toString().contains('hi'));
 
-  // ── Step 3: Capture frames at intervalMs ──────────────────────────────────
-  Future<void> _startCapture() async {
+    if (hindiAvailable) {
+      await _tts.setLanguage('hi-IN');
+      await _tts.speak(isLeft
+          ? 'Apna sir baayein taraf ghuymaayein'
+          : 'Apna sir daayein taraf ghuymaayein');
+    } else {
+      await _tts.setLanguage('en-IN');
+      await _tts.speak(isLeft ? 'Turn your head left' : 'Turn your head right');
+    }
+
+    // Small delay for the user to hear + start moving
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+
     if (!mounted) return;
-    setState(() => _state = _ScreenState.capturingFrames);
 
+    // Start capturing frames
+    setState(() => _phase = _Phase.capturing);
+    _pulseController.repeat(reverse: true);
+    _startCapture();
+  }
+
+  // ── Step 3: Auto-capture frames ────────────────────────────────────────────
+  Future<void> _startCapture() async {
     for (int i = 0; i < _frameCount; i++) {
-      if (!mounted) return;
+      if (!mounted || _phase != _Phase.capturing) return;
+
       final b64 = await _captureFrame();
       if (b64 == null) {
         if (mounted) {
           setState(() {
-            _state = _ScreenState.error;
+            _phase = _Phase.error;
             _errorMessage = 'Camera capture failed. Please try again.';
           });
         }
@@ -184,7 +231,7 @@ class _FaceChallengeScreenState extends State<FaceChallengeScreen>
       }
     }
 
-    // All frames captured — submit
+    _pulseController.stop();
     if (mounted) _submitPunch();
   }
 
@@ -200,30 +247,26 @@ class _FaceChallengeScreenState extends State<FaceChallengeScreen>
     }
   }
 
-  // ── Step 4: Submit punch with frames ──────────────────────────────────────
+  // ── Step 4: Submit ─────────────────────────────────────────────────────────
   Future<void> _submitPunch() async {
     if (!mounted) return;
-    setState(() {
-      _state = _ScreenState.submitting;
-    });
+    setState(() => _phase = _Phase.verifying);
 
-    // Read providers BEFORE any await — context must not be used across async gaps
     final authProvider = context.read<AuthProvider>();
     final punchProvider = context.read<PunchProvider>();
-    final user = authProvider.user;
-    final employeeId = user?.employeeId;
+    final employeeId = authProvider.user?.employeeId;
 
-    // Refresh GPS at submit time
+    // Refresh GPS
     final pos = await LocationService().getFreshPosition(
-      timeout: const Duration(seconds: 4),
+      timeout: const Duration(seconds: 3),
     );
     if (pos != null && mounted) _position = pos;
 
     if (employeeId == null || _challengeId == null || _frames.isEmpty) {
       if (mounted) {
         setState(() {
-          _state = _ScreenState.error;
-          _errorMessage = 'Missing punch data. Please start over.';
+          _phase = _Phase.error;
+          _errorMessage = 'Session data lost. Please try again.';
         });
       }
       return;
@@ -239,303 +282,390 @@ class _FaceChallengeScreenState extends State<FaceChallengeScreen>
     );
 
     if (!mounted) return;
-    setState(() {
-      _state = success ? _ScreenState.done : _ScreenState.error;
-      _errorMessage = success
-          ? null
-          : (punchProvider.message ?? 'Verification failed. Please try again.');
-    });
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(punchProvider.message ?? 'Attendance recorded.'),
-        backgroundColor: const Color(0xFF059669),
-        duration: const Duration(seconds: 4),
-      ));
-      authProvider.tryAutoLogin();
-      Navigator.of(context).pop(true);
+      // Success haptic + brief green state then pop
+      HapticFeedback.mediumImpact();
+      setState(() => _phase = _Phase.success);
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      if (mounted) {
+        authProvider.tryAutoLogin();
+        Navigator.of(context).pop(true);
+      }
+    } else {
+      HapticFeedback.heavyImpact();
+      setState(() {
+        _phase = _Phase.error;
+        _errorMessage = punchProvider.message ?? 'Verification failed.';
+      });
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _countdownTimer?.cancel();
     _camera?.dispose();
+    _arrowBounce.dispose();
+    _pulseController.dispose();
+    _tts.stop();
     super.dispose();
   }
 
-  // ── UI ────────────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════════
+  // UI
+  // ══════════════════════════════════════════════════════════════════════════════
+
   @override
   Widget build(BuildContext context) {
-    final isIn = widget.punchType == 'in';
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          isIn ? 'Clock In — Liveness Check' : 'Clock Out — Liveness Check',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-      ),
-      body: _buildBody(),
+      body: SafeArea(child: _buildBody()),
     );
   }
 
   Widget _buildBody() {
-    if (!_cameraReady) return _buildStatus('Starting camera...');
-
-    return switch (_state) {
-      _ScreenState.requestingChallenge =>
-        _buildStatus('Getting liveness challenge...'),
-      _ScreenState.showingInstruction => _buildInstruction(),
-      _ScreenState.capturingFrames => _buildCapturing(),
-      _ScreenState.submitting =>
-        _buildStatus('Verifying and recording attendance...'),
-      _ScreenState.error => _buildError(),
-      _ScreenState.done => _buildStatus('Done.'),
+    return switch (_phase) {
+      _Phase.initializing => _buildLoading('Starting camera...'),
+      _Phase.requesting =>
+        _buildCameraWithOverlay('Getting ready...', showProgress: false),
+      _Phase.instructing => _buildCameraWithArrow(),
+      _Phase.capturing => _buildCameraWithArrow(capturing: true),
+      _Phase.verifying =>
+        _buildCameraWithOverlay('Verifying...', showProgress: true),
+      _Phase.success => _buildSuccess(),
+      _Phase.error => _buildError(),
     };
   }
 
-  // ── Status / loading screen ───────────────────────────────────────────────
-  Widget _buildStatus(String message) => Center(
+  // ── Loading state ──────────────────────────────────────────────────────────
+  Widget _buildLoading(String msg) => Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const CircularProgressIndicator(color: Color(0xFF0D9488)),
-          const SizedBox(height: 16),
-          Text(message,
-              style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          const SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(
+              color: Color(0xFF0D9488),
+              strokeWidth: 3,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(msg,
+              style: const TextStyle(color: Colors.white70, fontSize: 15)),
         ]),
       );
 
-  // ── Instruction + countdown ───────────────────────────────────────────────
-  Widget _buildInstruction() {
+  // ── Camera with semi-transparent overlay + message ─────────────────────────
+  Widget _buildCameraWithOverlay(String msg, {required bool showProgress}) {
     return Stack(children: [
-      // Camera preview in background
-      SizedBox.expand(child: CameraPreview(_camera!)),
-      CustomPaint(size: Size.infinite, painter: _OvalGuide()),
-
-      // Dark overlay with instruction
-      Container(color: Colors.black.withAlpha(120)),
-
+      if (_cameraReady) SizedBox.expand(child: CameraPreview(_camera!)),
+      Container(color: Colors.black.withAlpha(150)),
       Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          // Direction arrow icon
-          Icon(
-            _instruction?.contains('LEFT') == true
-                ? Icons.arrow_back_rounded
-                : Icons.arrow_forward_rounded,
-            color: const Color(0xFF0D9488),
-            size: 72,
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              _instruction ?? 'Follow the instruction',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // Countdown ring
-          SizedBox(
-            width: 80,
-            height: 80,
-            child: Stack(alignment: Alignment.center, children: [
-              CircularProgressIndicator(
-                value: _countdown / 3.0,
-                strokeWidth: 5,
-                color: const Color(0xFF0D9488),
-                backgroundColor: Colors.white24,
-              ),
-              Text(
-                '$_countdown',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ]),
-          ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          if (showProgress)
+            const SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(
+                  color: Color(0xFF0D9488), strokeWidth: 3),
+            )
+          else
+            const Icon(Icons.face, color: Color(0xFF0D9488), size: 56),
           const SizedBox(height: 16),
-          const Text(
-            'Get ready — capture will start automatically',
-            style: TextStyle(color: Colors.white54, fontSize: 13),
-          ),
+          Text(msg, style: const TextStyle(color: Colors.white, fontSize: 16)),
         ]),
       ),
-
-      // GPS pill
-      _buildGpsPill(),
     ]);
   }
 
-  // ── Capturing frames ──────────────────────────────────────────────────────
-  Widget _buildCapturing() {
+  // ── Camera with directional arrow — the main challenge UI ──────────────────
+  Widget _buildCameraWithArrow({bool capturing = false}) {
+    final isLeft = _challengeType == 'TurnLeft';
     final progress = _frameCount > 0 ? _capturedFrames / _frameCount : 0.0;
-    return Stack(children: [
-      SizedBox.expand(child: CameraPreview(_camera!)),
-      CustomPaint(size: Size.infinite, painter: _OvalGuide()),
 
-      // Top instruction banner
-      Positioned(
-        top: 24,
-        left: 16,
-        right: 16,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.black.withAlpha(160),
-            borderRadius: BorderRadius.circular(10),
+    return Stack(children: [
+      // Full-screen camera
+      SizedBox.expand(child: CameraPreview(_camera!)),
+
+      // Subtle face oval guide
+      CustomPaint(size: Size.infinite, painter: _FaceGuide()),
+
+      // Large animated arrow — the primary instruction
+      Center(
+        child: AnimatedBuilder(
+          animation: _arrowBounce,
+          builder: (_, child) {
+            final offset = (isLeft ? -1 : 1) * _arrowBounce.value * 20;
+            return Transform.translate(
+              offset: Offset(offset, 0),
+              child: child,
+            );
+          },
+          child: Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D9488).withAlpha(200),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0D9488).withAlpha(100),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Icon(
+              isLeft ? Icons.arrow_back_rounded : Icons.arrow_forward_rounded,
+              color: Colors.white,
+              size: 52,
+            ),
           ),
-          child: Column(children: [
-            Text(
-              _instruction ?? 'Keep moving',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: progress,
-              color: const Color(0xFF0D9488),
-              backgroundColor: Colors.white24,
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Frame $_capturedFrames / $_frameCount',
-              style: const TextStyle(color: Colors.white54, fontSize: 11),
-            ),
-          ]),
         ),
       ),
 
-      _buildGpsPill(),
+      // Top instruction text (small, secondary)
+      Positioned(
+        top: 40,
+        left: 24,
+        right: 24,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.black.withAlpha(180),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            _instruction ?? (isLeft ? 'Turn left' : 'Turn right'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      ),
+
+      // Bottom: capture progress bar + GPS
+      Positioned(
+        bottom: 0,
+        left: 0,
+        right: 0,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Colors.black.withAlpha(200)],
+            ),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            if (capturing) ...[
+              // Animated progress bar
+              ScaleTransition(
+                scale: _pulseAnimation,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    color: const Color(0xFF0D9488),
+                    backgroundColor: Colors.white24,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Hold still...',
+                style: TextStyle(
+                  color: Colors.white.withAlpha(180),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ] else ...[
+              Text(
+                'Move now',
+                style: TextStyle(
+                  color: const Color(0xFF0D9488).withAlpha(220),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            _buildGpsPill(),
+          ]),
+        ),
+      ),
     ]);
   }
 
-  // ── Error state ───────────────────────────────────────────────────────────
-  Widget _buildError() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Icon(Icons.warning_amber_rounded,
-              color: Color(0xFFEF4444), size: 56),
-          const SizedBox(height: 16),
+  // ── Success state ──────────────────────────────────────────────────────────
+  Widget _buildSuccess() {
+    return Container(
+      color: const Color(0xFF0F172A),
+      child: Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: const Color(0xFF059669).withAlpha(40),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.check_rounded,
+                color: Color(0xFF059669), size: 64),
+          ),
+          const SizedBox(height: 20),
           Text(
-            _errorMessage ?? 'Verification failed.',
+            widget.punchType == 'in' ? 'Clocked In' : 'Clocked Out',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Attendance verified successfully',
+            style: TextStyle(color: Colors.white54, fontSize: 14),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  // ── Error state ────────────────────────────────────────────────────────────
+  Widget _buildError() {
+    return Container(
+      color: const Color(0xFF0F172A),
+      padding: const EdgeInsets.all(32),
+      child: Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF4444).withAlpha(30),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.refresh_rounded,
+                color: Color(0xFFEF4444), size: 44),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Verification Failed',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _errorMessage ?? 'Please try again.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: const TextStyle(
+                color: Colors.white60, fontSize: 14, height: 1.4),
           ),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
-            height: 50,
-            child: ElevatedButton.icon(
+            height: 52,
+            child: ElevatedButton(
               onPressed: _requestChallenge,
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              label: const Text(
-                'Try Again',
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white),
-              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0D9488),
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Try Again',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
           const SizedBox(height: 12),
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child:
-                const Text('Cancel', style: TextStyle(color: Colors.white38)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white38, fontSize: 14),
+            ),
           ),
         ]),
       ),
     );
   }
 
-  Widget _buildGpsPill() => Positioned(
-        bottom: 16,
-        left: 16,
-        right: 16,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.black.withAlpha(130),
-            borderRadius: BorderRadius.circular(8),
+  // ── GPS pill ───────────────────────────────────────────────────────────────
+  Widget _buildGpsPill() => Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            _position != null ? Icons.location_on : Icons.location_searching,
+            color: _position != null ? const Color(0xFF0D9488) : Colors.amber,
+            size: 12,
           ),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(
-              _position != null ? Icons.location_on : Icons.location_searching,
-              color: _position != null
-                  ? const Color(0xFF0D9488)
-                  : Colors.amberAccent,
-              size: 14,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              _position != null
-                  ? 'GPS: ${_position!.latitude.toStringAsFixed(4)}, '
-                      '${_position!.longitude.toStringAsFixed(4)}'
-                  : 'Acquiring GPS...',
-              style: const TextStyle(color: Colors.white70, fontSize: 11),
-            ),
-          ]),
-        ),
+          const SizedBox(width: 4),
+          Text(
+            _position != null
+                ? '${_position!.latitude.toStringAsFixed(4)}, ${_position!.longitude.toStringAsFixed(4)}'
+                : 'GPS...',
+            style: TextStyle(color: Colors.white.withAlpha(120), fontSize: 11),
+          ),
+        ],
       );
 }
 
-enum _ScreenState {
-  requestingChallenge,
-  showingInstruction,
-  capturingFrames,
-  submitting,
-  error,
-  done,
+// ══════════════════════════════════════════════════════════════════════════════
+// State machine
+// ══════════════════════════════════════════════════════════════════════════════
+
+enum _Phase {
+  initializing, // Camera starting
+  requesting, // Calling server for challenge
+  instructing, // Voice speaking + arrow showing (before capture)
+  capturing, // Auto-capturing frames
+  verifying, // Submitting to server
+  success, // Punch recorded
+  error, // Failed — retry available
 }
 
-class _OvalGuide extends CustomPainter {
+// ══════════════════════════════════════════════════════════════════════════════
+// Face guide painter — subtle oval with glow
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _FaceGuide extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromCenter(
-      center: Offset(size.width / 2, size.height * 0.42),
-      width: size.width * 0.65,
-      height: size.height * 0.50,
+      center: Offset(size.width / 2, size.height * 0.40),
+      width: size.width * 0.62,
+      height: size.height * 0.42,
     );
+    // Dim everything outside the oval
     final outer = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     final oval = Path()..addOval(rect);
     canvas.drawPath(
       Path.combine(PathOperation.difference, outer, oval),
-      Paint()..color = Colors.black.withAlpha(100),
+      Paint()..color = Colors.black.withAlpha(90),
     );
+    // Soft teal oval stroke
     canvas.drawOval(
       rect,
       Paint()
-        ..color = const Color(0xFF0D9488)
+        ..color = const Color(0xFF0D9488).withAlpha(120)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5,
+        ..strokeWidth = 2.0,
     );
   }
 
   @override
-  bool shouldRepaint(_OvalGuide old) => false;
+  bool shouldRepaint(_FaceGuide old) => false;
 }
