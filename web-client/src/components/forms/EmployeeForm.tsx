@@ -660,6 +660,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
         </div>
       </section>
+      )}
 
       {/* Buttons container - rendered in the parent to match design exactly, or here */}
       <div className="p-4 mt-6 border-t border-[var(--rule)] bg-[var(--paper)] shrink-0 flex items-center justify-end gap-2 -mx-5 -mb-5">
