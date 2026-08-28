@@ -85,6 +85,46 @@ public class PayrollMaster : IMustHaveTenant
     [Column("leave_breakdown")]
     public string? LeaveBreakdown { get; set; }
 
+    /// <summary>
+    /// Set when payroll is Approved or Paid.  Once set, the payroll engine
+    /// refuses to re-process this record unless an admin explicitly unlocks it.
+    /// </summary>
+    [Column("locked_at")]
+    public DateTime? LockedAt { get; set; }
+
+    /// <summary>Annual CTC snapshot at processing time (informational).</summary>
+    [Column("annual_ctc", TypeName = "decimal(14,2)")]
+    public decimal? AnnualCTC { get; set; }
+
+    /// <summary>Employer PF contribution (informational — not deducted from employee).</summary>
+    [Column("employer_pf", TypeName = "decimal(10,2)")]
+    public decimal? EmployerPF { get; set; }
+
+    /// <summary>Employer ESI contribution (informational).</summary>
+    [Column("employer_esi", TypeName = "decimal(10,2)")]
+    public decimal? EmployerESI { get; set; }
+
+    /// <summary>Professional Tax deducted this month.</summary>
+    [Column("professional_tax", TypeName = "decimal(8,2)")]
+    public decimal? ProfessionalTax { get; set; }
+
+    /// <summary>TDS (income tax) deducted this month.</summary>
+    [Column("tds", TypeName = "decimal(10,2)")]
+    public decimal? TDS { get; set; }
+
+    /// <summary>True when salary was prorated (mid-month joiner or exit).</summary>
+    [Column("is_prorated")]
+    public bool IsProrated { get; set; } = false;
+
+    /// <summary>Actual earning days used for proration (null = full month).</summary>
+    [Column("proration_days")]
+    public int? ProratedDays { get; set; }
+
+    /// <summary>Salary basis used for this payroll run (snapshot from PayGroup).</summary>
+    [Column("salary_basis")]
+    [StringLength(30)]
+    public string? SalaryBasis { get; set; }
+
     // Navigation properties
     public Employee? Employee { get; set; }
     public ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();

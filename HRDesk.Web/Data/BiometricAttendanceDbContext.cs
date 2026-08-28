@@ -68,6 +68,13 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     public DbSet<PayrollDetail> PayrollDetails => Set<PayrollDetail>();
 
+    // ── Payroll Phase 1: Pay Groups + CTC Templates ──────────────────────────
+    public DbSet<PayGroup> PayGroups => Set<PayGroup>();
+    public DbSet<SalaryStructureTemplate> SalaryStructureTemplates => Set<SalaryStructureTemplate>();
+    public DbSet<TemplateComponent> TemplateComponents => Set<TemplateComponent>();
+    public DbSet<EmployeeCTC> EmployeeCTCs => Set<EmployeeCTC>();
+    public DbSet<ProfessionalTaxSlab> ProfessionalTaxSlabs => Set<ProfessionalTaxSlab>();
+
     public DbSet<CompOffCredit> CompOffCredits { get; set; }
     public DbSet<SystemSetting> SystemSettings { get; set; }
     public DbSet<BiometricEmployeeMapping> BiometricEmployeeMappings { get; set; }
@@ -499,6 +506,60 @@ public sealed class BiometricAttendanceDbContext : DbContext
                 .HasForeignKey(d => d.ComponentId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
+
+        // ── Payroll Phase 1 entities ─────────────────────────────────────────
+        modelBuilder.Entity<PayGroup>(entity =>
+        {
+            entity.ToTable("pay_groups");
+            entity.HasOne(pg => pg.Template)
+                  .WithMany(t => t.PayGroups)
+                  .HasForeignKey(pg => pg.TemplateId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SalaryStructureTemplate>(entity =>
+        {
+            entity.ToTable("salary_structure_templates");
+        });
+
+        modelBuilder.Entity<TemplateComponent>(entity =>
+        {
+            entity.ToTable("template_components");
+            entity.HasOne(tc => tc.Template)
+                  .WithMany(t => t.Components)
+                  .HasForeignKey(tc => tc.TemplateId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(tc => tc.Component)
+                  .WithMany()
+                  .HasForeignKey(tc => tc.ComponentId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmployeeCTC>(entity =>
+        {
+            entity.ToTable("employee_ctc");
+            entity.HasOne(ec => ec.Employee)
+                  .WithMany()
+                  .HasForeignKey(ec => new { ec.OrganizationId, ec.EmployeeId })
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(ec => ec.Template)
+                  .WithMany(t => t.EmployeeCTCs)
+                  .HasForeignKey(ec => ec.TemplateId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ProfessionalTaxSlab>(entity =>
+        {
+            entity.ToTable("professional_tax_slabs");
+            entity.HasIndex(s => new { s.OrganizationId, s.State, s.MinGross });
+        });
+
+        // Employee → PayGroup relationship
+        modelBuilder.Entity<Employee>()
+            .HasOne(e => e.PayGroup)
+            .WithMany(pg => pg.Employees)
+            .HasForeignKey(e => e.PayGroupId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<LeaveTypeEligibility>(entity =>
         {

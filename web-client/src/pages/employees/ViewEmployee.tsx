@@ -11,6 +11,7 @@ import { EmployeeDocumentsTab } from '../../components/employees/EmployeeDocumen
 import { EmployeeAttendanceTab } from '../../components/employees/EmployeeAttendanceTab';
 import { EmployeeLeavesTab } from '../../components/employees/EmployeeLeavesTab';
 import { EmployeeIdCardTab } from '../../components/employees/EmployeeIdCardTab';
+import { EmployeePayrollTab } from '../../components/employees/EmployeePayrollTab';
 
 const formatDate = (dateStr: string | null | undefined) => {
   if (!dateStr) return '-';
@@ -41,7 +42,7 @@ export const ViewEmployee: React.FC = () => {
 
   // Tab state is stored in the URL as ?tab=... for bookmarkability
   const [searchParams, setSearchParams] = useSearchParams();
-  const VALID_TABS = ['details', 'attendance', 'leaves', 'records', 'idcard'] as const;
+  const VALID_TABS = ['details', 'attendance', 'leaves', 'records', 'idcard', 'payroll'] as const;
   type TabKey = typeof VALID_TABS[number];
   const rawTab = searchParams.get('tab') as TabKey | null;
   const profileTab: TabKey = rawTab && VALID_TABS.includes(rawTab) ? rawTab : 'details';
@@ -371,6 +372,18 @@ export const ViewEmployee: React.FC = () => {
           >
             ID Card
           </button>
+          {(isAdmin || hasPermission('Payroll.ManageSalary') || hasPermission('Employees.ViewSalary')) && (
+            <button
+              onClick={() => setProfileTab('payroll')}
+              className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
+                profileTab === 'payroll'
+                  ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
+                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              }`}
+            >
+              Payroll / CTC
+            </button>
+          )}
         </div>
 
         {/* Tab Content */}
@@ -393,6 +406,13 @@ export const ViewEmployee: React.FC = () => {
 
           {profileTab === 'idcard' && (
             <EmployeeIdCardTab employee={employee} />
+          )}
+
+          {profileTab === 'payroll' && (
+            <EmployeePayrollTab
+              employeeId={employee.employeeId}
+              canEdit={canEdit || hasPermission('Payroll.ManageSalary')}
+            />
           )}
         </div>
       </div>

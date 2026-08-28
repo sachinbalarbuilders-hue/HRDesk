@@ -113,6 +113,7 @@ public class PayrollController : ControllerBase
                 totalDeductions = p.TotalDeductions,
                 netSalary = p.NetSalary,
                 status = p.Status,
+                isLocked = p.LockedAt != null,
                 processedDate = p.ProcessedDate?.ToString("yyyy-MM-dd HH:mm"),
                 paymentDate = p.PaymentDate?.ToString("yyyy-MM-dd")
             })
@@ -246,6 +247,10 @@ public class PayrollController : ControllerBase
             month = record.Month,
             monthDisplay,
             status = record.Status,
+            isLocked = record.LockedAt != null,
+            salaryBasis = record.SalaryBasis,
+            isProrated = record.IsProrated,
+            proratedDays = record.ProratedDays,
             processedDate = record.ProcessedDate?.ToString("yyyy-MM-dd HH:mm"),
             paymentDate = record.PaymentDate?.ToString("yyyy-MM-dd"),
             organization = new
@@ -289,7 +294,11 @@ public class PayrollController : ControllerBase
                 totalEarnings = record.TotalEarnings,
                 totalDeductions = record.TotalDeductions,
                 netSalary = record.NetSalary,
-                netSalaryInWords = ConvertNumberToWords((int)record.NetSalary)
+                netSalaryInWords = ConvertNumberToWords((int)record.NetSalary),
+                employerPF  = record.EmployerPF,
+                employerESI = record.EmployerESI,
+                professionalTax = record.ProfessionalTax,
+                annualCTC   = record.AnnualCTC
             }
         });
     }
@@ -303,16 +312,48 @@ public class PayrollController : ControllerBase
         record.Status = dto.Status;
         if (dto.Status == "Approved")
         {
-            record.ApprovedBy = User.Identity?.Name;
+            record.ApprovedBy  = User.Identity?.Name;
             record.ApprovedDate = DateTime.Now;
+            record.LockedAt    = DateTime.Now;  // Lock on approval
         }
         else if (dto.Status == "Paid" && dto.PaymentDate.HasValue)
         {
             record.PaymentDate = dto.PaymentDate.Value;
+            record.LockedAt   = DateTime.Now;   // Lock on payment
+        }
+        else if (dto.Status == "Processed" || dto.Status == "Draft")
+        {
+            // Moving back to Draft/Processed removes the lock
+            record.LockedAt = null;
         }
 
         await _db.SaveChangesAsync();
-        return Ok(new { message = $"Payroll status updated to {dto.Status}." });
+        return Ok(new { message = $"Payroll status updated to {dto.Status}.", isLocked = record.LockedAt != null });
+    }
+
+    /// <summary>
+    /// Unlock a payroll record (Admin only).
+    /// Required before re-processing an Approved/Paid payroll.
+    /// </summary>
+    [HttpPost("{id}/unlock")]
+    public async Task<IActionResult> Unlock(int id)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollProcess))
+            return Forbid();
+
+        // Only platform superadmin or Admin can unlock — extra safety check
+        var isPlatformAdmin = string.Equals(
+            User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+        if (!isPlatformAdmin && !User.IsInRole("Admin") && !User.IsInRole("Super Admin"))
+            return Forbid();
+
+        var record = await _db.PayrollMasters.FirstOrDefaultAsync(p => p.Id == id);
+        if (record == null) return NotFound(new { message = "Payroll record not found." });
+
+        record.LockedAt = null;
+        record.Status   = "Processed"; // Reset to Processed so it can be re-approved
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Payroll record unlocked. It can now be re-processed or re-approved." });
     }
 
     [HttpPost("bulk-status")]
@@ -326,8 +367,13 @@ public class PayrollController : ControllerBase
             r.Status = dto.Status;
             if (dto.Status == "Approved")
             {
-                r.ApprovedBy = User.Identity?.Name;
+                r.ApprovedBy  = User.Identity?.Name;
                 r.ApprovedDate = DateTime.Now;
+                r.LockedAt    = DateTime.Now;
+            }
+            else if (dto.Status == "Paid")
+            {
+                r.LockedAt = DateTime.Now;
             }
         }
         await _db.SaveChangesAsync();

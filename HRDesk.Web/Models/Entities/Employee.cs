@@ -179,4 +179,15 @@ public sealed class Employee : IMustHaveTenant
     public string? PassportNumber { get; set; }
 
     public int? NoticePeriodDays { get; set; }
+
+    // ── Payroll ──────────────────────────────────────────────────────────────
+    /// <summary>
+    /// The Pay Group this employee belongs to.
+    /// Controls salary calculation basis (CalendarDays, Fixed26, PerDay, etc.),
+    /// PF/ESI/PT applicability, and the default salary structure template.
+    /// </summary>
+    [Column("pay_group_id")]
+    public int? PayGroupId { get; set; }
+
+    public PayGroup? PayGroup { get; set; }
 }

@@ -34,6 +34,26 @@ public class SalaryComponent : IMustHaveTenant
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+    /// <summary>
+    /// Category for statutory computation.
+    /// Earning | Deduction | EmployerContribution | Informational
+    /// </summary>
+    [Column("category")]
+    [StringLength(30)]
+    public string Category { get; set; } = "Allowance";
+
+    /// <summary>True = included in PF computation (Basic + DA).</summary>
+    [Column("is_epf_applicable")]
+    public bool IsEpfApplicable { get; set; } = false;
+
+    /// <summary>True = included in ESI gross computation.</summary>
+    [Column("is_esi_applicable")]
+    public bool IsEsiApplicable { get; set; } = false;
+
+    /// <summary>True = amount is taxable under income tax.</summary>
+    [Column("is_taxable")]
+    public bool IsTaxable { get; set; } = true;
+
     [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
     public int OrganizationId { get; set; }
 
