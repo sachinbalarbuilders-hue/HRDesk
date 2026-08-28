@@ -274,9 +274,9 @@ export const PayrollRegister: React.FC = () => {
       </div>
 
       {/* ── Filters + Search bar ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2">
         {/* Search */}
-        <div className="relative flex-1 min-w-48">
+        <div className="relative flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none" />
           <input
             value={search}
@@ -288,24 +288,22 @@ export const PayrollRegister: React.FC = () => {
         </div>
 
         {/* Status filter */}
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            className="register-input pl-3 text-sm"
-          >
-            <option value="all">All Statuses</option>
-            <option value="Draft">Draft</option>
-            <option value="Approved">Approved</option>
-            <option value="Paid">Paid</option>
-          </select>
-        </div>
+        <select
+          value={statusFilter}
+          onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+          className="register-input text-sm w-36 shrink-0"
+        >
+          <option value="all">All Statuses</option>
+          <option value="Draft">Draft</option>
+          <option value="Approved">Approved</option>
+          <option value="Paid">Paid</option>
+        </select>
 
         {/* Department filter */}
         <select
           value={departmentId}
           onChange={e => { setDepartmentId(e.target.value); setPage(1); }}
-          className="register-input text-sm"
+          className="register-input text-sm w-44 shrink-0"
         >
           <option value="">All Departments</option>
           {departments
@@ -319,7 +317,7 @@ export const PayrollRegister: React.FC = () => {
 
         {/* Record count */}
         {!loading && (
-          <span className="text-xs text-[var(--ink-muted)] whitespace-nowrap">
+          <span className="text-xs text-[var(--ink-muted)] whitespace-nowrap shrink-0">
             {totalCount} record{totalCount !== 1 ? 's' : ''}
           </span>
         )}
