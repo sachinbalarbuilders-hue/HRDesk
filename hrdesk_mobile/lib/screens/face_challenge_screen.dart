@@ -123,6 +123,9 @@ class _FaceChallengeScreenState extends State<FaceChallengeScreen>
         _errorMessage = punchProvider.message ??
             'Failed to get liveness challenge. Please try again.';
       });
+      // Log for debugging
+      debugPrint(
+          '[FaceChallenge] requestChallenge failed: ${punchProvider.message}');
       return;
     }
 
