@@ -56,8 +56,6 @@ export const PayrollRegister: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const [processModalOpen, setProcessModalOpen] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [skipLoans, setSkipLoans]   = useState(false);
   const [payslipModalOpen, setPayslipModalOpen] = useState(false);
   const [selectedPayslip, setSelectedPayslip]   = useState<any | null>(null);
   const [loadingPayslip, setLoadingPayslip]     = useState(false);
@@ -116,19 +114,6 @@ export const PayrollRegister: React.FC = () => {
     setPage(1);
     const [y, m] = selectedMonth.split('-').map(Number);
     setSelectedMonth(m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`);
-  };
-
-  const handleProcessPayroll = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setProcessing(true);
-      const res = await apiClient.post('/payroll/process', { month: selectedMonth, skipLoans });
-      showSuccess('Payroll Calculated', res.data.message || 'Processed successfully.');
-      setProcessModalOpen(false);
-      fetchRecords();
-    } catch (err: any) {
-      showError('Processing Failed', err.response?.data?.message || 'Server error during calculation');
-    } finally { setProcessing(false); }
   };
 
   const handleViewPayslip = async (id: number) => {
@@ -440,11 +425,8 @@ export const PayrollRegister: React.FC = () => {
         open={processModalOpen}
         onClose={() => setProcessModalOpen(false)}
         selectedMonth={selectedMonth}
-        onMonthChange={setSelectedMonth}
-        skipLoans={skipLoans}
-        onSkipLoansChange={setSkipLoans}
-        processing={processing}
-        onSubmit={handleProcessPayroll}
+        onDone={fetchRecords}
+        departments={departments.map((d: any) => ({ id: d.departmentId || d.id, name: d.departmentName }))}
       />
       <PayslipModal
         open={payslipModalOpen}

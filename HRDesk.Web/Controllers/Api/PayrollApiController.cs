@@ -450,6 +450,116 @@ public class PayrollController : ControllerBase
 
         return (words + " Rupees Only").Replace("  ", " ").Trim();
     }
+    /// <summary>
+    /// Returns list of employees eligible for payroll in a given month,
+    /// with warnings for missing CTC or pay group. Used by the Run Payroll wizard.
+    /// </summary>
+    [HttpGet("preview-run")]
+    public async Task<IActionResult> PreviewPayrollRun(
+        [FromQuery] string month,
+        [FromQuery] int? departmentId = null,
+        [FromQuery] string? employeeIds = null)
+    {
+        try
+        {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollProcess))
+            return Forbid();
+
+        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", out var monthStart))
+            return BadRequest(new { message = "Invalid month format. Use yyyy-MM." });
+
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+        // Parse specific employee IDs if provided
+        List<int>? filterIds = null;
+        if (!string.IsNullOrWhiteSpace(employeeIds))
+            filterIds = employeeIds.Split(',').Select(s => int.TryParse(s.Trim(), out var n) ? n : 0).Where(n => n > 0).ToList();
+
+        var query = _db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.PayGroup)
+            .Where(e => e.Status == "active" || e.Status == "Active");
+
+        if (departmentId.HasValue && departmentId.Value > 0)
+            query = query.Where(e => e.DepartmentId == departmentId.Value);
+
+        if (filterIds != null && filterIds.Any())
+            query = query.Where(e => filterIds.Contains(e.EmployeeId));
+
+        var employees = await query
+            .OrderBy(e => e.EmployeeName)
+            .Select(e => new
+            {
+                e.EmployeeId,
+                e.EmployeeName,
+                department = e.Department != null ? e.Department.DepartmentName : null,
+                e.PayGroupId,
+                payGroupName = e.PayGroup != null ? e.PayGroup.Name : null,
+            })
+            .ToListAsync();
+
+        var empIds = employees.Select(e => e.EmployeeId).ToList();
+
+        // Active CTCs for these employees — take most recent per employee
+        var ctcs = await _db.EmployeeCTCs
+            .AsNoTracking()
+            .Where(c => empIds.Contains(c.EmployeeId)
+                && c.EffectiveFrom <= monthEnd
+                && (c.EffectiveTo == null || c.EffectiveTo >= monthEnd))
+            .OrderByDescending(c => c.EffectiveFrom)
+            .ToListAsync();
+        var ctcMap = ctcs
+            .GroupBy(c => c.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        // Already processed this month?
+        var existing = await _db.PayrollMasters
+            .Where(p => empIds.Contains(p.EmployeeId) && p.Month == month)
+            .Select(p => new { p.EmployeeId, p.Status, p.LockedAt })
+            .ToListAsync();
+        var existingMap = existing.ToDictionary(p => p.EmployeeId);
+
+        var result = employees.Select(e =>
+        {
+            ctcMap.TryGetValue(e.EmployeeId, out var ctc);
+            existingMap.TryGetValue(e.EmployeeId, out var ex);
+
+            var warnings = new List<string>();
+            if (ctc == null) warnings.Add("No CTC assigned");
+            if (e.PayGroupId == null) warnings.Add("No pay group assigned");
+            if (ex?.LockedAt != null) warnings.Add("Payroll locked — will be skipped");
+
+            return new
+            {
+                e.EmployeeId,
+                e.EmployeeName,
+                e.department,
+                e.payGroupName,
+                annualCTC       = ctc?.AnnualCTC,
+                alreadyProcessed = ex != null,
+                isLocked        = ex?.LockedAt != null,
+                existingStatus  = ex?.Status,
+                warnings,
+                canProcess      = ctc != null && ex?.LockedAt == null,
+            };
+        }).ToList();
+
+        return Ok(new
+        {
+            month,
+            total       = result.Count,
+            canProcess  = result.Count(r => r.canProcess),
+            withWarnings = result.Count(r => r.warnings.Any()),
+            employees   = result,
+        });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message, detail = ex.InnerException?.Message });
+        }
+    }
+
 }
 
 public record ProcessPayrollDto(string Month, List<int>? EmployeeIds, bool SkipLoans);
