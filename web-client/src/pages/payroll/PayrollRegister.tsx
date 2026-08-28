@@ -4,16 +4,15 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useOrganization } from '../../context/CompanyContext';
 import { exportToCSV } from '../../utils/csvHelper';
-import { DataToolbar } from '../../components/ui/DataToolbar';
 import { PaginationToolbar } from '../../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../../components/ui/PageSkeleton';
 import { RowActionMenu } from '../../components/ui/RowActionMenu';
-import { PayrollMetrics } from './PayrollMetrics';
 import { ProcessPayrollModal } from './ProcessPayrollModal';
 import { PayslipModal } from './PayslipModal';
 import {
-  ChevronLeft, ChevronRight, Check, CreditCard,
-  FileText, Sparkles, Calculator, X,
+  ChevronLeft, ChevronRight, Check, CreditCard, FileText,
+  Sparkles, Calculator, X, Download, Search, Filter,
+  DollarSign, TrendingDown, CheckCircle2, Users2,
 } from 'lucide-react';
 
 const MONTH_NAMES = [
@@ -24,8 +23,14 @@ const MONTH_NAMES = [
 const getMonthDisplay = (yyyyMm: string) => {
   try {
     const [y, m] = yyyyMm.split('-').map(Number);
-    return `${MONTH_NAMES[m - 1]} ${y}`;
-  } catch { return yyyyMm; }
+    return { month: MONTH_NAMES[m - 1], year: String(y) };
+  } catch { return { month: yyyyMm, year: '' }; }
+};
+
+const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+  Draft:    { label: 'Draft',    cls: 'bg-[var(--warning-light)] text-[var(--warning)]' },
+  Approved: { label: 'Approved', cls: 'bg-[var(--success-light)] text-[var(--success)]' },
+  Paid:     { label: 'Paid',     cls: 'bg-[var(--info-light)] text-[var(--info)]' },
 };
 
 export const PayrollRegister: React.FC = () => {
@@ -36,35 +41,33 @@ export const PayrollRegister: React.FC = () => {
   const now = new Date();
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-  const [records, setRecords] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState<any>({});
-  const [loading, setLoading] = useState(true);
+  const [records, setRecords]       = useState<any[]>([]);
+  const [metrics, setMetrics]       = useState<any>({});
+  const [loading, setLoading]       = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
-  const [search, setSearch] = useState('');
+  const [search, setSearch]         = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [departments, setDepartments]   = useState<any[]>([]);
+  const [page, setPage]             = useState(1);
+  const [pageSize, setPageSize]     = useState(20);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
-  // Modals
   const [processModalOpen, setProcessModalOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [skipLoans, setSkipLoans] = useState(false);
+  const [skipLoans, setSkipLoans]   = useState(false);
   const [payslipModalOpen, setPayslipModalOpen] = useState(false);
-  const [selectedPayslip, setSelectedPayslip] = useState<any | null>(null);
-  const [loadingPayslip, setLoadingPayslip] = useState(false);
+  const [selectedPayslip, setSelectedPayslip]   = useState<any | null>(null);
+  const [loadingPayslip, setLoadingPayslip]     = useState(false);
 
   const canManage = isAdmin || hasPermission('Payroll.Process');
+  const { month, year } = getMonthDisplay(selectedMonth);
 
   const fetchLookups = useCallback(async () => {
     try {
-      const res = await apiClient.get('/employees/lookups', {
-        params: { branchId: currentBranch?.id || undefined },
-      });
+      const res = await apiClient.get('/employees/lookups', { params: { branchId: currentBranch?.id || undefined } });
       setDepartments(res.data?.departments || []);
     } catch { /* silent */ }
   }, [currentBranch?.id]);
@@ -79,8 +82,7 @@ export const PayrollRegister: React.FC = () => {
           departmentId: departmentId ? parseInt(departmentId) : undefined,
           status: statusFilter !== 'all' ? statusFilter : undefined,
           branchId: currentBranch?.id || undefined,
-          page,
-          pageSize,
+          page, pageSize,
         },
       });
       setRecords(res.data?.items || []);
@@ -89,9 +91,7 @@ export const PayrollRegister: React.FC = () => {
       setTotalPages(res.data?.totalPages || 1);
     } catch (err: any) {
       showError('Failed to load payroll', err.response?.data?.message || 'Network error');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [selectedMonth, search, departmentId, statusFilter, currentBranch?.id, page, pageSize]);
 
   useEffect(() => { fetchLookups(); }, [currentOrganization?.id, currentBranch?.id]);
@@ -112,7 +112,6 @@ export const PayrollRegister: React.FC = () => {
     const [y, m] = selectedMonth.split('-').map(Number);
     setSelectedMonth(m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`);
   };
-
   const handleNextMonth = () => {
     setPage(1);
     const [y, m] = selectedMonth.split('-').map(Number);
@@ -129,9 +128,7 @@ export const PayrollRegister: React.FC = () => {
       fetchRecords();
     } catch (err: any) {
       showError('Processing Failed', err.response?.data?.message || 'Server error during calculation');
-    } finally {
-      setProcessing(false);
-    }
+    } finally { setProcessing(false); }
   };
 
   const handleViewPayslip = async (id: number) => {
@@ -143,15 +140,13 @@ export const PayrollRegister: React.FC = () => {
     } catch (err: any) {
       showError('Failed to load payslip', err.response?.data?.message || 'Server error');
       setPayslipModalOpen(false);
-    } finally {
-      setLoadingPayslip(false);
-    }
+    } finally { setLoadingPayslip(false); }
   };
 
   const handleUpdateStatus = async (id: number, status: string) => {
     try {
       await apiClient.post(`/payroll/${id}/status`, { status });
-      showSuccess('Status Updated', `Payroll #${id} changed to ${status}.`);
+      showSuccess('Status Updated', `Changed to ${status}.`);
       fetchRecords();
     } catch (err: any) {
       showError('Update Failed', err.response?.data?.message || 'Server error');
@@ -162,7 +157,7 @@ export const PayrollRegister: React.FC = () => {
     if (!selectedIds.length) return;
     try {
       await apiClient.post('/payroll/bulk-status', { ids: selectedIds, status: 'Approved' });
-      showSuccess('Bulk Approved', `Approved ${selectedIds.length} payroll records.`);
+      showSuccess('Bulk Approved', `Approved ${selectedIds.length} records.`);
       setSelectedIds([]);
       fetchRecords();
     } catch (err: any) {
@@ -188,170 +183,270 @@ export const PayrollRegister: React.FC = () => {
   const toggleSelectId = (id: number) =>
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
+  const fmt = (n: number) => n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
   return (
-    <>
-      <PayrollMetrics metrics={metrics} totalCount={totalCount} />
+    <div className="space-y-4">
 
-      {/* Toolbar */}
-      <div className="space-y-3">
-        <DataToolbar
-          searchPlaceholder="Search employee by name in payroll..."
-          searchValue={search}
-          onSearchChange={setSearch}
-          filters={[
-            {
-              id: 'status', ariaLabel: 'Status Filter', value: statusFilter,
-              onChange: (v) => { setStatusFilter(v); setPage(1); },
-              options: [
-                { label: 'All Statuses', value: 'all' },
-                { label: 'Draft', value: 'Draft' },
-                { label: 'Approved', value: 'Approved' },
-                { label: 'Paid', value: 'Paid' },
-              ],
-            },
-            {
-              id: 'department', ariaLabel: 'Department Filter', value: departmentId,
-              onChange: (v) => { setDepartmentId(v); setPage(1); },
-              options: [
-                { value: '', label: 'All Departments' },
-                ...departments
-                  .filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
-                  .map((d: any) => ({ value: String(d.departmentId || d.id), label: d.departmentName })),
-              ],
-            },
-          ]}
-          onExport={handleExportCSV}
-          primaryAction={canManage ? {
-            label: 'Process Payroll',
-            icon: <Calculator className="w-3.5 h-3.5" />,
-            onClick: () => setProcessModalOpen(true),
-          } : undefined}
-        >
-          {/* Month Switcher */}
-          <div className="flex items-center gap-1.5 bg-[var(--paper)] border border-[var(--rule)] rounded-lg p-1">
-            <button onClick={handlePrevMonth} className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors" title="Previous Month">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="font-serif font-bold text-xs px-2 text-[var(--ink)] whitespace-nowrap min-w-[130px] text-center">
-              {getMonthDisplay(selectedMonth)}
-            </span>
-            <button onClick={handleNextMonth} className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors" title="Next Month">
-              <ChevronRight className="w-4 h-4" />
-            </button>
+      {/* ── Month Header Bar ─────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-4 p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-xl">
+        {/* Month navigator */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handlePrevMonth}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--rule)] hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <div className="text-center min-w-[140px]">
+            <div className="text-xl font-bold text-[var(--ink)] font-display leading-none">{month}</div>
+            <div className="text-xs text-[var(--ink-muted)] mt-0.5">{year}</div>
           </div>
-        </DataToolbar>
+          <button
+            onClick={handleNextMonth}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--rule)] hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
 
-        {/* Batch action bar */}
-        {selectedIds.length > 0 && canManage && (
-          <div className="bg-[var(--warning-light)] border border-[var(--warning)]/30 p-2.5 rounded-lg flex items-center justify-between gap-3 text-xs">
-            <span className="font-semibold text-[var(--warning)]">
-              <span className="font-bold font-data text-sm">{selectedIds.length}</span> record(s) selected
-            </span>
-            <div className="flex items-center gap-2">
-              <button onClick={handleBulkApprove} className="btn-primary py-1 px-3 text-xs flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" /> Approve Selected
-              </button>
-              <button onClick={() => setSelectedIds([])} className="text-[var(--ink-muted)] hover:text-[var(--ink)]">
-                <X className="w-4 h-4" />
-              </button>
+        {/* Right side actions */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-[var(--rule)] rounded-lg text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-sunken)] transition-colors"
+          >
+            <Download size={13} /> Export CSV
+          </button>
+          {canManage && (
+            <button
+              onClick={() => setProcessModalOpen(true)}
+              className="btn-primary flex items-center gap-1.5 text-xs"
+            >
+              <Calculator size={14} /> Run Payroll
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Metrics ──────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          {
+            label: 'Total Gross',
+            value: `₹${fmt(metrics.totalGross || 0)}`,
+            icon: <DollarSign size={18} />,
+            color: 'text-[var(--accent)] bg-[var(--accent-light)]',
+            border: 'border-l-[var(--accent)]',
+          },
+          {
+            label: 'Net Disbursable',
+            value: `₹${fmt(metrics.totalNet || 0)}`,
+            icon: <CheckCircle2 size={18} />,
+            color: 'text-[var(--success)] bg-[var(--success-light)]',
+            border: 'border-l-[var(--success)]',
+          },
+          {
+            label: 'Total Deductions',
+            value: `₹${fmt(metrics.totalDeductions || 0)}`,
+            icon: <TrendingDown size={18} />,
+            color: 'text-[var(--danger)] bg-[var(--danger-light)]',
+            border: 'border-l-[var(--danger)]',
+          },
+          {
+            label: 'Employees',
+            value: String(totalCount),
+            icon: <Users2 size={18} />,
+            color: 'text-[var(--warning)] bg-[var(--warning-light)]',
+            border: 'border-l-[var(--warning)]',
+          },
+        ].map(({ label, value, icon, color, border }) => (
+          <div key={label} className={`bg-[var(--paper)] border border-[var(--rule)] border-l-4 ${border} rounded-xl p-4 flex items-center gap-3`}>
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
+              {icon}
+            </div>
+            <div>
+              <div className="text-[11px] uppercase font-bold tracking-wide text-[var(--ink-muted)] font-ui">{label}</div>
+              <div className="text-lg font-bold font-data text-[var(--ink)] leading-tight">{value}</div>
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* ── Filters + Search bar ─────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Search */}
+        <div className="relative flex-1 min-w-48">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Search employee..."
+            className="register-input w-full pl-8 text-sm"
+          />
+        </div>
+
+        {/* Status filter */}
+        <div className="relative">
+          <Filter size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+          <select
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+            className="register-input pl-7 pr-8 text-sm"
+          >
+            <option value="all">All Statuses</option>
+            <option value="Draft">Draft</option>
+            <option value="Approved">Approved</option>
+            <option value="Paid">Paid</option>
+          </select>
+        </div>
+
+        {/* Department filter */}
+        <select
+          value={departmentId}
+          onChange={e => { setDepartmentId(e.target.value); setPage(1); }}
+          className="register-input text-sm"
+        >
+          <option value="">All Departments</option>
+          {departments
+            .filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
+            .map((d: any) => (
+              <option key={d.departmentId || d.id} value={String(d.departmentId || d.id)}>
+                {d.departmentName}
+              </option>
+            ))}
+        </select>
+
+        {/* Record count */}
+        {!loading && (
+          <span className="text-xs text-[var(--ink-muted)] whitespace-nowrap">
+            {totalCount} record{totalCount !== 1 ? 's' : ''}
+          </span>
         )}
       </div>
 
-      {/* Table */}
-      <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
+      {/* ── Bulk action bar ───────────────────────────────────────────────────── */}
+      {selectedIds.length > 0 && canManage && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--accent-light)] border border-[var(--accent)]/30 rounded-lg text-xs">
+          <span className="font-semibold text-[var(--accent)]">
+            {selectedIds.length} record{selectedIds.length !== 1 ? 's' : ''} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <button onClick={handleBulkApprove} className="btn-primary py-1 px-3 text-xs flex items-center gap-1">
+              <Check size={12} /> Approve Selected
+            </button>
+            <button onClick={() => setSelectedIds([])} className="text-[var(--ink-muted)] hover:text-[var(--ink)]">
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Table ────────────────────────────────────────────────────────────── */}
+      <div className="border border-[var(--rule)] rounded-xl overflow-hidden bg-[var(--paper)]">
         <div className="overflow-x-auto">
-          <table className="register-table">
+          <table className="w-full text-sm">
             <thead>
-              <tr>
+              <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)]">
                 {canManage && (
-                  <th className="w-10 text-center">
-                    <input type="checkbox"
+                  <th className="w-10 px-3 py-3 text-center">
+                    <input
+                      type="checkbox"
                       checked={records.length > 0 && selectedIds.length === records.length}
                       onChange={toggleSelectAll}
                       className="rounded border-[var(--rule)]"
                     />
                   </th>
                 )}
-                <th className="w-12 text-center font-mono text-xs uppercase text-[var(--ink-muted)]">Sr.</th>
-                <th>Employee Name</th>
-                <th>Department</th>
-                <th className="text-center font-data">Payable Days</th>
-                <th className="text-center font-data text-rose-600">LOP</th>
-                <th className="text-right font-data">Gross Pay</th>
-                <th className="text-right font-data text-rose-600">Deductions</th>
-                <th className="text-right font-data font-bold text-[var(--accent)]">Net Salary</th>
-                <th>Status</th>
-                <th className="text-right">Actions</th>
+                <th className="px-4 py-3 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Employee</th>
+                <th className="px-4 py-3 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Department</th>
+                <th className="px-4 py-3 text-center text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Payable Days</th>
+                <th className="px-4 py-3 text-center text-[10px] uppercase font-bold text-[var(--danger)] font-ui">LOP</th>
+                <th className="px-4 py-3 text-right text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Gross Pay</th>
+                <th className="px-4 py-3 text-right text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Deductions</th>
+                <th className="px-4 py-3 text-right text-[10px] uppercase font-bold text-[var(--accent)] font-ui">Net Salary</th>
+                <th className="px-4 py-3 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Status</th>
+                <th className="px-4 py-3 text-right text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui"></th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[var(--rule)]">
               {loading ? (
-                <tr><td colSpan={canManage ? 11 : 10} className="p-0"><TableSkeleton rows={8} /></td></tr>
-              ) : records.map((r, index) => (
-                <tr key={r.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
+                <tr><td colSpan={canManage ? 10 : 9} className="p-0"><TableSkeleton rows={8} /></td></tr>
+              ) : records.map((r) => (
+                <tr key={r.id} className={`hover:bg-[var(--surface-sunken)] transition-colors ${selectedIds.includes(r.id) ? 'bg-[var(--accent-light)]' : 'bg-[var(--paper)]'}`}>
                   {canManage && (
-                    <td className="text-center">
+                    <td className="px-3 py-3 text-center">
                       <input type="checkbox" checked={selectedIds.includes(r.id)}
                         onChange={() => toggleSelectId(r.id)}
                         className="rounded border-[var(--rule)]"
                       />
                     </td>
                   )}
-                  <td className="text-center font-mono text-xs text-[var(--ink-muted)] w-12">{index + 1}</td>
-                  <td>
-                    <div className="font-semibold text-[var(--ink)]">{r.employeeName}</div>
+                  <td className="px-4 py-3">
+                    <div className="font-semibold text-[var(--ink)] text-sm">{r.employeeName}</div>
                     <div className="text-[11px] text-[var(--ink-muted)] font-mono">#{r.employeeId} · {r.designation}</div>
                   </td>
-                  <td className="text-xs text-[var(--ink-muted)]">{r.department}</td>
-                  <td className="text-center font-mono font-semibold text-[var(--success)]">{r.payableDays}</td>
-                  <td className="text-center font-mono font-medium text-[var(--danger)]">
-                    {r.lopDays > 0 ? `-${r.lopDays}` : '0'}
+                  <td className="px-4 py-3 text-xs text-[var(--ink-muted)]">{r.department}</td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="font-mono font-bold text-[var(--success)] text-sm">{r.payableDays}</span>
                   </td>
-                  <td className="text-right font-mono text-xs text-[var(--ink)]">₹{r.grossSalary.toLocaleString()}</td>
-                  <td className="text-right font-mono text-xs text-[var(--danger)]">-₹{r.totalDeductions.toLocaleString()}</td>
-                  <td className="text-right font-mono text-sm font-bold text-[var(--accent)]">₹{r.netSalary.toLocaleString()}</td>
-                  <td>
-                    {r.status === 'Draft' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--warning-light)] text-[var(--warning)]">Draft</span>
-                    )}
-                    {r.status === 'Approved' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--success-light)] text-[var(--success)]">
-                        <Check className="w-3 h-3" /> Approved {r.isLocked && '🔒'}
-                      </span>
-                    )}
-                    {r.status === 'Paid' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--info-light)] text-[var(--info)]">
-                        Paid {r.isLocked && '🔒'}
-                      </span>
-                    )}
+                  <td className="px-4 py-3 text-center">
+                    <span className={`font-mono font-medium text-sm ${r.lopDays > 0 ? 'text-[var(--danger)]' : 'text-[var(--ink-muted)]'}`}>
+                      {r.lopDays > 0 ? r.lopDays : '—'}
+                    </span>
                   </td>
-                  <td className="text-right">
+                  <td className="px-4 py-3 text-right font-mono text-xs text-[var(--ink)]">₹{fmt(r.grossSalary)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-xs text-[var(--danger)]">
+                    {r.totalDeductions > 0 ? `-₹${fmt(r.totalDeductions)}` : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-[var(--accent)]">₹{fmt(r.netSalary)}</td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      const cfg = STATUS_CONFIG[r.status];
+                      return cfg ? (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${cfg.cls}`}>
+                          {r.status === 'Approved' && <Check size={10} />}
+                          {cfg.label} {r.isLocked ? '🔒' : ''}
+                        </span>
+                      ) : null;
+                    })()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
                     <RowActionMenu actions={[
                       { label: 'View Payslip', icon: <FileText className="w-3.5 h-3.5" />, onClick: () => handleViewPayslip(r.id) },
                       ...(canManage && r.status === 'Draft' ? [{ label: 'Approve', icon: <Check className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Approved'), variant: 'success' as const }] : []),
-                      ...(canManage && r.status === 'Approved' ? [{ label: 'Disburse', icon: <CreditCard className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Paid'), variant: 'success' as const }] : []),
+                      ...(canManage && r.status === 'Approved' ? [{ label: 'Mark as Paid', icon: <CreditCard className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Paid'), variant: 'success' as const }] : []),
                     ]} />
                   </td>
                 </tr>
               ))}
               {!loading && records.length === 0 && (
                 <tr>
-                  <td colSpan={canManage ? 11 : 10} className="py-12 text-center text-xs text-[var(--ink-muted)]">
-                    <Sparkles className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
+                  <td colSpan={canManage ? 10 : 9} className="py-16 text-center">
+                    <Sparkles className="w-10 h-10 mx-auto mb-3 text-[var(--ink-muted)] opacity-30" />
                     <div className="font-semibold text-sm text-[var(--ink)]">
-                      No Payroll Records for {getMonthDisplay(selectedMonth)}
+                      No payroll records for {month} {year}
                     </div>
-                    <p className="mt-1">Click "Process Payroll" in the toolbar above to generate monthly salaries based on attendance ledger.</p>
+                    <p className="text-xs text-[var(--ink-muted)] mt-1 max-w-xs mx-auto">
+                      Click <span className="font-semibold">Run Payroll</span> to generate monthly salaries based on attendance data.
+                    </p>
+                    {canManage && (
+                      <button
+                        onClick={() => setProcessModalOpen(true)}
+                        className="btn-primary text-xs mt-4 inline-flex items-center gap-1.5"
+                      >
+                        <Calculator size={13} /> Run Payroll for {month} {year}
+                      </button>
+                    )}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
         {totalCount > 0 && (
-          <div className="border-t border-[var(--rule)] p-3">
+          <div className="border-t border-[var(--rule)] px-4 py-3 bg-[var(--surface-sunken)]">
             <PaginationToolbar
               page={page} pageSize={pageSize}
               totalCount={totalCount} totalPages={totalPages}
@@ -379,6 +474,6 @@ export const PayrollRegister: React.FC = () => {
         loading={loadingPayslip}
         payslip={selectedPayslip}
       />
-    </>
+    </div>
   );
 };
