@@ -120,4 +120,55 @@ public sealed class Employee : IMustHaveTenant
     public int? ContractDurationMonths { get; set; }
 
     public DateTime? ContractEndDate { get; set; }
+
+    // ── Bank Account Details ─────────────────────────────────────────────────
+    [System.ComponentModel.DataAnnotations.StringLength(100)]
+    public string? BankName { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(30)]
+    public string? BankAccountNumber { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(15)]
+    public string? BankIfscCode { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(100)]
+    public string? BankAccountHolderName { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(20)]
+    public string? BankAccountType { get; set; } // Savings, Current
+
+    // ── Statutory / Compliance ───────────────────────────────────────────────
+    [System.ComponentModel.DataAnnotations.StringLength(10)]
+    public string? PanNumber { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(12)]
+    public string? AadhaarNumber { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(22)]
+    public string? UanNumber { get; set; } // Universal Account Number (EPFO)
+
+    [System.ComponentModel.DataAnnotations.StringLength(30)]
+    public string? PfNumber { get; set; } // EPF member ID
+
+    [System.ComponentModel.DataAnnotations.StringLength(20)]
+    public string? EsiNumber { get; set; } // Employee State Insurance
+
+    // ── Emergency Contact ────────────────────────────────────────────────────
+    [System.ComponentModel.DataAnnotations.StringLength(100)]
+    public string? EmergencyContactName { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(50)]
+    public string? EmergencyContactRelation { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(20)]
+    public string? EmergencyContactPhone { get; set; }
+
+    // ── Additional Identity ──────────────────────────────────────────────────
+    [System.ComponentModel.DataAnnotations.StringLength(100)]
+    public string? FatherOrSpouseName { get; set; }
+
+    [System.ComponentModel.DataAnnotations.StringLength(30)]
+    public string? PassportNumber { get; set; }
+
+    public int? NoticePeriodDays { get; set; }
 }

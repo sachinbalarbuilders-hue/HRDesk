@@ -29,6 +29,26 @@ export interface EmployeeFormData {
   dateOfBirth: string;
   currentAddress: string;
   permanentAddress: string;
+  // Bank account
+  bankName: string;
+  bankAccountNumber: string;
+  bankIfscCode: string;
+  bankAccountHolderName: string;
+  bankAccountType: string;
+  // Statutory
+  panNumber: string;
+  aadhaarNumber: string;
+  uanNumber: string;
+  pfNumber: string;
+  esiNumber: string;
+  // Emergency contact
+  emergencyContactName: string;
+  emergencyContactRelation: string;
+  emergencyContactPhone: string;
+  // Additional
+  fatherOrSpouseName: string;
+  passportNumber: string;
+  noticePeriodDays?: number;
 }
 
 interface EmployeeFormProps {
@@ -81,6 +101,26 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     dateOfBirth: '',
     currentAddress: '',
     permanentAddress: '',
+    // Bank account
+    bankName: '',
+    bankAccountNumber: '',
+    bankIfscCode: '',
+    bankAccountHolderName: '',
+    bankAccountType: '',
+    // Statutory
+    panNumber: '',
+    aadhaarNumber: '',
+    uanNumber: '',
+    pfNumber: '',
+    esiNumber: '',
+    // Emergency contact
+    emergencyContactName: '',
+    emergencyContactRelation: '',
+    emergencyContactPhone: '',
+    // Additional
+    fatherOrSpouseName: '',
+    passportNumber: '',
+    noticePeriodDays: undefined,
     ...initialData
   });
 
@@ -504,6 +544,112 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 />
               </div>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Bank Account Details */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Bank Account</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="register-label">Bank Name</label>
+            <input value={formData.bankName} onChange={(e) => setFormData({ ...formData, bankName: e.target.value })} placeholder="e.g. State Bank of India" className="register-input w-full" />
+          </div>
+          <div>
+            <label className="register-label">Account Number</label>
+            <input value={formData.bankAccountNumber} onChange={(e) => setFormData({ ...formData, bankAccountNumber: e.target.value })} placeholder="e.g. 1234567890123" className="register-input w-full font-data" />
+          </div>
+          <div>
+            <label className="register-label">IFSC Code</label>
+            <input value={formData.bankIfscCode} onChange={(e) => setFormData({ ...formData, bankIfscCode: e.target.value.toUpperCase() })} placeholder="e.g. SBIN0001234" maxLength={11} className="register-input w-full font-data uppercase" />
+          </div>
+          <div>
+            <label className="register-label">Account Holder Name</label>
+            <input value={formData.bankAccountHolderName} onChange={(e) => setFormData({ ...formData, bankAccountHolderName: e.target.value })} placeholder="As per bank records" className="register-input w-full" />
+          </div>
+          <div>
+            <label className="register-label">Account Type</label>
+            <select value={formData.bankAccountType} onChange={(e) => setFormData({ ...formData, bankAccountType: e.target.value })} className="register-input w-full">
+              <option value="">Select</option>
+              <option value="Savings">Savings</option>
+              <option value="Current">Current</option>
+              <option value="Salary">Salary</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Statutory Details */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Statutory & Compliance</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="register-label">PAN Number</label>
+            <input value={formData.panNumber} onChange={(e) => setFormData({ ...formData, panNumber: e.target.value.toUpperCase() })} placeholder="e.g. ABCDE1234F" maxLength={10} className="register-input w-full font-data uppercase" />
+          </div>
+          <div>
+            <label className="register-label">Aadhaar Number</label>
+            <input value={formData.aadhaarNumber} onChange={(e) => setFormData({ ...formData, aadhaarNumber: e.target.value.replace(/\D/g, '') })} placeholder="e.g. 123456789012" maxLength={12} className="register-input w-full font-data" />
+          </div>
+          <div>
+            <label className="register-label">UAN (Universal Account Number)</label>
+            <input value={formData.uanNumber} onChange={(e) => setFormData({ ...formData, uanNumber: e.target.value })} placeholder="e.g. 100123456789" className="register-input w-full font-data" />
+          </div>
+          <div>
+            <label className="register-label">PF Number</label>
+            <input value={formData.pfNumber} onChange={(e) => setFormData({ ...formData, pfNumber: e.target.value })} placeholder="e.g. BGBNG/12345/0001234" className="register-input w-full font-data" />
+          </div>
+          <div>
+            <label className="register-label">ESI Number</label>
+            <input value={formData.esiNumber} onChange={(e) => setFormData({ ...formData, esiNumber: e.target.value })} placeholder="e.g. 3100123456" className="register-input w-full font-data" />
+          </div>
+        </div>
+      </section>
+
+      {/* 7. Emergency Contact */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Emergency Contact</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="register-label">Contact Name</label>
+            <input value={formData.emergencyContactName} onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })} placeholder="Full name" className="register-input w-full" />
+          </div>
+          <div>
+            <label className="register-label">Relationship</label>
+            <select value={formData.emergencyContactRelation} onChange={(e) => setFormData({ ...formData, emergencyContactRelation: e.target.value })} className="register-input w-full">
+              <option value="">Select</option>
+              <option value="Spouse">Spouse</option>
+              <option value="Father">Father</option>
+              <option value="Mother">Mother</option>
+              <option value="Brother">Brother</option>
+              <option value="Sister">Sister</option>
+              <option value="Friend">Friend</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label className="register-label">Phone</label>
+            <input value={formData.emergencyContactPhone} onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })} placeholder="+91 9876543210" className="register-input w-full font-data" />
+          </div>
+        </div>
+      </section>
+
+      {/* 8. Additional Info */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Additional Information</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="register-label">Father/Spouse Name</label>
+            <input value={formData.fatherOrSpouseName} onChange={(e) => setFormData({ ...formData, fatherOrSpouseName: e.target.value })} placeholder="Full name" className="register-input w-full" />
+          </div>
+          <div>
+            <label className="register-label">Passport Number</label>
+            <input value={formData.passportNumber} onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value.toUpperCase() })} placeholder="e.g. A1234567" className="register-input w-full font-data uppercase" />
+          </div>
+          <div>
+            <label className="register-label">Notice Period (days)</label>
+            <input type="number" min="0" value={formData.noticePeriodDays || ''} onChange={(e) => setFormData({ ...formData, noticePeriodDays: e.target.value ? Number(e.target.value) : undefined })} placeholder="e.g. 30" className="register-input w-full font-data" />
           </div>
         </div>
       </section>

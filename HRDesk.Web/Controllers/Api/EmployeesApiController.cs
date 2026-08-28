@@ -397,6 +397,26 @@ END;";
             employee.ProbationDays,
             employee.ContractDurationMonths,
             employee.ContractEndDate,
+            // Bank account
+            employee.BankName,
+            employee.BankAccountNumber,
+            employee.BankIfscCode,
+            employee.BankAccountHolderName,
+            employee.BankAccountType,
+            // Statutory
+            employee.PanNumber,
+            employee.AadhaarNumber,
+            employee.UanNumber,
+            employee.PfNumber,
+            employee.EsiNumber,
+            // Emergency contact
+            employee.EmergencyContactName,
+            employee.EmergencyContactRelation,
+            employee.EmergencyContactPhone,
+            // Additional
+            employee.FatherOrSpouseName,
+            employee.PassportNumber,
+            employee.NoticePeriodDays,
             shiftName,
             shiftStart,
             shiftEnd,
@@ -518,8 +538,28 @@ END;";
             WorkEmail = dto.WorkEmail?.Trim(),
             PersonalEmail = dto.PersonalEmail?.Trim(),
             CurrentAddress = dto.CurrentAddress?.Trim(),
-        ContractDurationMonths = dto.ContractDurationMonths,
-            ContractEndDate = dto.ContractEndDate
+            ContractDurationMonths = dto.ContractDurationMonths,
+            ContractEndDate = dto.ContractEndDate,
+            // Bank account
+            BankName = dto.BankName?.Trim(),
+            BankAccountNumber = dto.BankAccountNumber?.Trim(),
+            BankIfscCode = dto.BankIfscCode?.Trim()?.ToUpperInvariant(),
+            BankAccountHolderName = dto.BankAccountHolderName?.Trim(),
+            BankAccountType = dto.BankAccountType?.Trim(),
+            // Statutory
+            PanNumber = dto.PanNumber?.Trim()?.ToUpperInvariant(),
+            AadhaarNumber = dto.AadhaarNumber?.Trim(),
+            UanNumber = dto.UanNumber?.Trim(),
+            PfNumber = dto.PfNumber?.Trim(),
+            EsiNumber = dto.EsiNumber?.Trim(),
+            // Emergency contact
+            EmergencyContactName = dto.EmergencyContactName?.Trim(),
+            EmergencyContactRelation = dto.EmergencyContactRelation?.Trim(),
+            EmergencyContactPhone = dto.EmergencyContactPhone?.Trim(),
+            // Additional
+            FatherOrSpouseName = dto.FatherOrSpouseName?.Trim(),
+            PassportNumber = dto.PassportNumber?.Trim()?.ToUpperInvariant(),
+            NoticePeriodDays = dto.NoticePeriodDays,
         };
 
         if (dto.RoleId.HasValue && dto.RoleId.Value > 0)
@@ -699,6 +739,30 @@ END;";
             employee.ProbationDays = dto.ProbationDays;
             employee.ContractDurationMonths = dto.ContractDurationMonths;
             employee.ContractEndDate = dto.ContractEndDate;
+
+            // Bank account
+            if (dto.BankName != null) employee.BankName = dto.BankName.Trim();
+            if (dto.BankAccountNumber != null) employee.BankAccountNumber = dto.BankAccountNumber.Trim();
+            if (dto.BankIfscCode != null) employee.BankIfscCode = dto.BankIfscCode.Trim().ToUpperInvariant();
+            if (dto.BankAccountHolderName != null) employee.BankAccountHolderName = dto.BankAccountHolderName.Trim();
+            if (dto.BankAccountType != null) employee.BankAccountType = dto.BankAccountType.Trim();
+
+            // Statutory
+            if (dto.PanNumber != null) employee.PanNumber = dto.PanNumber.Trim().ToUpperInvariant();
+            if (dto.AadhaarNumber != null) employee.AadhaarNumber = dto.AadhaarNumber.Trim();
+            if (dto.UanNumber != null) employee.UanNumber = dto.UanNumber.Trim();
+            if (dto.PfNumber != null) employee.PfNumber = dto.PfNumber.Trim();
+            if (dto.EsiNumber != null) employee.EsiNumber = dto.EsiNumber.Trim();
+
+            // Emergency contact
+            if (dto.EmergencyContactName != null) employee.EmergencyContactName = dto.EmergencyContactName.Trim();
+            if (dto.EmergencyContactRelation != null) employee.EmergencyContactRelation = dto.EmergencyContactRelation.Trim();
+            if (dto.EmergencyContactPhone != null) employee.EmergencyContactPhone = dto.EmergencyContactPhone.Trim();
+
+            // Additional
+            if (dto.FatherOrSpouseName != null) employee.FatherOrSpouseName = dto.FatherOrSpouseName.Trim();
+            if (dto.PassportNumber != null) employee.PassportNumber = dto.PassportNumber.Trim().ToUpperInvariant();
+            employee.NoticePeriodDays = dto.NoticePeriodDays;
         }
 
         await _db.SaveChangesAsync();
@@ -914,7 +978,27 @@ END;";
         int? ProbationDays = null,
         int? ContractDurationMonths = null,
         DateTime? ContractEndDate = null,
-        int? RoleId = null
+        int? RoleId = null,
+        // Bank account
+        string? BankName = null,
+        string? BankAccountNumber = null,
+        string? BankIfscCode = null,
+        string? BankAccountHolderName = null,
+        string? BankAccountType = null,
+        // Statutory
+        string? PanNumber = null,
+        string? AadhaarNumber = null,
+        string? UanNumber = null,
+        string? PfNumber = null,
+        string? EsiNumber = null,
+        // Emergency contact
+        string? EmergencyContactName = null,
+        string? EmergencyContactRelation = null,
+        string? EmergencyContactPhone = null,
+        // Additional
+        string? FatherOrSpouseName = null,
+        string? PassportNumber = null,
+        int? NoticePeriodDays = null
     );
 
     public record EmployeeUpdateDto(
@@ -945,6 +1029,26 @@ END;";
         int? ProbationDays = null,
         int? ContractDurationMonths = null,
         DateTime? ContractEndDate = null,
-        int? RoleId = null
+        int? RoleId = null,
+        // Bank account
+        string? BankName = null,
+        string? BankAccountNumber = null,
+        string? BankIfscCode = null,
+        string? BankAccountHolderName = null,
+        string? BankAccountType = null,
+        // Statutory
+        string? PanNumber = null,
+        string? AadhaarNumber = null,
+        string? UanNumber = null,
+        string? PfNumber = null,
+        string? EsiNumber = null,
+        // Emergency contact
+        string? EmergencyContactName = null,
+        string? EmergencyContactRelation = null,
+        string? EmergencyContactPhone = null,
+        // Additional
+        string? FatherOrSpouseName = null,
+        string? PassportNumber = null,
+        int? NoticePeriodDays = null
     );
 }

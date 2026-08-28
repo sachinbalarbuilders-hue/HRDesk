@@ -101,6 +101,70 @@ export const EmployeeDetailsTab: React.FC<Props> = ({ employee }) => {
         </div>
         <Phone size={16} className="text-[var(--ink-muted)]" />
       </div>
+
+      {/* Bank Account Details */}
+      {(employee.bankName || employee.bankAccountNumber || employee.bankIfscCode) && (
+        <div className="md:col-span-2">
+          <h3 className="text-[11px] uppercase font-bold text-[var(--ink-muted)] font-ui mb-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--teal-500)]"></span>
+            Bank Account
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <Field label="Bank Name" value={employee.bankName} />
+            <Field label="Account Number" value={employee.bankAccountNumber ? `••••${employee.bankAccountNumber.slice(-4)}` : null} titleAttr={employee.bankAccountNumber} />
+            <Field label="IFSC Code" value={employee.bankIfscCode} />
+            <Field label="Account Holder" value={employee.bankAccountHolderName} />
+            <Field label="Account Type" value={employee.bankAccountType} />
+          </div>
+        </div>
+      )}
+
+      {/* Statutory / Compliance */}
+      {(employee.panNumber || employee.aadhaarNumber || employee.uanNumber || employee.pfNumber || employee.esiNumber) && (
+        <div className="md:col-span-2">
+          <h3 className="text-[11px] uppercase font-bold text-[var(--ink-muted)] font-ui mb-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold-500)]"></span>
+            Statutory Details
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {employee.panNumber && <Field label="PAN Number" value={employee.panNumber} />}
+            {employee.aadhaarNumber && <Field label="Aadhaar Number" value={`••••${employee.aadhaarNumber.slice(-4)}`} titleAttr={employee.aadhaarNumber} />}
+            {employee.uanNumber && <Field label="UAN (EPFO)" value={employee.uanNumber} />}
+            {employee.pfNumber && <Field label="PF Number" value={employee.pfNumber} />}
+            {employee.esiNumber && <Field label="ESI Number" value={employee.esiNumber} />}
+          </div>
+        </div>
+      )}
+
+      {/* Emergency Contact */}
+      {(employee.emergencyContactName || employee.emergencyContactPhone) && (
+        <div className="md:col-span-2">
+          <h3 className="text-[11px] uppercase font-bold text-[var(--ink-muted)] font-ui mb-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--rose-500)]"></span>
+            Emergency Contact
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <Field label="Contact Name" value={employee.emergencyContactName} />
+            <Field label="Relationship" value={employee.emergencyContactRelation} />
+            <Field label="Phone" value={employee.emergencyContactPhone} />
+          </div>
+        </div>
+      )}
+
+      {/* Additional Identity */}
+      {(employee.fatherOrSpouseName || employee.passportNumber || employee.noticePeriodDays) && (
+        <div className="md:col-span-2">
+          <h3 className="text-[11px] uppercase font-bold text-[var(--ink-muted)] font-ui mb-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--ink-muted)]"></span>
+            Additional Information
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {employee.fatherOrSpouseName && <Field label="Father/Spouse Name" value={employee.fatherOrSpouseName} />}
+            {employee.passportNumber && <Field label="Passport Number" value={employee.passportNumber} />}
+            {employee.noticePeriodDays && <Field label="Notice Period" value={`${employee.noticePeriodDays} days`} />}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
