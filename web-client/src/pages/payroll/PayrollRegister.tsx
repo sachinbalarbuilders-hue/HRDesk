@@ -11,7 +11,7 @@ import { ProcessPayrollModal } from './ProcessPayrollModal';
 import { PayslipModal } from './PayslipModal';
 import {
   ChevronLeft, ChevronRight, Check, CreditCard, FileText,
-  Sparkles, Calculator, X, Download, Search, Filter,
+  Sparkles, Calculator, X, Download, Search,
   DollarSign, TrendingDown, CheckCircle2, Users2,
 } from 'lucide-react';
 
@@ -288,11 +288,10 @@ export const PayrollRegister: React.FC = () => {
 
         {/* Status filter */}
         <div className="relative">
-          <Filter size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
           <select
             value={statusFilter}
             onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            className="register-input pl-7 pr-8 text-sm"
+            className="register-input pl-3 text-sm"
           >
             <option value="all">All Statuses</option>
             <option value="Draft">Draft</option>
