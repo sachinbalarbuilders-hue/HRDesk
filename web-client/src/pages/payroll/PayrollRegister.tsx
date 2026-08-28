@@ -282,7 +282,8 @@ export const PayrollRegister: React.FC = () => {
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search employee..."
-            className="register-input w-full pl-9 text-sm"
+            className="register-input w-full text-sm"
+            style={{ paddingLeft: '2.25rem' }}
           />
         </div>
 
