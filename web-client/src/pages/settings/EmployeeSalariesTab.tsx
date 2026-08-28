@@ -124,26 +124,30 @@ export const EmployeeSalariesTab: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-48">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search employees..."
-            className="register-input w-full pl-8 text-sm"
+            className="register-input w-full text-sm"
+            style={{ paddingLeft: '2.25rem' }}
           />
         </div>
         <select
           value={filterGroup}
           onChange={e => setFilterGroup(e.target.value)}
           className="register-input text-sm"
+          style={{ width: '170px', flexShrink: 0 }}
         >
           <option value="">All Pay Groups</option>
           <option value="0">⚠ Not Assigned</option>
           {payGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select>
-        <span className="text-xs text-[var(--ink-muted)]">{filtered.length} employees</span>
+        <span className="text-xs text-[var(--ink-muted)] whitespace-nowrap" style={{ flexShrink: 0 }}>
+          {filtered.length} employees
+        </span>
       </div>
 
       {/* Bulk action bar — appears when rows are selected */}
