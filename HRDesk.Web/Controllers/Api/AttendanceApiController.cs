@@ -457,7 +457,9 @@ public class AttendanceController : ControllerBase
             return BadRequest(new { message = "No employee profile associated with this account." });
         }
 
-        // Confirm this is a face-attendance employee before issuing a challenge
+        // Confirm this is a face-attendance employee before issuing a challenge.
+        // Must scope by OrganizationId (EF Core global query filter handles this via
+        // ICurrentTenantProvider — the filter is applied automatically for Scoped DbContext).
         var employee = await _db.Employees
             .AsNoTracking()
             .Select(e => new { e.EmployeeId, e.AttendanceType })
