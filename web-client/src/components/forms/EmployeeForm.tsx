@@ -124,9 +124,12 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     ...initialData
   });
 
+  const [confirmAccountNumber, setConfirmAccountNumber] = useState(initialData?.bankAccountNumber || '');
+
   useEffect(() => {
     if (initialData) {
       setFormData(prev => ({ ...prev, ...initialData }));
+      setConfirmAccountNumber(initialData.bankAccountNumber || '');
     }
   }, [initialData]);
 
@@ -144,6 +147,11 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate account number confirmation if bank details are filled
+    if (formData.bankAccountNumber && confirmAccountNumber !== formData.bankAccountNumber) {
+      alert('Bank account numbers do not match. Please re-enter.');
+      return;
+    }
     onSubmit(formData);
   };
 
@@ -560,6 +568,13 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           <div>
             <label className="register-label">Account Number</label>
             <input value={formData.bankAccountNumber} onChange={(e) => setFormData({ ...formData, bankAccountNumber: e.target.value })} placeholder="e.g. 1234567890123" className="register-input w-full font-data" />
+          </div>
+          <div>
+            <label className="register-label">Re-enter Account Number</label>
+            <input value={confirmAccountNumber} onChange={(e) => setConfirmAccountNumber(e.target.value)} placeholder="Re-enter to confirm" className={`register-input w-full font-data ${confirmAccountNumber && formData.bankAccountNumber && confirmAccountNumber !== formData.bankAccountNumber ? 'border-red-400 focus:border-red-500' : ''}`} />
+            {confirmAccountNumber && formData.bankAccountNumber && confirmAccountNumber !== formData.bankAccountNumber && (
+              <p className="text-[10px] text-red-500 mt-1 font-semibold">Account numbers do not match</p>
+            )}
           </div>
           <div>
             <label className="register-label">IFSC Code</label>

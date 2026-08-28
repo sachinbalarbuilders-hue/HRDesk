@@ -13,6 +13,7 @@ export const EmployeeOnboarding: React.FC = () => {
   const [employeeData, setEmployeeData] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sameAsCurrent, setSameAsCurrent] = useState(false);
+  const [confirmAccount, setConfirmAccount] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [documents, setDocuments] = useState<{ type: string, file: File }[]>([]);
@@ -61,6 +62,10 @@ export const EmployeeOnboarding: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.bankAccountNumber && confirmAccount !== form.bankAccountNumber) {
+      setError('Bank account numbers do not match. Please re-enter.');
+      return;
+    }
     try {
       setSubmitting(true);
       await axios.post(`/api/public/onboarding/${token}`, form);
@@ -330,6 +335,18 @@ export const EmployeeOnboarding: React.FC = () => {
                   value={form.bankAccountNumber}
                   onChange={(e) => setForm({ ...form, bankAccountNumber: e.target.value })}
                 />
+                <div>
+                  <Input
+                    label="Re-enter Account Number"
+                    required
+                    placeholder="Re-enter to confirm"
+                    value={confirmAccount}
+                    onChange={(e) => setConfirmAccount(e.target.value)}
+                  />
+                  {confirmAccount && form.bankAccountNumber && confirmAccount !== form.bankAccountNumber && (
+                    <p className="text-xs text-red-500 mt-1 font-semibold">Account numbers do not match</p>
+                  )}
+                </div>
                 <Input
                   label="IFSC Code"
                   required
