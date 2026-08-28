@@ -86,7 +86,7 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, canEdit }) => 
     setForm({
       annualCTC: active ? active.annualCTC.toString() : '',
       templateId: active ? active.templateId.toString() : '',
-      effectiveFrom: new Date().toISOString().split('T')[0],
+      effectiveFrom: (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-01`; })(),
       remarks: '',
     });
     setPreviewRows([]);
