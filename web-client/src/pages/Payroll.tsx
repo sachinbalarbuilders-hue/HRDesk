@@ -312,7 +312,7 @@ export const Payroll: React.FC = () => {
       {/* 2. Top Metrics Banner */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-[var(--accent)]">
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-[var(--accent)] flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-[var(--accent-light)] text-[var(--accent)] flex items-center justify-center shrink-0">
             <DollarSign className="w-5 h-5" />
           </div>
           <div>
@@ -321,28 +321,28 @@ export const Payroll: React.FC = () => {
           </div>
         </div>
 
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-emerald-500">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center shrink-0">
+        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-[var(--success)]">
+          <div className="w-10 h-10 rounded-lg bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
             <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Net Disbursable</div>
-            <div className="text-lg font-bold font-data text-emerald-700 dark:text-emerald-300">₹{(metrics.totalNet || 0).toLocaleString()}</div>
+            <div className="text-lg font-bold font-data text-[var(--success)]">₹{(metrics.totalNet || 0).toLocaleString()}</div>
           </div>
         </div>
 
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-rose-500">
-          <div className="w-10 h-10 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center shrink-0">
+        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-[var(--danger)]">
+          <div className="w-10 h-10 rounded-lg bg-[var(--danger-light)] text-[var(--danger)] flex items-center justify-center shrink-0">
             <TrendingDown className="w-5 h-5" />
           </div>
           <div>
             <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Total Deductions</div>
-            <div className="text-lg font-bold font-data text-rose-700 dark:text-rose-300">₹{(metrics.totalDeductions || 0).toLocaleString()}</div>
+            <div className="text-lg font-bold font-data text-[var(--danger)]">₹{(metrics.totalDeductions || 0).toLocaleString()}</div>
           </div>
         </div>
 
-        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-amber-500">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center shrink-0">
+        <div className="card p-3.5 flex items-center gap-3 border-l-4 border-l-[var(--warning)]">
+          <div className="w-10 h-10 rounded-lg bg-[var(--warning-light)] text-[var(--warning)] flex items-center justify-center shrink-0">
             <CreditCard className="w-5 h-5" />
           </div>
           <div>
