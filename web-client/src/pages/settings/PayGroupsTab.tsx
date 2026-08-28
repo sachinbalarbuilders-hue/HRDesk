@@ -188,7 +188,7 @@ export const PayGroupsTab: React.FC = () => {
                     <td className="px-4 py-3">
                       <div className="flex gap-1.5 flex-wrap">
                         {[['PF', g.pfApplicable], ['ESI', g.esiApplicable], ['PT', g.ptApplicable]].map(([lbl, on]) => (
-                          <span key={lbl as string} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[3px] ${on ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-[var(--surface-sunken)] text-[var(--ink-muted)]'}`}>
+                          <span key={lbl as string} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[3px] ${on ? 'bg-[var(--success-light)] text-[var(--success)]' : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'}`}>
                             {lbl as string}
                           </span>
                         ))}
