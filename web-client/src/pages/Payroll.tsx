@@ -11,6 +11,7 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PayGroupsTab } from './settings/PayGroupsTab';
 import { SalaryTemplatesTab } from './settings/SalaryTemplatesTab';
+import { SalaryComponentsTab } from './settings/SalaryComponentsTab';
 import {
   DollarSign,
   CreditCard,
@@ -29,6 +30,7 @@ import {
   Users,
   LayoutTemplate,
   IndianRupee,
+  Layers,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 
@@ -273,6 +275,7 @@ export const Payroll: React.FC = () => {
             { id: 'register' as PayrollView, label: 'Payroll Register', icon: <IndianRupee size={13} /> },
             { id: 'pay-groups' as PayrollView, label: 'Pay Groups', icon: <Users size={13} /> },
             { id: 'salary-templates' as PayrollView, label: 'Salary Templates', icon: <LayoutTemplate size={13} /> },
+            { id: 'components' as PayrollView, label: 'Salary Components', icon: <Layers size={13} /> },
           ].map(tab => (
             <button
               key={tab.id}
@@ -294,6 +297,9 @@ export const Payroll: React.FC = () => {
 
       {/* Salary Templates view */}
       {view === 'salary-templates' && <SalaryTemplatesTab />}
+
+      {/* Salary Components view */}
+      {view === 'components' && <SalaryComponentsTab />}
 
       {/* Payroll Register view */}
       {view === 'register' && (<>
