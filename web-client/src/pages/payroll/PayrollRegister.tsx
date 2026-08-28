@@ -277,12 +277,12 @@ export const PayrollRegister: React.FC = () => {
       <div className="flex items-center gap-2 flex-wrap">
         {/* Search */}
         <div className="relative flex-1 min-w-48">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none" />
           <input
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search employee..."
-            className="register-input w-full pl-8 text-sm"
+            className="register-input w-full pl-9 text-sm"
           />
         </div>
 
