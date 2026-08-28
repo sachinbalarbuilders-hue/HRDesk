@@ -225,10 +225,10 @@ This section documents the live deployment workflow, IIS file lock mechanics, an
 ### 1. Automated Deployment Pipeline
 Always use the automated deployment script:
 ```powershell
-.\Scripts\Deploy_To_SmarterAsp.ps1
+.\scripts\Deploy_To_SmarterAsp.ps1
 ```
 This script automatically:
-1. Builds the React frontend (`/client` -> `npm run build` -> copies `dist/*` to `HRDesk.Web/wwwroot`).
+1. Builds the React frontend (`/web-client` -> `npm run build` -> copies `dist/*` to `HRDesk.Web/wwwroot`).
 2. Publishes ASP.NET Core backend in Release mode (`-c Release -o ./publish`).
 3. Injects production `appsettings.json` / `appsettings.Production.json` from `appsettings.SmarterAsp.json`.
 4. Compresses output to `publish.zip` and uploads directly to `/site1/publish.zip` via high-speed FTP stream.

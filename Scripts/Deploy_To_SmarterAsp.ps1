@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $workspaceRoot = (Resolve-Path "$PSScriptRoot\..").Path
-$clientPath    = "$workspaceRoot\client"
+$clientPath    = "$workspaceRoot\web-client"
 $webPath       = "$workspaceRoot\HRDesk.Web"
 $publishPath   = "$webPath\publish"
 $smarterAspJson = "$webPath\appsettings.SmarterAsp.json"

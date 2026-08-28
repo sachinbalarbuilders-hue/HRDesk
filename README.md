@@ -12,7 +12,7 @@ HRDesk/
 ├── client/                          # React + TypeScript + Tailwind + shadcn/ui SPA
 ├── hrdesk_mobile/                   # Flutter Mobile App (Android / iOS)
 ├── Z903AttendanceService/           # Windows Service (biometric sync)
-├── Scripts/                         # One-click deployment & database scripts
+├── scripts/                         # One-click deployment & database scripts
 │   ├── Deploy_To_SmarterAsp.ps1     # Automated release build & FTP deploy pipeline
 │   └── upload_zip_to_smarterasp.ps1 # Fast FTP ZIP uploader
 └── README.md
@@ -26,7 +26,7 @@ HRDesk/
 |---|---|---|
 | **Backend** | ASP.NET Core (.NET 8) | Unified REST API under `/api/...` |
 | **Database** | Microsoft SQL Server (MSSQL 2022) | Primary relational database with EF Core 8 |
-| **Web Frontend** | React 19 + Vite + TypeScript + Tailwind | Modern SPA client in `/client`, compiled to `wwwroot` |
+| **Web Frontend** | React 19 + Vite + TypeScript + Tailwind | Modern SPA client in `/web-client`, compiled to `wwwroot` |
 | **Mobile App** | Flutter | Cross-platform mobile app in `/hrdesk_mobile` |
 | **Deployment** | IIS / SmarterASP | Automated via `Deploy_To_SmarterAsp.ps1` |
 
@@ -36,7 +36,7 @@ HRDesk/
 
 Run the one-click build and deployment script:
 ```powershell
-.\Scripts\Deploy_To_SmarterAsp.ps1
+.\scripts\Deploy_To_SmarterAsp.ps1
 ```
 See `AGENTS.md` for complete architectural and deployment notes.
 
