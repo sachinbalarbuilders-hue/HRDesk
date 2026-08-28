@@ -9,6 +9,8 @@ import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
+import { PayGroupsTab } from './settings/PayGroupsTab';
+import { SalaryTemplatesTab } from './settings/SalaryTemplatesTab';
 import {
   DollarSign,
   CreditCard,
@@ -23,13 +25,22 @@ import {
   AlertCircle,
   Sparkles,
   Calculator,
+  Settings2,
+  Users,
+  LayoutTemplate,
+  IndianRupee,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
+
+type PayrollView = 'register' | 'pay-groups' | 'salary-templates' | 'components';
 
 export const Payroll: React.FC = () => {
   const { hasPermission, isAdmin } = useAuth();
   const { showSuccess, showError } = useToast();
   const { currentOrganization, currentBranch } = useOrganization();
+
+  // Top-level view (payroll register vs setup tabs)
+  const [view, setView] = useState<PayrollView>('register');
 
   const [records, setRecords] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>({});
@@ -253,7 +264,39 @@ export const Payroll: React.FC = () => {
 
   return (
     <PageContainer>
-      <PageHeader title="Monthly Payroll" description="Process and manage salary disbursements" />
+      <PageHeader title="Payroll" description="Process monthly salaries, configure pay groups, and salary structures" />
+
+      {/* View switcher — Payroll Register vs Setup */}
+      {(isAdmin || hasPermission('Payroll.ManageSalary')) && (
+        <div className="flex items-center gap-1 border-b border-[var(--rule)] mb-4">
+          {[
+            { id: 'register' as PayrollView, label: 'Payroll Register', icon: <IndianRupee size={13} /> },
+            { id: 'pay-groups' as PayrollView, label: 'Pay Groups', icon: <Users size={13} /> },
+            { id: 'salary-templates' as PayrollView, label: 'Salary Templates', icon: <LayoutTemplate size={13} /> },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setView(tab.id)}
+              className={`flex items-center gap-1.5 pb-2 px-4 text-xs font-semibold transition-colors cursor-pointer ${
+                view === tab.id
+                  ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
+                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              }`}
+            >
+              {tab.icon}{tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Pay Groups view */}
+      {view === 'pay-groups' && <PayGroupsTab />}
+
+      {/* Salary Templates view */}
+      {view === 'salary-templates' && <SalaryTemplatesTab />}
+
+      {/* Payroll Register view */}
+      {view === 'register' && (<>
 
       {/* 2. Top Metrics Banner */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -791,6 +834,7 @@ export const Payroll: React.FC = () => {
           </div>
         </div>
       )}
+      </>)}
     </PageContainer>
   );
 };

@@ -38,8 +38,6 @@ const DepartmentsTab = lazy(() => import('./pages/settings/DepartmentsTab').then
 const DesignationsTab = lazy(() => import('./pages/settings/DesignationsTab').then(m => ({ default: m.DesignationsTab })));
 const LeaveTypesTab = lazy(() => import('./pages/settings/LeaveTypesTab').then(m => ({ default: m.LeaveTypesTab })));
 const WorkShiftsTab = lazy(() => import('./pages/settings/WorkShiftsTab').then(m => ({ default: m.WorkShiftsTab })));
-const PayGroupsTab = lazy(() => import('./pages/settings/PayGroupsTab').then(m => ({ default: m.PayGroupsTab })));
-const SalaryTemplatesTab = lazy(() => import('./pages/settings/SalaryTemplatesTab').then(m => ({ default: m.SalaryTemplatesTab })));
 const SubscriptionTab = lazy(() => import('./pages/settings/SubscriptionTab').then(m => ({ default: m.SubscriptionTab })));
 const AuditLogsTab = lazy(() => import('./pages/settings/AuditLogsTab').then(m => ({ default: m.AuditLogsTab })));
 const ChangePasswordTab = lazy(() => import('./pages/settings/ChangePasswordTab').then(m => ({ default: m.ChangePasswordTab })));
@@ -263,8 +261,6 @@ export const App: React.FC = () => {
                     <Route path="designations" element={<DesignationsTab />} />
                     <Route path="leaves" element={<LeaveTypesTab />} />
                     <Route path="shifts" element={<WorkShiftsTab />} />
-                    <Route path="pay-groups" element={<PayGroupsTab />} />
-                    <Route path="salary-templates" element={<SalaryTemplatesTab />} />
                   </Route>
                   <Route
                     path="settings/organizations/:id"
