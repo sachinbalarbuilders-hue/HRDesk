@@ -35,6 +35,26 @@ class EmployeeProfileModel {
   final String? contractEndDate;
   final String? photoBase64;
   final bool hasFaceEnrolled;
+  // Bank account
+  final String? bankName;
+  final String? bankAccountNumber;
+  final String? bankIfscCode;
+  final String? bankAccountHolderName;
+  final String? bankAccountType;
+  // Statutory
+  final String? panNumber;
+  final String? aadhaarNumber;
+  final String? uanNumber;
+  final String? pfNumber;
+  final String? esiNumber;
+  // Emergency contacts (JSON array)
+  final String? emergencyContacts;
+  final String? emergencyContactName;
+  final String? emergencyContactRelation;
+  final String? emergencyContactPhone;
+  // Additional
+  final String? passportNumber;
+  final int? noticePeriodDays;
 
   EmployeeProfileModel({
     required this.employeeId,
@@ -73,46 +93,159 @@ class EmployeeProfileModel {
     this.contractEndDate,
     this.photoBase64,
     this.hasFaceEnrolled = false,
+    this.bankName,
+    this.bankAccountNumber,
+    this.bankIfscCode,
+    this.bankAccountHolderName,
+    this.bankAccountType,
+    this.panNumber,
+    this.aadhaarNumber,
+    this.uanNumber,
+    this.pfNumber,
+    this.esiNumber,
+    this.emergencyContacts,
+    this.emergencyContactName,
+    this.emergencyContactRelation,
+    this.emergencyContactPhone,
+    this.passportNumber,
+    this.noticePeriodDays,
   });
 
   factory EmployeeProfileModel.fromJson(Map<String, dynamic> json) {
     return EmployeeProfileModel(
-      employeeId: (json['employeeId'] ?? json['EmployeeId'] ?? json['id'] ?? 0) as int,
-      employeeName: (json['employeeName'] ?? json['EmployeeName'] ?? json['name'] ?? '').toString(),
-      employeeCode: (json['employeeCode'] ?? json['EmployeeCode'] ?? json['code'] ?? 'EMP#${json['employeeId']}').toString(),
-      designation: json['designation'] is Map ? json['designation']['designationName'] : (json['designation'] ?? json['Designation'] ?? json['designationName'])?.toString(),
-      department: json['department'] is Map ? json['department']['departmentName'] : (json['department'] ?? json['Department'] ?? json['departmentName'])?.toString(),
-      branch: json['branch'] is Map ? json['branch']['name'] : (json['branch'] ?? json['Branch'] ?? json['branchName'])?.toString(),
+      employeeId:
+          (json['employeeId'] ?? json['EmployeeId'] ?? json['id'] ?? 0) as int,
+      employeeName:
+          (json['employeeName'] ?? json['EmployeeName'] ?? json['name'] ?? '')
+              .toString(),
+      employeeCode: (json['employeeCode'] ??
+              json['EmployeeCode'] ??
+              json['code'] ??
+              'EMP#${json['employeeId']}')
+          .toString(),
+      designation: json['designation'] is Map
+          ? json['designation']['designationName']
+          : (json['designation'] ??
+                  json['Designation'] ??
+                  json['designationName'])
+              ?.toString(),
+      department: json['department'] is Map
+          ? json['department']['departmentName']
+          : (json['department'] ?? json['Department'] ?? json['departmentName'])
+              ?.toString(),
+      branch: json['branch'] is Map
+          ? json['branch']['name']
+          : (json['branch'] ?? json['Branch'] ?? json['branchName'])
+              ?.toString(),
       branchCode: (json['branchCode'] ?? json['BranchCode'])?.toString(),
-      branchAddress: (json['branchAddress'] ?? json['BranchAddress'])?.toString(),
-      organizationName: (json['organizationName'] ?? json['OrganizationName'])?.toString(),
-      organizationAddress: (json['organizationAddress'] ?? json['OrganizationAddress'])?.toString(),
-      phone: (json['phone'] ?? json['Phone'] ?? json['mobileNumber'] ?? json['contactNumber'])?.toString(),
-      email: (json['workEmail'] ?? json['WorkEmail'] ?? json['email'] ?? json['officialEmail'])?.toString(),
-      personalEmail: (json['personalEmail'] ?? json['PersonalEmail'])?.toString(),
+      branchAddress:
+          (json['branchAddress'] ?? json['BranchAddress'])?.toString(),
+      organizationName:
+          (json['organizationName'] ?? json['OrganizationName'])?.toString(),
+      organizationAddress:
+          (json['organizationAddress'] ?? json['OrganizationAddress'])
+              ?.toString(),
+      phone: (json['phone'] ??
+              json['Phone'] ??
+              json['mobileNumber'] ??
+              json['contactNumber'])
+          ?.toString(),
+      email: (json['workEmail'] ??
+              json['WorkEmail'] ??
+              json['email'] ??
+              json['officialEmail'])
+          ?.toString(),
+      personalEmail:
+          (json['personalEmail'] ?? json['PersonalEmail'])?.toString(),
       gender: (json['gender'] ?? json['Gender'])?.toString(),
       bloodGroup: (json['bloodGroup'] ?? json['BloodGroup'])?.toString(),
-      maritalStatus: (json['maritalStatus'] ?? json['MaritalStatus'])?.toString(),
+      maritalStatus:
+          (json['maritalStatus'] ?? json['MaritalStatus'])?.toString(),
       nationality: (json['nationality'] ?? json['Nationality'])?.toString(),
-      dateOfBirth: json['dateOfBirth']?.toString().split('T').first ?? json['DateOfBirth']?.toString().split('T').first,
-      joiningDate: json['joiningDate']?.toString().split('T').first ?? json['JoiningDate']?.toString().split('T').first,
-      resignationDate: json['resignationDate']?.toString().split('T').first ?? json['ResignationDate']?.toString().split('T').first,
-      lastWorkingDate: json['lastWorkingDate']?.toString().split('T').first ?? json['LastWorkingDate']?.toString().split('T').first,
+      dateOfBirth: json['dateOfBirth']?.toString().split('T').first ??
+          json['DateOfBirth']?.toString().split('T').first,
+      joiningDate: json['joiningDate']?.toString().split('T').first ??
+          json['JoiningDate']?.toString().split('T').first,
+      resignationDate: json['resignationDate']?.toString().split('T').first ??
+          json['ResignationDate']?.toString().split('T').first,
+      lastWorkingDate: json['lastWorkingDate']?.toString().split('T').first ??
+          json['LastWorkingDate']?.toString().split('T').first,
       status: (json['status'] ?? json['Status'])?.toString(),
       weekoff: (json['weekoff'] ?? json['Weekoff'])?.toString(),
-      shiftName: (json['shiftName'] ?? json['ShiftName'] ?? (json['shift'] is Map ? json['shift']['shiftName'] : null))?.toString(),
-      shiftTiming: (json['shiftTiming'] ?? json['ShiftTiming'] ?? ((json['shiftStart'] != null && json['shiftEnd'] != null) ? '${json['shiftStart']} - ${json['shiftEnd']}' : null))?.toString(),
-      reportingManagerName: (json['reportingManager'] is Map ? json['reportingManager']['employeeName'] : (json['reportingManager'] ?? json['ReportingManager'] ?? json['managerName']))?.toString(),
-      currentAddress: (json['currentAddress'] ?? json['CurrentAddress'] ?? json['address'])?.toString(),
-      permanentAddress: (json['permanentAddress'] ?? json['PermanentAddress'])?.toString(),
-      employmentType: (json['employmentType'] ?? json['EmploymentType'])?.toString(),
-      attendanceType: (json['attendanceType'] ?? json['AttendanceType'])?.toString(),
-      hasProbation: json['hasProbation'] == true || json['HasProbation'] == true,
-      probationDays: (json['probationDays'] ?? json['ProbationDays'] as num?)?.toInt(),
-      contractDurationMonths: (json['contractDurationMonths'] ?? json['ContractDurationMonths'] as num?)?.toInt(),
-      contractEndDate: json['contractEndDate']?.toString().split('T').first ?? json['ContractEndDate']?.toString().split('T').first,
-      photoBase64: (json['photoBase64'] ?? json['photoData'] ?? json['photoPath'] ?? json['PhotoPath'])?.toString(),
-      hasFaceEnrolled: json['faceId'] != null || json['FaceId'] != null || json['isFaceEnrolled'] == true || json['hasFaceEnrolled'] == true,
+      shiftName: (json['shiftName'] ??
+              json['ShiftName'] ??
+              (json['shift'] is Map ? json['shift']['shiftName'] : null))
+          ?.toString(),
+      shiftTiming: (json['shiftTiming'] ??
+              json['ShiftTiming'] ??
+              ((json['shiftStart'] != null && json['shiftEnd'] != null)
+                  ? '${json['shiftStart']} - ${json['shiftEnd']}'
+                  : null))
+          ?.toString(),
+      reportingManagerName: (json['reportingManager'] is Map
+              ? json['reportingManager']['employeeName']
+              : (json['reportingManager'] ??
+                  json['ReportingManager'] ??
+                  json['managerName']))
+          ?.toString(),
+      currentAddress:
+          (json['currentAddress'] ?? json['CurrentAddress'] ?? json['address'])
+              ?.toString(),
+      permanentAddress:
+          (json['permanentAddress'] ?? json['PermanentAddress'])?.toString(),
+      employmentType:
+          (json['employmentType'] ?? json['EmploymentType'])?.toString(),
+      attendanceType:
+          (json['attendanceType'] ?? json['AttendanceType'])?.toString(),
+      hasProbation:
+          json['hasProbation'] == true || json['HasProbation'] == true,
+      probationDays:
+          (json['probationDays'] ?? json['ProbationDays'] as num?)?.toInt(),
+      contractDurationMonths: (json['contractDurationMonths'] ??
+              json['ContractDurationMonths'] as num?)
+          ?.toInt(),
+      contractEndDate: json['contractEndDate']?.toString().split('T').first ??
+          json['ContractEndDate']?.toString().split('T').first,
+      photoBase64: (json['photoBase64'] ??
+              json['photoData'] ??
+              json['photoPath'] ??
+              json['PhotoPath'])
+          ?.toString(),
+      hasFaceEnrolled: json['faceId'] != null ||
+          json['FaceId'] != null ||
+          json['isFaceEnrolled'] == true ||
+          json['hasFaceEnrolled'] == true,
+      bankName: (json['bankName'] ?? json['BankName'])?.toString(),
+      bankAccountNumber:
+          (json['bankAccountNumber'] ?? json['BankAccountNumber'])?.toString(),
+      bankIfscCode: (json['bankIfscCode'] ?? json['BankIfscCode'])?.toString(),
+      bankAccountHolderName:
+          (json['bankAccountHolderName'] ?? json['BankAccountHolderName'])
+              ?.toString(),
+      bankAccountType:
+          (json['bankAccountType'] ?? json['BankAccountType'])?.toString(),
+      panNumber: (json['panNumber'] ?? json['PanNumber'])?.toString(),
+      aadhaarNumber:
+          (json['aadhaarNumber'] ?? json['AadhaarNumber'])?.toString(),
+      uanNumber: (json['uanNumber'] ?? json['UanNumber'])?.toString(),
+      pfNumber: (json['pfNumber'] ?? json['PfNumber'])?.toString(),
+      esiNumber: (json['esiNumber'] ?? json['EsiNumber'])?.toString(),
+      emergencyContacts:
+          (json['emergencyContacts'] ?? json['EmergencyContacts'])?.toString(),
+      emergencyContactName:
+          (json['emergencyContactName'] ?? json['EmergencyContactName'])
+              ?.toString(),
+      emergencyContactRelation:
+          (json['emergencyContactRelation'] ?? json['EmergencyContactRelation'])
+              ?.toString(),
+      emergencyContactPhone:
+          (json['emergencyContactPhone'] ?? json['EmergencyContactPhone'])
+              ?.toString(),
+      passportNumber:
+          (json['passportNumber'] ?? json['PassportNumber'])?.toString(),
+      noticePeriodDays:
+          (json['noticePeriodDays'] ?? json['NoticePeriodDays'] as num?)
+              ?.toInt(),
     );
   }
 }
@@ -142,16 +275,38 @@ class DirectoryEmployeeItem {
 
   factory DirectoryEmployeeItem.fromJson(Map<String, dynamic> json) {
     return DirectoryEmployeeItem(
-      employeeId: (json['employeeId'] ?? json['EmployeeId'] ?? json['id'] ?? 0) as int,
-      name: (json['employeeName'] ?? json['EmployeeName'] ?? json['name'] ?? '').toString(),
-      code: (json['employeeCode'] ?? json['EmployeeCode'] ?? json['code'])?.toString(),
-      designation: json['designation'] is Map ? json['designation']['designationName'] : (json['designation'] ?? json['Designation'] ?? json['designationName'])?.toString(),
-      department: json['department'] is Map ? json['department']['departmentName'] : (json['department'] ?? json['Department'] ?? json['departmentName'])?.toString(),
-      branch: json['branch'] is Map ? json['branch']['name'] : (json['branch'] ?? json['Branch'] ?? json['branchName'])?.toString(),
-      phone: (json['phone'] ?? json['Phone'] ?? json['mobileNumber'])?.toString(),
-      email: (json['workEmail'] ?? json['WorkEmail'] ?? json['email'] ?? json['officialEmail'])?.toString(),
-      photoBase64: (json['photoBase64'] ?? json['photoData'] ?? json['photoPath'] ?? json['PhotoPath'])?.toString(),
+      employeeId:
+          (json['employeeId'] ?? json['EmployeeId'] ?? json['id'] ?? 0) as int,
+      name: (json['employeeName'] ?? json['EmployeeName'] ?? json['name'] ?? '')
+          .toString(),
+      code: (json['employeeCode'] ?? json['EmployeeCode'] ?? json['code'])
+          ?.toString(),
+      designation: json['designation'] is Map
+          ? json['designation']['designationName']
+          : (json['designation'] ??
+                  json['Designation'] ??
+                  json['designationName'])
+              ?.toString(),
+      department: json['department'] is Map
+          ? json['department']['departmentName']
+          : (json['department'] ?? json['Department'] ?? json['departmentName'])
+              ?.toString(),
+      branch: json['branch'] is Map
+          ? json['branch']['name']
+          : (json['branch'] ?? json['Branch'] ?? json['branchName'])
+              ?.toString(),
+      phone:
+          (json['phone'] ?? json['Phone'] ?? json['mobileNumber'])?.toString(),
+      email: (json['workEmail'] ??
+              json['WorkEmail'] ??
+              json['email'] ??
+              json['officialEmail'])
+          ?.toString(),
+      photoBase64: (json['photoBase64'] ??
+              json['photoData'] ??
+              json['photoPath'] ??
+              json['PhotoPath'])
+          ?.toString(),
     );
   }
 }
-
