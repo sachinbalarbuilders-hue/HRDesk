@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import {
-  Search, IndianRupee, Users, X, Check, ChevronDown, Pencil, UserX,
+  Search, Check, UserX, ExternalLink,
 } from 'lucide-react';
 
 interface EmpRow {
@@ -23,7 +24,6 @@ interface EmpRow {
 }
 
 interface PayGroup { id: number; name: string; salaryBasis: string; isActive: boolean; templateId?: number; }
-interface Template { id: number; name: string; }
 
 const BASIS_LABELS: Record<string, string> = {
   CalendarDays: 'Calendar Days', Fixed26: 'Fixed 26', Fixed30: 'Fixed 30',
@@ -36,7 +36,6 @@ export const EmployeeSalariesTab: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const [rows, setRows] = useState<EmpRow[]>([]);
   const [payGroups, setPayGroups] = useState<PayGroup[]>([]);
-  const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterGroup, setFilterGroup] = useState('');
@@ -48,24 +47,15 @@ export const EmployeeSalariesTab: React.FC = () => {
   const [bulkGroupId, setBulkGroupId] = useState('');
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  // CTC modal
-  const [ctcModal, setCtcModal] = useState<EmpRow | null>(null);
-  const [ctcForm, setCtcForm] = useState({ annualCTC: '', templateId: '', effectiveFrom: '', remarks: '' });
-  const [ctcSaving, setCtcSaving] = useState(false);
-  const [previewRows, setPreviewRows] = useState<any[]>([]);
-  const [previewing, setPreviewing] = useState(false);
-
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
-      const [empRes, pgRes, tplRes] = await Promise.all([
+      const [empRes, pgRes] = await Promise.all([
         apiClient.get('/employees/salary-overview'),
         apiClient.get('/pay-groups'),
-        apiClient.get('/salary-templates'),
       ]);
       setRows(empRes.data || []);
       setPayGroups((pgRes.data || []).filter((g: any) => g.isActive));
-      setTemplates(tplRes.data || []);
     } catch {
       showError('Failed to load salary overview');
     } finally {
@@ -121,55 +111,6 @@ export const EmployeeSalariesTab: React.FC = () => {
       fetchAll();
     } catch { showError('Failed to unassign'); }
     finally { setBulkSaving(false); }
-  };
-
-  // ── CTC modal ──────────────────────────────────────────────────────────────
-  const openCtcModal = (row: EmpRow) => {
-    setCtcModal(row);
-    setPreviewRows([]);
-    // Pre-fill with current values if already assigned
-    const defaultTemplateId = row.templateId?.toString()
-      || payGroups.find(g => g.id === row.payGroupId)?.templateId?.toString()
-      || (templates[0]?.id.toString() ?? '');
-    setCtcForm({
-      annualCTC: row.annualCTC?.toString() ?? '',
-      templateId: defaultTemplateId,
-      effectiveFrom: new Date().toISOString().split('T')[0],
-      remarks: '',
-    });
-  };
-
-  const handleCtcSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ctcModal || !ctcForm.annualCTC || !ctcForm.templateId) return;
-    try {
-      setCtcSaving(true);
-      await apiClient.post('/salary-templates/employee-ctc', {
-        employeeId: ctcModal.employeeId,
-        annualCTC: parseFloat(ctcForm.annualCTC),
-        templateId: parseInt(ctcForm.templateId),
-        effectiveFrom: ctcForm.effectiveFrom,
-        salaryBasisOverride: null,
-        remarks: ctcForm.remarks || null,
-      });
-      showSuccess(`CTC saved for ${ctcModal.employeeName}`);
-      setCtcModal(null);
-      fetchAll();
-    } catch { showError('Failed to save CTC'); }
-    finally { setCtcSaving(false); }
-  };
-
-  const handlePreview = async () => {
-    if (!ctcForm.annualCTC || !ctcForm.templateId) return;
-    try {
-      setPreviewing(true);
-      const res = await apiClient.post('/salary-templates/preview-ctc', {
-        annualCTC: parseFloat(ctcForm.annualCTC),
-        templateId: parseInt(ctcForm.templateId),
-      });
-      setPreviewRows(res.data.components || []);
-    } catch { showError('Preview failed'); }
-    finally { setPreviewing(false); }
   };
 
   return (
@@ -306,14 +247,14 @@ export const EmployeeSalariesTab: React.FC = () => {
                     {row.ctcEffectiveFrom && <p className="text-[10px]">from {row.ctcEffectiveFrom}</p>}
                   </td>
                   <td className="px-3 py-2.5 text-right">
-                    <button
-                      onClick={() => openCtcModal(row)}
-                      className="text-xs text-[var(--accent)] hover:underline flex items-center gap-1 ml-auto font-medium"
-                      title={row.annualCTC != null ? 'Revise CTC' : 'Assign CTC'}
+                    <Link
+                      to={`/employees/${row.publicId}?tab=payroll`}
+                      className="text-xs text-[var(--accent)] hover:underline flex items-center gap-1 ml-auto font-medium w-fit"
+                      title="Open employee payroll tab"
                     >
-                      <Pencil size={11} />
+                      <ExternalLink size={11} />
                       {row.annualCTC != null ? 'Revise' : 'Set CTC'}
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))}
