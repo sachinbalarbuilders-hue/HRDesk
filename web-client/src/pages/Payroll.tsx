@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
@@ -11,17 +12,27 @@ import { IndianRupee, Users, Settings2, LayoutTemplate, Layers } from 'lucide-re
 
 type PayrollView = 'register' | 'employee-salaries' | 'pay-groups' | 'salary-templates' | 'components';
 
+const VALID_TABS: PayrollView[] = ['register', 'employee-salaries', 'pay-groups', 'salary-templates', 'components'];
+
 const TABS: { id: PayrollView; label: string; icon: React.ReactNode }[] = [
-  { id: 'register',          label: 'Payroll Register',   icon: <IndianRupee size={13} /> },
-  { id: 'employee-salaries', label: 'Employee Salaries',  icon: <Users size={13} /> },
-  { id: 'pay-groups',        label: 'Pay Groups',         icon: <Settings2 size={13} /> },
-  { id: 'salary-templates',  label: 'Salary Templates',   icon: <LayoutTemplate size={13} /> },
-  { id: 'components',        label: 'Salary Components',  icon: <Layers size={13} /> },
+  { id: 'register',          label: 'Payroll Register',  icon: <IndianRupee size={13} /> },
+  { id: 'employee-salaries', label: 'Employee Salaries', icon: <Users size={13} /> },
+  { id: 'pay-groups',        label: 'Pay Groups',        icon: <Settings2 size={13} /> },
+  { id: 'salary-templates',  label: 'Salary Templates',  icon: <LayoutTemplate size={13} /> },
+  { id: 'components',        label: 'Salary Components', icon: <Layers size={13} /> },
 ];
 
 export const Payroll: React.FC = () => {
   const { hasPermission, isAdmin } = useAuth();
-  const [view, setView] = useState<PayrollView>('register');
+  const { tab } = useParams<{ tab?: string }>();
+  const navigate = useNavigate();
+
+  const view: PayrollView =
+    tab && VALID_TABS.includes(tab as PayrollView) ? (tab as PayrollView) : 'register';
+
+  const setView = (v: PayrollView) => {
+    navigate(v === 'register' ? '/payroll' : `/payroll/${v}`, { replace: true });
+  };
 
   const canConfig = isAdmin || hasPermission('Payroll.ManageSalary');
 
@@ -33,18 +44,18 @@ export const Payroll: React.FC = () => {
       />
 
       {canConfig && (
-        <div className="flex items-center gap-1 border-b border-[var(--rule)] mb-4">
-          {TABS.map(tab => (
+        <div className="flex items-center gap-1 border-b border-[var(--rule)] mb-4 overflow-x-auto">
+          {TABS.map(t => (
             <button
-              key={tab.id}
-              onClick={() => setView(tab.id)}
-              className={`flex items-center gap-1.5 pb-2 px-4 text-xs font-semibold transition-colors cursor-pointer ${
-                view === tab.id
+              key={t.id}
+              onClick={() => setView(t.id)}
+              className={`flex items-center gap-1.5 pb-2 px-4 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                view === t.id
                   ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
                   : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
             >
-              {tab.icon}{tab.label}
+              {t.icon}{t.label}
             </button>
           ))}
         </div>

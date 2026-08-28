@@ -230,6 +230,9 @@ export const App: React.FC = () => {
                         <Payroll />
                       </ProtectedRoute>
                     }
+                  >
+                    <Route index element={<Payroll />} />
+                    <Route path=":tab" element={<Payroll />} />
                   />
                   <Route
                     path="recruitment"
