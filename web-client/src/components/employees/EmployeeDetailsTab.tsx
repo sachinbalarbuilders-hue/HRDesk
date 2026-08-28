@@ -137,29 +137,44 @@ export const EmployeeDetailsTab: React.FC<Props> = ({ employee }) => {
       )}
 
       {/* Emergency Contact */}
-      {(employee.emergencyContactName || employee.emergencyContactPhone) && (
+      {(employee.emergencyContactName || employee.emergencyContactPhone || employee.emergencyContacts) && (
         <div className="md:col-span-2">
           <h3 className="text-[11px] uppercase font-bold text-[var(--ink-muted)] font-ui mb-3 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--rose-500)]"></span>
-            Emergency Contact
+            Emergency Contacts
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <Field label="Contact Name" value={employee.emergencyContactName} />
-            <Field label="Relationship" value={employee.emergencyContactRelation} />
-            <Field label="Phone" value={employee.emergencyContactPhone} />
-          </div>
+          {(() => {
+            // Support both old single-field format and new JSON array format
+            let contacts: {name?: string; relation?: string; phone?: string}[] = [];
+            if (employee.emergencyContacts) {
+              try { contacts = JSON.parse(employee.emergencyContacts); } catch { contacts = []; }
+            }
+            if (contacts.length === 0 && (employee.emergencyContactName || employee.emergencyContactPhone)) {
+              contacts = [{ name: employee.emergencyContactName, relation: employee.emergencyContactRelation, phone: employee.emergencyContactPhone }];
+            }
+            return (
+              <div className="space-y-2">
+                {contacts.map((c, i) => (
+                  <div key={i} className="grid grid-cols-3 gap-3">
+                    <Field label="Contact Name" value={c.name} />
+                    <Field label="Relationship" value={c.relation} />
+                    <Field label="Phone" value={c.phone} />
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
 
       {/* Additional Identity */}
-      {(employee.fatherOrSpouseName || employee.passportNumber || employee.noticePeriodDays) && (
+      {(employee.passportNumber || employee.noticePeriodDays) && (
         <div className="md:col-span-2">
           <h3 className="text-[11px] uppercase font-bold text-[var(--ink-muted)] font-ui mb-3 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--ink-muted)]"></span>
             Additional Information
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {employee.fatherOrSpouseName && <Field label="Father/Spouse Name" value={employee.fatherOrSpouseName} />}
             {employee.passportNumber && <Field label="Passport Number" value={employee.passportNumber} />}
             {employee.noticePeriodDays && <Field label="Notice Period" value={`${employee.noticePeriodDays} days`} />}
           </div>

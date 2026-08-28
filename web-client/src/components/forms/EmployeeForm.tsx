@@ -45,6 +45,7 @@ export interface EmployeeFormData {
   emergencyContactName: string;
   emergencyContactRelation: string;
   emergencyContactPhone: string;
+  emergencyContacts: string; // JSON array: [{name, relation, phone}, ...]
   // Additional
   fatherOrSpouseName: string;
   passportNumber: string;
@@ -117,6 +118,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     emergencyContactName: '',
     emergencyContactRelation: '',
     emergencyContactPhone: '',
+    emergencyContacts: '',
     // Additional
     fatherOrSpouseName: '',
     passportNumber: '',
@@ -125,6 +127,26 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
   });
 
   const [confirmAccountNumber, setConfirmAccountNumber] = useState(initialData?.bankAccountNumber || '');
+
+  // Emergency contacts — supports multiple entries
+  const [emergencyContacts, setEmergencyContacts] = useState<{name: string; relation: string; phone: string}[]>(() => {
+    // Parse from JSON field if available, fallback to single-contact fields
+    if (initialData?.emergencyContacts) {
+      try { return JSON.parse(initialData.emergencyContacts); } catch { /* ignore */ }
+    }
+    if (initialData?.emergencyContactName || initialData?.emergencyContactPhone) {
+      return [{ name: initialData.emergencyContactName || '', relation: initialData.emergencyContactRelation || '', phone: initialData.emergencyContactPhone || '' }];
+    }
+    return [{ name: '', relation: '', phone: '' }];
+  });
+
+  const addEmergencyContact = () => setEmergencyContacts([...emergencyContacts, { name: '', relation: '', phone: '' }]);
+  const removeEmergencyContact = (idx: number) => setEmergencyContacts(emergencyContacts.filter((_, i) => i !== idx));
+  const updateEmergencyContact = (idx: number, field: string, value: string) => {
+    const updated = [...emergencyContacts];
+    (updated[idx] as any)[field] = value;
+    setEmergencyContacts(updated);
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -152,7 +174,17 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       alert('Bank account numbers do not match. Please re-enter.');
       return;
     }
-    onSubmit(formData);
+    // Serialize emergency contacts as JSON
+    const validContacts = emergencyContacts.filter(c => c.name || c.phone);
+    const submitData = {
+      ...formData,
+      emergencyContacts: validContacts.length > 0 ? JSON.stringify(validContacts) : '',
+      // Also populate the legacy single-contact fields from the first entry
+      emergencyContactName: validContacts[0]?.name || '',
+      emergencyContactRelation: validContacts[0]?.relation || '',
+      emergencyContactPhone: validContacts[0]?.phone || '',
+    };
+    onSubmit(submitData);
   };
 
   return (
@@ -629,29 +661,41 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       {/* 7. Emergency Contact — only shown when editing */}
       {isEditing && (
       <section className="space-y-3">
-        <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Emergency Contact</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="register-label">Contact Name</label>
-            <input value={formData.emergencyContactName} onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })} placeholder="Full name" className="register-input w-full" />
-          </div>
-          <div>
-            <label className="register-label">Relationship</label>
-            <select value={formData.emergencyContactRelation} onChange={(e) => setFormData({ ...formData, emergencyContactRelation: e.target.value })} className="register-input w-full">
-              <option value="">Select</option>
-              <option value="Spouse">Spouse</option>
-              <option value="Father">Father</option>
-              <option value="Mother">Mother</option>
-              <option value="Brother">Brother</option>
-              <option value="Sister">Sister</option>
-              <option value="Friend">Friend</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label className="register-label">Phone</label>
-            <input value={formData.emergencyContactPhone} onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })} placeholder="+91 9876543210" className="register-input w-full font-data" />
-          </div>
+        <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Emergency Contacts</h3>
+        <div className="space-y-3">
+          {emergencyContacts.map((contact, idx) => (
+            <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+              <div>
+                <label className="register-label">Name</label>
+                <input value={contact.name} onChange={(e) => updateEmergencyContact(idx, 'name', e.target.value)} placeholder="Full name" className="register-input w-full" />
+              </div>
+              <div>
+                <label className="register-label">Relationship</label>
+                <select value={contact.relation} onChange={(e) => updateEmergencyContact(idx, 'relation', e.target.value)} className="register-input w-full">
+                  <option value="">Select</option>
+                  <option value="Spouse">Spouse</option>
+                  <option value="Father">Father</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Brother">Brother</option>
+                  <option value="Sister">Sister</option>
+                  <option value="Friend">Friend</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="register-label">Phone</label>
+                <input value={contact.phone} onChange={(e) => updateEmergencyContact(idx, 'phone', e.target.value)} placeholder="+91 9876543210" className="register-input w-full font-data" />
+              </div>
+              <div>
+                {emergencyContacts.length > 1 && (
+                  <button type="button" onClick={() => removeEmergencyContact(idx)} className="text-xs text-red-500 hover:text-red-700 font-semibold py-2">Remove</button>
+                )}
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addEmergencyContact} className="text-xs text-[var(--teal-600)] hover:text-[var(--teal-700)] font-semibold flex items-center gap-1 mt-1">
+            + Add Another Contact
+          </button>
         </div>
       </section>
       )}
@@ -660,11 +704,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       {isEditing && (
       <section className="space-y-3">
         <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Additional Information</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="register-label">Father/Spouse Name</label>
-            <input value={formData.fatherOrSpouseName} onChange={(e) => setFormData({ ...formData, fatherOrSpouseName: e.target.value })} placeholder="Full name" className="register-input w-full" />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="register-label">Passport Number</label>
             <input value={formData.passportNumber} onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value.toUpperCase() })} placeholder="e.g. A1234567" className="register-input w-full font-data uppercase" />

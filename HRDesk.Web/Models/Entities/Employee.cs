@@ -163,6 +163,14 @@ public sealed class Employee : IMustHaveTenant
     [System.ComponentModel.DataAnnotations.StringLength(20)]
     public string? EmergencyContactPhone { get; set; }
 
+    /// <summary>
+    /// JSON array of emergency contacts: [{name, relation, phone}, ...]
+    /// Supports multiple contacts. The single-field EmergencyContactName/Relation/Phone
+    /// are kept for backward compatibility — new code should use this field.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.StringLength(2000)]
+    public string? EmergencyContacts { get; set; }
+
     // ── Additional Identity ──────────────────────────────────────────────────
     [System.ComponentModel.DataAnnotations.StringLength(100)]
     public string? FatherOrSpouseName { get; set; }

@@ -413,6 +413,7 @@ END;";
             employee.EmergencyContactName,
             employee.EmergencyContactRelation,
             employee.EmergencyContactPhone,
+            employee.EmergencyContacts,
             // Additional
             employee.FatherOrSpouseName,
             employee.PassportNumber,
@@ -556,6 +557,7 @@ END;";
             EmergencyContactName = dto.EmergencyContactName?.Trim(),
             EmergencyContactRelation = dto.EmergencyContactRelation?.Trim(),
             EmergencyContactPhone = dto.EmergencyContactPhone?.Trim(),
+            EmergencyContacts = dto.EmergencyContacts?.Trim(),
             // Additional
             FatherOrSpouseName = dto.FatherOrSpouseName?.Trim(),
             PassportNumber = dto.PassportNumber?.Trim()?.ToUpperInvariant(),
@@ -758,6 +760,7 @@ END;";
             if (dto.EmergencyContactName != null) employee.EmergencyContactName = dto.EmergencyContactName.Trim();
             if (dto.EmergencyContactRelation != null) employee.EmergencyContactRelation = dto.EmergencyContactRelation.Trim();
             if (dto.EmergencyContactPhone != null) employee.EmergencyContactPhone = dto.EmergencyContactPhone.Trim();
+            if (dto.EmergencyContacts != null) employee.EmergencyContacts = dto.EmergencyContacts.Trim();
 
             // Additional
             if (dto.FatherOrSpouseName != null) employee.FatherOrSpouseName = dto.FatherOrSpouseName.Trim();
@@ -995,6 +998,7 @@ END;";
         string? EmergencyContactName = null,
         string? EmergencyContactRelation = null,
         string? EmergencyContactPhone = null,
+        string? EmergencyContacts = null,
         // Additional
         string? FatherOrSpouseName = null,
         string? PassportNumber = null,
@@ -1046,6 +1050,7 @@ END;";
         string? EmergencyContactName = null,
         string? EmergencyContactRelation = null,
         string? EmergencyContactPhone = null,
+        string? EmergencyContacts = null,
         // Additional
         string? FatherOrSpouseName = null,
         string? PassportNumber = null,
