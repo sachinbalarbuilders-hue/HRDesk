@@ -231,38 +231,17 @@ export const PayrollRegister: React.FC = () => {
 
       {/* ── Metrics ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          {
-            label: 'Total Gross',
-            value: `₹${fmt(metrics.totalGross || 0)}`,
-            icon: <DollarSign size={18} />,
-            color: 'text-[var(--accent)] bg-[var(--accent-light)]',
-            border: 'border-l-[var(--accent)]',
-          },
-          {
-            label: 'Net Disbursable',
-            value: `₹${fmt(metrics.totalNet || 0)}`,
-            icon: <CheckCircle2 size={18} />,
-            color: 'text-[var(--success)] bg-[var(--success-light)]',
-            border: 'border-l-[var(--success)]',
-          },
-          {
-            label: 'Total Deductions',
-            value: `₹${fmt(metrics.totalDeductions || 0)}`,
-            icon: <TrendingDown size={18} />,
-            color: 'text-[var(--danger)] bg-[var(--danger-light)]',
-            border: 'border-l-[var(--danger)]',
-          },
-          {
-            label: 'Employees',
-            value: String(totalCount),
-            icon: <Users2 size={18} />,
-            color: 'text-[var(--warning)] bg-[var(--warning-light)]',
-            border: 'border-l-[var(--warning)]',
-          },
-        ].map(({ label, value, icon, color, border }) => (
-          <div key={label} className={`bg-[var(--paper)] border border-[var(--rule)] border-l-4 ${border} rounded-xl p-4 flex items-center gap-3`}>
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
+        {([
+          { label: 'Total Gross',      value: `₹${fmt(metrics.totalGross || 0)}`,      icon: <DollarSign size={18} />,   iconCls: 'text-[var(--accent)] bg-[var(--accent-light)]',   borderColor: 'var(--accent)'   },
+          { label: 'Net Disbursable',  value: `₹${fmt(metrics.totalNet || 0)}`,         icon: <CheckCircle2 size={18} />, iconCls: 'text-[var(--success)] bg-[var(--success-light)]', borderColor: 'var(--success)'  },
+          { label: 'Total Deductions', value: `₹${fmt(metrics.totalDeductions || 0)}`,  icon: <TrendingDown size={18} />, iconCls: 'text-[var(--danger)] bg-[var(--danger-light)]',   borderColor: 'var(--danger)'   },
+          { label: 'Employees',        value: String(totalCount),                        icon: <Users2 size={18} />,       iconCls: 'text-[var(--warning)] bg-[var(--warning-light)]', borderColor: 'var(--warning)'  },
+        ] as const).map(({ label, value, icon, iconCls, borderColor }) => (
+          <div key={label}
+            className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl p-4 flex items-center gap-3"
+            style={{ borderLeft: `4px solid ${borderColor}` }}
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconCls}`}>
               {icon}
             </div>
             <div>
@@ -291,7 +270,8 @@ export const PayrollRegister: React.FC = () => {
         <select
           value={statusFilter}
           onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-          className="register-input text-sm w-36 shrink-0"
+          className="register-input text-sm"
+          style={{ width: '130px', flexShrink: 0 }}
         >
           <option value="all">All Statuses</option>
           <option value="Draft">Draft</option>
@@ -303,7 +283,8 @@ export const PayrollRegister: React.FC = () => {
         <select
           value={departmentId}
           onChange={e => { setDepartmentId(e.target.value); setPage(1); }}
-          className="register-input text-sm w-44 shrink-0"
+          className="register-input text-sm"
+          style={{ width: '160px', flexShrink: 0 }}
         >
           <option value="">All Departments</option>
           {departments
@@ -315,9 +296,8 @@ export const PayrollRegister: React.FC = () => {
             ))}
         </select>
 
-        {/* Record count */}
         {!loading && (
-          <span className="text-xs text-[var(--ink-muted)] whitespace-nowrap shrink-0">
+          <span className="text-xs text-[var(--ink-muted)] whitespace-nowrap" style={{ flexShrink: 0 }}>
             {totalCount} record{totalCount !== 1 ? 's' : ''}
           </span>
         )}
