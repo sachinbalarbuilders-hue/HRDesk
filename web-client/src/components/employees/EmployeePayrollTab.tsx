@@ -262,8 +262,8 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, canEdit }) => 
               <div>
                 <label className="register-label">Remarks</label>
                 <input
-                  value={ctcForm.remarks}
-                  onChange={e => setCtcForm(f => ({ ...f, remarks: e.target.value }))}
+                  value={form.remarks}
+                  onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))}
                   placeholder="e.g. Annual increment 2026"
                   className="register-input w-full"
                 />
