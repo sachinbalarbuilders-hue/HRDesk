@@ -26,6 +26,21 @@ export const EmployeeOnboarding: React.FC = () => {
     personalEmail: '',
     currentAddress: '',
     permanentAddress: '',
+    // Bank account
+    bankName: '',
+    bankAccountNumber: '',
+    bankIfscCode: '',
+    bankAccountHolderName: '',
+    bankAccountType: 'Savings',
+    // Statutory
+    panNumber: '',
+    aadhaarNumber: '',
+    // Emergency contact
+    emergencyContactName: '',
+    emergencyContactRelation: '',
+    emergencyContactPhone: '',
+    // Additional
+    fatherOrSpouseName: '',
   });
 
   useEffect(() => {
@@ -294,6 +309,125 @@ export const EmployeeOnboarding: React.FC = () => {
                     disabled={sameAsCurrent}
                   />
                 </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Bank Account Details</h3>
+              <p className="text-xs text-[var(--ink-muted)] mb-4">Required for salary credit. Please provide your active bank account details.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Bank Name"
+                  required
+                  placeholder="e.g. State Bank of India"
+                  value={form.bankName}
+                  onChange={(e) => setForm({ ...form, bankName: e.target.value })}
+                />
+                <Input
+                  label="Account Number"
+                  required
+                  placeholder="e.g. 1234567890123"
+                  value={form.bankAccountNumber}
+                  onChange={(e) => setForm({ ...form, bankAccountNumber: e.target.value })}
+                />
+                <Input
+                  label="IFSC Code"
+                  required
+                  placeholder="e.g. SBIN0001234"
+                  maxLength={11}
+                  value={form.bankIfscCode}
+                  onChange={(e) => setForm({ ...form, bankIfscCode: e.target.value.toUpperCase() })}
+                />
+                <Input
+                  label="Account Holder Name (as per bank)"
+                  required
+                  placeholder="Full name as on passbook"
+                  value={form.bankAccountHolderName}
+                  onChange={(e) => setForm({ ...form, bankAccountHolderName: e.target.value })}
+                />
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Account Type</label>
+                  <select
+                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--ink)] focus:border-indigo-500 outline-none"
+                    value={form.bankAccountType}
+                    onChange={(e) => setForm({ ...form, bankAccountType: e.target.value })}
+                  >
+                    <option value="Savings">Savings</option>
+                    <option value="Current">Current</option>
+                    <option value="Salary">Salary</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Statutory Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="PAN Number"
+                  required
+                  placeholder="e.g. ABCDE1234F"
+                  maxLength={10}
+                  value={form.panNumber}
+                  onChange={(e) => setForm({ ...form, panNumber: e.target.value.toUpperCase() })}
+                />
+                <Input
+                  label="Aadhaar Number"
+                  required
+                  placeholder="e.g. 1234 5678 9012"
+                  maxLength={12}
+                  value={form.aadhaarNumber}
+                  onChange={(e) => setForm({ ...form, aadhaarNumber: e.target.value.replace(/\D/g, '') })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Emergency Contact</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  label="Contact Name"
+                  required
+                  placeholder="Full name"
+                  value={form.emergencyContactName}
+                  onChange={(e) => setForm({ ...form, emergencyContactName: e.target.value })}
+                />
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Relationship</label>
+                  <select
+                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--ink)] focus:border-indigo-500 outline-none"
+                    value={form.emergencyContactRelation}
+                    onChange={(e) => setForm({ ...form, emergencyContactRelation: e.target.value })}
+                  >
+                    <option value="">Select</option>
+                    <option value="Spouse">Spouse</option>
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Brother">Brother</option>
+                    <option value="Sister">Sister</option>
+                    <option value="Friend">Friend</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <Input
+                  label="Phone Number"
+                  required
+                  placeholder="+91 9876543210"
+                  value={form.emergencyContactPhone}
+                  onChange={(e) => setForm({ ...form, emergencyContactPhone: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Family Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Father's / Spouse Name"
+                  placeholder="Full name"
+                  value={form.fatherOrSpouseName}
+                  onChange={(e) => setForm({ ...form, fatherOrSpouseName: e.target.value })}
+                />
               </div>
             </div>
 

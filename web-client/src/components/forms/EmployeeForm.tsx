@@ -548,7 +548,8 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
         </div>
       </section>
 
-      {/* 5. Bank Account Details */}
+      {/* 5. Bank Account Details — only shown when editing (not during initial creation) */}
+      {isEditing && (
       <section className="space-y-3">
         <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Bank Account</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -579,8 +580,10 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
         </div>
       </section>
+      )}
 
-      {/* 6. Statutory Details */}
+      {/* 6. Statutory Details — only shown when editing */}
+      {isEditing && (
       <section className="space-y-3">
         <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Statutory & Compliance</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -606,8 +609,10 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
         </div>
       </section>
+      )}
 
-      {/* 7. Emergency Contact */}
+      {/* 7. Emergency Contact — only shown when editing */}
+      {isEditing && (
       <section className="space-y-3">
         <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Emergency Contact</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -634,8 +639,10 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
         </div>
       </section>
+      )}
 
-      {/* 8. Additional Info */}
+      {/* 8. Additional Info — only shown when editing */}
+      {isEditing && (
       <section className="space-y-3">
         <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Additional Information</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

@@ -72,6 +72,25 @@ public class OnboardingApiController : ControllerBase
         employee.PersonalEmail = dto.PersonalEmail;
         employee.CurrentAddress = dto.CurrentAddress;
         employee.PermanentAddress = dto.PermanentAddress;
+
+        // Bank account
+        if (!string.IsNullOrWhiteSpace(dto.BankName)) employee.BankName = dto.BankName.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.BankAccountNumber)) employee.BankAccountNumber = dto.BankAccountNumber.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.BankIfscCode)) employee.BankIfscCode = dto.BankIfscCode.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(dto.BankAccountHolderName)) employee.BankAccountHolderName = dto.BankAccountHolderName.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.BankAccountType)) employee.BankAccountType = dto.BankAccountType.Trim();
+
+        // Statutory
+        if (!string.IsNullOrWhiteSpace(dto.PanNumber)) employee.PanNumber = dto.PanNumber.Trim().ToUpperInvariant();
+        if (!string.IsNullOrWhiteSpace(dto.AadhaarNumber)) employee.AadhaarNumber = dto.AadhaarNumber.Trim();
+
+        // Emergency contact
+        if (!string.IsNullOrWhiteSpace(dto.EmergencyContactName)) employee.EmergencyContactName = dto.EmergencyContactName.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.EmergencyContactRelation)) employee.EmergencyContactRelation = dto.EmergencyContactRelation.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.EmergencyContactPhone)) employee.EmergencyContactPhone = dto.EmergencyContactPhone.Trim();
+
+        // Additional
+        if (!string.IsNullOrWhiteSpace(dto.FatherOrSpouseName)) employee.FatherOrSpouseName = dto.FatherOrSpouseName.Trim();
         
         // Mark as Pending HR Review or Active based on company policy.
         // As per standard practice, let's make it Active (since they asked for without recruitment direct onboarding),
@@ -203,6 +222,21 @@ public class OnboardingApiController : ControllerBase
         string? Phone,
         string? PersonalEmail,
         string? CurrentAddress,
-        string? PermanentAddress
+        string? PermanentAddress,
+        // Bank account
+        string? BankName,
+        string? BankAccountNumber,
+        string? BankIfscCode,
+        string? BankAccountHolderName,
+        string? BankAccountType,
+        // Statutory
+        string? PanNumber,
+        string? AadhaarNumber,
+        // Emergency contact
+        string? EmergencyContactName,
+        string? EmergencyContactRelation,
+        string? EmergencyContactPhone,
+        // Additional
+        string? FatherOrSpouseName
     );
 }
