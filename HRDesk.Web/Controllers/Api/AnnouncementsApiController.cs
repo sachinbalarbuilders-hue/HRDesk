@@ -55,14 +55,32 @@ public class AnnouncementsController : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] string? category = null,
         [FromQuery] int? branchId = null,
-        [FromQuery] bool? activeOnly = null)
+        [FromQuery] bool? activeOnly = null,
+        [FromQuery] string? archiveStatus = "active")
     {
         var activeBranch = branchId ?? _tenantProvider.BranchId;
-        var query = _db.Announcements
-            .AsNoTracking()
-            .Include(a => a.Branch)
-            .Include(a => a.CreatedByUser)
-            .AsQueryable();
+        
+        IQueryable<Announcement> query;
+        if (archiveStatus == "all" || archiveStatus == "archived")
+        {
+            query = _db.Announcements
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Include(a => a.Branch)
+                .Include(a => a.CreatedByUser);
+
+            if (archiveStatus == "archived")
+                query = query.Where(a => a.ArchivedAt != null);
+        }
+        else
+        {
+            query = _db.Announcements
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Include(a => a.Branch)
+                .Include(a => a.CreatedByUser)
+                .Where(a => a.ArchivedAt == null);
+        }
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
@@ -101,6 +119,7 @@ public class AnnouncementsController : ControllerBase
                 endDate = a.EndDate != null ? a.EndDate.Value.ToString("yyyy-MM-dd") : null,
                 isPinned = a.IsPinned,
                 isActive = a.IsActive,
+                archivedAt = a.ArchivedAt,
                 branchId = a.BranchId,
                 branchName = a.Branch != null ? a.Branch.Name : "All Branches",
                 createdAt = a.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
@@ -117,6 +136,7 @@ public class AnnouncementsController : ControllerBase
     public async Task<IActionResult> GetAnnouncement(int id)
     {
         var item = await _db.Announcements
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Include(a => a.Branch)
             .Include(a => a.CreatedByUser)
@@ -135,6 +155,7 @@ public class AnnouncementsController : ControllerBase
             endDate = item.EndDate != null ? item.EndDate.Value.ToString("yyyy-MM-dd") : null,
             isPinned = item.IsPinned,
             isActive = item.IsActive,
+            archivedAt = item.ArchivedAt,
             branchId = item.BranchId,
             branchName = item.Branch != null ? item.Branch.Name : "All Branches",
             createdAt = item.CreatedAt.ToString("yyyy-MM-dd HH:mm"),

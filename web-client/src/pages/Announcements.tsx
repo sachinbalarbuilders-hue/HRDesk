@@ -21,6 +21,8 @@ import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
+import { ArchiveToggle, type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
+import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
 
 interface AnnouncementItem {
@@ -51,6 +53,7 @@ export const AnnouncementsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [search, setSearch] = useState('');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
 
   // Media Lightbox State
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -84,6 +87,7 @@ export const AnnouncementsPage: React.FC = () => {
           category: selectedCategory !== 'All' ? selectedCategory : undefined,
           search: search || undefined,
           branchId: currentBranch?.id || undefined,
+          archiveStatus: archiveFilter,
         },
       });
       setAnnouncements(res.data.items || []);
@@ -96,7 +100,7 @@ export const AnnouncementsPage: React.FC = () => {
 
   useEffect(() => {
     fetchAnnouncements();
-  }, [currentOrganization?.id, currentBranch?.id, selectedCategory, search]);
+  }, [currentOrganization?.id, currentBranch?.id, selectedCategory, search, archiveFilter]);
 
   const openCreateModal = () => {
     setEditingItem(null);
@@ -272,8 +276,10 @@ export const AnnouncementsPage: React.FC = () => {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="relative min-w-[240px]">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <ArchiveToggle value={archiveFilter} onChange={setArchiveFilter} />
+          {/* Search */}
+          <div className="relative min-w-[240px] flex-1 sm:flex-none">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
@@ -345,22 +351,10 @@ export const AnnouncementsPage: React.FC = () => {
                       >
                         <Pin size={14} />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(item)}
-                        title="Edit"
-                        className="p-1.5 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => announcementArchive.archive({ id: item.id, name: item.title, isArchived: isRowArchived(item) })}
-                        title="Delete"
-                        className="p-1.5 rounded-[var(--radius-sm)] text-[var(--danger)] hover:bg-rose-500/10 cursor-pointer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <RowActionMenu actions={[
+                        { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => openEditModal(item) },
+                        ...announcementArchive.rowActions({ id: item.id, name: item.title, isArchived: isRowArchived(item) }),
+                      ] as RowAction[]} />
                     </div>
                   </div>
 
