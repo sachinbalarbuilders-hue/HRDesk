@@ -25,12 +25,6 @@ node_modules/
 logs/
 build_output*.txt
 
-# Local settings (contain credentials — never commit)
-# appsettings.json is tracked with local localhost defaults
-appsettings.Development.json
-appsettings.Production.json
-appsettings.SmarterAsp.json
-
 # Database files
 *.sql
 *.db
