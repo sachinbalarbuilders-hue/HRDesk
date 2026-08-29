@@ -25,6 +25,11 @@ node_modules/
 logs/
 build_output*.txt
 
+# Local settings (contain machine-specific credentials — never commit)
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+
 # Database files
 *.sql
 *.db
