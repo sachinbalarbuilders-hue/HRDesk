@@ -6,7 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import { DataToolbar } from '../../components/ui/DataToolbar';
 import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { BulkImportModal } from '../../components/ui/BulkImportModal';
-import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
+import { ArchiveToggle, type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 import {
@@ -90,6 +90,7 @@ export const WorkShiftsTab: React.FC = () => {
   // ── Shift Cycles state ──────────────────────────────────────────────────────
   const [cycles, setCycles] = useState<ShiftCycle[]>([]);
   const [cyclesLoading, setCyclesLoading] = useState(false);
+  const [cycleArchiveFilter, setCycleArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [cycleModalOpen, setCycleModalOpen] = useState(false);
   const [editingCycleId, setEditingCycleId] = useState<number | null>(null);
   const [cycleForm, setCycleForm] = useState({
@@ -138,7 +139,7 @@ export const WorkShiftsTab: React.FC = () => {
     try {
       setCyclesLoading(true);
       const res = await apiClient.get('/shifts/cycles', {
-        params: { branchId: currentBranch?.id || undefined }
+        params: { branchId: currentBranch?.id || undefined, archiveStatus: cycleArchiveFilter }
       });
       setCycles(res.data || []);
     } catch (e) {
@@ -152,6 +153,8 @@ export const WorkShiftsTab: React.FC = () => {
     fetchData();
     fetchCycles();
   }, [currentBranch?.id]);
+
+  useEffect(() => { fetchCycles(); }, [cycleArchiveFilter]);
 
   useEffect(() => {
     const handleReload = () => { fetchData(); fetchCycles(); };
@@ -484,13 +487,16 @@ export const WorkShiftsTab: React.FC = () => {
                 Define repeating shift patterns of any length — 3-shift weekly, 4-on/2-off, hospital rotations, etc.
               </p>
             </div>
-            <button
-              onClick={openCreateCycle}
-              className="btn-primary flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus size={13} />
-              <span className="text-xs">New Cycle</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <ArchiveToggle value={cycleArchiveFilter} onChange={setCycleArchiveFilter} />
+              <button
+                onClick={openCreateCycle}
+                className="btn-primary flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus size={13} />
+                <span className="text-xs">New Cycle</span>
+              </button>
+            </div>
           </div>
 
           {cyclesLoading ? (
@@ -539,20 +545,10 @@ export const WorkShiftsTab: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => openEditCycle(cycle)}
-                        className="p-1.5 rounded-[3px] hover:bg-[var(--surface)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
-                        title="Edit Cycle"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                      <button
-                        onClick={() => cycleArchive.archive({ id: cycle.id, name: cycle.name, isArchived: false })}
-                        className="p-1.5 rounded-[3px] hover:bg-red-500/10 text-[var(--ink-muted)] hover:text-red-500 transition-colors cursor-pointer"
-                        title="Delete Cycle"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <RowActionMenu actions={[
+                        { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => openEditCycle(cycle) },
+                        ...cycleArchive.rowActions({ id: cycle.id, name: cycle.name, isArchived: isRowArchived(cycle) }),
+                      ] as RowAction[]} />
                     </div>
                   </div>
                 </div>

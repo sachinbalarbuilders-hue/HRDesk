@@ -394,15 +394,31 @@ public class ShiftsController : ControllerBase
     // ==========================================
 
     [HttpGet("cycles")]
-    public async Task<IActionResult> GetShiftCycles([FromQuery] int? branchId = null)
+    public async Task<IActionResult> GetShiftCycles([FromQuery] int? branchId = null, [FromQuery] string? archiveStatus = "active")
     {
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 
-        var query = _db.ShiftCycles
-            .AsNoTracking()
-            .Include(c => c.Slots).ThenInclude(s => s.Shift)
-            .Where(c => c.OrganizationId == orgId && c.IsActive);
+        IQueryable<ShiftCycle> query;
+        if (archiveStatus == "all" || archiveStatus == "archived")
+        {
+            query = _db.ShiftCycles
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Include(c => c.Slots).ThenInclude(s => s.Shift)
+                .Where(c => c.OrganizationId == orgId);
+
+            if (archiveStatus == "archived")
+                query = query.Where(c => c.ArchivedAt != null);
+        }
+        else
+        {
+            query = _db.ShiftCycles
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Include(c => c.Slots).ThenInclude(s => s.Shift)
+                .Where(c => c.OrganizationId == orgId && c.ArchivedAt == null);
+        }
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
             query = query.Where(c => c.BranchId == activeBranch.Value);
@@ -415,6 +431,7 @@ public class ShiftsController : ControllerBase
             cycleLengthDays = c.CycleLengthDays,
             branchId = c.BranchId,
             createdAt = c.CreatedAt,
+            archivedAt = c.ArchivedAt,
             slots = c.Slots.OrderBy(s => s.SlotIndex).Select(s => new
             {
                 id = s.Id,
