@@ -38,6 +38,7 @@ public class EmailSettingsController : ControllerBase
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
 
         var settings = await _db.SystemSettings
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(s => s.OrganizationId == orgId && s.SettingKey.StartsWith("Email_"))
             .ToDictionaryAsync(s => s.SettingKey, s => s.SettingValue ?? "");
@@ -106,6 +107,7 @@ public class EmailSettingsController : ControllerBase
         foreach (var (key, value) in keysToSave)
         {
             var existing = await _db.SystemSettings
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(s => s.OrganizationId == orgId && s.SettingKey == key);
 
             if (existing != null)

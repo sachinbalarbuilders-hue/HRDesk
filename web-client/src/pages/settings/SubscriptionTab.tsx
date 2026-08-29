@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { useOrganization } from '../../context/CompanyContext';
 import {
   CreditCard,
   Users,
@@ -131,9 +132,11 @@ export const SubscriptionTab: React.FC = () => {
     }
   };
 
+  const { currentOrganization } = useOrganization();
+
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentOrganization?.id]);
 
   const handleInitiateCheckout = async (plan: PlanItem) => {
     if (!isAdmin) {

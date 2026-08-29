@@ -191,20 +191,23 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     fetchOrganizationsAndBranches();
   }, []);
 
-  // Re-fetch when user logs in (token appears in localStorage)
+  // Re-fetch when user logs in or when mutations occur
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'hrdesk_token' && e.newValue) {
         fetchOrganizationsAndBranches();
       }
     };
-    // Also listen for login events dispatched within the same tab
-    const handleLogin = () => fetchOrganizationsAndBranches();
+    const handleRefresh = () => fetchOrganizationsAndBranches();
     window.addEventListener('storage', handleStorage);
-    window.addEventListener('hrdesk:login', handleLogin);
+    window.addEventListener('hrdesk:login', handleRefresh);
+    window.addEventListener('notification-refresh', handleRefresh);
+    window.addEventListener('hrdesk:branches_updated', handleRefresh);
     return () => {
       window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('hrdesk:login', handleLogin);
+      window.removeEventListener('hrdesk:login', handleRefresh);
+      window.removeEventListener('notification-refresh', handleRefresh);
+      window.removeEventListener('hrdesk:branches_updated', handleRefresh);
     };
   }, []);
 
@@ -224,20 +227,59 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [allBranches, currentBranch]);
 
-  const switchOrganization = (orgId: string) => {
+  const switchOrganization = async (orgId: string) => {
     const match = organizations.find(c => String(c.id) === String(orgId));
     if (match) {
       setCurrentOrganization(match);
       localStorage.setItem('hrdesk_active_organization', String(match.id));
       localStorage.setItem('hrdesk_active_org_obj', JSON.stringify(match));
-      // Auto-select the first branch of the newly selected organization
-      const firstBranch = allBranches.find(b => String(b.organizationId) === String(match.id));
-      setCurrentBranch(firstBranch || null);
-      if (firstBranch) {
-        localStorage.setItem('hrdesk_active_branch', String(firstBranch.id));
-        window.dispatchEvent(new CustomEvent('hrdesk:branch_changed', { detail: { branchId: firstBranch.id } }));
-      } else {
-        localStorage.removeItem('hrdesk_active_branch');
+      
+      try {
+        // Re-fetch branches specifically for this organization
+        const branchesRes = await apiClient.get('/masters/branches', { params: { organizationId: match.id } });
+        if (Array.isArray(branchesRes.data) && branchesRes.data.length > 0) {
+          const newBranches: Branch[] = branchesRes.data.map((b: any) => ({
+            id: String(b.id),
+            organizationId: String(b.organizationId),
+            name: b.name,
+            code: b.code,
+            address: b.address,
+            city: b.city,
+            state: b.state,
+            pincode: b.pincode,
+            latitude: b.latitude,
+            longitude: b.longitude,
+            radiusMeters: b.radiusMeters,
+            whatsAppGroupId: b.whatsAppGroupId,
+            isActive: b.isActive ?? true,
+          }));
+          
+          setAllBranches(prev => {
+            const otherBranches = prev.filter(b => String(b.organizationId) !== String(match.id));
+            const merged = [...otherBranches, ...newBranches];
+            localStorage.setItem('hrdesk_db_branches', JSON.stringify(merged));
+            return merged;
+          });
+
+          const firstBranch = newBranches[0];
+          setCurrentBranch(firstBranch);
+          localStorage.setItem('hrdesk_active_branch', String(firstBranch.id));
+          window.dispatchEvent(new CustomEvent('hrdesk:branch_changed', { detail: { branchId: firstBranch.id } }));
+        } else {
+          setCurrentBranch(null);
+          localStorage.removeItem('hrdesk_active_branch');
+          window.dispatchEvent(new CustomEvent('hrdesk:branch_changed', { detail: { branchId: null } }));
+        }
+      } catch {
+        // Fallback to local cache if offline
+        const firstBranch = allBranches.find(b => String(b.organizationId) === String(match.id));
+        setCurrentBranch(firstBranch || null);
+        if (firstBranch) {
+          localStorage.setItem('hrdesk_active_branch', String(firstBranch.id));
+          window.dispatchEvent(new CustomEvent('hrdesk:branch_changed', { detail: { branchId: firstBranch.id } }));
+        } else {
+          localStorage.removeItem('hrdesk_active_branch');
+        }
       }
       
       // Dispatch custom event so pages can re-fetch data without full page reload

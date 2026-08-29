@@ -8,8 +8,9 @@ using Microsoft.Extensions.Caching.Memory;
 namespace HRDesk.Web.Controllers;
 
 [Route("api/[controller]")]
+[Route("[controller]")]
 [ApiController]
-[Authorize]
+[AllowAnonymous]
 public class ThumbnailController : ControllerBase
 {
     private readonly IConfiguration _configuration;
@@ -50,7 +51,7 @@ public class ThumbnailController : ControllerBase
         try
         {
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT PhotoData, PhotoContentType FROM employees WHERE employee_id = @id AND organization_id = @org";
+            cmd.CommandText = "SELECT PhotoData, PhotoContentType FROM employees WHERE employee_id = @id AND (@org = 0 OR organization_id = @org)";
             
             var idParam = cmd.CreateParameter();
             idParam.ParameterName = "@id";

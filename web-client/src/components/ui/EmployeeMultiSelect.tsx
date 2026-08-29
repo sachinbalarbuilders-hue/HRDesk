@@ -230,7 +230,7 @@ export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
                     <div className="w-5 flex items-center justify-center flex-shrink-0">
                       {isSelected && <span className="text-[var(--accent)] font-bold">✓</span>}
                     </div>
-                    <Avatar name={emp.employeeName} size="sm" src={emp.photoPath ? `/Thumbnail?employeeId=${emp.employeeId}` : null} />
+                    <Avatar name={emp.employeeName} size="sm" src={emp.photoPath ? `/api/Thumbnail?employeeId=${emp.employeeId}` : null} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[var(--text-primary)] truncate">{emp.employeeName}</p>
                       <p className="text-[11px] text-[var(--text-muted)]">EMP#{String(emp.employeeId).padStart(3, '0')}</p>

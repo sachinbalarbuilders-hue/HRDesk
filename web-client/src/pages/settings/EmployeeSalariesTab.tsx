@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import {
-  Search, Check, UserX, ExternalLink,
+  Search, Check, UserX, ExternalLink, X,
 } from 'lucide-react';
 
 interface EmpRow {

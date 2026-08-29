@@ -148,16 +148,25 @@ public class MastersController : ControllerBase
         var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
         var userOrgId = _tenantProvider.TenantId;
 
-        var orgQuery = _db.Organizations.AsNoTracking().Where(o => o.IsActive);
-        var branchQuery = _db.Branches.AsNoTracking().Where(b => b.IsActive);
+        var orgQuery = _db.Organizations.IgnoreQueryFilters().AsNoTracking().Where(o => o.IsActive);
+        var branchQuery = _db.Branches.IgnoreQueryFilters().AsNoTracking().Where(b => b.IsActive);
 
-        if (!isSuperAdmin && userOrgId > 0)
+        var isOrgAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || isSuperAdmin;
+        if (!isOrgAdmin && userOrgId > 0)
         {
             orgQuery = orgQuery.Where(o => o.Id == userOrgId);
             branchQuery = branchQuery.Where(b => b.OrganizationId == userOrgId);
         }
 
         var orgs = await orgQuery.ToListAsync();
+        var orgIds = orgs.Select(o => o.Id).ToList();
+        var branchCounts = await _db.Branches
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(b => b.IsActive && orgIds.Contains(b.OrganizationId))
+            .GroupBy(b => b.OrganizationId)
+            .ToDictionaryAsync(g => g.Key, g => g.Count());
+
         var branches = await branchQuery.ToListAsync();
 
         var deptQuery = _db.Departments.Include(d => d.Branch).AsNoTracking().AsQueryable();
@@ -194,7 +203,8 @@ public class MastersController : ControllerBase
                 logoUrl = o.LogoUrl,
                 primaryColor = o.PrimaryColor ?? "#D97706",
                 customDomain = o.CustomDomain,
-                isActive = o.IsActive
+                isActive = o.IsActive,
+                branchCount = branchCounts.TryGetValue(o.Id, out var count) ? count : 0
             }),
             branches = branches.Select(b => new
             {
@@ -764,8 +774,9 @@ public class MastersController : ControllerBase
         var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
         var userOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
 
-        var query = _db.Organizations.AsNoTracking().Where(o => o.IsActive);
-        if (!isSuperAdmin)
+        var query = _db.Organizations.IgnoreQueryFilters().AsNoTracking().Where(o => o.IsActive);
+        var isOrgAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || isSuperAdmin;
+        if (!isOrgAdmin)
         {
             query = query.Where(o => o.Id == userOrgId);
         }
@@ -773,6 +784,14 @@ public class MastersController : ControllerBase
         var rawOrgs = await query
             .OrderBy(o => o.Id)
             .ToListAsync();
+
+        var orgIds = rawOrgs.Select(o => o.Id).ToList();
+        var branchCounts = await _db.Branches
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(b => b.IsActive && orgIds.Contains(b.OrganizationId))
+            .GroupBy(b => b.OrganizationId)
+            .ToDictionaryAsync(g => g.Key, g => g.Count());
 
         var orgs = rawOrgs.Select(o => new
         {
@@ -784,7 +803,8 @@ public class MastersController : ControllerBase
             logoUrl = o.LogoUrl,
             primaryColor = o.PrimaryColor ?? "#D97706",
             customDomain = o.CustomDomain,
-            isActive = o.IsActive
+            isActive = o.IsActive,
+            branchCount = branchCounts.TryGetValue(o.Id, out var count) ? count : 0
         }).ToList();
 
         return Ok(orgs);
@@ -925,16 +945,13 @@ public class MastersController : ControllerBase
     public async Task<IActionResult> GetBranches([FromQuery] int? organizationId = null)
     {
         var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
-        var userOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var isOrgAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || isSuperAdmin;
+        var userOrgId = organizationId ?? (_tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1);
 
-        var query = _db.Branches.AsNoTracking().Where(b => b.IsActive);
-        if (!isSuperAdmin)
+        var query = _db.Branches.IgnoreQueryFilters().AsNoTracking().Where(b => b.IsActive);
+        if (!isOrgAdmin || organizationId.HasValue)
         {
             query = query.Where(b => b.OrganizationId == userOrgId);
-        }
-        else if (organizationId.HasValue && organizationId.Value > 0)
-        {
-            query = query.Where(b => b.OrganizationId == organizationId.Value);
         }
 
         var branches = await query

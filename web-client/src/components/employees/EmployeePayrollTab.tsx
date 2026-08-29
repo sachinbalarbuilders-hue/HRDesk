@@ -16,7 +16,7 @@ interface CTCRecord {
 }
 
 interface Template { id: number; name: string; }
-interface PayGroup { id: number; name: string; salaryBasis: string; }
+interface PayGroup { id: number; name: string; salaryBasis: string; isActive?: boolean; }
 interface PreviewRow { componentCode: string; componentName: string; componentType: string; amount: number; calculationType: string; formula: string; }
 
 const BASIS_LABELS: Record<string, string> = {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
+import { useOrganization } from '../../context/CompanyContext';
 import { Mail, Server, Key, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Card, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -7,6 +8,7 @@ import { Badge } from '../../components/ui/Badge';
 type Provider = 'Smtp' | 'SendGrid';
 
 export const EmailSettingsTab: React.FC = () => {
+  const { currentOrganization } = useOrganization();
   const [provider, setProvider] = useState<Provider>('Smtp');
   const [from, setFrom] = useState('');
   const [fromName, setFromName] = useState('HRDesk');
@@ -29,7 +31,7 @@ export const EmailSettingsTab: React.FC = () => {
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [currentOrganization?.id]);
 
   const fetchSettings = async () => {
     try {

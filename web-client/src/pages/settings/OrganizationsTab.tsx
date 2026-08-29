@@ -57,6 +57,7 @@ export const OrganizationsTab: React.FC = () => {
             customDomain: o.customDomain || '',
             isActive: o.isActive !== false,
             status: o.isActive !== false ? 'Active' : 'Inactive',
+            branchCount: o.branchCount ?? (res.data.branches?.filter((b: any) => b.organizationId === o.id).length || 0),
           }));
           setOrganizations(orgList);
         }
@@ -122,7 +123,7 @@ export const OrganizationsTab: React.FC = () => {
   }, [organizations, archiveFilter, search]);
 
   // Total branches across all visible orgs
-  const totalBranchesCount = branches.length;
+  const totalBranchesCount = organizations.reduce((sum, o) => sum + (o.branchCount || 0), 0);
   const customDomainsCount = organizations.filter((o) => !!o.customDomain).length;
 
   // Export to CSV
@@ -139,7 +140,7 @@ export const OrganizationsTab: React.FC = () => {
       CustomDomain: o.customDomain || 'N/A',
       Address: o.address || 'N/A',
       PrimaryColor: o.primaryColor,
-      BranchesCount: branches.filter((b) => b.organizationId === o.id).length,
+      BranchesCount: o.branchCount ?? branches.filter((b) => b.organizationId === o.id).length,
       Status: o.isActive ? 'Active' : 'Inactive',
     }));
     exportToCSV(`Organizations_Export_${new Date().toISOString().slice(0, 10)}`, exportData);
@@ -227,7 +228,7 @@ export const OrganizationsTab: React.FC = () => {
       header: 'Branches',
       width: '110px',
       render: (org) => {
-        const count = branches.filter((b) => b.organizationId === org.id).length;
+        const count = org.branchCount ?? (branches.filter((b) => b.organizationId === org.id).length || 0);
         return (
           <button
             onClick={(e) => {

@@ -66,15 +66,21 @@ export const Avatar: React.FC<AvatarProps> = ({
   presence,
   className,
 }) => {
+  const [imageError, setImageError] = React.useState(false);
   const initials = getInitials(name);
   const gradient = getGradient(name);
 
+  React.useEffect(() => {
+    setImageError(false);
+  }, [src]);
+
   return (
     <div className={clsx('relative inline-flex flex-shrink-0', className)}>
-      {src ? (
+      {src && !imageError ? (
         <img
           src={src}
-          alt={name}
+          alt=""
+          onError={() => setImageError(true)}
           className={clsx(
             'rounded-[var(--radius-full)] object-cover',
             sizes[size]
@@ -83,7 +89,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       ) : (
         <div
           className={clsx(
-            'rounded-[var(--radius-full)] bg-gradient-to-br flex items-center justify-center font-semibold text-white',
+            'rounded-[var(--radius-full)] bg-gradient-to-br flex items-center justify-center font-semibold text-white select-none',
             gradient,
             sizes[size]
           )}

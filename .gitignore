@@ -58,3 +58,5 @@ HRDesk.Web/App_Data/models/*.onnx
 tools/*.txt
 tools/spoof_test_images/
 hrdesk_mobile/flutter_analyze*.txt
+client/
+web-client/dist/

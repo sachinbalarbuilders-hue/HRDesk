@@ -387,6 +387,7 @@ using (var scope = app.Services.CreateScope())
                     ALTER TABLE attendance_logs ADD IsIpValid BIT NULL;
                 END;
             ");
+            db.BypassTenantId = true;
 
             if (!db.Companies.Any())
             {
@@ -411,6 +412,8 @@ using (var scope = app.Services.CreateScope())
         {
             Console.WriteLine($"[Startup] Company DB migration warning: {ex.Message}");
         }
+
+        db.BypassTenantId = true;
 
         if (!db.Organizations.Any())
         {
@@ -535,26 +538,9 @@ using (var scope = app.Services.CreateScope())
                 db.SaveChanges();
             }
 
-            var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin");
-            if (adminUser == null)
+            var adminUser = db.Users.IgnoreQueryFilters().FirstOrDefault(u => u.Username == "admin");
+            if (adminUser != null)
             {
-                db.Users.Add(new HRDesk.Web.Models.User
-                {
-                    Username = "admin",
-                    PasswordHash = "password",
-                    FullName = "Administrator",
-                    Role = "SuperAdmin",
-                    RoleId = superAdminRole.Id,
-                    IsActive = true,
-                    CreatedAt = DateTime.Now,
-                    OrganizationId = defaultOrg.Id
-                });
-                db.SaveChanges();
-                Console.WriteLine("\n[SEED] Created user: admin / password (Super Admin)\n");
-            }
-            else
-            {
-                adminUser.PasswordHash = "password";
                 adminUser.Role = "SuperAdmin";
                 adminUser.RoleId = superAdminRole.Id;
                 db.SaveChanges();

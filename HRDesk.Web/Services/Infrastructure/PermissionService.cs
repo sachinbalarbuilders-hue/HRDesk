@@ -167,6 +167,10 @@ public sealed class PermissionService : IPermissionService
             else return query.Where(_ => false);
         }
 
+        // Fast-path: All scope doesn't need a linked employee record
+        if (scope == AppPermissions.Scopes.All)
+            return query;
+
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
         if (!currentEmpId.HasValue)
             return query.Where(_ => false);
@@ -197,11 +201,6 @@ public sealed class PermissionService : IPermissionService
                 return query.Where(e => e.BranchId == currentEmp.BranchId);
         }
 
-        if (scope == AppPermissions.Scopes.All)
-        {
-            return query;
-        }
-
         return query;
     }
 
@@ -221,6 +220,10 @@ public sealed class PermissionService : IPermissionService
             else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.OwnBranch;
             else return query.Where(_ => false);
         }
+
+        // Fast-path: All scope doesn't need a linked employee record
+        if (scope == AppPermissions.Scopes.All)
+            return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
         if (!currentEmpId.HasValue)
@@ -294,6 +297,10 @@ public sealed class PermissionService : IPermissionService
             else return query.Where(_ => false);
         }
 
+        // Fast-path: All scope doesn't need a linked employee record
+        if (scope == AppPermissions.Scopes.All)
+            return query;
+
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
         if (!currentEmpId.HasValue)
             return query.Where(_ => false);
@@ -366,6 +373,10 @@ public sealed class PermissionService : IPermissionService
             else return query.Where(_ => false);
         }
 
+        // Fast-path: All scope doesn't need a linked employee record
+        if (scope == AppPermissions.Scopes.All)
+            return query;
+
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
         if (!currentEmpId.HasValue)
             return query.Where(_ => false);
@@ -437,6 +448,10 @@ public sealed class PermissionService : IPermissionService
             else if (user.IsInRole("Admin")) scope = AppPermissions.Scopes.OwnBranch;
             else return query.Where(_ => false);
         }
+
+        // Fast-path: All scope doesn't need a linked employee record
+        if (scope == AppPermissions.Scopes.All)
+            return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
         if (!currentEmpId.HasValue)

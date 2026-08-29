@@ -30,26 +30,28 @@ public class CurrentTenantProvider : ICurrentTenantProvider
             var user = httpContext.User;
             var isAuthenticated = user?.Identity?.IsAuthenticated == true;
 
-            // Determine if this is a platform user (from JWT claim)
+            // Determine if this is a platform user or tenant admin with cross-org access
             var isPlatformUser = isAuthenticated &&
                 string.Equals(user!.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+            var isAdmin = isAuthenticated && (user!.IsInRole("Admin") || user.IsInRole("SuperAdmin"));
 
-            if (isPlatformUser)
+            if (isPlatformUser || isAdmin)
             {
-                // PLATFORM USER: Trust X-Organization-Id header for cross-org access.
-                // Platform identity is verified via the IsPlatformUser JWT claim (server-signed, tamper-proof).
-                // If no header is sent, return 0 (no org context = platform dashboard mode).
+                // PLATFORM USER OR ADMIN: Trust X-Organization-Id header for cross-org access.
                 var headerValue = httpContext.Request.Headers["X-Organization-Id"].ToString();
                 if (!string.IsNullOrEmpty(headerValue) && int.TryParse(headerValue, out var headerOrgId) && headerOrgId > 0)
                 {
                     return headerOrgId;
                 }
-                return 0; // Platform user, no active org context
+                if (isPlatformUser)
+                {
+                    return 0; // Platform user, no active org context
+                }
             }
 
             if (isAuthenticated)
             {
-                // ORGANIZATION USER: Use ONLY their JWT OrganizationId claim.
+                // REGULAR EMPLOYEE: Use ONLY their JWT OrganizationId claim.
                 // Do NOT trust X-Organization-Id header — prevents cross-org access by header manipulation.
                 var orgClaim = user!.FindFirst("OrganizationId");
                 if (orgClaim != null && int.TryParse(orgClaim.Value, out var claimOrgId) && claimOrgId > 0)
