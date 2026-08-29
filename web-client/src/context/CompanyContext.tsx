@@ -172,11 +172,13 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         const orgBranchList = branchList.filter(b => String(b.organizationId) === String(matchedOrg.id));
         const savedBranchId = localStorage.getItem('hrdesk_active_branch');
-        const matchedBranch = orgBranchList.find(b => String(b.id) === String(savedBranchId)) || orgBranchList[0] || null;
+        // Only default to first branch if no saved branch or saved branch doesn't exist in this org
+        const matchedBranch = orgBranchList.find(b => String(b.id) === String(savedBranchId))
+          ?? ((!savedBranchId || savedBranchId === 'all') ? (orgBranchList[0] || null) : null);
         setCurrentBranch(matchedBranch);
         if (matchedBranch) {
           localStorage.setItem('hrdesk_active_branch', String(matchedBranch.id));
-        } else {
+        } else if (!savedBranchId || savedBranchId === 'all') {
           localStorage.removeItem('hrdesk_active_branch');
         }
       }

@@ -1,25 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../../../api/client';
-import { useToast } from '../../../context/ToastContext';
 import { RowActionMenu, type RowAction } from '../../../components/ui/RowActionMenu';
-import { Plus, MapPin, Shield, Trash2, Edit2, Archive, RotateCcw } from 'lucide-react';
+import { useArchiveActions, isRowArchived } from '../../../hooks/useArchiveActions';
+import { ArchiveToggle, type ArchiveFilterValue } from '../../../components/ui/ArchiveToggle';
+import { Plus, MapPin, Shield, Edit2 } from 'lucide-react';
 import { useOrgOutletContext } from './OrganizationShell';
 
 export const OrgBranchesTab: React.FC = () => {
-  const { id, orgForm, branches, setBranches } = useOrgOutletContext();
+  const { id, orgForm, branches, setBranches, refetch } = useOrgOutletContext();
   const navigate = useNavigate();
-  const { showSuccess, showError } = useToast();
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
 
-  const handleDeleteBranch = async (branch: { id: number; publicId: string }) => {
-    try {
-      await apiClient.delete(`/masters/branches/${branch.publicId}`);
-      setBranches(branches.filter((b) => b.id !== branch.id));
-      showSuccess('Branch Deleted', 'Branch removed.');
-    } catch (err: any) {
-      showError('Failed', err.response?.data?.message || 'Server error');
-    }
-  };
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const branchArchive = useArchiveActions({
+    endpoint: '/masters/branches',
+    label: 'Branch',
+    onDone: refetch,
+  });
+
+  const visibleBranches = branches.filter((b) => {
+    const archived = isRowArchived(b);
+    if (archiveFilter === 'active') return !archived;
+    if (archiveFilter === 'archived') return archived;
+    return true;
+  });
 
   return (
     <div className="space-y-4">
@@ -30,28 +34,33 @@ export const OrgBranchesTab: React.FC = () => {
             Sites and offices under this organization. Open a branch to edit details and attendance policy.
           </p>
         </div>
-        <button
-          onClick={() => navigate(`/settings/organizations/${id}/branches/add`)}
-          className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer"
-        >
-          <Plus size={13} /><span>Add Branch</span>
-        </button>
-      </div>
-
-      {branches.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 py-10 text-xs text-[var(--ink-muted)] border border-dashed border-[var(--rule)] rounded-md">
-          <MapPin size={20} className="text-indigo-300" />
-          <span>No branches under <strong>{orgForm.name}</strong> yet.</span>
+        <div className="flex items-center gap-2">
+          <ArchiveToggle value={archiveFilter} onChange={setArchiveFilter} />
           <button
             onClick={() => navigate(`/settings/organizations/${id}/branches/add`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] bg-indigo-600 text-white text-[11px] font-semibold hover:bg-indigo-700 cursor-pointer transition-colors"
+            className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 cursor-pointer"
           >
-            <Plus size={11} />Add First Branch
+            <Plus size={13} /><span>Add Branch</span>
           </button>
+        </div>
+      </div>
+
+      {visibleBranches.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-10 text-xs text-[var(--ink-muted)] border border-dashed border-[var(--rule)] rounded-md">
+          <MapPin size={20} className="text-indigo-300" />
+          <span>{archiveFilter === 'archived' ? 'No archived branches.' : <>No branches under <strong>{orgForm.name}</strong> yet.</>}</span>
+          {archiveFilter === 'active' && (
+            <button
+              onClick={() => navigate(`/settings/organizations/${id}/branches/add`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] bg-indigo-600 text-white text-[11px] font-semibold hover:bg-indigo-700 cursor-pointer transition-colors"
+            >
+              <Plus size={11} />Add First Branch
+            </button>
+          )}
         </div>
       ) : (
         <div className="border border-[var(--rule)] rounded-md divide-y divide-[var(--rule)]">
-          {branches.map((branch) => (
+          {visibleBranches.map((branch) => (
             <div
               key={branch.id}
               className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--paper)]/60 transition-colors cursor-pointer"
@@ -63,7 +72,7 @@ export const OrgBranchesTab: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm text-[var(--ink)]">{branch.name}</span>
-                  {branch.isActive !== false
+                  {!isRowArchived(branch)
                     ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--ok-600)]"><span className="status-dot-ok" /> Active</span>
                     : <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--warn-600)]"><span className="status-dot-warn" /> Archived</span>
                   }
@@ -78,16 +87,21 @@ export const OrgBranchesTab: React.FC = () => {
                 <RowActionMenu actions={[
                   { label: 'Permissions', icon: <Shield size={14} />, onClick: () => navigate(`/settings/organizations/${id}/branches/${branch.publicId}/permissions`) },
                   { label: 'Edit Branch', icon: <Edit2 size={14} />, onClick: () => navigate(`/settings/organizations/${id}/branches/${branch.publicId}`) },
-                  branch.isActive === false
-                    ? { label: 'Restore', icon: <RotateCcw size={14} />, onClick: async () => { try { await apiClient.put(`/masters/branches/${branch.publicId}`, { ...branch, isActive: true }); setBranches(branches.map((b) => b.id === branch.id ? { ...b, isActive: true } : b)); showSuccess('Restored', `${branch.name} restored.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }, variant: 'success', dividerBefore: true }
-                    : { label: 'Archive', icon: <Archive size={14} />, onClick: async () => { try { await apiClient.put(`/masters/branches/${branch.publicId}`, { ...branch, isActive: false }); setBranches(branches.map((b) => b.id === branch.id ? { ...b, isActive: false } : b)); showSuccess('Archived', `${branch.name} archived.`); } catch (err: any) { showError('Error', err.response?.data?.message || 'Failed'); } }, dividerBefore: true },
-                  { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteBranch(branch), variant: 'danger' },
+                  ...branchArchive.rowActions({
+                    id: branch.publicId,
+                    name: branch.name,
+                    isArchived: isRowArchived(branch),
+                  }),
                 ] as RowAction[]} />
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {branchArchive.dialog}
     </div>
   );
 };
+

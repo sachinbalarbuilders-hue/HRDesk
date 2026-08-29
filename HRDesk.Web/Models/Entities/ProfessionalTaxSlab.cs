@@ -13,11 +13,18 @@ namespace HRDesk.Web.Models;
 ///   Gross > 20,000        → PT = ₹200
 /// February is sometimes ₹300 in some states (use IsFebruary = true for those rows).
 /// </summary>
-public class ProfessionalTaxSlab : IMustHaveTenant
+public class ProfessionalTaxSlab : IMustHaveTenant, IArchivable
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [StringLength(150)]
+    public string? ArchivedBy { get; set; }
 
     [Column("state")]
     [Required]

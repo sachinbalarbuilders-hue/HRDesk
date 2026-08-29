@@ -8,14 +8,12 @@ import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { BulkImportModal } from '../../components/ui/BulkImportModal';
 import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
+import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 import {
   Award,
   Plus,
-  Trash2,
   X,
   Edit2,
-  Archive,
-  RotateCcw,
 } from 'lucide-react';
 
 export const DesignationsTab: React.FC = () => {
@@ -57,7 +55,8 @@ export const DesignationsTab: React.FC = () => {
             code: `DSG-${d.id}`,
             department: 'General',
             level: 'L2 (Mid)',
-            status: d.status || 'Active',
+            status: d.status || (d.archivedAt ? 'Archived' : 'Active'),
+            archivedAt: d.archivedAt,
             branchId: d.branchId,
           })));
         }
@@ -118,6 +117,13 @@ export const DesignationsTab: React.FC = () => {
     ]);
     showSuccess('Exported', 'Designations exported to CSV.');
   };
+
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const archiveActions = useArchiveActions({
+    endpoint: '/masters/designations',
+    label: 'Designation',
+    onDone: fetchData,
+  });
 
   const s = search.trim().toLowerCase();
   const filteredDesigs = designations.filter(d => {
@@ -187,10 +193,11 @@ export const DesignationsTab: React.FC = () => {
         return (
           <RowActionMenu actions={[
             { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingDesigId(item.id); setNewDesignation({ title: item.title || item.name || '', code: item.code || '', department: item.department || '', level: item.level || '' }); setDesigModalOpen(true); } },
-            isArchived
-              ? { label: 'Restore', icon: <RotateCcw size={14} />, onClick: () => { setDesignations(designations.map(d => d.id === item.id ? { ...d, status: 'active' } : d)); showSuccess('Designation Restored', `${item.title} restored.`); }, variant: 'success', dividerBefore: true }
-              : { label: 'Archive', icon: <Archive size={14} />, onClick: () => { setDesignations(designations.map(d => d.id === item.id ? { ...d, status: 'inactive' } : d)); showSuccess('Designation Archived', `${item.title} moved to archive.`); }, dividerBefore: true },
-            { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => { setDesignations(designations.filter(d => d.id !== item.id)); showSuccess('Designation Deleted', 'Designation removed.'); }, variant: 'danger' },
+            ...archiveActions.rowActions({
+              id: item.id,
+              name: item.title,
+              isArchived: isRowArchived(item),
+            }),
           ] as RowAction[]} />
         );
       },
@@ -314,6 +321,9 @@ export const DesignationsTab: React.FC = () => {
           fetchData();
         }}
       />
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {archiveActions.dialog}
     </div>
   );
 };

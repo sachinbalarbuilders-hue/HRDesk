@@ -19,20 +19,31 @@ public class MastersController : ControllerBase
     private readonly ICurrentTenantProvider _tenantProvider;
     private readonly IReferenceDataCacheService _cacheService;
     private readonly IPlanEntitlementService _entitlementService;
+    private readonly IArchiveService _archive;
 
     public MastersController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         ICurrentTenantProvider tenantProvider,
         IReferenceDataCacheService cacheService,
-        IPlanEntitlementService entitlementService)
+        IPlanEntitlementService entitlementService,
+        IArchiveService archive)
     {
         _db = db;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
         _cacheService = cacheService;
         _entitlementService = entitlementService;
+        _archive = archive;
     }
+
+    /// <summary>Maps an ArchiveResult onto an IActionResult. Shared by every delete endpoint here.</summary>
+    private IActionResult FromArchive(ArchiveResult result) =>
+        result.Success
+            ? Ok(new { success = true, message = result.Message })
+            : result.ErrorCode == ArchiveResult.NotFound
+                ? NotFound(new { success = false, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message, code = result.ErrorCode });
 
     public record DepartmentDto(string DepartmentName, string? Status, int? BranchId = null);
     public record DesignationDto(string DesignationName, string? Status, int? BranchId = null);
@@ -144,12 +155,13 @@ public class MastersController : ControllerBase
     [HttpGet("overview")]
     public async Task<IActionResult> GetOverview([FromQuery] int? branchId = null)
     {
+        _db.BypassArchiveFilter = true;
         var activeBranch = branchId ?? _tenantProvider.BranchId;
         var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
         var userOrgId = _tenantProvider.TenantId;
 
-        var orgQuery = _db.Organizations.IgnoreQueryFilters().AsNoTracking().Where(o => o.IsActive);
-        var branchQuery = _db.Branches.IgnoreQueryFilters().AsNoTracking().Where(b => b.IsActive);
+        var orgQuery = _db.Organizations.IgnoreQueryFilters().AsNoTracking().AsQueryable();
+        var branchQuery = _db.Branches.IgnoreQueryFilters().AsNoTracking().AsQueryable();
 
         var isOrgAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || isSuperAdmin;
         if (!isOrgAdmin && userOrgId > 0)
@@ -223,13 +235,15 @@ public class MastersController : ControllerBase
                 whatsAppGroupId = b.WhatsAppGroupId,
                 allowedIPs = b.AllowedIPs,
                 outsideAttendancePolicy = b.OutsideAttendancePolicy,
-                isActive = b.IsActive
+                isActive = b.IsActive,
+                archivedAt = b.ArchivedAt
             }),
             departments = depts.Select(d => new
             {
                 id = d.Id,
                 name = d.DepartmentName,
-                status = d.Status ?? "active",
+                status = d.ArchivedAt != null ? "Archived" : (d.Status ?? "Active"),
+                archivedAt = d.ArchivedAt,
                 branchId = d.BranchId,
                 branchName = d.Branch != null ? d.Branch.Name : null
             }),
@@ -237,7 +251,8 @@ public class MastersController : ControllerBase
             {
                 id = d.Id,
                 name = d.DesignationName,
-                status = d.Status ?? "active",
+                status = d.ArchivedAt != null ? "Archived" : (d.Status ?? "Active"),
+                archivedAt = d.ArchivedAt,
                 branchId = d.BranchId,
                 branchName = d.Branch != null ? d.Branch.Name : null
             }),
@@ -255,7 +270,8 @@ public class MastersController : ControllerBase
                 departmentIds = l.DepartmentIds,
                 designationIds = l.DesignationIds,
                 roleIds = l.RoleIds,
-                status = l.Status,
+                status = l.ArchivedAt != null ? "Archived" : (l.Status ?? "Active"),
+                archivedAt = l.ArchivedAt,
                 branchId = l.BranchId,
                 branchName = l.Branch != null ? l.Branch.Name : null
             }),
@@ -273,7 +289,9 @@ public class MastersController : ControllerBase
                 earlyLeaveGrace = s.EarlyLeaveGraceMinutes ?? 15,
                 halfTime = s.HalfTime.HasValue ? s.HalfTime.Value.ToString("HH:mm") : null,
                 workingHours = s.WorkingHours,
-                colorCode = s.ColorCode ?? "#4e73df",
+                colorCode = s.ColorCode,
+                status = s.ArchivedAt != null ? "Archived" : "Active",
+                archivedAt = s.ArchivedAt,
                 branchId = s.BranchId,
                 branchName = s.Branch != null ? s.Branch.Name : null
             })
@@ -322,17 +340,27 @@ public class MastersController : ControllerBase
         return Ok(new { message = "Department updated successfully.", id = dept.Id });
     }
 
+    /// <summary>
+    /// "Delete" from the main list → archive (reversible).
+    /// "Delete" from the Archive view → permanent (pass ?permanent=true).
+    /// </summary>
     [HttpDelete("departments/{id}")]
-    public async Task<IActionResult> DeleteDepartment(int id)
+    public async Task<IActionResult> DeleteDepartment(int id, [FromQuery] bool permanent = false)
     {
-        var dept = await _db.Departments.FindAsync(id);
-        if (dept == null) return NotFound(new { message = "Department not found." });
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<Department>(id)
+            : await _archive.ArchiveAsync<Department>(id);
 
-        _db.Departments.Remove(dept);
-        await _db.SaveChangesAsync();
-        _cacheService.EvictDepartmentsCache();
-        
-        return Ok(new { message = "Department deleted successfully." });
+        if (result.Success) _cacheService.EvictDepartmentsCache();
+        return FromArchive(result);
+    }
+
+    [HttpPost("departments/{id}/restore")]
+    public async Task<IActionResult> RestoreDepartment(int id)
+    {
+        var result = await _archive.RestoreAsync<Department>(id);
+        if (result.Success) _cacheService.EvictDepartmentsCache();
+        return FromArchive(result);
     }
 
     // ==========================================
@@ -378,16 +406,22 @@ public class MastersController : ControllerBase
     }
 
     [HttpDelete("designations/{id}")]
-    public async Task<IActionResult> DeleteDesignation(int id)
+    public async Task<IActionResult> DeleteDesignation(int id, [FromQuery] bool permanent = false)
     {
-        var desig = await _db.Designations.FindAsync(id);
-        if (desig == null) return NotFound(new { message = "Designation not found." });
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<Designation>(id)
+            : await _archive.ArchiveAsync<Designation>(id);
 
-        _db.Designations.Remove(desig);
-        await _db.SaveChangesAsync();
-        _cacheService.EvictDesignationsCache();
-        
-        return Ok(new { message = "Designation deleted successfully." });
+        if (result.Success) _cacheService.EvictDesignationsCache();
+        return FromArchive(result);
+    }
+
+    [HttpPost("designations/{id}/restore")]
+    public async Task<IActionResult> RestoreDesignation(int id)
+    {
+        var result = await _archive.RestoreAsync<Designation>(id);
+        if (result.Success) _cacheService.EvictDesignationsCache();
+        return FromArchive(result);
     }
 
     // ==========================================
@@ -422,6 +456,7 @@ public class MastersController : ControllerBase
 
         _db.LeaveTypes.Add(leaveType);
         await _db.SaveChangesAsync();
+        _cacheService.EvictLeaveTypesCache();
 
         return Ok(new { message = "Leave type created successfully.", id = leaveType.Id });
     }
@@ -447,18 +482,27 @@ public class MastersController : ControllerBase
         if (dto.BranchId.HasValue) leaveType.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
 
         await _db.SaveChangesAsync();
+        _cacheService.EvictLeaveTypesCache();
         return Ok(new { message = "Leave type updated successfully.", id = leaveType.Id });
     }
 
     [HttpDelete("leave-types/{id}")]
-    public async Task<IActionResult> DeleteLeaveType(int id)
+    public async Task<IActionResult> DeleteLeaveType(int id, [FromQuery] bool permanent = false)
     {
-        var leaveType = await _db.LeaveTypes.FindAsync(id);
-        if (leaveType == null) return NotFound(new { message = "Leave type not found." });
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<LeaveType>(id)
+            : await _archive.ArchiveAsync<LeaveType>(id);
 
-        _db.LeaveTypes.Remove(leaveType);
-        await _db.SaveChangesAsync();
-        return Ok(new { message = "Leave type deleted successfully." });
+        if (result.Success) _cacheService.EvictLeaveTypesCache();
+        return FromArchive(result);
+    }
+
+    [HttpPost("leave-types/{id}/restore")]
+    public async Task<IActionResult> RestoreLeaveType(int id)
+    {
+        var result = await _archive.RestoreAsync<LeaveType>(id);
+        if (result.Success) _cacheService.EvictLeaveTypesCache();
+        return FromArchive(result);
     }
 
     // ==========================================
@@ -559,15 +603,18 @@ public class MastersController : ControllerBase
     }
 
     [HttpDelete("shifts/{id}")]
-    public async Task<IActionResult> DeleteShift(int id)
+    public async Task<IActionResult> DeleteShift(int id, [FromQuery] bool permanent = false)
     {
-        var shift = await _db.Shifts.FindAsync(id);
-        if (shift == null) return NotFound(new { message = "Shift not found." });
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<Shift>(id)
+            : await _archive.ArchiveAsync<Shift>(id);
 
-        _db.Shifts.Remove(shift);
-        await _db.SaveChangesAsync();
-        return Ok(new { message = "Shift deleted successfully." });
+        return FromArchive(result);
     }
+
+    [HttpPost("shifts/{id}/restore")]
+    public async Task<IActionResult> RestoreShift(int id)
+        => FromArchive(await _archive.RestoreAsync<Shift>(id));
 
     // ==========================================
     // ATTENDANCE POLICY
@@ -579,13 +626,9 @@ public class MastersController : ControllerBase
         var query = _db.SystemSettings.AsNoTracking().AsQueryable();
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
-        {
-            query = query.Where(s => s.BranchId == activeBranch.Value || s.BranchId == null);
-        }
+            query = query.Where(s => s.BranchId == activeBranch.Value);
         else
-        {
             query = query.Where(s => s.BranchId == null);
-        }
 
         var settings = await query.ToListAsync();
 
@@ -878,6 +921,49 @@ public class MastersController : ControllerBase
         return Ok(new { message = "Organization updated successfully.", id = org.Id, publicId = org.PublicId });
     }
 
+    [HttpDelete("organizations/{publicId:guid}")]
+    public async Task<IActionResult> DeleteOrganization(Guid publicId, [FromQuery] bool permanent = false)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+            return Forbid();
+
+        var org = await _db.Organizations.IgnoreQueryFilters().FirstOrDefaultAsync(o => o.PublicId == publicId);
+        if (org == null) return NotFound(new { message = "Organization not found." });
+
+        if (permanent)
+        {
+            var hasBranches = await _db.Branches.IgnoreQueryFilters().AnyAsync(b => b.OrganizationId == org.Id);
+            if (hasBranches)
+                return BadRequest(new { message = "Cannot permanently delete: this organization still has branches. Delete all branches first." });
+
+            var hasEmployees = await _db.Employees.IgnoreQueryFilters().AnyAsync(e => e.OrganizationId == org.Id);
+            if (hasEmployees)
+                return BadRequest(new { message = "Cannot permanently delete: this organization still has employees." });
+
+            _db.Organizations.Remove(org);
+            await _db.SaveChangesAsync();
+            return Ok(new { message = "Organization permanently deleted." });
+        }
+
+        org.IsActive = false;
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Organization deleted." });
+    }
+
+    [HttpPost("organizations/{publicId:guid}/restore")]
+    public async Task<IActionResult> RestoreOrganization(Guid publicId)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+            return Forbid();
+
+        var org = await _db.Organizations.IgnoreQueryFilters().FirstOrDefaultAsync(o => o.PublicId == publicId);
+        if (org == null) return NotFound(new { message = "Organization not found." });
+
+        org.IsActive = true;
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Organization restored." });
+    }
+
     [HttpPost("organizations/{publicId:guid}/logo")]
     public async Task<IActionResult> UploadOrganizationLogo(Guid publicId, IFormFile file, [FromServices] IWebHostEnvironment env)
     {
@@ -1068,7 +1154,7 @@ public class MastersController : ControllerBase
     }
 
     [HttpDelete("branches/{publicId:guid}")]
-    public async Task<IActionResult> DeleteBranch(Guid publicId)
+    public async Task<IActionResult> DeleteBranch(Guid publicId, [FromQuery] bool permanent = false)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
         {
@@ -1076,6 +1162,7 @@ public class MastersController : ControllerBase
         }
 
         _db.BypassTenantId = true;
+        _db.BypassArchiveFilter = true;
         var branch = await _db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.PublicId == publicId);
         if (branch == null) return NotFound(new { message = "Branch not found." });
 
@@ -1085,9 +1172,27 @@ public class MastersController : ControllerBase
             return Forbid();
         }
 
-        _db.Branches.Remove(branch);
-        await _db.SaveChangesAsync();
-        return Ok(new { message = "Branch deleted successfully." });
+        // Route through the shared lifecycle. Archive first; ?permanent=true hard-deletes
+        // (only reachable once already archived).
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<Branch>(branch.Id)
+            : await _archive.ArchiveAsync<Branch>(branch.Id);
+
+        return FromArchive(result);
+    }
+
+    [HttpPost("branches/{publicId:guid}/restore")]
+    public async Task<IActionResult> RestoreBranch(Guid publicId)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+            return Forbid();
+
+        _db.BypassTenantId = true;
+        _db.BypassArchiveFilter = true;
+        var branch = await _db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.PublicId == publicId);
+        if (branch == null) return NotFound(new { message = "Branch not found." });
+
+        return FromArchive(await _archive.RestoreAsync<Branch>(branch.Id));
     }
 
     [HttpPost("organization-branding")]

@@ -36,22 +36,13 @@ public class EmployeePrefixController : ControllerBase
 
         var settings = await _db.SystemSettings
             .AsNoTracking()
-            .Where(s => s.OrganizationId == targetOrgId && (s.BranchId == targetBranch || s.BranchId == null))
+            .Where(s => s.OrganizationId == targetOrgId && s.BranchId == targetBranch)
             .ToListAsync();
 
-        string series = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
-            ?? "EMP";
-
-        string connector = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
-            ?? "#";
-
-        int padding = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue, out var p) ? p : 3;
-
-        int startSeq = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Employee_Prefix_StartSeq")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_StartSeq")?.SettingValue, out var sSeq) ? sSeq : 1;
+        string series    = settings.FirstOrDefault(s => s.SettingKey == "Employee_Prefix_Series")?.SettingValue    ?? "EMP";
+        string connector = settings.FirstOrDefault(s => s.SettingKey == "Employee_Prefix_Connector")?.SettingValue ?? "#";
+        int padding      = int.TryParse(settings.FirstOrDefault(s => s.SettingKey == "Employee_Prefix_Padding")?.SettingValue,    out var p)    ? p    : 3;
+        int startSeq     = int.TryParse(settings.FirstOrDefault(s => s.SettingKey == "Employee_Prefix_StartSeq")?.SettingValue,   out var sSeq) ? sSeq : 1;
 
         var maxId = await _db.Employees
             .Where(e => e.OrganizationId == targetOrgId && (targetBranch == null || e.BranchId == targetBranch) && e.EmployeeId < 10000)

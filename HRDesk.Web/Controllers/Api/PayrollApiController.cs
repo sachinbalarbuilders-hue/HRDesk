@@ -18,17 +18,20 @@ public class PayrollController : ControllerBase
     private readonly IPayrollService _payrollService;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly IArchiveService _archive;
 
     public PayrollController(
         BiometricAttendanceDbContext db,
         IPayrollService payrollService,
         IPermissionService permissionService,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        IArchiveService archive)
     {
         _db = db;
         _payrollService = payrollService;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
+        _archive = archive;
     }
 
     [HttpGet("records")]
@@ -39,8 +42,14 @@ public class PayrollController : ControllerBase
         [FromQuery] int? branchId = null,
         [FromQuery] string? status = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string archiveStatus = "active")
     {
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase) || archiveStatus.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            _db.BypassArchiveFilter = true;
+        }
+
         var targetMonth = !string.IsNullOrWhiteSpace(month) ? month : DateTime.Now.ToString("yyyy-MM");
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 
@@ -50,7 +59,13 @@ public class PayrollController : ControllerBase
                 .ThenInclude(e => e.Department)
             .Include(p => p.Employee)
                 .ThenInclude(e => e.Designation)
-            .Where(p => p.Month == targetMonth);
+            .Where(p => p.Month == targetMonth)
+            .AsQueryable();
+
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(p => p.ArchivedAt != null);
+        else if (archiveStatus.Equals("active", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(p => p.ArchivedAt == null);
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
@@ -115,7 +130,8 @@ public class PayrollController : ControllerBase
                 status = p.Status,
                 isLocked = p.LockedAt != null,
                 processedDate = p.ProcessedDate?.ToString("yyyy-MM-dd HH:mm"),
-                paymentDate = p.PaymentDate?.ToString("yyyy-MM-dd")
+                paymentDate = p.PaymentDate?.ToString("yyyy-MM-dd"),
+                archivedAt = p.ArchivedAt
             })
             .ToList();
 
@@ -175,6 +191,31 @@ public class PayrollController : ControllerBase
         {
             return StatusCode(500, new { message = "Payroll processing failed. Please try again or contact support." });
         }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeletePayroll(int id, [FromQuery] bool permanent = false)
+    {
+        if (permanent)
+        {
+            var result = await _archive.PermanentDeleteAsync<PayrollMaster>(id);
+            if (!result.Success) return BadRequest(new { message = result.Message });
+            return Ok(new { message = "Payroll record permanently deleted." });
+        }
+        else
+        {
+            var result = await _archive.ArchiveAsync<PayrollMaster>(id);
+            if (!result.Success) return BadRequest(new { message = result.Message });
+            return Ok(new { message = "Payroll record archived successfully." });
+        }
+    }
+
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestorePayroll(int id)
+    {
+        var result = await _archive.RestoreAsync<PayrollMaster>(id);
+        if (!result.Success) return BadRequest(new { message = result.Message });
+        return Ok(new { message = "Payroll record restored successfully." });
     }
 
     [HttpGet("{id}/payslip")]

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Download, Trash2, Upload, Loader2, AlertCircle, Eye } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { DocumentViewerModal } from '../common/DocumentViewerModal';
+import { useArchiveActions } from '../../hooks/useArchiveActions';
 
 interface Document {
   documentId: number;
@@ -100,16 +101,12 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
     }
   };
 
-  const handleDelete = async (docId: number) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
-    try {
-      setError(null);
-      await apiClient.delete(`/EmployeeDocuments/${docId}`);
-      await fetchDocuments();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete document.');
-    }
-  };
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const docArchive = useArchiveActions({
+    endpoint: '/EmployeeDocuments',
+    label: 'Document',
+    onDone: fetchDocuments,
+  });
 
   if (loading) {
     return (
@@ -209,8 +206,8 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
                     <Download size={14} />
                   </button>
                   <button
-                    onClick={() => handleDelete(doc.documentId)}
-                    className="p-1.5 text-[var(--ink-muted)] hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    onClick={() => docArchive.archive({ id: doc.documentId, name: doc.fileName, isArchived: false })}
+                    className="p-1.5 text-[var(--ink-muted)] hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
                     title="Delete"
                   >
                     <Trash2 size={14} />
@@ -226,6 +223,9 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
         viewingDoc={viewingDoc} 
         onClose={() => setViewingDoc(null)} 
       />
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {docArchive.dialog}
     </div>
   );
 };

@@ -2,8 +2,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
 
-public sealed class Shift : IMustHaveTenant
+public sealed class Shift : IMustHaveTenant, IArchivable
 {
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [System.ComponentModel.DataAnnotations.StringLength(150)]
+    public string? ArchivedBy { get; set; }
+
     public int Id { get; set; }
 
     public string ShiftName { get; set; } = "";

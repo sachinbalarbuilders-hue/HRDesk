@@ -13,11 +13,18 @@ namespace HRDesk.Web.Models;
 /// Assign the template to a PayGroup (default) or to individual employees (override).
 /// At payroll time the engine resolves every component amount from the employee's CTC.
 /// </summary>
-public class SalaryStructureTemplate : IMustHaveTenant
+public class SalaryStructureTemplate : IMustHaveTenant, IArchivable
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [StringLength(150)]
+    public string? ArchivedBy { get; set; }
 
     [Column("name")]
     [Required]

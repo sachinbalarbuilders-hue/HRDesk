@@ -4,8 +4,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HRDesk.Web.Models;
 
 [Table("leave_types")]
-public class LeaveType : IMustHaveTenant
+public class LeaveType : IMustHaveTenant, IArchivable
 {
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [MaxLength(150)]
+    public string? ArchivedBy { get; set; }
+
     [Key]
     [Column("id")]
     public int Id { get; set; }
@@ -49,7 +56,7 @@ public class LeaveType : IMustHaveTenant
     public string GenderApplicability { get; set; } = "All";
 
     [Column("marital_status_applicability")]
-    [MaxLength(50)]
+    [MaxLength(200)]
     public string MaritalStatusApplicability { get; set; } = "All";
 
     [Column("department_ids")]

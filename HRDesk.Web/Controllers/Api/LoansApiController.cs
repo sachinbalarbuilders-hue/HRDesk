@@ -17,16 +17,26 @@ public class LoansController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly IArchiveService _archive;
 
     public LoansController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        IArchiveService archive)
     {
         _db = db;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
+        _archive = archive;
     }
+
+    private IActionResult FromArchive(ArchiveResult result) =>
+        result.Success
+            ? Ok(new { success = true, message = result.Message })
+            : result.ErrorCode == ArchiveResult.NotFound
+                ? NotFound(new { success = false, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message, code = result.ErrorCode });
 
     public record LoanApplyDto(
         int EmployeeId,
@@ -55,22 +65,13 @@ public class LoansController : ControllerBase
 
         var settings = await _db.SystemSettings
             .AsNoTracking()
-            .Where(s => s.OrganizationId == targetOrgId && (s.BranchId == targetBranch || s.BranchId == null))
+            .Where(s => s.OrganizationId == targetOrgId && s.BranchId == targetBranch)
             .ToListAsync();
 
-        string series = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Series")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Series")?.SettingValue
-            ?? "LN";
-
-        string connector = settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Connector")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Connector")?.SettingValue
-            ?? "-";
-
-        int padding = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Padding")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Padding")?.SettingValue, out var p) ? p : 3;
-
-        int startSeq = int.TryParse(settings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_StartSeq")?.SettingValue
-            ?? settings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_StartSeq")?.SettingValue, out var sSeq) ? sSeq : 1;
+        string series    = settings.FirstOrDefault(s => s.SettingKey == "Loan_Prefix_Series")?.SettingValue    ?? "LN";
+        string connector = settings.FirstOrDefault(s => s.SettingKey == "Loan_Prefix_Connector")?.SettingValue ?? "-";
+        int padding      = int.TryParse(settings.FirstOrDefault(s => s.SettingKey == "Loan_Prefix_Padding")?.SettingValue,    out var p)    ? p    : 3;
+        int startSeq     = int.TryParse(settings.FirstOrDefault(s => s.SettingKey == "Loan_Prefix_StartSeq")?.SettingValue,   out var sSeq) ? sSeq : 1;
 
         var maxCount = await _db.EmployeeLoans.Where(l => l.OrganizationId == targetOrgId).CountAsync();
         var nextSeq = Math.Max(maxCount + 1, startSeq);
@@ -147,8 +148,13 @@ public class LoansController : ControllerBase
         [FromQuery] int? loanTypeId = null,
         [FromQuery] int? branchId = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string archiveStatus = "active")
     {
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase) || archiveStatus.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            _db.BypassArchiveFilter = true;
+        }
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 
         var query = _db.EmployeeLoans
@@ -157,6 +163,11 @@ public class LoansController : ControllerBase
                 .ThenInclude(e => e.Department)
             .Include(l => l.LoanType)
             .AsQueryable();
+
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(l => l.ArchivedAt != null || l.Status == "Closed" || l.Status == "Rejected");
+        else if (archiveStatus.Equals("active", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(l => l.ArchivedAt == null && l.Status != "Closed" && l.Status != "Rejected");
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
@@ -241,7 +252,8 @@ public class LoansController : ControllerBase
                 assignedManagerId = l.AssignedManagerId,
                 foreclosureRemark = l.ForeclosureRemark ?? "",
                 startingPaidInstallments = l.StartingPaidInstallments,
-                createdAt = l.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+                createdAt = l.CreatedAt.ToString("yyyy-MM-dd HH:mm"),
+                archivedAt = l.ArchivedAt
             })
             .ToListAsync();
 
@@ -333,22 +345,13 @@ public class LoansController : ControllerBase
 
             var prefixSettings = await _db.SystemSettings
                 .AsNoTracking()
-                .Where(s => s.OrganizationId == targetOrgId && (s.BranchId == targetBranch || s.BranchId == null))
+                .Where(s => s.OrganizationId == targetOrgId && s.BranchId == targetBranch)
                 .ToListAsync();
 
-            string series = prefixSettings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Series")?.SettingValue
-                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Series")?.SettingValue
-                ?? "LN";
-
-            string connector = prefixSettings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Connector")?.SettingValue
-                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Connector")?.SettingValue
-                ?? "-";
-
-            int padding = int.TryParse(prefixSettings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_Padding")?.SettingValue
-                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_Padding")?.SettingValue, out var pd) ? pd : 3;
-
-            int startSeq = int.TryParse(prefixSettings.FirstOrDefault(s => s.BranchId == targetBranch && s.SettingKey == "Loan_Prefix_StartSeq")?.SettingValue
-                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Loan_Prefix_StartSeq")?.SettingValue, out var ss) ? ss : 1;
+            string series    = prefixSettings.FirstOrDefault(s => s.SettingKey == "Loan_Prefix_Series")?.SettingValue    ?? "LN";
+            string connector = prefixSettings.FirstOrDefault(s => s.SettingKey == "Loan_Prefix_Connector")?.SettingValue ?? "-";
+            int padding      = int.TryParse(prefixSettings.FirstOrDefault(s => s.SettingKey == "Loan_Prefix_Padding")?.SettingValue,    out var pd) ? pd : 3;
+            int startSeq     = int.TryParse(prefixSettings.FirstOrDefault(s => s.SettingKey == "Loan_Prefix_StartSeq")?.SettingValue,   out var ss) ? ss : 1;
 
             var count = await _db.EmployeeLoans.CountAsync(l => l.OrganizationId == targetOrgId);
             var nextSeq = Math.Max(count + 1, startSeq);
@@ -543,35 +546,47 @@ public class LoansController : ControllerBase
         return Ok(new { message = "Loan foreclosed successfully. All pending installments settled.", id = loan.Id });
     }
 
+    /// <summary>
+    /// "Delete" from the main list → archive. "Delete" from the Archive view → ?permanent=true.
+    /// Domain guards (disbursed loan, payroll-linked installments) apply to both paths.
+    /// </summary>
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteLoan(int id)
+    public async Task<IActionResult> DeleteLoan(int id, [FromQuery] bool permanent = false)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageLoans))
         {
             return Forbid();
         }
 
-        var loan = await _db.EmployeeLoans
-            .Include(l => l.LoanInstallments)
-            .FirstOrDefaultAsync(l => l.Id == id);
+        _db.BypassArchiveFilter = true;
+        var payrollLinked = await _db.LoanInstallments
+            .AnyAsync(i => i.LoanId == id && i.PayrollId != null);
 
-        if (loan == null) return NotFound(new { message = "Loan not found." });
+        string? Guard(EmployeeLoan l) =>
+            l.Status == "Disbursed"
+                ? "Cannot delete an active disbursed loan. Use foreclosure to close it first."
+            : payrollLinked
+                ? "Cannot delete loan because one or more installments are linked to processed payroll."
+            : null;
 
-        if (loan.Status == "Disbursed")
-        {
-            return BadRequest(new { message = "Cannot delete an active disbursed loan. Use foreclosure to close it first." });
-        }
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<EmployeeLoan>(id, Guard, cascade: async _ =>
+              {
+                  var installments = await _db.LoanInstallments.Where(i => i.LoanId == id).ToListAsync();
+                  _db.LoanInstallments.RemoveRange(installments);
+              })
+            : await _archive.ArchiveAsync<EmployeeLoan>(id, Guard);
 
-        if (loan.LoanInstallments.Any(i => i.PayrollId != null))
-        {
-            return BadRequest(new { message = "Cannot delete loan because one or more installments are linked to processed payroll." });
-        }
+        return FromArchive(result);
+    }
 
-        _db.LoanInstallments.RemoveRange(loan.LoanInstallments);
-        _db.EmployeeLoans.Remove(loan);
-        await _db.SaveChangesAsync();
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreLoan(int id)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageLoans))
+            return Forbid();
 
-        return Ok(new { message = "Loan application deleted successfully." });
+        return FromArchive(await _archive.RestoreAsync<EmployeeLoan>(id));
     }
 
     [HttpPut("{id}")]

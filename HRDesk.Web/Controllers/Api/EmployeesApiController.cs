@@ -28,6 +28,7 @@ public class EmployeesController : ControllerBase
     private readonly ICurrentTenantProvider _tenantProvider;
     private readonly IPlanEntitlementService _entitlementService;
     private readonly IMemoryCache _memoryCache;
+    private readonly IArchiveService _archive;
 
     private static bool _contractColumnsEnsured = false;
     private static readonly object _columnLock = new();
@@ -38,7 +39,8 @@ public class EmployeesController : ControllerBase
         IReferenceDataCacheService cache,
         ICurrentTenantProvider tenantProvider,
         IPlanEntitlementService entitlementService,
-        IMemoryCache memoryCache)
+        IMemoryCache memoryCache,
+        IArchiveService archive)
     {
         _db = db;
         _permissionService = permissionService;
@@ -46,8 +48,16 @@ public class EmployeesController : ControllerBase
         _tenantProvider = tenantProvider;
         _entitlementService = entitlementService;
         _memoryCache = memoryCache;
+        _archive = archive;
         EnsureContractColumns();
     }
+
+    private IActionResult FromArchive(ArchiveResult result) =>
+        result.Success
+            ? Ok(new { success = true, message = result.Message })
+            : result.ErrorCode == ArchiveResult.NotFound
+                ? NotFound(new { success = false, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message, code = result.ErrorCode });
 
     private void EnsureContractColumns()
     {
@@ -90,6 +100,7 @@ END;";
             return Forbid();
         }
 
+        _db.BypassArchiveFilter = true;
         var query = _db.Employees
             .AsNoTracking()
             .Include(e => e.Department)
@@ -137,7 +148,18 @@ END;";
 
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
         {
-            query = query.Where(e => e.Status != null && e.Status.ToLower() == status.ToLower());
+            if (status.Equals("inactive", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(e => e.ArchivedAt != null || (e.Status != null && e.Status.ToLower() == "inactive"));
+            }
+            else if (status.Equals("active", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(e => e.ArchivedAt == null && (e.Status == null || e.Status.ToLower() == "active"));
+            }
+            else
+            {
+                query = query.Where(e => e.Status != null && e.Status.ToLower() == status.ToLower() && e.ArchivedAt == null);
+            }
         }
 
         var totalCount = await query.CountAsync();
@@ -185,7 +207,8 @@ END;";
                 e.JoiningDate,
                 e.Status,
                 e.Weekoff,
-                e.PhotoPath
+                e.PhotoPath,
+                e.ArchivedAt
             })
             .ToListAsync();
 
@@ -211,9 +234,10 @@ END;";
                 e.Branch,
                 e.BranchCode,
                 e.JoiningDate,
-                e.Status,
+                Status = e.ArchivedAt != null ? "Archived" : e.Status,
                 e.Weekoff,
-                e.PhotoPath
+                e.PhotoPath,
+                archivedAt = e.ArchivedAt
             };
         }).ToList();
 
@@ -891,72 +915,123 @@ END;";
         return Ok(new { status = employee.Status, message = $"Employee status set to {employee.Status}." });
     }
 
+    /// <summary>
+    /// "Delete" from the main employee list → archive (reversible).
+    /// "Delete" from the Archive view → ?permanent=true, which wipes the employee and every
+    /// dependent row. Payroll history and live loans block the permanent path.
+    /// </summary>
     [HttpDelete("{publicId:guid}")]
-    public async Task<IActionResult> DeleteEmployee(Guid publicId)
+    public async Task<IActionResult> DeleteEmployee(Guid publicId, [FromQuery] bool permanent = false)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
         {
             return Forbid();
         }
 
+        _db.BypassArchiveFilter = true;
         var employee = await _db.Employees.FirstOrDefaultAsync(e => e.PublicId == publicId);
         if (employee == null) return NotFound(new { message = "Employee not found." });
 
         var id = employee.EmployeeId;
+        var name = employee.EmployeeName;
 
-        if (employee.Status?.ToLower() == "active")
+        if (!permanent)
         {
-            return BadRequest(new { message = "Cannot permanently delete an active employee. Archive them first by setting status to inactive." });
+            var archived = await _archive.ArchiveAsync<Employee>(id);
+            if (archived.Success)
+            {
+                // Keep the legacy Status field in step so existing screens/reports stay correct.
+                employee.Status = "inactive";
+                await _db.SaveChangesAsync();
+                _permissionService.ClearCache();
+            }
+            return FromArchive(archived);
         }
 
-        // Check if employee has related records that block deletion
-        var hasAttendance = await _db.DailyAttendance.AnyAsync(a => a.EmployeeId == id);
         var hasPayroll = await _db.PayrollMasters.AnyAsync(p => p.EmployeeId == id);
-        var hasLoans = await _db.EmployeeLoans.AnyAsync(l => l.EmployeeId == id && (l.Status == "Disbursed" || l.Status == "Active"));
+        var hasLiveLoans = await _db.EmployeeLoans
+            .AnyAsync(l => l.EmployeeId == id && (l.Status == "Disbursed" || l.Status == "Active"));
+        var managesEmployees = await _db.Employees.AnyAsync(e => e.ReportingManagerId == id);
 
-        if (hasPayroll)
+        string? Guard(Employee _) =>
+            managesEmployees
+                ? "Cannot delete a manager. Please re-assign their direct reports first."
+            : hasPayroll
+                ? "Cannot delete employee with processed payroll records. Remove payroll history first."
+            : hasLiveLoans
+                ? "Cannot delete employee with active/disbursed loans. Close or foreclose the loans first."
+            : null;
+
+        var result = await _archive.PermanentDeleteAsync<Employee>(id, Guard, cascade: async _ =>
         {
-            return BadRequest(new { message = "Cannot delete employee with processed payroll records. Remove payroll history first." });
+            // FKs are Restrict-only across the model, so every dependent row must go first.
+            _db.LeaveApplications.RemoveRange(
+                await _db.LeaveApplications.Where(l => l.EmployeeId == id).ToListAsync());
+
+            _db.DailyAttendance.RemoveRange(
+                await _db.DailyAttendance.Where(a => a.EmployeeId == id).ToListAsync());
+
+            _db.EmployeeDocuments.RemoveRange(
+                await _db.EmployeeDocuments.Where(d => d.EmployeeId == id).ToListAsync());
+
+            var loans = await _db.EmployeeLoans
+                .Include(l => l.LoanInstallments)
+                .Where(l => l.EmployeeId == id)
+                .ToListAsync();
+            foreach (var loan in loans)
+                _db.LoanInstallments.RemoveRange(loan.LoanInstallments);
+            _db.EmployeeLoans.RemoveRange(loans);
+
+            _db.EmployeeShiftAssignments.RemoveRange(
+                await _db.EmployeeShiftAssignments.Where(s => s.EmployeeId == id).ToListAsync());
+                
+            _db.ShiftRosters.RemoveRange(
+                await _db.ShiftRosters.Where(s => s.EmployeeId == id).ToListAsync());
+                
+            _db.AttendanceRegularizations.RemoveRange(
+                await _db.AttendanceRegularizations.Where(a => a.EmployeeId == id).ToListAsync());
+                
+            _db.GateActivityLogs.RemoveRange(
+                await _db.GateActivityLogs.Where(g => g.EmployeeId == id).ToListAsync());
+                
+            _db.HolidayEmployees.RemoveRange(
+                await _db.HolidayEmployees.Where(h => h.EmployeeId == id).ToListAsync());
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.EmployeeId == id);
+            if (user != null) _db.Users.Remove(user);
+        });
+
+        if (result.Success)
+        {
+            _permissionService.ClearCache();
+            return Ok(new
+            {
+                success = true,
+                message = $"Employee '{name}' permanently deleted along with all related records."
+            });
         }
 
-        if (hasLoans)
+        return FromArchive(result);
+    }
+
+    [HttpPost("{publicId:guid}/restore")]
+    public async Task<IActionResult> RestoreEmployee(Guid publicId)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
+            return Forbid();
+
+        _db.BypassArchiveFilter = true;
+        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.PublicId == publicId);
+        if (employee == null) return NotFound(new { message = "Employee not found." });
+
+        var result = await _archive.RestoreAsync<Employee>(employee.EmployeeId);
+        if (result.Success)
         {
-            return BadRequest(new { message = "Cannot delete employee with active/disbursed loans. Close or foreclose the loans first." });
+            employee.Status = "active";
+            await _db.SaveChangesAsync();
+            _permissionService.ClearCache();
         }
-
-        // Remove related records
-        var leaves = await _db.LeaveApplications.Where(l => l.EmployeeId == id).ToListAsync();
-        _db.LeaveApplications.RemoveRange(leaves);
-
-        var attendance = await _db.DailyAttendance.Where(a => a.EmployeeId == id).ToListAsync();
-        _db.DailyAttendance.RemoveRange(attendance);
-
-        var documents = await _db.EmployeeDocuments.Where(d => d.EmployeeId == id).ToListAsync();
-        _db.EmployeeDocuments.RemoveRange(documents);
-
-        var loans = await _db.EmployeeLoans.Include(l => l.LoanInstallments).Where(l => l.EmployeeId == id).ToListAsync();
-        foreach (var loan in loans)
-        {
-            _db.LoanInstallments.RemoveRange(loan.LoanInstallments);
-        }
-        _db.EmployeeLoans.RemoveRange(loans);
-
-        var shiftAssignments = await _db.EmployeeShiftAssignments.Where(s => s.EmployeeId == id).ToListAsync();
-        _db.EmployeeShiftAssignments.RemoveRange(shiftAssignments);
-
-        // Remove the user account if linked
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.EmployeeId == id);
-        if (user != null)
-        {
-            _db.Users.Remove(user);
-        }
-
-        _db.Employees.Remove(employee);
-        await _db.SaveChangesAsync();
-
-        _permissionService.ClearCache();
-
-        return Ok(new { message = $"Employee '{employee.EmployeeName}' permanently deleted along with all related records." });
+        return FromArchive(result);
     }
 
     [HttpPost("{id}/photo")]

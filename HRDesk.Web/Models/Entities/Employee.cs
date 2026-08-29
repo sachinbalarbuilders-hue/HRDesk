@@ -2,9 +2,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
 
-public sealed class Employee : IMustHaveTenant
+public sealed class Employee : IMustHaveTenant, IArchivable
 {
     public int EmployeeId { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [System.ComponentModel.DataAnnotations.StringLength(150)]
+    public string? ArchivedBy { get; set; }
 
     /// <summary>
     /// Opaque, non-enumerable identifier used in URLs and API responses instead of the

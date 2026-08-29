@@ -8,10 +8,11 @@ import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { BulkImportModal } from '../../components/ui/BulkImportModal';
 import { MultiSelectDropdown } from '../../components/ui/MultiSelectDropdown';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
+import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
+import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 import {
   CalendarCheck,
   Plus,
-  Trash2,
   X,
   Edit2,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ export const LeaveTypesTab: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [leavePaidFilter, setLeavePaidFilter] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -71,7 +73,9 @@ export const LeaveTypesTab: React.FC = () => {
             departmentIds: l.departmentIds ? l.departmentIds.split(',') : [],
             designationIds: l.designationIds ? l.designationIds.split(',') : [],
             roleIds: l.roleIds ? l.roleIds.split(',') : [],
-            status: l.status || 'Active', branchId: l.branchId
+            status: l.status || (l.archivedAt ? 'Archived' : 'Active'),
+            archivedAt: l.archivedAt,
+            branchId: l.branchId
           })));
         }
       }
@@ -154,11 +158,20 @@ export const LeaveTypesTab: React.FC = () => {
     showSuccess('Exported', 'Leave categories exported to CSV.');
   };
 
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const archiveActions = useArchiveActions({
+    endpoint: '/masters/leave-types',
+    label: 'Leave Category',
+    onDone: fetchData,
+  });
+
   const s = search.trim().toLowerCase();
   const filteredLeaves = leaveTypes.filter(l => {
     const matchesSearch = !s || (l.name?.toLowerCase().includes(s)) || (l.code?.toLowerCase().includes(s));
     const matchesPaid = !leavePaidFilter || (leavePaidFilter === 'paid' ? l.isPaid : !l.isPaid);
-    return matchesSearch && matchesPaid;
+    const isAct = l.status?.toLowerCase() !== 'inactive' && l.status?.toLowerCase() !== 'archived';
+    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+    return matchesSearch && matchesPaid && matchesArchive;
   });
   const paginatedLeaves = filteredLeaves.slice((page - 1) * pageSize, page * pageSize);
 
@@ -204,13 +217,31 @@ export const LeaveTypesTab: React.FC = () => {
         ),
     },
     {
+      key: 'status',
+      header: 'Status',
+      render: (item) =>
+        item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived' ? (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+            Active
+          </span>
+        ) : (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            Archived
+          </span>
+        ),
+    },
+    {
       key: 'actions',
       header: 'Actions',
       align: 'right',
       render: (item) => (
         <RowActionMenu actions={[
           { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingLeaveTypeId(item.id); setNewLeaveType({ name: item.name, code: item.code || '', quota: item.quota || 12, isPaid: item.isPaid !== false, applicableAfterProbation: item.applicableAfterProbation !== false, allowCarryForward: item.allowCarryForward === true, genderApplicability: item.genderApplicability || 'All', maritalStatusApplicability: item.maritalStatusApplicability || 'All', departmentIds: item.departmentIds || [], designationIds: item.designationIds || [], roleIds: item.roleIds || [] }); setLeaveFormStep(1); setLeaveModalOpen(true); } },
-          { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => { setLeaveTypes(leaveTypes.filter(l => l.id !== item.id)); showSuccess('Leave Type Removed', 'Category deleted.'); }, variant: 'danger', dividerBefore: true },
+          ...archiveActions.rowActions({
+            id: item.id,
+            name: item.name,
+            isArchived: isRowArchived(item),
+          }),
         ] as RowAction[]} />
       ),
     },
@@ -222,6 +253,10 @@ export const LeaveTypesTab: React.FC = () => {
         searchValue={search}
         onSearchChange={(v) => { setSearch(v); setPage(1); }}
         searchPlaceholder="Search leave categories by name or code..."
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+        }}
         filters={[
           {
             id: 'isPaid',
@@ -446,6 +481,9 @@ export const LeaveTypesTab: React.FC = () => {
           fetchData();
         }}
       />
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {archiveActions.dialog}
     </div>
   );
 };

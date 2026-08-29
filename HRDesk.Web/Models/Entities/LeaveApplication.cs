@@ -4,11 +4,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HRDesk.Web.Models;
 
 [Table("leave_applications")]
-public class LeaveApplication : IMustHaveTenant
+public class LeaveApplication : IMustHaveTenant, IArchivable
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [MaxLength(150)]
+    public string? ArchivedBy { get; set; }
 
     [Required]
     [Column("employee_id")]

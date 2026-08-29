@@ -17,38 +17,84 @@ public class SalaryTemplatesApiController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly IArchiveService _archive;
 
     public SalaryTemplatesApiController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        IArchiveService archive)
     {
         _db = db;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
+        _archive = archive;
     }
+
+    private IActionResult FromArchive(ArchiveResult result) =>
+        result.Success
+            ? Ok(new { success = true, message = result.Message })
+            : result.ErrorCode == ArchiveResult.NotFound
+                ? NotFound(new { success = false, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message, code = result.ErrorCode });
 
     // ── Salary Components master list ────────────────────────────────────────
 
     [HttpGet("components")]
-    public async Task<IActionResult> GetComponents()
+    public async Task<IActionResult> GetComponents([FromQuery] string archiveStatus = "active")
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
             return Forbid();
 
-        var comps = await _db.SalaryComponents
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase) || archiveStatus.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            _db.BypassArchiveFilter = true;
+        }
+
+        var query = _db.SalaryComponents
             .AsNoTracking()
+            .AsQueryable();
+
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(c => c.ArchivedAt != null);
+        else if (archiveStatus.Equals("active", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(c => c.ArchivedAt == null);
+
+        var comps = await query
             .OrderBy(c => c.DisplayOrder)
             .ThenBy(c => c.ComponentName)
             .Select(c => new
             {
                 c.Id, c.ComponentName, c.ComponentCode, c.ComponentType,
                 c.Category, c.IsEpfApplicable, c.IsEsiApplicable, c.IsTaxable,
-                c.IsActive, c.DisplayOrder
+                c.IsActive, c.DisplayOrder, archivedAt = c.ArchivedAt
             })
             .ToListAsync();
 
         return Ok(comps);
+    }
+
+    [HttpDelete("components/{id:int}")]
+    public async Task<IActionResult> DeleteComponent(int id, [FromQuery] bool permanent = false)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
+            return Forbid();
+
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<SalaryComponent>(id)
+            : await _archive.ArchiveAsync<SalaryComponent>(id);
+
+        return FromArchive(result);
+    }
+
+    [HttpPost("components/{id:int}/restore")]
+    public async Task<IActionResult> RestoreComponent(int id)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
+            return Forbid();
+
+        var result = await _archive.RestoreAsync<SalaryComponent>(id);
+        return FromArchive(result);
     }
 
     [HttpPost("components")]
@@ -92,21 +138,35 @@ public class SalaryTemplatesApiController : ControllerBase
     // ── Templates ────────────────────────────────────────────────────────────
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string archiveStatus = "active")
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
             return Forbid();
 
-        var templates = await _db.SalaryStructureTemplates
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase) || archiveStatus.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            _db.BypassArchiveFilter = true;
+        }
+
+        var query = _db.SalaryStructureTemplates
             .AsNoTracking()
             .Include(t => t.Components)
                 .ThenInclude(tc => tc.Component)
+            .AsQueryable();
+
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(t => t.ArchivedAt != null);
+        else if (archiveStatus.Equals("active", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(t => t.ArchivedAt == null);
+
+        var templates = await query
             .OrderByDescending(t => t.IsDefault)
             .ThenBy(t => t.Name)
             .Select(t => new
             {
                 t.Id, t.Name, t.Description, t.IsDefault, t.IsActive,
-                componentCount = t.Components.Count
+                componentCount = t.Components.Count,
+                archivedAt = t.ArchivedAt
             })
             .ToListAsync();
 
@@ -186,31 +246,47 @@ public class SalaryTemplatesApiController : ControllerBase
         return Ok(new { message = "Template updated." });
     }
 
+    /// <summary>
+    /// "Delete" from the main list → archive. "Delete" from the Archive view → ?permanent=true.
+    /// The default template can never be deleted; permanent deletion is blocked while the
+    /// template is referenced by a pay group or an employee CTC.
+    /// </summary>
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, [FromQuery] bool permanent = false)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
             return Forbid();
 
-        var template = await _db.SalaryStructureTemplates.FirstOrDefaultAsync(t => t.Id == id);
-        if (template == null) return NotFound();
+        string? DefaultGuard(SalaryStructureTemplate t) =>
+            t.IsDefault ? "Cannot delete the default template." : null;
 
-        if (template.IsDefault)
-            return BadRequest(new { message = "Cannot delete the default template." });
+        if (!permanent)
+            return FromArchive(await _archive.ArchiveAsync<SalaryStructureTemplate>(id, DefaultGuard));
 
-        // Deactivate if in use
         var inUse = await _db.PayGroups.AnyAsync(g => g.TemplateId == id)
                  || await _db.EmployeeCTCs.AnyAsync(c => c.TemplateId == id);
-        if (inUse)
-        {
-            template.IsActive = false;
-            await _db.SaveChangesAsync();
-            return Ok(new { message = "Template deactivated (in use by pay groups or employees)." });
-        }
 
-        _db.SalaryStructureTemplates.Remove(template);
-        await _db.SaveChangesAsync();
-        return Ok(new { message = "Template deleted." });
+        string? Guard(SalaryStructureTemplate t) =>
+            DefaultGuard(t)
+            ?? (inUse
+                ? "Cannot permanently delete: this template is still in use by pay groups or employee CTCs."
+                : null);
+
+        return FromArchive(await _archive.PermanentDeleteAsync<SalaryStructureTemplate>(id, Guard,
+            cascade: async _ =>
+            {
+                var components = await _db.TemplateComponents.Where(tc => tc.TemplateId == id).ToListAsync();
+                _db.TemplateComponents.RemoveRange(components);
+            }));
+    }
+
+    [HttpPost("{id:int}/restore")]
+    public async Task<IActionResult> Restore(int id)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
+            return Forbid();
+
+        return FromArchive(await _archive.RestoreAsync<SalaryStructureTemplate>(id));
     }
 
     // ── Template Components CRUD ─────────────────────────────────────────────

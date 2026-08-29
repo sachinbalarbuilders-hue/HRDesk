@@ -27,6 +27,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
+import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
 
 interface RegularizationItem {
   id: number;
@@ -276,37 +277,12 @@ export const Regularizations: React.FC = () => {
     }
   };
 
-  const handleDeleteRegularization = async (id: number, isPermanent: boolean) => {
-    if (isPermanent) {
-      if (!window.confirm(`Permanently delete regularization request #${id}? This action cannot be undone.`)) return;
-      try {
-        await apiClient.delete(`/regularizations/${id}?permanent=true`);
-        showSuccess('Permanently Deleted', 'Regularization request has been permanently removed.');
-        fetchData();
-      } catch (err: any) {
-        showError('Delete Failed', err.response?.data?.message || 'Failed to delete regularization');
-      }
-    } else {
-      if (!window.confirm(`Archive regularization request #${id}? It will be moved to the Archived tab.`)) return;
-      try {
-        await apiClient.delete(`/regularizations/${id}`);
-        showSuccess('Archived', 'Regularization request has been moved to Archive.');
-        fetchData();
-      } catch (err: any) {
-        showError('Archive Failed', err.response?.data?.message || 'Failed to archive regularization');
-      }
-    }
-  };
-
-  const handleRestoreRegularization = async (id: number) => {
-    try {
-      await apiClient.post(`/regularizations/${id}/restore`);
-      showSuccess('Restored', 'Regularization request restored to Pending.');
-      fetchData();
-    } catch (err: any) {
-      showError('Restore Failed', err.response?.data?.message || 'Failed to restore regularization');
-    }
-  };
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const regularizationArchive = useArchiveActions({
+    endpoint: '/regularizations',
+    label: 'Regularization Request',
+    onDone: fetchData,
+  });
 
   const handleExport = () => {
     if (!items.length) return showError('Empty', 'No records to export.');
@@ -547,16 +523,15 @@ export const Regularizations: React.FC = () => {
                       <td className="p-3.5 text-right">
                         {canManage ? (
                           <RowActionMenu actions={[
-                            ...(isArchived ? [
-                              { label: 'Restore Request', icon: <RotateCcw size={14} />, onClick: () => handleRestoreRegularization(r.id), variant: 'default' as const },
-                              { label: 'Permanently Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteRegularization(r.id, true), variant: 'danger' as const },
-                            ] : [
-                              ...(r.status === 'Pending' ? [
-                                { label: 'Approve', icon: <Check className="w-4 h-4" />, onClick: () => handleApprove(r.id), variant: 'success' as const },
-                                { label: 'Reject', icon: <X className="w-4 h-4" />, onClick: () => handleOpenReject(r.id), variant: 'danger' as const },
-                              ] : []),
-                              { label: 'Archive Request', icon: <Archive size={14} />, onClick: () => handleDeleteRegularization(r.id, false), variant: 'danger' as const },
-                            ])
+                            ...(!isArchived && r.status === 'Pending' ? [
+                              { label: 'Approve', icon: <Check className="w-4 h-4" />, onClick: () => handleApprove(r.id), variant: 'success' as const },
+                              { label: 'Reject', icon: <X className="w-4 h-4" />, onClick: () => handleOpenReject(r.id), variant: 'danger' as const },
+                            ] : []),
+                            ...regularizationArchive.rowActions({
+                              id: r.id,
+                              name: `Regularization #${r.id} (${r.employeeName})`,
+                              isArchived: isArchived || isRowArchived(r),
+                            }),
                           ]} />
                         ) : (
                           <div className="text-[10px] text-[var(--ink-muted)] font-mono">
@@ -880,6 +855,9 @@ export const Regularizations: React.FC = () => {
           fetchData();
         }}
       />
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {regularizationArchive.dialog}
     </PageContainer>
   );
 };

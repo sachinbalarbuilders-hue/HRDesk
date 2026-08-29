@@ -4,11 +4,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HRDesk.Web.Models;
 
 [Table("employee_documents")]
-public class EmployeeDocument : IMustHaveTenant
+public class EmployeeDocument : IMustHaveTenant, IArchivable
 {
     [Key]
     [Column("document_id")]
     public int DocumentId { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [MaxLength(150)]
+    public string? ArchivedBy { get; set; }
 
     [Column("organization_id")]
     public int OrganizationId { get; set; }

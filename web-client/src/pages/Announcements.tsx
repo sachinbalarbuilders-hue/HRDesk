@@ -21,6 +21,7 @@ import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
+import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
 
 interface AnnouncementItem {
   id: number;
@@ -204,15 +205,12 @@ export const AnnouncementsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this announcement?')) return;
-    try {
-      await apiClient.delete(`/announcements/${id}`);
-      fetchAnnouncements();
-    } catch (err) {
-      console.error('Failed to delete announcement', err);
-    }
-  };
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const announcementArchive = useArchiveActions({
+    endpoint: '/announcements',
+    label: 'Announcement',
+    onDone: fetchAnnouncements,
+  });
 
   const handleTogglePin = async (id: number) => {
     try {
@@ -357,7 +355,7 @@ export const AnnouncementsPage: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => announcementArchive.archive({ id: item.id, name: item.title, isArchived: isRowArchived(item) })}
                         title="Delete"
                         className="p-1.5 rounded-[var(--radius-sm)] text-[var(--danger)] hover:bg-rose-500/10 cursor-pointer"
                       >
@@ -636,6 +634,9 @@ export const AnnouncementsPage: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {announcementArchive.dialog}
     </PageContainer>
   );
 };

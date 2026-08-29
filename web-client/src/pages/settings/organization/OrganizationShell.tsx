@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation, useOutletContext, Outlet } from 'react-router-dom';
 import { apiClient } from '../../../api/client';
 import { useToast } from '../../../context/ToastContext';
@@ -36,6 +36,7 @@ export interface Branch {
   longitude?: number;
   radiusMeters: number;
   isActive: boolean;
+  archivedAt?: string | null;
 }
 
 export interface OrgOutletContext {
@@ -49,6 +50,7 @@ export interface OrgOutletContext {
   setOrgForm: React.Dispatch<React.SetStateAction<OrgForm>>;
   branches: Branch[];
   setBranches: React.Dispatch<React.SetStateAction<Branch[]>>;
+  refetch: () => void;
   policyForm: PolicyForm;
   setPolicyForm: React.Dispatch<React.SetStateAction<PolicyForm>>;
 }
@@ -83,88 +85,88 @@ export const OrganizationShell: React.FC = () => {
     defaultProbationDays: 90,
   });
 
-  useEffect(() => {
+  const fetchOrg = useCallback(async () => {
     if (!id || isNew) {
       setLoading(false);
       return;
     }
+    try {
+      setLoading(true);
+      const overviewRes = await apiClient.get('/masters/overview').then(
+        (res) => ({ status: 'fulfilled' as const, value: res }),
+        (err) => ({ status: 'rejected' as const, reason: err })
+      );
 
-    const fetchOrg = async () => {
-      try {
-        setLoading(true);
-        const overviewRes = await apiClient.get('/masters/overview').then(
-          (res) => ({ status: 'fulfilled' as const, value: res }),
-          (err) => ({ status: 'rejected' as const, reason: err })
-        );
+      const orgs = (overviewRes.status === 'fulfilled' && overviewRes.value.data?.organizations) || [];
+      // The URL param is the opaque PublicId (GUID), not the internal integer Id.
+      const org = orgs.find((o: any) => String(o.publicId) === id);
 
-        const orgs = (overviewRes.status === 'fulfilled' && overviewRes.value.data?.organizations) || [];
-        // The URL param is the opaque PublicId (GUID), not the internal integer Id.
-        const org = orgs.find((o: any) => String(o.publicId) === id);
+      const policyRes = org
+        ? await apiClient.get('/masters/company-policy', { params: { organizationId: org.id } }).then(
+            (res) => ({ status: 'fulfilled' as const, value: res }),
+            (err) => ({ status: 'rejected' as const, reason: err })
+          )
+        : { status: 'rejected' as const, reason: null };
 
-        const policyRes = org
-          ? await apiClient.get('/masters/company-policy', { params: { organizationId: org.id } }).then(
-              (res) => ({ status: 'fulfilled' as const, value: res }),
-              (err) => ({ status: 'rejected' as const, reason: err })
-            )
-          : { status: 'rejected' as const, reason: null };
-
-        if (org) {
-          setOrgId(org.id);
-          setOrgForm({
-            name: org.name,
-            code: org.code || '',
-            address: org.address || '',
-            logoUrl: org.logoUrl || '',
-            primaryColor: org.primaryColor || '#D97706',
-            customDomain: org.customDomain || '',
-            isActive: org.isActive !== false,
+      if (org) {
+        setOrgId(org.id);
+        setOrgForm({
+          name: org.name,
+          code: org.code || '',
+          address: org.address || '',
+          logoUrl: org.logoUrl || '',
+          primaryColor: org.primaryColor || '#D97706',
+          customDomain: org.customDomain || '',
+          isActive: org.isActive !== false,
+        });
+        if (policyRes.status === 'fulfilled' && policyRes.value.data) {
+          const p = policyRes.value.data;
+          const start = p.yearStartMonth ?? 11;
+          setPolicyForm({
+            yearStartMonth: start,
+            yearEndMonth: p.yearEndMonth ?? endMonthFromStart(start),
+            advanceNoticeDays: p.advanceNoticeDays ?? 2,
+            maxConsecutiveLeaves: p.maxConsecutiveLeaves ?? 14,
+            sandwichRuleEnabled: p.sandwichRuleEnabled ?? true,
+            defaultProbationDays: p.defaultProbationDays ?? 90,
           });
-          if (policyRes.status === 'fulfilled' && policyRes.value.data) {
-            const p = policyRes.value.data;
-            const start = p.yearStartMonth ?? 11;
-            setPolicyForm({
-              yearStartMonth: start,
-              yearEndMonth: p.yearEndMonth ?? endMonthFromStart(start),
-              advanceNoticeDays: p.advanceNoticeDays ?? 2,
-              maxConsecutiveLeaves: p.maxConsecutiveLeaves ?? 14,
-              sandwichRuleEnabled: p.sandwichRuleEnabled ?? true,
-              defaultProbationDays: p.defaultProbationDays ?? 90,
-            });
-          }
-
-          const orgBranches = ((overviewRes.status === 'fulfilled' && overviewRes.value.data?.branches) || [])
-            .filter((b: any) => b.organizationId === org.id)
-            .map((b: any) => ({
-              id: b.id,
-              publicId: b.publicId,
-              organizationId: b.organizationId,
-              name: b.name,
-              code: b.code || '',
-              address: b.address || '',
-              city: b.city || '',
-              state: b.state || '',
-              latitude: b.latitude,
-              longitude: b.longitude,
-              radiusMeters: b.radiusMeters || 100,
-              isActive: b.isActive !== false,
-            }));
-          setBranches(orgBranches);
-        } else {
-          showError('Not Found', 'Organization not found.');
-          navigate('/settings/organizations');
         }
-      } catch (err) {
-        showError('Error', 'Failed to load organization.');
-      } finally {
-        setLoading(false);
-      }
-    };
 
+        const orgBranches = ((overviewRes.status === 'fulfilled' && overviewRes.value.data?.branches) || [])
+          .filter((b: any) => b.organizationId === org.id)
+          .map((b: any) => ({
+            id: b.id,
+            publicId: b.publicId,
+            organizationId: b.organizationId,
+            name: b.name,
+            code: b.code || '',
+            address: b.address || '',
+            city: b.city || '',
+            state: b.state || '',
+            latitude: b.latitude,
+            longitude: b.longitude,
+            radiusMeters: b.radiusMeters || 100,
+            isActive: b.isActive !== false,
+            archivedAt: b.archivedAt ?? null,
+          }));
+        setBranches(orgBranches);
+      } else {
+        showError('Not Found', 'Organization not found.');
+        navigate('/settings/organizations');
+      }
+    } catch (err) {
+      showError('Error', 'Failed to load organization.');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, isNew]);
+
+  useEffect(() => {
     fetchOrg();
-  }, [id]);
+  }, [fetchOrg]);
 
   const outletContext: OrgOutletContext = {
-    id, orgId, isNew, loading, orgForm, setOrgForm, branches, setBranches, policyForm, setPolicyForm,
+    id, orgId, isNew, loading, orgForm, setOrgForm, branches, setBranches, refetch: fetchOrg, policyForm, setPolicyForm,
   };
 
   if (loading) {

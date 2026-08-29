@@ -5,8 +5,10 @@ import { useToast } from '../../context/ToastContext';
 import { useOrganization } from '../../context/CompanyContext';
 import { exportToCSV } from '../../utils/csvHelper';
 import { PaginationToolbar } from '../../components/ui/PaginationToolbar';
+import { ArchiveToggle, type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { TableSkeleton } from '../../components/ui/PageSkeleton';
-import { RowActionMenu } from '../../components/ui/RowActionMenu';
+import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
+import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 import { ProcessPayrollModal } from './ProcessPayrollModal';
 import { PayslipModal } from './PayslipModal';
 import {
@@ -48,6 +50,7 @@ export const PayrollRegister: React.FC = () => {
   const [search, setSearch]         = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [departments, setDepartments]   = useState<any[]>([]);
   const [page, setPage]             = useState(1);
   const [pageSize, setPageSize]     = useState(20);
@@ -70,6 +73,8 @@ export const PayrollRegister: React.FC = () => {
     } catch { /* silent */ }
   }, [currentBranch?.id]);
 
+  const archive = useArchiveActions({ endpoint: '/payroll', onDone: () => fetchRecords(), label: 'Payroll' });
+
   const fetchRecords = useCallback(async () => {
     try {
       setLoading(true);
@@ -80,6 +85,7 @@ export const PayrollRegister: React.FC = () => {
           departmentId: departmentId ? parseInt(departmentId) : undefined,
           status: statusFilter !== 'all' ? statusFilter : undefined,
           branchId: currentBranch?.id || undefined,
+          archiveStatus: archiveFilter,
           page, pageSize,
         },
       });
@@ -90,10 +96,10 @@ export const PayrollRegister: React.FC = () => {
     } catch (err: any) {
       showError('Failed to load payroll', err.response?.data?.message || 'Network error');
     } finally { setLoading(false); }
-  }, [selectedMonth, search, departmentId, statusFilter, currentBranch?.id, page, pageSize]);
+  }, [selectedMonth, search, departmentId, statusFilter, currentBranch?.id, archiveFilter, page, pageSize]);
 
   useEffect(() => { fetchLookups(); }, [currentOrganization?.id, currentBranch?.id]);
-  useEffect(() => { fetchRecords(); }, [selectedMonth, search, departmentId, statusFilter, currentOrganization?.id, currentBranch?.id, page, pageSize]);
+  useEffect(() => { fetchRecords(); }, [selectedMonth, search, departmentId, statusFilter, currentOrganization?.id, currentBranch?.id, archiveFilter, page, pageSize, fetchRecords]);
 
   useEffect(() => {
     const reload = () => { setPage(1); fetchLookups(); fetchRecords(); };
@@ -281,6 +287,8 @@ export const PayrollRegister: React.FC = () => {
             ))}
         </select>
 
+        <ArchiveToggle value={archiveFilter} onChange={v => { setArchiveFilter(v); setPage(1); }} />
+
         {!loading && (
           <span className="text-xs text-[var(--ink-muted)] whitespace-nowrap" style={{ flexShrink: 0 }}>
             {totalCount} record{totalCount !== 1 ? 's' : ''}
@@ -379,7 +387,12 @@ export const PayrollRegister: React.FC = () => {
                       { label: 'View Payslip', icon: <FileText className="w-3.5 h-3.5" />, onClick: () => handleViewPayslip(r.id) },
                       ...(canManage && r.status === 'Draft' ? [{ label: 'Approve', icon: <Check className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Approved'), variant: 'success' as const }] : []),
                       ...(canManage && r.status === 'Approved' ? [{ label: 'Mark as Paid', icon: <CreditCard className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Paid'), variant: 'success' as const }] : []),
-                    ]} />
+                      ...(canManage ? archive.rowActions({
+                        id: r.id,
+                        name: `Payroll (${r.employeeName})`,
+                        isArchived: isRowArchived(r)
+                      }) : []),
+                    ] as RowAction[]} />
                   </td>
                 </tr>
               ))}
@@ -434,6 +447,7 @@ export const PayrollRegister: React.FC = () => {
         loading={loadingPayslip}
         payslip={selectedPayslip}
       />
+      {archive.dialog}
     </div>
   );
 };

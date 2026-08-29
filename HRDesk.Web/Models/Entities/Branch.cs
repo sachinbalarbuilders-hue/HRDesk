@@ -5,11 +5,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HRDesk.Web.Models;
 
 [Table("branches")]
-public class Branch : IMustHaveTenant
+public class Branch : IMustHaveTenant, IArchivable
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [StringLength(150)]
+    public string? ArchivedBy { get; set; }
 
     /// <summary>
     /// Opaque, non-enumerable identifier used in URLs and API responses instead of the

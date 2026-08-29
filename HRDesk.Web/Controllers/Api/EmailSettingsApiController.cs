@@ -35,29 +35,33 @@ public class EmailSettingsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetEmailSettings()
     {
-        var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var orgId    = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var branchId = _tenantProvider.BranchId;
 
-        var settings = await _db.SystemSettings
+        var query = _db.SystemSettings
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(s => s.OrganizationId == orgId && s.SettingKey.StartsWith("Email_"))
-            .ToDictionaryAsync(s => s.SettingKey, s => s.SettingValue ?? "");
+            .Where(s => s.OrganizationId == orgId && s.SettingKey.StartsWith("Email_"));
+
+        if (branchId.HasValue && branchId.Value > 0)
+            query = query.Where(s => s.BranchId == branchId.Value);
+        else
+            query = query.Where(s => s.BranchId == null);
+
+        var settings = await query.ToDictionaryAsync(s => s.SettingKey, s => s.SettingValue ?? "");
 
         return Ok(new
         {
-            provider = settings.GetValueOrDefault("Email_Provider", "Smtp"),
-            from = settings.GetValueOrDefault("Email_From", ""),
-            fromName = settings.GetValueOrDefault("Email_FromName", "HRDesk"),
-            // SMTP
-            smtpHost = settings.GetValueOrDefault("Email_SmtpHost", ""),
-            smtpPort = settings.GetValueOrDefault("Email_SmtpPort", "587"),
-            smtpUsername = settings.GetValueOrDefault("Email_SmtpUsername", ""),
-            smtpPassword = string.IsNullOrWhiteSpace(settings.GetValueOrDefault("Email_SmtpPassword", "")) ? "" : "••••••••",
-            smtpUseSsl = settings.GetValueOrDefault("Email_SmtpUseSsl", "true"),
-            // SendGrid
+            provider       = settings.GetValueOrDefault("Email_Provider", "Smtp"),
+            from           = settings.GetValueOrDefault("Email_From", ""),
+            fromName       = settings.GetValueOrDefault("Email_FromName", "HRDesk"),
+            smtpHost       = settings.GetValueOrDefault("Email_SmtpHost", ""),
+            smtpPort       = settings.GetValueOrDefault("Email_SmtpPort", "587"),
+            smtpUsername   = settings.GetValueOrDefault("Email_SmtpUsername", ""),
+            smtpPassword   = string.IsNullOrWhiteSpace(settings.GetValueOrDefault("Email_SmtpPassword", "")) ? "" : "••••••••",
+            smtpUseSsl     = settings.GetValueOrDefault("Email_SmtpUseSsl", "true"),
             sendGridApiKey = string.IsNullOrWhiteSpace(settings.GetValueOrDefault("Email_SendGridApiKey", "")) ? "" : "••••••••",
-            // Status
-            isConfigured = !string.IsNullOrWhiteSpace(settings.GetValueOrDefault("Email_From", ""))
+            isConfigured   = !string.IsNullOrWhiteSpace(settings.GetValueOrDefault("Email_From", ""))
         });
     }
 
@@ -84,20 +88,20 @@ public class EmailSettingsController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.From))
             return BadRequest(new { message = "From email address is required." });
 
-        var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var orgId    = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        var branchId = _tenantProvider.BranchId;
 
         var keysToSave = new Dictionary<string, string>
         {
-            ["Email_Provider"] = (dto.Provider ?? "Smtp").Trim(),
-            ["Email_From"] = dto.From.Trim(),
-            ["Email_FromName"] = (dto.FromName ?? "HRDesk").Trim(),
-            ["Email_SmtpHost"] = (dto.SmtpHost ?? "").Trim(),
-            ["Email_SmtpPort"] = (dto.SmtpPort ?? "587").Trim(),
+            ["Email_Provider"]  = (dto.Provider ?? "Smtp").Trim(),
+            ["Email_From"]      = dto.From.Trim(),
+            ["Email_FromName"]  = (dto.FromName ?? "HRDesk").Trim(),
+            ["Email_SmtpHost"]  = (dto.SmtpHost ?? "").Trim(),
+            ["Email_SmtpPort"]  = (dto.SmtpPort ?? "587").Trim(),
             ["Email_SmtpUsername"] = (dto.SmtpUsername ?? "").Trim(),
-            ["Email_SmtpUseSsl"] = (dto.SmtpUseSsl ?? "true").Trim(),
+            ["Email_SmtpUseSsl"]   = (dto.SmtpUseSsl ?? "true").Trim(),
         };
 
-        // Only update password/apikey if not the masked placeholder
         if (!string.IsNullOrWhiteSpace(dto.SmtpPassword) && dto.SmtpPassword != "••••••••")
             keysToSave["Email_SmtpPassword"] = dto.SmtpPassword.Trim();
 
@@ -108,22 +112,23 @@ public class EmailSettingsController : ControllerBase
         {
             var existing = await _db.SystemSettings
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(s => s.OrganizationId == orgId && s.SettingKey == key);
+                .FirstOrDefaultAsync(s => s.OrganizationId == orgId && s.BranchId == branchId && s.SettingKey == key);
 
             if (existing != null)
             {
                 existing.SettingValue = value;
-                existing.UpdatedAt = DateTime.Now;
+                existing.UpdatedAt    = DateTime.Now;
             }
             else
             {
                 _db.SystemSettings.Add(new SystemSetting
                 {
                     OrganizationId = orgId,
-                    SettingKey = key,
-                    SettingValue = value,
-                    Description = $"Email config: {key}",
-                    UpdatedAt = DateTime.Now
+                    BranchId       = branchId,
+                    SettingKey     = key,
+                    SettingValue   = value,
+                    Description    = $"Email config: {key}",
+                    UpdatedAt      = DateTime.Now
                 });
             }
         }

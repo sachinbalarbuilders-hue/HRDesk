@@ -17,28 +17,51 @@ public class PayGroupsApiController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly IArchiveService _archive;
 
     public PayGroupsApiController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        IArchiveService archive)
     {
         _db = db;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
+        _archive = archive;
     }
+
+    private IActionResult FromArchive(ArchiveResult result) =>
+        result.Success
+            ? Ok(new { success = true, message = result.Message })
+            : result.ErrorCode == ArchiveResult.NotFound
+                ? NotFound(new { success = false, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message, code = result.ErrorCode });
 
     // ── GET all ──────────────────────────────────────────────────────────────
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string archiveStatus = "active")
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
             return Forbid();
 
-        var groups = await _db.PayGroups
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase) || archiveStatus.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            _db.BypassArchiveFilter = true;
+        }
+
+        var query = _db.PayGroups
             .AsNoTracking()
             .Include(g => g.Template)
+            .AsQueryable();
+
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(g => g.ArchivedAt != null);
+        else if (archiveStatus.Equals("active", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(g => g.ArchivedAt == null);
+
+        var groups = await query
             .OrderBy(g => g.Name)
             .Select(g => new
             {
@@ -54,6 +77,7 @@ public class PayGroupsApiController : ControllerBase
                 g.TemplateId,
                 TemplateName = g.Template != null ? g.Template.Name : null,
                 g.IsActive,
+                archivedAt = g.ArchivedAt,
                 employeeCount = _db.Employees.Count(e => e.PayGroupId == g.Id)
             })
             .ToListAsync();
@@ -144,27 +168,34 @@ public class PayGroupsApiController : ControllerBase
 
     // ── DELETE ───────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// "Delete" from the main list → archive. "Delete" from the Archive view → ?permanent=true.
+    /// Archiving is always allowed; permanent deletion is blocked while employees are assigned.
+    /// </summary>
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, [FromQuery] bool permanent = false)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
             return Forbid();
 
-        var group = await _db.PayGroups.FirstOrDefaultAsync(g => g.Id == id);
-        if (group == null) return NotFound(new { message = "Pay group not found." });
+        if (!permanent)
+            return FromArchive(await _archive.ArchiveAsync<PayGroup>(id));
 
-        // Don't hard-delete if employees are assigned — deactivate instead
-        var hasEmployees = await _db.Employees.AnyAsync(e => e.PayGroupId == id);
-        if (hasEmployees)
-        {
-            group.IsActive = false;
-            await _db.SaveChangesAsync();
-            return Ok(new { message = "Pay group deactivated (employees still assigned)." });
-        }
+        var assignedCount = await _db.Employees.CountAsync(e => e.PayGroupId == id);
+        string? Guard(PayGroup _) => assignedCount > 0
+            ? $"Cannot permanently delete: {assignedCount} employee(s) are still assigned to this pay group."
+            : null;
 
-        _db.PayGroups.Remove(group);
-        await _db.SaveChangesAsync();
-        return Ok(new { message = "Pay group deleted." });
+        return FromArchive(await _archive.PermanentDeleteAsync<PayGroup>(id, Guard));
+    }
+
+    [HttpPost("{id:int}/restore")]
+    public async Task<IActionResult> Restore(int id)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
+            return Forbid();
+
+        return FromArchive(await _archive.RestoreAsync<PayGroup>(id));
     }
 
     // ── GET employees in this group ──────────────────────────────────────────
@@ -292,17 +323,29 @@ public class PayGroupsApiController : ControllerBase
         return Ok(new { message = "PT slab saved.", id = slab.Id });
     }
 
-    [HttpDelete("pt-slabs/{id:int}")]
-    public async Task<IActionResult> DeletePtSlab(int id)
+    [HttpPost("pt-slabs/{id:int}/restore")]
+    public async Task<IActionResult> RestorePtSlab(int id)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
             return Forbid();
 
-        var slab = await _db.ProfessionalTaxSlabs.FirstOrDefaultAsync(s => s.Id == id);
-        if (slab == null) return NotFound();
-        _db.ProfessionalTaxSlabs.Remove(slab);
-        await _db.SaveChangesAsync();
-        return Ok(new { message = "PT slab deleted." });
+        return FromArchive(await _archive.RestoreAsync<ProfessionalTaxSlab>(id));
+    }
+
+    /// <summary>
+    /// "Delete" from the main list → archive. "Delete" from the Archive view → ?permanent=true.
+    /// </summary>
+    [HttpDelete("pt-slabs/{id:int}")]
+    public async Task<IActionResult> DeletePtSlab(int id, [FromQuery] bool permanent = false)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
+            return Forbid();
+
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<ProfessionalTaxSlab>(id)
+            : await _archive.ArchiveAsync<ProfessionalTaxSlab>(id);
+
+        return FromArchive(result);
     }
 }
 

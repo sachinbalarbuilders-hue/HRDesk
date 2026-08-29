@@ -19,6 +19,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
+import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 
@@ -198,37 +199,12 @@ export const Leaves: React.FC = () => {
     }
   };
 
-  const handleDeleteLeave = async (id: number, isPermanent: boolean) => {
-    if (isPermanent) {
-      if (!window.confirm(`Permanently delete leave application #${id}? This action cannot be undone.`)) return;
-      try {
-        await apiClient.delete(`/leaves/${id}?permanent=true`);
-        showSuccess('Permanently Deleted', 'Leave application has been permanently removed.');
-        fetchLeavesData();
-      } catch (err: any) {
-        showError('Delete Failed', err.response?.data?.message || 'Failed to delete leave');
-      }
-    } else {
-      if (!window.confirm(`Archive leave application #${id}? It will be moved to the Archived tab.`)) return;
-      try {
-        await apiClient.delete(`/leaves/${id}`);
-        showSuccess('Archived', 'Leave application has been moved to Archive.');
-        fetchLeavesData();
-      } catch (err: any) {
-        showError('Archive Failed', err.response?.data?.message || 'Failed to archive leave');
-      }
-    }
-  };
-
-  const handleRestoreLeave = async (id: number) => {
-    try {
-      await apiClient.post(`/leaves/${id}/restore`);
-      showSuccess('Restored', 'Leave application restored to Pending.');
-      fetchLeavesData();
-    } catch (err: any) {
-      showError('Restore Failed', err.response?.data?.message || 'Failed to restore leave');
-    }
-  };
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const leaveArchive = useArchiveActions({
+    endpoint: '/leaves',
+    label: 'Leave Application',
+    onDone: fetchLeavesData,
+  });
 
   const canApprove = isAdmin || hasPermission('Leaves.Approve');
 
@@ -341,16 +317,15 @@ export const Leaves: React.FC = () => {
                         <td className="text-right text-xs">
                           {canApprove ? (
                             <RowActionMenu actions={[
-                              ...(isArchived ? [
-                                { label: 'Restore Request', icon: <RotateCcw size={14} />, onClick: () => handleRestoreLeave(app.id), variant: 'default' as const },
-                                { label: 'Permanent Delete', icon: <Trash2 size={14} />, onClick: () => handleDeleteLeave(app.id, true), variant: 'danger' as const },
-                              ] : [
-                                ...(isPending ? [
-                                  { label: 'Approve', icon: <Check size={14} />, onClick: () => handleStatusUpdate(app.id, 'Approved'), variant: 'success' as const },
-                                  { label: 'Reject', icon: <X size={14} />, onClick: () => handleStatusUpdate(app.id, 'Rejected'), variant: 'danger' as const },
-                                ] : []),
-                                { label: 'Archive', icon: <Archive size={14} />, onClick: () => handleDeleteLeave(app.id, false), variant: 'danger' as const },
-                              ]),
+                              ...(!isArchived && isPending ? [
+                                { label: 'Approve', icon: <Check size={14} />, onClick: () => handleStatusUpdate(app.id, 'Approved'), variant: 'success' as const },
+                                { label: 'Reject', icon: <X size={14} />, onClick: () => handleStatusUpdate(app.id, 'Rejected'), variant: 'danger' as const },
+                              ] : []),
+                              ...leaveArchive.rowActions({
+                                id: app.id,
+                                name: `Leave Request #${app.id} (${app.employeeName})`,
+                                isArchived: isArchived || isRowArchived(app),
+                              }),
                             ]} />
                           ) : (
                             <span className={`font-data text-xs font-bold ${isArchived ? 'text-[var(--ink-muted)]' : isApproved ? 'text-[var(--ok-600)]' : isRejected ? 'text-[var(--err-600)]' : 'text-[var(--warn-600)]'}`}>
@@ -577,6 +552,9 @@ export const Leaves: React.FC = () => {
           fetchLeavesData();
         }}
       />
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {leaveArchive.dialog}
     </PageContainer>
   );
 };

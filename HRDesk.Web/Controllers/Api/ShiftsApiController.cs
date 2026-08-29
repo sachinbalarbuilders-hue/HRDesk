@@ -18,18 +18,28 @@ public class ShiftsController : ControllerBase
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
     private readonly IAttendanceProcessorService _processor;
+    private readonly IArchiveService _archive;
 
     public ShiftsController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         ICurrentTenantProvider tenantProvider,
-        IAttendanceProcessorService processor)
+        IAttendanceProcessorService processor,
+        IArchiveService archive)
     {
         _db = db;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
         _processor = processor;
+        _archive = archive;
     }
+
+    private IActionResult FromArchive(ArchiveResult result) =>
+        result.Success
+            ? Ok(new { success = true, message = result.Message })
+            : result.ErrorCode == ArchiveResult.NotFound
+                ? NotFound(new { success = false, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message, code = result.ErrorCode });
 
     public record ShiftDto(
         string ShiftName,
@@ -163,16 +173,22 @@ public class ShiftsController : ControllerBase
         return Ok(new { message = "Shift updated successfully.", id = shift.Id });
     }
 
+    /// <summary>
+    /// "Delete" from the main list → archive. "Delete" from the Archive view → ?permanent=true.
+    /// </summary>
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteShift(int id)
+    public async Task<IActionResult> DeleteShift(int id, [FromQuery] bool permanent = false)
     {
-        var shift = await _db.Shifts.FindAsync(id);
-        if (shift == null) return NotFound(new { message = "Shift not found." });
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<Shift>(id)
+            : await _archive.ArchiveAsync<Shift>(id);
 
-        _db.Shifts.Remove(shift);
-        await _db.SaveChangesAsync();
-        return Ok(new { message = "Shift deleted successfully." });
+        return FromArchive(result);
     }
+
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreShift(int id)
+        => FromArchive(await _archive.RestoreAsync<Shift>(id));
 
     // ==========================================
     // ROSTER MANAGEMENT
@@ -484,20 +500,26 @@ public class ShiftsController : ControllerBase
         return Ok(new { message = "Shift cycle updated successfully." });
     }
 
+    /// <summary>
+    /// "Delete" from the main list → archive (preserves roster history).
+    /// "Delete" from the Archive view → ?permanent=true.
+    /// </summary>
     [HttpDelete("cycles/{id}")]
-    public async Task<IActionResult> DeleteShiftCycle(int id)
+    public async Task<IActionResult> DeleteShiftCycle(int id, [FromQuery] bool permanent = false)
     {
-        var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
-        var cycle = await _db.ShiftCycles.FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == orgId);
-        if (cycle == null) return NotFound(new { message = "Shift cycle not found." });
+        if (!permanent)
+            return FromArchive(await _archive.ArchiveAsync<ShiftCycle>(id));
 
-        // Soft delete — preserves roster history
-        cycle.IsActive = false;
-        cycle.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-
-        return Ok(new { message = "Shift cycle deleted." });
+        return FromArchive(await _archive.PermanentDeleteAsync<ShiftCycle>(id, cascade: async _ =>
+        {
+            var slots = await _db.ShiftCycleSlots.Where(s => s.CycleId == id).ToListAsync();
+            _db.ShiftCycleSlots.RemoveRange(slots);
+        }));
     }
+
+    [HttpPost("cycles/{id}/restore")]
+    public async Task<IActionResult> RestoreShiftCycle(int id)
+        => FromArchive(await _archive.RestoreAsync<ShiftCycle>(id));
 
     // ==========================================
     // ROSTER GENERATION FROM CYCLE

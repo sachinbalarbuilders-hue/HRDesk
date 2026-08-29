@@ -16,12 +16,24 @@ public class RolesController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
+    private readonly IArchiveService _archive;
 
-    public RolesController(BiometricAttendanceDbContext db, IPermissionService permissionService)
+    public RolesController(
+        BiometricAttendanceDbContext db,
+        IPermissionService permissionService,
+        IArchiveService archive)
     {
         _db = db;
         _permissionService = permissionService;
+        _archive = archive;
     }
+
+    private IActionResult FromArchive(ArchiveResult result) =>
+        result.Success
+            ? Ok(new { success = true, message = result.Message })
+            : result.ErrorCode == ArchiveResult.NotFound
+                ? NotFound(new { success = false, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message, code = result.ErrorCode });
 
     [HttpGet]
     public async Task<IActionResult> GetRoles([FromQuery] string? branchId = null)
@@ -313,40 +325,58 @@ public class RolesController : ControllerBase
         return Ok(new { success = true, message = "Permission updated live." });
     }
 
+    /// <summary>
+    /// "Delete" from the main list → archive. "Delete" from the Archive view → ?permanent=true.
+    /// Domain rules (system role, role still assigned) are enforced via the guard delegate so
+    /// they apply identically to both paths.
+    /// </summary>
     [HttpDelete("{publicId:guid}")]
-    public async Task<IActionResult> DeleteRole(Guid publicId)
+    public async Task<IActionResult> DeleteRole(Guid publicId, [FromQuery] bool permanent = false)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.SystemRoles))
         {
             return Forbid();
         }
 
+        _db.BypassArchiveFilter = true;
         var role = await _db.Roles
             .Include(r => r.Permissions)
             .Include(r => r.Users)
             .FirstOrDefaultAsync(r => r.PublicId == publicId);
 
-        if (role == null)
-        {
-            return NotFound(new { message = "Role not found." });
-        }
+        if (role == null) return NotFound(new { message = "Role not found." });
 
-        if (role.IsSystemRole)
-        {
-            return BadRequest(new { message = "System roles cannot be deleted." });
-        }
+        string? Guard(Role r) =>
+            r.IsSystemRole ? "System roles cannot be deleted."
+            : r.Users.Any() ? $"Cannot delete role because it is assigned to {r.Users.Count} active user(s)."
+            : null;
 
-        if (role.Users.Any())
-        {
-            return BadRequest(new { message = $"Cannot delete role because it is assigned to {role.Users.Count} active user(s)." });
-        }
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<Role>(role.Id, Guard, cascade: async r =>
+              {
+                  // FKs are Restrict-only, so permission rows must go first.
+                  var perms = await _db.RolePermissions.Where(p => p.RoleId == r.Id).ToListAsync();
+                  _db.RolePermissions.RemoveRange(perms);
+              })
+            : await _archive.ArchiveAsync<Role>(role.Id, Guard);
 
-        _db.RolePermissions.RemoveRange(role.Permissions);
-        _db.Roles.Remove(role);
-        await _db.SaveChangesAsync();
-        _permissionService.ClearCache();
+        if (result.Success) _permissionService.ClearCache();
+        return FromArchive(result);
+    }
 
-        return Ok(new { success = true, message = "Role deleted successfully." });
+    [HttpPost("{publicId:guid}/restore")]
+    public async Task<IActionResult> RestoreRole(Guid publicId)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.SystemRoles))
+            return Forbid();
+
+        _db.BypassArchiveFilter = true;
+        var role = await _db.Roles.FirstOrDefaultAsync(r => r.PublicId == publicId);
+        if (role == null) return NotFound(new { message = "Role not found." });
+
+        var result = await _archive.RestoreAsync<Role>(role.Id);
+        if (result.Success) _permissionService.ClearCache();
+        return FromArchive(result);
     }
 
     public record RoleCreateDto(string Name, string? Description, string? BranchId, Dictionary<string, bool>? Permissions, Dictionary<string, string>? Scopes, Dictionary<string, List<string>>? SubRestrictions);

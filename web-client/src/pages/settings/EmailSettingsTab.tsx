@@ -8,7 +8,7 @@ import { Badge } from '../../components/ui/Badge';
 type Provider = 'Smtp' | 'SendGrid';
 
 export const EmailSettingsTab: React.FC = () => {
-  const { currentOrganization } = useOrganization();
+  const { currentOrganization, currentBranch } = useOrganization();
   const [provider, setProvider] = useState<Provider>('Smtp');
   const [from, setFrom] = useState('');
   const [fromName, setFromName] = useState('HRDesk');
@@ -31,7 +31,7 @@ export const EmailSettingsTab: React.FC = () => {
 
   useEffect(() => {
     fetchSettings();
-  }, [currentOrganization?.id]);
+  }, [currentOrganization?.id, currentBranch?.id]);
 
   const fetchSettings = async () => {
     try {

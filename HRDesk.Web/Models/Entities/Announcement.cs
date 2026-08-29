@@ -2,9 +2,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
 
-public sealed class Announcement : IMustHaveTenant
+public sealed class Announcement : IMustHaveTenant, IArchivable
 {
     public int Id { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [System.ComponentModel.DataAnnotations.StringLength(150)]
+    public string? ArchivedBy { get; set; }
 
     public string Title { get; set; } = "";
 

@@ -17,16 +17,26 @@ public class AnnouncementsController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly IArchiveService _archive;
 
     public AnnouncementsController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        IArchiveService archive)
     {
         _db = db;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
+        _archive = archive;
     }
+
+    private IActionResult FromArchive(ArchiveResult result) =>
+        result.Success
+            ? Ok(new { success = true, message = result.Message })
+            : result.ErrorCode == ArchiveResult.NotFound
+                ? NotFound(new { success = false, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message, code = result.ErrorCode });
 
     public record AnnouncementDto(
         string Title,
@@ -187,17 +197,22 @@ public class AnnouncementsController : ControllerBase
         return Ok(new { message = "Announcement updated successfully.", id = item.Id });
     }
 
+    /// <summary>
+    /// "Delete" from the main list → archive. "Delete" from the Archive view → ?permanent=true.
+    /// </summary>
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteAnnouncement(int id)
+    public async Task<IActionResult> DeleteAnnouncement(int id, [FromQuery] bool permanent = false)
     {
-        var item = await _db.Announcements.FindAsync(id);
-        if (item == null) return NotFound(new { message = "Announcement not found." });
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<Announcement>(id)
+            : await _archive.ArchiveAsync<Announcement>(id);
 
-        _db.Announcements.Remove(item);
-        await _db.SaveChangesAsync();
-
-        return Ok(new { message = "Announcement deleted successfully." });
+        return FromArchive(result);
     }
+
+    [HttpPost("{id:int}/restore")]
+    public async Task<IActionResult> RestoreAnnouncement(int id)
+        => FromArchive(await _archive.RestoreAsync<Announcement>(id));
 
     [HttpPatch("{id:int}/pin")]
     public async Task<IActionResult> TogglePin(int id)

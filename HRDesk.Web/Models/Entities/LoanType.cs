@@ -4,11 +4,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HRDesk.Web.Models;
 
-public class LoanType : IMustHaveTenant
+public class LoanType : IMustHaveTenant, IArchivable
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [StringLength(150)]
+    public string? ArchivedBy { get; set; }
 
     [Column("type_name")]
     [Required]

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
+import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
+import { ArchiveToggle, type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
+import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import {
   Users, Plus, Pencil, Trash2, X, CheckCircle2, MapPin, ChevronDown, ChevronRight,
 } from 'lucide-react';
@@ -19,6 +22,7 @@ interface PayGroup {
   templateName?: string;
   isActive: boolean;
   employeeCount: number;
+  archivedAt?: string;
 }
 
 interface Template {
@@ -57,13 +61,14 @@ export const PayGroupsTab: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [groupEmployees, setGroupEmployees] = useState<any[]>([]);
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
 
   const fetchGroups = async () => {
     try {
       setLoading(true);
       const [grpRes, tplRes] = await Promise.all([
-        apiClient.get('/pay-groups'),
-        apiClient.get('/salary-templates'),
+        apiClient.get('/pay-groups', { params: { archiveStatus: archiveFilter } }),
+        apiClient.get('/salary-templates', { params: { archiveStatus: 'active' } }),
       ]);
       setGroups(grpRes.data || []);
       setTemplates(tplRes.data || []);
@@ -71,8 +76,7 @@ export const PayGroupsTab: React.FC = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchGroups(); }, []);
-
+  useEffect(() => { fetchGroups(); }, [archiveFilter]);
   const openCreate = () => { setEditId(null); setForm({ ...emptyForm }); setModalOpen(true); };
   const openEdit = (g: PayGroup) => {
     setEditId(g.id);
@@ -85,6 +89,13 @@ export const PayGroupsTab: React.FC = () => {
     });
     setModalOpen(true);
   };
+
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const payGroupArchive = useArchiveActions({
+    endpoint: '/pay-groups',
+    label: 'Pay Group',
+    onDone: fetchGroups,
+  });
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,15 +119,6 @@ export const PayGroupsTab: React.FC = () => {
     finally { setSaving(false); }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Deactivate or delete this pay group?')) return;
-    try {
-      await apiClient.delete(`/pay-groups/${id}`);
-      showSuccess('Pay group removed');
-      fetchGroups();
-    } catch { showError('Failed to remove pay group'); }
-  };
-
   const toggleExpand = async (id: number) => {
     if (expandedId === id) { setExpandedId(null); return; }
     setExpandedId(id);
@@ -138,33 +140,40 @@ export const PayGroupsTab: React.FC = () => {
         <div>
           <h2 className="text-base font-bold text-[var(--ink)] font-ui">Pay Groups</h2>
           <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-            Control salary calculation basis (calendar days, fixed 26, etc.) and statutory applicability per employee group.
+            Configure salary calculation basis, statutory deduction applicability, and link templates.
           </p>
         </div>
-        <button onClick={openCreate} className="btn-primary flex items-center gap-1.5 text-xs">
-          <Plus size={14} /> New Pay Group
-        </button>
+        <div className="flex items-center gap-2">
+          <ArchiveToggle value={archiveFilter} onChange={setArchiveFilter} />
+          <button onClick={openCreate} className="btn-primary flex items-center gap-1.5 text-xs">
+            <Plus size={14} /> New Pay Group
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
+      {/* Group list */}
       {loading ? (
         <div className="h-32 flex items-center justify-center text-[var(--ink-muted)] text-sm">Loading...</div>
       ) : groups.length === 0 ? (
-        <div className="h-32 flex flex-col items-center justify-center text-[var(--ink-muted)] text-sm gap-2">
-          <Users size={32} className="opacity-30" />
-          <span>No pay groups yet. Create one to get started.</span>
+        <div className="border border-dashed border-[var(--rule)] rounded-[6px] p-8 text-center bg-[var(--paper)]">
+          <Users size={32} className="mx-auto text-[var(--ink-muted)] mb-2" />
+          <p className="font-semibold text-sm text-[var(--ink)]">No Pay Groups</p>
+          <p className="text-xs text-[var(--ink-muted)] mt-1">Create your first pay group to start configuring salary structures.</p>
+          <button onClick={openCreate} className="btn-primary mt-3 text-xs inline-flex items-center gap-1">
+            <Plus size={13} /> Create Pay Group
+          </button>
         </div>
       ) : (
-        <div className="rounded-[4px] border border-[var(--rule)] overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--surface-sunken)] border-b border-[var(--rule)]">
-              <tr>
-                <th className="px-4 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Group</th>
-                <th className="px-4 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Salary Basis</th>
-                <th className="px-4 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Statutory</th>
-                <th className="px-4 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Template</th>
-                <th className="px-4 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Employees</th>
-                <th className="px-4 py-2.5 text-right text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui"></th>
+        <div className="border border-[var(--rule)] rounded-[6px] overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] text-[10px] uppercase text-[var(--ink-muted)] font-bold text-left">
+                <th className="px-4 py-2.5">Group Name</th>
+                <th className="px-4 py-2.5">Salary Basis</th>
+                <th className="px-4 py-2.5">Statutory Rules</th>
+                <th className="px-4 py-2.5">Salary Template</th>
+                <th className="px-4 py-2.5">Employees</th>
+                <th className="px-4 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--rule)]">
@@ -206,10 +215,10 @@ export const PayGroupsTab: React.FC = () => {
                       <span className="text-xs font-semibold text-[var(--ink)]">{g.employeeCount}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-1">
-                        <button onClick={() => openEdit(g)} className="p-1.5 rounded hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)]"><Pencil size={13} /></button>
-                        <button onClick={() => handleDelete(g.id)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-[var(--ink-muted)] hover:text-red-600"><Trash2 size={13} /></button>
-                      </div>
+                      <RowActionMenu actions={[
+                        { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(g) },
+                        ...payGroupArchive.rowActions({ id: g.id, name: g.name, isArchived: isRowArchived(g) })
+                      ] as RowAction[]} />
                     </td>
                   </tr>
                   {expandedId === g.id && (
@@ -307,6 +316,9 @@ export const PayGroupsTab: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {payGroupArchive.dialog}
     </div>
   );
 };

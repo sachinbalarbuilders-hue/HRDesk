@@ -8,14 +8,12 @@ import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { BulkImportModal } from '../../components/ui/BulkImportModal';
 import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
+import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 import {
   FolderTree,
   Plus,
-  Trash2,
   X,
   Edit2,
-  Archive,
-  RotateCcw,
 } from 'lucide-react';
 
 export const DepartmentsTab: React.FC = () => {
@@ -46,7 +44,8 @@ export const DepartmentsTab: React.FC = () => {
           name: d.name,
           code: `DEP-${d.id}`,
           head: 'HOD',
-          status: d.status || 'Active',
+          status: d.status || (d.archivedAt ? 'Archived' : 'Active'),
+          archivedAt: d.archivedAt,
           branchId: d.branchId,
         })));
       }
@@ -106,6 +105,13 @@ export const DepartmentsTab: React.FC = () => {
     showSuccess('Exported', 'Departments exported to CSV.');
   };
 
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const archiveActions = useArchiveActions({
+    endpoint: '/masters/departments',
+    label: 'Department',
+    onDone: fetchData,
+  });
+
   const s = search.trim().toLowerCase();
   const filteredDepts = departments.filter(d => {
     const matchesSearch = !s || (d.name?.toLowerCase().includes(s)) || (d.code?.toLowerCase().includes(s));
@@ -159,18 +165,16 @@ export const DepartmentsTab: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (item) => {
-        const isArchived = item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived';
-        return (
-          <RowActionMenu actions={[
-            { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingDeptId(item.id); setNewDept({ name: item.name, code: item.code || '', head: item.head || '' }); setDeptModalOpen(true); } },
-            isArchived
-              ? { label: 'Restore', icon: <RotateCcw size={14} />, onClick: () => { setDepartments(departments.map(d => d.id === item.id ? { ...d, status: 'active' } : d)); showSuccess('Department Restored', `${item.name} restored.`); }, variant: 'success', dividerBefore: true }
-              : { label: 'Archive', icon: <Archive size={14} />, onClick: () => { setDepartments(departments.map(d => d.id === item.id ? { ...d, status: 'inactive' } : d)); showSuccess('Department Archived', `${item.name} moved to archive.`); }, dividerBefore: true },
-            { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => { setDepartments(departments.filter(d => d.id !== item.id)); showSuccess('Department Deleted', 'Department removed.'); }, variant: 'danger' },
-          ] as RowAction[]} />
-        );
-      },
+      render: (item) => (
+        <RowActionMenu actions={[
+          { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingDeptId(item.id); setNewDept({ name: item.name, code: item.code || '', head: item.head || '' }); setDeptModalOpen(true); } },
+          ...archiveActions.rowActions({
+            id: item.id,
+            name: item.name,
+            isArchived: isRowArchived(item),
+          }),
+        ] as RowAction[]} />
+      ),
     },
   ];
 
@@ -263,6 +267,9 @@ export const DepartmentsTab: React.FC = () => {
           fetchData();
         }}
       />
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {archiveActions.dialog}
     </div>
   );
 };

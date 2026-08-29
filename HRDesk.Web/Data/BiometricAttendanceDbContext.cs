@@ -171,16 +171,31 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
         if (_tenantProvider != null)
         {
+            // EF Core permits only ONE query filter per entity type, so the tenant predicate
+            // and the archive predicate must be combined into a single lambda. Pick the right
+            // builder method based on which interfaces the entity implements.
+            var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
-                if (typeof(IMustHaveTenant).IsAssignableFrom(entityType.ClrType))
+                var clr = entityType.ClrType;
+                var isTenant = typeof(IMustHaveTenant).IsAssignableFrom(clr);
+                var isArchivable = typeof(IArchivable).IsAssignableFrom(clr);
+
+                string? builderName = (isTenant, isArchivable) switch
                 {
-                    var method = typeof(BiometricAttendanceDbContext)
-                        .GetMethod(nameof(SetGlobalQueryFilter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?
-                        .MakeGenericMethod(entityType.ClrType);
-                    
-                    method?.Invoke(this, new object[] { modelBuilder });
-                }
+                    (true, true)  => nameof(SetTenantAndArchiveQueryFilter),
+                    (true, false) => nameof(SetGlobalQueryFilter),
+                    (false, true) => nameof(SetArchiveQueryFilter),
+                    _             => null
+                };
+
+                if (builderName == null) continue;
+
+                typeof(BiometricAttendanceDbContext)
+                    .GetMethod(builderName, flags)?
+                    .MakeGenericMethod(clr)
+                    ?.Invoke(this, new object[] { modelBuilder });
             }
 
             // Manual query filter for User (no longer implements IMustHaveTenant since OrganizationId is nullable).
@@ -730,9 +745,31 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public bool BypassTenantId { get; set; } = false;
     public bool BypassAudit { get; set; } = false;
 
+    /// <summary>
+    /// When true, archived rows (ArchivedAt != null) are included in queries.
+    /// Set this to power the Archive view or to resolve a row for restore / permanent delete.
+    /// Prefer <see cref="Services.Infrastructure.IArchiveService"/> over flipping this by hand.
+    /// </summary>
+    public bool BypassArchiveFilter { get; set; } = false;
+
     private void SetGlobalQueryFilter<T>(ModelBuilder builder) where T : class, IMustHaveTenant
     {
         builder.Entity<T>().HasQueryFilter(e => BypassTenantId || e.OrganizationId == _tenantProvider.TenantId);
+    }
+
+    /// <summary>Tenant-scoped AND archive-scoped. Used for entities implementing both interfaces.</summary>
+    private void SetTenantAndArchiveQueryFilter<T>(ModelBuilder builder)
+        where T : class, IMustHaveTenant, IArchivable
+    {
+        builder.Entity<T>().HasQueryFilter(e =>
+            (BypassTenantId || e.OrganizationId == _tenantProvider.TenantId) &&
+            (BypassArchiveFilter || e.ArchivedAt == null));
+    }
+
+    /// <summary>Archive-scoped only. For archivable entities that are not tenant-scoped.</summary>
+    private void SetArchiveQueryFilter<T>(ModelBuilder builder) where T : class, IArchivable
+    {
+        builder.Entity<T>().HasQueryFilter(e => BypassArchiveFilter || e.ArchivedAt == null);
     }
 
     public override int SaveChanges()
@@ -835,6 +872,14 @@ public sealed class BiometricAttendanceDbContext : DbContext
                             oldValues[prop.Metadata.Name] = prop.OriginalValue;
                             newValues[prop.Metadata.Name] = prop.CurrentValue;
                         }
+                    }
+
+                    // Archive / restore are semantically distinct from a plain field update.
+                    // Relabel them so the audit trail is queryable by intent.
+                    if (entry.Entity is IArchivable && changedColumns.Contains(nameof(IArchivable.ArchivedAt)))
+                    {
+                        var nowArchived = entry.Property(nameof(IArchivable.ArchivedAt)).CurrentValue != null;
+                        audit.Action = nowArchived ? "ARCHIVE" : "RESTORE";
                     }
                     break;
             }

@@ -10,6 +10,7 @@ import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
+import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
@@ -202,17 +203,13 @@ export const Loans: React.FC = () => {
   const fetchLoans = async () => {
     try {
       setLoading(true);
-      // Map archive filter to API status
       let effectiveStatus = statusFilter !== 'all' && statusFilter ? statusFilter : undefined;
-      if (!effectiveStatus && archiveFilter === 'active') {
-        effectiveStatus = 'active'; // Pending, Approved, Disbursed
-      } else if (!effectiveStatus && archiveFilter === 'archived') {
-        effectiveStatus = 'archived'; // Closed, Rejected
-      }
+
 
       const res = await apiClient.get('/loans', {
         params: {
           status: effectiveStatus,
+          archiveStatus: archiveFilter,
           loanTypeId: typeFilter && typeFilter !== 'all' ? parseInt(typeFilter) : undefined,
           search: search || undefined,
           branchId: currentBranch?.id || undefined,
@@ -329,16 +326,12 @@ export const Loans: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to permanently delete this loan application? This action cannot be undone and all associated installment records will be removed.')) return;
-    try {
-      await apiClient.delete(`/loans/${id}`);
-      showSuccess('Loan Deleted', 'Loan application permanently deleted.');
-      fetchLoans();
-    } catch (err: any) {
-      showError('Delete Failed', err.response?.data?.message || 'Server error');
-    }
-  };
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const loanArchive = useArchiveActions({
+    endpoint: '/loans',
+    label: 'Loan Application',
+    onDone: fetchLoans,
+  });
 
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -587,14 +580,15 @@ export const Loans: React.FC = () => {
                           { label: 'Edit', icon: <Pencil size={14} />, onClick: () => handleOpenEdit(l) },
                           { label: l.status === 'Pending' ? 'Manager Approve' : 'HR Approve', icon: <Check size={14} />, onClick: () => handleApprove(l.id), variant: 'success' as const },
                           { label: 'Reject', icon: <X size={14} />, onClick: () => handleOpenReject(l.id), variant: 'danger' as const },
-                          { label: 'Delete', icon: <Trash2 size={14} />, onClick: () => handleDelete(l.id), variant: 'danger' as const, dividerBefore: true },
                         ] : []),
                         ...(canManage && l.status === 'Approved' ? [
                           { label: 'Disburse', icon: <Check size={14} />, onClick: () => handleDisburse(l.id), variant: 'success' as const },
                         ] : []),
-                        ...(canManage && (l.status === 'Closed' || l.status === 'Rejected') ? [
-                          { label: 'Permanently Delete', icon: <Trash2 size={14} />, onClick: () => handleDelete(l.id), variant: 'danger' as const, dividerBefore: true },
-                        ] : []),
+                        ...(canManage ? loanArchive.rowActions({
+                          id: l.id,
+                          name: `${l.appNumber} (${l.employeeName})`,
+                          isArchived: isRowArchived(l) || l.status === 'Closed' || l.status === 'Rejected',
+                        }) : []),
                       ] as RowAction[]} />
                     </td>
                   </tr>
@@ -1098,6 +1092,9 @@ export const Loans: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {loanArchive.dialog}
     </PageContainer>
   );
 };

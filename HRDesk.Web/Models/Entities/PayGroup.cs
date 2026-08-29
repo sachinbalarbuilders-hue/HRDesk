@@ -16,11 +16,18 @@ namespace HRDesk.Web.Models;
 ///   "Daily Wage"        — PerDay, per-day rate
 ///   "Contract"          — CalendarDays, consultant template (no PF/ESI)
 /// </summary>
-public class PayGroup : IMustHaveTenant
+public class PayGroup : IMustHaveTenant, IArchivable
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [StringLength(150)]
+    public string? ArchivedBy { get; set; }
 
     [Column("name")]
     [Required]

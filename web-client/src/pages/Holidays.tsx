@@ -19,6 +19,8 @@ import {
   Building,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
+import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
+import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 
 interface Holiday {
   id: number;
@@ -29,6 +31,8 @@ interface Holiday {
   isGlobal: boolean;
   applicableTo: string;
   description: string;
+  archivedAt?: string | null;
+  status?: string;
 }
 
 export const Holidays: React.FC = () => {
@@ -36,6 +40,7 @@ export const Holidays: React.FC = () => {
   const { currentOrganization, currentBranch } = useOrganization();
   const [search, setSearch] = useState('');
   const [yearFilter, setYearFilter] = useState(new Date().getFullYear().toString());
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
@@ -62,6 +67,7 @@ export const Holidays: React.FC = () => {
           year: parseInt(yearFilter) || new Date().getFullYear(),
           search: search || undefined,
           branchId: currentBranch?.id || undefined,
+          status: archiveFilter,
         },
       });
       setHolidays(res.data.items || []);
@@ -74,7 +80,7 @@ export const Holidays: React.FC = () => {
 
   useEffect(() => {
     fetchHolidays();
-  }, [yearFilter, search, currentOrganization?.id, currentBranch?.id]);
+  }, [yearFilter, search, currentOrganization?.id, currentBranch?.id, archiveFilter]);
 
   useEffect(() => {
     const handleReload = () => {
@@ -115,16 +121,12 @@ export const Holidays: React.FC = () => {
     setHolidayModalOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to remove this official holiday record?')) return;
-    try {
-      await apiClient.delete(`/holidays/${id}`);
-      showSuccess('Holiday Removed', 'Holiday deleted successfully.');
-      fetchHolidays();
-    } catch (err: any) {
-      showError('Delete Failed', err.response?.data?.message || 'Server error');
-    }
-  };
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const holidayArchive = useArchiveActions({
+    endpoint: '/holidays',
+    label: 'Holiday',
+    onDone: fetchHolidays,
+  });
 
   const handleSaveHoliday = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,50 +140,46 @@ export const Holidays: React.FC = () => {
       if (editingId) {
         await apiClient.put(`/holidays/${editingId}`, {
           ...form,
-          branchId: currentBranch?.id ? parseInt(currentBranch.id) : undefined
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : null,
         });
-        showSuccess('Holiday Updated', `"${form.name}" has been updated.`);
+        showSuccess('Holiday Updated', 'Holiday details updated successfully.');
       } else {
         await apiClient.post('/holidays', {
           ...form,
-          branchId: currentBranch?.id ? parseInt(currentBranch.id) : undefined
+          branchId: currentBranch?.id ? parseInt(currentBranch.id) : null,
         });
-        showSuccess('Holiday Added', `"${form.name}" added to company calendar.`);
+        showSuccess('Holiday Registered', 'New holiday added to the calendar.');
       }
       setHolidayModalOpen(false);
       fetchHolidays();
     } catch (err: any) {
-      showError('Save Failed', err.response?.data?.message || 'Server error');
+      showError('Failed to save', err.response?.data?.message || 'Server error');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleExport = () => {
-    if (!holidays.length) {
-      showError('Export Empty', 'No holiday records to export.');
-      return;
-    }
-
-    exportToCSV(
-      `Company_Holidays_${yearFilter}`,
-      holidays.map(h => ({
-        'Holiday Name': h.name,
-        'Start Date': h.startDate,
-        'End Date': h.endDate,
-        Days: h.days,
-        Type: h.isGlobal ? 'Global Company-wide' : 'Department Specific',
-        Scope: h.applicableTo,
-        Description: h.description || '',
-      }))
-    );
-    showSuccess('Exported', `Holidays for ${yearFilter} exported successfully.`);
+    exportToCSV(`Company_Holidays_${yearFilter}`, holidays, [
+      { key: 'name', label: 'Holiday Title' },
+      { key: 'startDate', label: 'Start Date' },
+      { key: 'endDate', label: 'End Date' },
+      { key: 'days', label: 'Days Duration' },
+      { key: 'isGlobal', label: 'Is Global' },
+      { key: 'applicableTo', label: 'Applicable Branch' },
+      { key: 'description', label: 'Description' },
+    ]);
+    showSuccess('Export Complete', 'Holiday calendar exported to CSV.');
   };
 
-  // Pagination on returned list
-  const totalCount = holidays.length;
+  // Archive & Search filtering on returned list
+  const filteredHolidays = holidays.filter(h => {
+    const isAct = !isRowArchived(h);
+    return archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+  });
+  const totalCount = filteredHolidays.length;
   const totalPages = Math.ceil(totalCount / pageSize) || 1;
-  const paginatedHolidays = holidays.slice((page - 1) * pageSize, page * pageSize);
+  const paginatedHolidays = filteredHolidays.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <PageContainer>
@@ -192,6 +190,10 @@ export const Holidays: React.FC = () => {
         searchPlaceholder="Search holiday title or description..."
         searchValue={search}
         onSearchChange={setSearch}
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+        }}
         filters={[
           {
             id: 'year',
@@ -289,8 +291,12 @@ export const Holidays: React.FC = () => {
                     <td className="p-3.5 text-right">
                       <RowActionMenu actions={[
                         { label: 'Edit', icon: <Edit2 className="w-3.5 h-3.5" />, onClick: () => handleOpenEdit(h) },
-                        { label: 'Delete', icon: <Trash2 className="w-3.5 h-3.5" />, onClick: () => handleDelete(h.id), variant: 'danger', dividerBefore: true },
-                      ]} />
+                        ...holidayArchive.rowActions({
+                          id: h.id,
+                          name: h.name,
+                          isArchived: isRowArchived(h),
+                        }),
+                      ] as RowAction[]} />
                     </td>
                   </tr>
                 );
@@ -425,6 +431,9 @@ export const Holidays: React.FC = () => {
           fetchHolidays();
         }}
       />
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {holidayArchive.dialog}
     </PageContainer>
   );
 };

@@ -17,16 +17,26 @@ public class HolidaysController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly IArchiveService _archive;
 
     public HolidaysController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        IArchiveService archive)
     {
         _db = db;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
+        _archive = archive;
     }
+
+    private IActionResult FromArchive(ArchiveResult result) =>
+        result.Success
+            ? Ok(new { success = true, message = result.Message })
+            : result.ErrorCode == ArchiveResult.NotFound
+                ? NotFound(new { success = false, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message, code = result.ErrorCode });
 
     public record HolidayDto(
         string Name,
@@ -38,8 +48,13 @@ public class HolidaysController : ControllerBase
     );
 
     [HttpGet]
-    public async Task<IActionResult> GetHolidays([FromQuery] int? year = null, [FromQuery] string? search = null, [FromQuery] int? branchId = null)
+    public async Task<IActionResult> GetHolidays([FromQuery] int? year = null, [FromQuery] string? search = null, [FromQuery] int? branchId = null, [FromQuery] string status = "active")
     {
+        if (status.Equals("archived", StringComparison.OrdinalIgnoreCase) || status.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            _db.BypassArchiveFilter = true;
+        }
+
         var targetYear = year ?? DateTime.Today.Year;
         var startOfYear = new DateOnly(targetYear, 1, 1);
         var endOfYear = new DateOnly(targetYear, 12, 31);
@@ -50,6 +65,11 @@ public class HolidaysController : ControllerBase
             .Where(h => (h.StartDate >= startOfYear && h.StartDate <= endOfYear) ||
                         (h.EndDate >= startOfYear && h.EndDate <= endOfYear))
             .AsQueryable();
+
+        if (status.Equals("archived", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(h => h.ArchivedAt != null);
+        else if (status.Equals("active", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(h => h.ArchivedAt == null);
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
@@ -75,7 +95,8 @@ public class HolidaysController : ControllerBase
                 description = h.Description ?? "",
                 applicableTo = h.IsGlobal ? "All Staff" : "Department Specific",
                 branchId = h.BranchId,
-                branchName = h.Branch != null ? h.Branch.Name : null
+                branchName = h.Branch != null ? h.Branch.Name : null,
+                archivedAt = h.ArchivedAt
             })
             .ToListAsync();
 
@@ -137,15 +158,24 @@ public class HolidaysController : ControllerBase
         return Ok(new { message = "Holiday updated successfully.", id = holiday.Id });
     }
 
+    /// <summary>
+    /// "Delete" from the main list → archive. "Delete" from the Archive view → ?permanent=true.
+    /// </summary>
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteHoliday(int id)
+    public async Task<IActionResult> DeleteHoliday(int id, [FromQuery] bool permanent = false)
     {
-        var holiday = await _db.Holidays.FindAsync(id);
-        if (holiday == null) return NotFound(new { message = "Holiday not found." });
+        if (!permanent)
+            return FromArchive(await _archive.ArchiveAsync<Holiday>(id));
 
-        _db.Holidays.Remove(holiday);
-        await _db.SaveChangesAsync();
-
-        return Ok(new { message = "Holiday removed successfully." });
+        return FromArchive(await _archive.PermanentDeleteAsync<Holiday>(id, cascade: async _ =>
+        {
+            // holiday_employees has a restricted FK — clear the join rows first.
+            var links = await _db.HolidayEmployees.Where(he => he.HolidayId == id).ToListAsync();
+            _db.HolidayEmployees.RemoveRange(links);
+        }));
     }
+
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreHoliday(int id)
+        => FromArchive(await _archive.RestoreAsync<Holiday>(id));
 }

@@ -1,8 +1,15 @@
 namespace HRDesk.Web.Models;
 
-public sealed class Holiday : IMustHaveTenant
+public sealed class Holiday : IMustHaveTenant, IArchivable
 {
     public int Id { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("archived_by")]
+    [System.ComponentModel.DataAnnotations.StringLength(150)]
+    public string? ArchivedBy { get; set; }
 
     public string HolidayName { get; set; } = "";
 

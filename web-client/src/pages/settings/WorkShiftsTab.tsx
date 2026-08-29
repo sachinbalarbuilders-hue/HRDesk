@@ -8,14 +8,13 @@ import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { BulkImportModal } from '../../components/ui/BulkImportModal';
 import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
+import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 import {
   Layers,
   Plus,
   Trash2,
   X,
   Edit2,
-  Archive,
-  RotateCcw,
   RefreshCw,
 } from 'lucide-react';
 
@@ -123,7 +122,8 @@ export const WorkShiftsTab: React.FC = () => {
           earlyLeaveGrace: s.earlyLeaveGrace || 15,
           colorCode: s.colorCode || '#4e73df',
           halfTime: s.halfTime || '',
-          status: 'Active',
+          status: s.status || (s.archivedAt ? 'Archived' : 'Active'),
+          archivedAt: s.archivedAt,
           branchId: s.branchId,
         })));
       }
@@ -266,16 +266,18 @@ export const WorkShiftsTab: React.FC = () => {
     }
   };
 
-  const handleDeleteCycle = async (cycle: ShiftCycle) => {
-    if (!window.confirm(`Delete cycle "${cycle.name}"? Existing roster rows will not be affected.`)) return;
-    try {
-      await apiClient.delete(`/shifts/cycles/${cycle.id}`);
-      showSuccess('Cycle Deleted', `${cycle.name} removed.`);
-      fetchCycles();
-    } catch (err: any) {
-      showError('Failed', err.response?.data?.message || 'Could not delete cycle');
-    }
-  };
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const shiftArchive = useArchiveActions({
+    endpoint: '/masters/shifts',
+    label: 'Work Shift',
+    onDone: fetchData,
+  });
+
+  const cycleArchive = useArchiveActions({
+    endpoint: '/shifts/cycles',
+    label: 'Shift Cycle',
+    onDone: fetchCycles,
+  });
 
   // ── Render helpers ──────────────────────────────────────────────────────────
 
@@ -337,73 +339,53 @@ export const WorkShiftsTab: React.FC = () => {
       render: (item) => `${item.breakMinutes || 60} mins`,
     },
     {
+      key: 'status',
+      header: 'Status',
+      render: (item) =>
+        item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived' ? (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+            Active
+          </span>
+        ) : (
+          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            Archived
+          </span>
+        ),
+    },
+    {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (item) => {
-        const isArchived = item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived';
-        return (
-          <RowActionMenu actions={[
-            {
-              label: 'Edit',
-              icon: <Edit2 size={14} />,
-              onClick: () => {
-                setEditingShiftId(item.id);
-                setNewShift({
-                  name: item.name,
-                  code: item.code,
-                  startTime: item.startTime,
-                  endTime: item.endTime,
-                  lunchStart: item.lunchStart || '13:00',
-                  lunchEnd: item.lunchEnd || '14:00',
-                  breakMinutes: item.breakMinutes || 60,
-                  lateGrace: item.lateGrace || 15,
-                  earlyLeaveGrace: item.earlyLeaveGrace || 15,
-                  colorCode: item.colorCode || '#4e73df',
-                  halfTime: item.halfTime || ''
-                });
-                setShiftModalOpen(true);
-              }
-            },
-            isArchived
-              ? {
-                  label: 'Restore',
-                  icon: <RotateCcw size={14} />,
-                  onClick: () => {
-                    setShifts(shifts.map(sh => sh.id === item.id ? { ...sh, status: 'active' } : sh));
-                    showSuccess('Shift Restored', `${item.name} restored.`);
-                  },
-                  variant: 'success',
-                  dividerBefore: true
-                }
-              : {
-                  label: 'Archive',
-                  icon: <Archive size={14} />,
-                  onClick: () => {
-                    setShifts(shifts.map(sh => sh.id === item.id ? { ...sh, status: 'inactive' } : sh));
-                    showSuccess('Shift Archived', `${item.name} moved to archive.`);
-                  },
-                  dividerBefore: true
-                },
-            {
-              label: 'Delete',
-              icon: <Trash2 size={14} />,
-              onClick: async () => {
-                if (window.confirm(`Are you sure you want to delete shift "${item.name}"?`)) {
-                  try {
-                    await apiClient.delete(`/masters/shifts/${item.id}`);
-                    showSuccess('Shift Removed', 'Shift removed from database.');
-                    fetchData();
-                  } catch (err: any) {
-                    showError('Failed to delete', err.response?.data?.message || 'Cannot delete shift');
-                  }
-                }
-              },
-              variant: 'danger'
+      render: (item) => (
+        <RowActionMenu actions={[
+          {
+            label: 'Edit',
+            icon: <Edit2 size={14} />,
+            onClick: () => {
+              setEditingShiftId(item.id);
+              setNewShift({
+                name: item.name,
+                code: item.code,
+                startTime: item.startTime,
+                endTime: item.endTime,
+                lunchStart: item.lunchStart || '13:00',
+                lunchEnd: item.lunchEnd || '14:00',
+                breakMinutes: item.breakMinutes || 60,
+                lateGrace: item.lateGrace || 15,
+                earlyLeaveGrace: item.earlyLeaveGrace || 15,
+                colorCode: item.colorCode || '#4e73df',
+                halfTime: item.halfTime || ''
+              });
+              setShiftModalOpen(true);
             }
-          ] as RowAction[]} />
-        );
-      },
+          },
+          ...shiftArchive.rowActions({
+            id: item.id,
+            name: item.name,
+            isArchived: isRowArchived(item),
+          }),
+        ] as RowAction[]} />
+      ),
     },
   ];
 
@@ -565,7 +547,7 @@ export const WorkShiftsTab: React.FC = () => {
                         <Edit2 size={13} />
                       </button>
                       <button
-                        onClick={() => handleDeleteCycle(cycle)}
+                        onClick={() => cycleArchive.archive({ id: cycle.id, name: cycle.name, isArchived: false })}
                         className="p-1.5 rounded-[3px] hover:bg-red-500/10 text-[var(--ink-muted)] hover:text-red-500 transition-colors cursor-pointer"
                         title="Delete Cycle"
                       >
@@ -834,6 +816,10 @@ export const WorkShiftsTab: React.FC = () => {
           fetchData();
         }}
       />
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {shiftArchive.dialog}
+      {cycleArchive.dialog}
     </div>
   );
 };

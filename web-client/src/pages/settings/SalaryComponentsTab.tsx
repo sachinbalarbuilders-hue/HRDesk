@@ -2,6 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { Plus, Pencil, Trash2, X, Layers } from 'lucide-react';
+import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
+import { ArchiveToggle, type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
+import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 
 interface SalaryComponent {
   id: number;
@@ -14,6 +17,7 @@ interface SalaryComponent {
   isTaxable: boolean;
   isActive: boolean;
   displayOrder: number;
+  archivedAt?: string;
 }
 
 const COMPONENT_TYPES = ['Earning', 'Deduction', 'Informational'];
@@ -46,20 +50,25 @@ export const SalaryComponentsTab: React.FC = () => {
   const [form, setForm] = useState<typeof emptyForm>({ ...emptyForm });
   const [saving, setSaving] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
 
   const fetchComponents = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/salary-templates/components');
+      const res = await apiClient.get('/salary-templates/components', {
+        params: { archiveStatus: archiveFilter }
+      });
       setComponents(res.data || []);
     } catch {
       showError('Failed to load components');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [archiveFilter]);
 
-  useEffect(() => { fetchComponents(); }, []);
+  const archive = useArchiveActions({ endpoint: '/salary-templates/components', onDone: fetchComponents, label: 'Component' });
+
+  useEffect(() => { fetchComponents(); }, [archiveFilter, fetchComponents]);
 
   const openCreate = () => {
     setEditId(null);
@@ -167,14 +176,13 @@ export const SalaryComponentsTab: React.FC = () => {
             key={t}
             onClick={() => setTypeFilter(t)}
             className={`text-xs px-3 py-1 rounded-full font-medium transition-colors ${
-              typeFilter === t
-                ? 'bg-[var(--accent)] text-white'
-                : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              typeFilter === t ? 'bg-[var(--brand)] text-white' : 'bg-[var(--surface-sunken)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
           >
-            {t === 'all' ? 'All' : t}
+            {t === 'all' ? 'All Types' : t}
           </button>
         ))}
+        <ArchiveToggle value={archiveFilter} onChange={setArchiveFilter} />
       </div>
 
       {loading ? (
@@ -232,12 +240,10 @@ export const SalaryComponentsTab: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 py-2.5 text-right">
-                          <div className="flex justify-end gap-1">
-                            <button onClick={() => openEdit(c)} className="p-1.5 rounded hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)]" title="Edit"><Pencil size={13} /></button>
-                            <button onClick={() => handleToggleActive(c)} className={`p-1.5 rounded text-[var(--ink-muted)] text-[11px] font-medium hover:bg-[var(--surface-sunken)]`} title={c.isActive ? 'Deactivate' : 'Activate'}>
-                              {c.isActive ? <Trash2 size={13} className="hover:text-red-500" /> : <Plus size={13} className="hover:text-emerald-500" />}
-                            </button>
-                          </div>
+                          <RowActionMenu actions={[
+                            { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(c) },
+                            ...archive.rowActions({ id: c.id, name: c.componentName, isArchived: isRowArchived(c) })
+                          ] as RowAction[]} />
                         </td>
                       </tr>
                     ))}
@@ -328,6 +334,7 @@ export const SalaryComponentsTab: React.FC = () => {
           </div>
         </div>
       )}
+      {archive.dialog}
     </div>
   );
 };

@@ -1,0 +1,158 @@
+using HRDesk.Web.Models;
+using HRDesk.Web.Services.Infrastructure;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Reflection;
+
+namespace HRDesk.Web.Controllers.Api;
+
+/// <summary>
+/// Shared archive-lifecycle endpoints for every registered entity. One controller, no per-module
+/// duplication — the entity is selected by the {entity} route slug via <see cref="ArchivableRegistry"/>.
+///
+///   POST   /api/archive/{entity}/{id}          → archive   (what "Delete" calls from the main list)
+///   POST   /api/archive/{entity}/{id}/restore  → restore   ("Restore" button in the Archive view)
+///   DELETE /api/archive/{entity}/{id}          → hard delete ("Delete" from inside the Archive view)
+///   GET    /api/archive/{entity}               → archived rows for the Archive view
+///   GET    /api/archive/{entity}/count         → archived count for the Archive tab badge
+///
+/// The frontend uses ONE button component labelled "Delete" in both places; only the endpoint it
+/// hits differs depending on which view it is rendered in.
+/// </summary>
+[ApiController]
+[Route("api/archive")]
+[Authorize]
+public class ArchiveController : ControllerBase
+{
+    private readonly IArchiveService _archive;
+    private readonly IPermissionService _permissionService;
+
+    public ArchiveController(IArchiveService archive, IPermissionService permissionService)
+    {
+        _archive = archive;
+        _permissionService = permissionService;
+    }
+
+    // ── POST /api/archive/{entity}/{id} — soft delete ────────────────────────
+
+    [HttpPost("{entity}/{id}")]
+    public Task<IActionResult> Archive(string entity, string id)
+        => Invoke(entity, id, nameof(IArchiveService.ArchiveAsync));
+
+    // ── POST /api/archive/{entity}/{id}/restore ──────────────────────────────
+
+    [HttpPost("{entity}/{id}/restore")]
+    public Task<IActionResult> Restore(string entity, string id)
+        => Invoke(entity, id, nameof(IArchiveService.RestoreAsync));
+
+    // ── DELETE /api/archive/{entity}/{id} — hard delete ──────────────────────
+
+    [HttpDelete("{entity}/{id}")]
+    public Task<IActionResult> PermanentDelete(string entity, string id)
+        => Invoke(entity, id, nameof(IArchiveService.PermanentDeleteAsync));
+
+    // ── GET /api/archive/{entity} — archive view ─────────────────────────────
+
+    [HttpGet("{entity}")]
+    public async Task<IActionResult> GetArchived(string entity)
+    {
+        if (!ArchivableRegistry.TryResolve(entity, out var reg))
+            return NotFound(new { message = $"Unknown archivable entity '{entity}'." });
+
+        if (!await _permissionService.HasPermissionAsync(User, reg.Permission))
+            return Forbid();
+
+        var task = (Task)typeof(IArchiveService)
+            .GetMethod(nameof(IArchiveService.GetArchivedAsync))!
+            .MakeGenericMethod(reg.EntityType)
+            .Invoke(_archive, new object?[] { CancellationToken.None })!;
+
+        await task;
+        var rows = task.GetType().GetProperty("Result")!.GetValue(task);
+
+        return Ok(rows);
+    }
+
+    // ── GET /api/archive/{entity}/count ──────────────────────────────────────
+
+    [HttpGet("{entity}/count")]
+    public async Task<IActionResult> GetArchivedCount(string entity)
+    {
+        if (!ArchivableRegistry.TryResolve(entity, out var reg))
+            return NotFound(new { message = $"Unknown archivable entity '{entity}'." });
+
+        if (!await _permissionService.HasPermissionAsync(User, reg.Permission))
+            return Forbid();
+
+        var task = (Task)typeof(IArchiveService)
+            .GetMethod(nameof(IArchiveService.CountArchivedAsync))!
+            .MakeGenericMethod(reg.EntityType)
+            .Invoke(_archive, new object?[] { CancellationToken.None })!;
+
+        await task;
+        var count = (int)task.GetType().GetProperty("Result")!.GetValue(task)!;
+
+        return Ok(new { entity = reg.Slug, archivedCount = count });
+    }
+
+    // ── GET /api/archive — list what is registered (useful for debugging) ────
+
+    [HttpGet]
+    public IActionResult GetRegistry() => Ok(
+        ArchivableRegistry.All.Select(e => new { e.Slug, entity = e.EntityType.Name, e.DisplayName }));
+
+    // ── Shared reflection dispatcher ─────────────────────────────────────────
+
+    /// <summary>
+    /// Resolves the slug → entity type, checks the permission, coerces the id to the PK's CLR type,
+    /// then invokes the requested generic IArchiveService method.
+    /// </summary>
+    private async Task<IActionResult> Invoke(string entity, string rawId, string methodName)
+    {
+        if (!ArchivableRegistry.TryResolve(entity, out var reg))
+            return NotFound(new { message = $"Unknown archivable entity '{entity}'." });
+
+        if (!await _permissionService.HasPermissionAsync(User, reg.Permission))
+            return Forbid();
+
+        if (!TryCoerceId(rawId, out var id))
+            return BadRequest(new { message = $"Invalid id '{rawId}'." });
+
+        var method = typeof(IArchiveService)
+            .GetMethods()
+            .First(m => m.Name == methodName && m.IsGenericMethodDefinition)
+            .MakeGenericMethod(reg.EntityType);
+
+        // Fill every parameter after `id` with its default (null guard / null cascade / default ct).
+        var parameters = method.GetParameters();
+        var args = new object?[parameters.Length];
+        args[0] = id;
+        for (int i = 1; i < parameters.Length; i++)
+            args[i] = parameters[i].ParameterType == typeof(CancellationToken)
+                ? CancellationToken.None
+                : null;
+
+        var task = (Task)method.Invoke(_archive, args)!;
+        await task;
+
+        var result = (ArchiveResult)task.GetType().GetProperty("Result")!.GetValue(task)!;
+
+        if (result.Success)
+            return Ok(new { success = true, message = result.Message });
+
+        return result.ErrorCode switch
+        {
+            ArchiveResult.NotFound => NotFound(new { success = false, message = result.Message }),
+            _ => BadRequest(new { success = false, message = result.Message, code = result.ErrorCode })
+        };
+    }
+
+    /// <summary>Accepts both integer PKs and Guid PKs (Branch, Role, Employee use Guid publicIds).</summary>
+    private static bool TryCoerceId(string raw, out object id)
+    {
+        if (int.TryParse(raw, out var i)) { id = i; return true; }
+        if (Guid.TryParse(raw, out var g)) { id = g; return true; }
+        id = null!;
+        return false;
+    }
+}

@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
+import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
+import { ArchiveToggle, type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
+import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import {
-  LayoutTemplate, Plus, Pencil, Trash2, X, ChevronDown, ChevronRight,
+  LayoutTemplate, Layers, Plus, Pencil, Trash2, X, ChevronDown, ChevronRight,
   IndianRupee, Percent, Equal, Wand2, Zap,
 } from 'lucide-react';
 
-interface Template { id: number; name: string; description?: string; isDefault: boolean; isActive: boolean; componentCount: number; }
+interface Template { id: number; name: string; description?: string; isDefault: boolean; isActive: boolean; componentCount: number; archivedAt?: string; }
 interface Component { id: number; componentName: string; componentCode: string; componentType: string; category: string; isEpfApplicable: boolean; isEsiApplicable: boolean; isTaxable: boolean; isActive: boolean; displayOrder: number; }
 interface TplComponent { id?: number; componentId: number; calculationType: string; value?: number | ''; baseComponentCode?: string; displayOrder: number; componentName?: string; componentCode?: string; componentType?: string; }
 interface PreviewRow { componentCode: string; componentName: string; componentType: string; amount: number; calculationType: string; formula: string; }
@@ -35,21 +38,22 @@ export const SalaryTemplatesTab: React.FC = () => {
   const [previewCTC, setPreviewCTC] = useState('');
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [previewing, setPreviewing] = useState(false);
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
 
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
       const [tplRes, cmpRes] = await Promise.all([
-        apiClient.get('/salary-templates'),
-        apiClient.get('/salary-templates/components'),
+        apiClient.get('/salary-templates', { params: { archiveStatus: archiveFilter } }),
+        apiClient.get('/salary-templates/components', { params: { archiveStatus: archiveFilter } }),
       ]);
       setTemplates(tplRes.data || []);
       setComponents(cmpRes.data || []);
     } catch { showError('Failed to load templates'); }
     finally { setLoading(false); }
-  }, []);
+  }, [archiveFilter]);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => { fetchAll(); }, [archiveFilter, fetchAll]);
 
   const toggleExpand = async (id: number) => {
     if (expandedId === id) { setExpandedId(null); return; }
@@ -59,6 +63,13 @@ export const SalaryTemplatesTab: React.FC = () => {
       setExpandedComponents(res.data.components || []);
     } catch { setExpandedComponents([]); }
   };
+
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const templateArchive = useArchiveActions({
+    endpoint: '/salary-templates',
+    label: 'Salary Template',
+    onDone: fetchAll,
+  });
 
   const openCreateTemplate = () => { setEditTplId(null); setTplForm({ name: '', description: '' }); setTemplateModalOpen(true); };
   const openEditTemplate = (t: Template) => { setEditTplId(t.id); setTplForm({ name: t.name, description: t.description || '' }); setTemplateModalOpen(true); };
@@ -74,12 +85,6 @@ export const SalaryTemplatesTab: React.FC = () => {
       fetchAll();
     } catch { showError('Failed to save template'); }
     finally { setSaving(false); }
-  };
-
-  const deleteTemplate = async (id: number) => {
-    if (!confirm('Delete or deactivate this template?')) return;
-    try { await apiClient.delete(`/salary-templates/${id}`); showSuccess('Template removed'); fetchAll(); }
-    catch { showError('Failed'); }
   };
 
   const openEditComponents = async (id: number) => {
@@ -163,9 +168,12 @@ export const SalaryTemplatesTab: React.FC = () => {
             Define CTC-based formulas (Basic=40% of CTC, HRA=50% of Basic, etc.) and assign to Pay Groups.
           </p>
         </div>
-        <button onClick={openCreateTemplate} className="btn-primary flex items-center gap-1.5 text-xs">
-          <Plus size={14} /> New Template
-        </button>
+        <div className="flex items-center gap-2">
+          <ArchiveToggle value={archiveFilter} onChange={setArchiveFilter} />
+          <button onClick={openCreateTemplate} className="btn-primary flex items-center gap-1.5 text-xs">
+            <Plus size={14} /> New Template
+          </button>
+        </div>
       </div>
 
       {/* Template list */}
@@ -188,11 +196,15 @@ export const SalaryTemplatesTab: React.FC = () => {
                     {t.description && <p className="text-[11px] text-[var(--ink-muted)]">{t.description}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-[var(--ink-muted)]">{t.componentCount} components</span>
-                  <button onClick={() => openEditComponents(t.id)} className="text-xs text-[var(--teal-600)] hover:underline font-medium">Edit Formula</button>
-                  <button onClick={() => openEditTemplate(t)} className="p-1.5 rounded hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)]"><Pencil size={13} /></button>
-                  {!t.isDefault && <button onClick={() => deleteTemplate(t.id)} className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-[var(--ink-muted)] hover:text-red-600"><Trash2 size={13} /></button>}
+                <div className="flex items-center gap-4">
+                  <div className="text-[11px] text-[var(--ink-muted)]">
+                    <span className="font-bold text-[var(--ink)]">{t.componentCount}</span> components
+                  </div>
+                  <RowActionMenu actions={[
+                    { label: 'Edit Components', icon: <Layers size={14} />, onClick: () => openEditComponents(t.id) },
+                    { label: 'Edit Template', icon: <Pencil size={14} />, onClick: () => openEditTemplate(t) },
+                    ...templateArchive.rowActions({ id: t.id, name: t.name, isArchived: isRowArchived(t) })
+                  ] as RowAction[]} />
                 </div>
               </div>
               {expandedId === t.id && (
@@ -365,6 +377,9 @@ export const SalaryTemplatesTab: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {templateArchive.dialog}
     </div>
   );
 };

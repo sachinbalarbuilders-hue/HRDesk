@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { SearchableSelect } from '../ui/SearchableSelect';
+import { useArchiveActions } from '../../hooks/useArchiveActions';
 import {
   ChevronDown,
   ChevronUp,
@@ -241,16 +242,12 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
     }
   };
 
-  const handleDeleteRole = async (publicId: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to permanently delete role "${name}"?`)) return;
-    try {
-      await apiClient.delete(`/roles/${publicId}`);
-      showSuccess('Role Deleted', `Role "${name}" removed.`);
-      await fetchRolesAndDefinitions();
-    } catch (err: any) {
-      showError('Delete Failed', err.response?.data?.message || 'Could not delete role');
-    }
-  };
+  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
+  const roleArchive = useArchiveActions({
+    endpoint: '/roles',
+    label: 'Role',
+    onDone: fetchRolesAndDefinitions,
+  });
 
   const getModuleIcon = (moduleName: string) => {
     switch (moduleName) {
@@ -345,7 +342,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteRole(role.publicId, role.name);
+                          roleArchive.archive({ id: role.publicId, name: role.name, isArchived: false });
                         }}
                         className="p-1 text-[var(--ink-muted)] hover:text-rose-600 rounded cursor-pointer"
                         title="Delete Role"
@@ -751,6 +748,9 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {roleArchive.dialog}
     </div>
   );
 };

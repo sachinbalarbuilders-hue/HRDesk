@@ -8,6 +8,7 @@ import { DataToolbar } from '../../components/ui/DataToolbar';
 import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
+import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 import {
   Building2,
   Plus,
@@ -100,6 +101,8 @@ export const OrganizationsTab: React.FC = () => {
   // Counts for archive filter
   const activeCount = organizations.filter((o) => o.isActive).length;
   const archivedCount = organizations.filter((o) => !o.isActive).length;
+
+  const orgArchive = useArchiveActions({ endpoint: '/masters/organizations', onDone: fetchData, label: 'Organization' });
 
   // Filtered dataset
   const filteredOrgs = useMemo(() => {
@@ -276,6 +279,7 @@ export const OrganizationsTab: React.FC = () => {
                 icon: <Eye size={14} />,
                 onClick: () => navigate(`/settings/organizations/${org.publicId}/branches`),
               },
+              ...orgArchive.rowActions({ id: org.publicId, name: org.name, isArchived: isRowArchived(org) }),
             ] as RowAction[]}
           />
         </div>
@@ -353,6 +357,7 @@ export const OrganizationsTab: React.FC = () => {
         emptyMessage="No organizations found matching the selected criteria."
         keyExtractor={(item) => item.id}
       />
+      {orgArchive.dialog}
     </div>
   );
 };
