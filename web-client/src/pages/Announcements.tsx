@@ -290,6 +290,7 @@ export const AnnouncementsPage: React.FC = () => {
           />
         </div>
       </div>
+    </div>
 
       {loading ? (
         <PageSkeleton />
