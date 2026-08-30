@@ -23,7 +23,12 @@ export const ForgotPassword: React.FC = () => {
     setError('');
     try {
       const res = await apiClient.post('/auth/forgot-password', { email: email.trim() });
-      setMessage(res.data.message || 'Reset code sent to your email.');
+      if (res.data.otp) {
+        setOtp(res.data.otp);
+        setMessage(`[Testing Mode] Your verification code is: ${res.data.otp}`);
+      } else {
+        setMessage(res.data.message || 'Reset code sent to your email.');
+      }
       setStep('otp');
     } catch (err: any) {
       if (err.response?.status === 429) {

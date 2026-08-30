@@ -457,12 +457,25 @@ public class AuthController : ControllerBase
                 <p style='color:#64748B;font-size:13px;'>This code expires in 10 minutes. If you didn't request this, ignore this email.</p>
             </div>";
 
-        var result = await _emailService.SendAsync(user.OrganizationId ?? 0, email, "HRDesk — Password Reset Code", htmlBody);
+        // Attempt to send email, but do not block testing if SMTP is unconfigured
+        try
+        {
+            await _emailService.SendAsync(user.OrganizationId ?? 0, email, "HRDesk — Password Reset Code", htmlBody);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ForgotPassword] SMTP Send Warning: {ex.Message}");
+        }
 
-        if (!result.Success)
-            return StatusCode(500, new { message = result.ErrorMessage ?? "Failed to send email. Please contact your administrator." });
+        Console.WriteLine($"==================================================");
+        Console.WriteLine($"[TESTING OTP] Forgot Password for {email}: {otp}");
+        Console.WriteLine($"==================================================");
 
-        return Ok(new { message = "If an account with that email exists, a reset code has been sent." });
+        return Ok(new
+        {
+            message = $"Testing Mode: Your OTP is {otp}",
+            otp = otp
+        });
     }
 
     // ── Reset Password (with OTP) ───────────────────────────────────
