@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -6,6 +6,7 @@ import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { DataToolbar } from '../components/ui/DataToolbar';
+import { DataTable } from '../components/ui/DataTable';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
@@ -14,6 +15,8 @@ import {
   X,
   CalendarCheck2,
   Check,
+  CheckCheck,
+  XCircle,
   Trash2,
   Archive,
   RotateCcw,
@@ -39,6 +42,9 @@ export const Leaves: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Selection for bulk operations
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   // Modals
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -208,6 +214,59 @@ export const Leaves: React.FC = () => {
 
   const canApprove = isAdmin || hasPermission('Leaves.Approve');
 
+  const customBulkActions = useMemo(() => {
+    if (archiveFilter === 'archived') {
+      return leaveArchive.bulkActions(true);
+    }
+    return [
+      ...(canApprove
+        ? [
+            {
+              label: 'Bulk Approve',
+              icon: <CheckCheck size={13} />,
+              variant: 'primary' as const,
+              onClick: async (_keys: (string | number)[], selectedRows: any[], clear: () => void) => {
+                const pendingRows = selectedRows.filter((r) => r.status === 'Pending');
+                if (!pendingRows.length) {
+                  showError('Selection Notice', 'Please select pending leave requests to approve.');
+                  return;
+                }
+                try {
+                  await Promise.all(pendingRows.map((r) => apiClient.put(`/leaves/${r.id}/status`, { status: 'Approved' })));
+                  showSuccess('Bulk Approved', `Successfully approved ${pendingRows.length} leave request(s).`);
+                  clear();
+                  fetchLeavesData();
+                } catch (err: any) {
+                  showError('Bulk Approval Failed', err.response?.data?.message || 'Server error');
+                }
+              },
+            },
+            {
+              label: 'Bulk Reject',
+              icon: <XCircle size={13} />,
+              variant: 'danger' as const,
+              onClick: async (_keys: (string | number)[], selectedRows: any[], clear: () => void) => {
+                const pendingRows = selectedRows.filter((r) => r.status === 'Pending');
+                if (!pendingRows.length) {
+                  showError('Selection Notice', 'Please select pending leave requests to reject.');
+                  return;
+                }
+                try {
+                  await Promise.all(pendingRows.map((r) => apiClient.put(`/leaves/${r.id}/status`, { status: 'Rejected' })));
+                  showSuccess('Bulk Rejected', `Successfully rejected ${pendingRows.length} leave request(s).`);
+                  clear();
+                  fetchLeavesData();
+                } catch (err: any) {
+                  showError('Bulk Rejection Failed', err.response?.data?.message || 'Server error');
+                }
+              },
+            },
+          ]
+        : []),
+      ...leaveArchive.bulkActions(false),
+    ];
+  }, [archiveFilter, leaveArchive, canApprove, showError, showSuccess]);
+
   return (
     <PageContainer>
       <PageHeader title="Leave Management" description="Track and approve employee leave applications" />
@@ -222,7 +281,7 @@ export const Leaves: React.FC = () => {
         searchPlaceholder="Search leaves by employee name, reason or ID..."
         archiveFilter={{
           value: archiveFilter,
-          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+          onChange: (v) => { setArchiveFilter(v); setPage(1); setSelectedIds([]); },
         }}
         filters={[
           {
@@ -231,6 +290,7 @@ export const Leaves: React.FC = () => {
             onChange: (val) => {
               setStatusFilter(val);
               setPage(1);
+              setSelectedIds([]);
             },
             options: [
               { value: 'all', label: 'All Statuses' },
@@ -251,114 +311,139 @@ export const Leaves: React.FC = () => {
         }}
       />
 
-      <div className="space-y-4">
-          {/* Table with 4px Left-Edge Status Bar */}
-          <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-            <div className="overflow-x-auto">
-              <table className="register-table">
-                <thead>
-                  <tr>
-                    <th className="w-1"></th>
-                    <th className="w-12 text-center font-mono text-xs uppercase text-[var(--ink-muted)]">Sr.</th>
-                    <th>Employee</th>
-                    <th>Type</th>
-                    <th className="font-data">Period</th>
-                    <th>Days</th>
-                    <th>Reason</th>
-                    <th className="text-right">Action / Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={8} className="p-0">
-                        <TableSkeleton rows={6} />
-                      </td>
-                    </tr>
-                  ) : applications.map((app, index) => {
-                    const isApproved = app.status === 'Approved';
-                    const isRejected = app.status === 'Rejected';
-                    const isPending = app.status === 'Pending';
-                    const isArchived = app.status === 'Archived' || app.status === 'Cancelled';
-                    const srNo = (page - 1) * pageSize + index + 1;
-
-                    const barColor = isArchived
-                      ? 'bg-[var(--ink-muted)] opacity-50'
-                      : isApproved
-                      ? 'bg-[var(--ok-600)]'
-                      : isRejected
-                      ? 'bg-[var(--err-600)]'
-                      : 'bg-[var(--warn-600)]';
-
-                    return (
-                      <tr key={app.id} className={`relative ${isArchived ? 'opacity-70 bg-[var(--surface-sunken)]/20' : ''}`}>
-                        {/* 4px Left-Edge Status Bar */}
-                        <td className={`p-0 w-1 ${barColor}`} />
-
-                        <td className="text-center font-mono text-xs text-[var(--ink-muted)] w-12">
-                          {srNo}
-                        </td>
-
-                        <td className="font-semibold text-[var(--ink)]">
-                          {app.employeeName}
-                        </td>
-                        <td className="font-data text-xs text-[var(--ink-muted)]">
-                          {app.leaveTypeCode}
-                        </td>
-                        <td className="text-xs font-data text-[var(--ink)]">
-                          {app.startDate} to {app.endDate}
-                        </td>
-                        <td className="font-data text-xs text-[var(--ink)]">
-                          {app.totalDays}d ({app.dayType})
-                        </td>
-                        <td className="text-xs text-[var(--ink-muted)] max-w-xs truncate">
-                          {app.reason || '-'}
-                        </td>
-                        <td className="text-right text-xs">
-                          {canApprove ? (
-                            <RowActionMenu actions={[
-                              ...(!isArchived && isPending ? [
-                                { label: 'Approve', icon: <Check size={14} />, onClick: () => handleStatusUpdate(app.id, 'Approved'), variant: 'success' as const },
-                                { label: 'Reject', icon: <X size={14} />, onClick: () => handleStatusUpdate(app.id, 'Rejected'), variant: 'danger' as const },
-                              ] : []),
-                              ...leaveArchive.rowActions({
-                                id: app.id,
-                                name: `Leave Request #${app.id} (${app.employeeName})`,
-                                isArchived: isArchived || isRowArchived(app),
-                              }),
-                            ]} />
-                          ) : (
-                            <span className={`font-data text-xs font-bold ${isArchived ? 'text-[var(--ink-muted)]' : isApproved ? 'text-[var(--ok-600)]' : isRejected ? 'text-[var(--err-600)]' : 'text-[var(--warn-600)]'}`}>
-                              {app.status}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-
-                  {applications.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan={9} className="py-10 text-center text-xs font-data text-[var(--ink-muted)]">
-                        No leave requests found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <PaginationToolbar
-              page={page}
-              pageSize={pageSize}
-              totalCount={totalCount}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
-              pageSizeOptions={[10, 20, 50, 100]}
-            />
-          </div>
-        </div>
+      {/* 3. Leaves Table */}
+      <DataTable
+        data={applications}
+        loading={loading}
+        keyExtractor={(app) => app.id}
+        emptyMessage="No leave requests found."
+        columns={[
+          {
+            key: 'employee',
+            header: 'Employee',
+            render: (app) => <span className="font-semibold text-[var(--ink)]">{app.employeeName}</span>,
+          },
+          {
+            key: 'leaveType',
+            header: 'Type',
+            render: (app) => (
+              <span className="font-data text-xs text-[var(--ink-muted)]">
+                {app.leaveTypeCode || app.leaveTypeName}
+              </span>
+            ),
+          },
+          {
+            key: 'period',
+            header: 'Period',
+            render: (app) => (
+              <span className="text-xs font-data text-[var(--ink)]">
+                {app.startDate} to {app.endDate}
+              </span>
+            ),
+          },
+          {
+            key: 'duration',
+            header: 'Days',
+            render: (app) => (
+              <span className="font-data text-xs text-[var(--ink)]">
+                {app.totalDays}d ({app.dayType})
+              </span>
+            ),
+          },
+          {
+            key: 'reason',
+            header: 'Reason',
+            render: (app) => (
+              <span className="text-xs text-[var(--ink-muted)] max-w-xs truncate block" title={app.reason || ''}>
+                {app.reason || '-'}
+              </span>
+            ),
+          },
+          {
+            key: 'status',
+            header: 'Status',
+            render: (app) => {
+              const isArchived = app.status === 'Archived' || app.status === 'Cancelled';
+              if (app.status === 'Pending')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Pending
+                  </span>
+                );
+              if (app.status === 'Approved')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                    <Check className="w-3 h-3 text-emerald-600" />
+                    Approved
+                  </span>
+                );
+              if (app.status === 'Rejected')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
+                    <X className="w-3 h-3 text-rose-600" />
+                    Rejected
+                  </span>
+                );
+              if (isArchived)
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    <Archive className="w-3 h-3 text-slate-500" />
+                    Archived
+                  </span>
+                );
+              return <span>{app.status}</span>;
+            },
+          },
+          {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            render: (app) => {
+              const isArchived = app.status === 'Archived' || app.status === 'Cancelled';
+              const isPending = app.status === 'Pending';
+              return canApprove ? (
+                <RowActionMenu
+                  actions={[
+                    ...(!isArchived && isPending
+                      ? [
+                          { label: 'Approve', icon: <Check size={14} />, onClick: () => handleStatusUpdate(app.id, 'Approved'), variant: 'success' as const },
+                          { label: 'Reject', icon: <X size={14} />, onClick: () => handleStatusUpdate(app.id, 'Rejected'), variant: 'danger' as const },
+                        ]
+                      : []),
+                    ...leaveArchive.rowActions({
+                      id: app.id,
+                      name: `Leave Request #${app.id} (${app.employeeName})`,
+                      isArchived: isArchived || isRowArchived(app),
+                    }),
+                  ]}
+                />
+              ) : (
+                <span className="font-data text-xs text-[var(--ink-muted)]">
+                  {app.status}
+                </span>
+              );
+            },
+          },
+        ]}
+        selection={
+          canApprove
+            ? {
+                selectedRowKeys: selectedIds,
+                onChange: (keys) => setSelectedIds(keys),
+                bulkActions: customBulkActions,
+              }
+            : undefined
+        }
+        pagination={{
+          page,
+          pageSize,
+          totalCount,
+          totalPages,
+          onPageChange: setPage,
+          onPageSizeChange: setPageSize,
+        }}
+      />
 
       {/* Slide-in Apply Panel (480px) */}
       {applyPanelOpen && (
