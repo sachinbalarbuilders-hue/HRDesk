@@ -6,6 +6,7 @@ using HRDesk.Web.Areas.Recruitment.Models;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
+using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,14 +20,24 @@ public class RecruitmentApiController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _context;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly IArchiveService _archive;
 
     public RecruitmentApiController(
         BiometricAttendanceDbContext context,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        IArchiveService archive)
     {
         _context = context;
         _tenantProvider = tenantProvider;
+        _archive = archive;
     }
+
+    private IActionResult FromArchive(ArchiveResult result) =>
+        result.Success
+            ? Ok(new { success = true, message = result.Message })
+            : result.ErrorCode == ArchiveResult.NotFound
+                ? NotFound(new { success = false, message = result.Message })
+                : BadRequest(new { success = false, message = result.Message, code = result.ErrorCode });
 
     // =========================================================================
     // 1. OVERVIEW METRICS
@@ -94,12 +105,23 @@ public class RecruitmentApiController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] string? status,
         [FromQuery] string? position,
+        [FromQuery] string archiveStatus = "active",
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase) || archiveStatus.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            _context.BypassArchiveFilter = true;
+        }
+
         var query = _context.Candidates
             .Include(c => c.HiredEmployee)
             .AsNoTracking();
+
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(c => c.ArchivedAt != null);
+        else if (archiveStatus.Equals("active", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(c => c.ArchivedAt == null);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -144,7 +166,8 @@ public class RecruitmentApiController : ControllerBase
                 c.ResumeFileName,
                 c.HiredEmployeeId,
                 hiredEmployeeName = c.HiredEmployee != null ? c.HiredEmployee.EmployeeName : null,
-                c.CreatedAt
+                c.CreatedAt,
+                archivedAt = c.ArchivedAt
             })
             .ToListAsync();
 
@@ -458,24 +481,21 @@ public class RecruitmentApiController : ControllerBase
     // 9. DELETE CANDIDATE
     // =========================================================================
     [HttpDelete("candidates/{id}")]
-    public async Task<IActionResult> DeleteCandidate(int id)
+    public async Task<IActionResult> DeleteCandidate(int id, [FromQuery] bool permanent = false)
     {
-        var candidate = await _context.Candidates.FindAsync(id);
-        if (candidate == null)
-            return NotFound(new { message = "Candidate not found." });
+        if (!permanent)
+            return FromArchive(await _archive.ArchiveAsync<Candidate>(id));
 
-        // Remove linked interview schedules
-        var interviews = await _context.InterviewSchedules.Where(i => i.CandidateId == id).ToListAsync();
-        if (interviews.Any())
+        return FromArchive(await _archive.PermanentDeleteAsync<Candidate>(id, cascade: async _ =>
         {
+            var interviews = await _context.InterviewSchedules.Where(i => i.CandidateId == id).ToListAsync();
             _context.InterviewSchedules.RemoveRange(interviews);
-        }
-
-        _context.Candidates.Remove(candidate);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { message = "Candidate deleted successfully." });
+        }));
     }
+
+    [HttpPost("candidates/{id}/restore")]
+    public async Task<IActionResult> RestoreCandidate(int id)
+        => FromArchive(await _archive.RestoreAsync<Candidate>(id));
 
     // =========================================================================
     // 10. INTERVIEW SCHEDULES
@@ -484,11 +504,22 @@ public class RecruitmentApiController : ControllerBase
     public async Task<IActionResult> GetInterviews(
         [FromQuery] string? status,
         [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate)
+        [FromQuery] DateTime? toDate,
+        [FromQuery] string archiveStatus = "active")
     {
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase) || archiveStatus.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            _context.BypassArchiveFilter = true;
+        }
+
         var query = _context.InterviewSchedules
             .Include(i => i.Candidate)
             .AsNoTracking();
+
+        if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(i => i.ArchivedAt != null);
+        else if (archiveStatus.Equals("active", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(i => i.ArchivedAt == null);
 
         if (!string.IsNullOrWhiteSpace(status))
         {
@@ -524,7 +555,8 @@ public class RecruitmentApiController : ControllerBase
                 i.Status,
                 i.Result,
                 i.Feedback,
-                i.CreatedAt
+                i.CreatedAt,
+                archivedAt = i.ArchivedAt
             })
             .ToListAsync();
 
@@ -614,15 +646,15 @@ public class RecruitmentApiController : ControllerBase
     // 13. CANCEL / DELETE INTERVIEW
     // =========================================================================
     [HttpDelete("interviews/{id}")]
-    public async Task<IActionResult> DeleteInterview(int id)
+    public async Task<IActionResult> DeleteInterview(int id, [FromQuery] bool permanent = false)
     {
-        var interview = await _context.InterviewSchedules.FindAsync(id);
-        if (interview == null)
-            return NotFound(new { message = "Interview schedule not found." });
+        if (!permanent)
+            return FromArchive(await _archive.ArchiveAsync<InterviewSchedule>(id));
 
-        _context.InterviewSchedules.Remove(interview);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { message = "Interview cancelled." });
+        return FromArchive(await _archive.PermanentDeleteAsync<InterviewSchedule>(id));
     }
+
+    [HttpPost("interviews/{id}/restore")]
+    public async Task<IActionResult> RestoreInterview(int id)
+        => FromArchive(await _archive.RestoreAsync<InterviewSchedule>(id));
 }

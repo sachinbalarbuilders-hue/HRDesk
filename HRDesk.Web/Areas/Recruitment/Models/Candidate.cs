@@ -1,13 +1,20 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using HRDesk.Web.Models;
 
 namespace HRDesk.Web.Areas.Recruitment.Models;
 
-public sealed class Candidate : IMustHaveTenant
+public sealed class Candidate : IMustHaveTenant, IArchivable
 {
     [Key]
     public int CandidateId { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [Column("archived_by")]
+    [StringLength(150)]
+    public string? ArchivedBy { get; set; }
 
     [Column("organization_id")]
     public int OrganizationId { get; set; }

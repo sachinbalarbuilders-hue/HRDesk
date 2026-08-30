@@ -6,9 +6,11 @@ import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { DataTable, type ColumnDef } from '../components/ui/DataTable';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
-import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
+import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
+import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
+import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import {
   UserPlus,
   Users,
@@ -47,6 +49,7 @@ interface CandidateItem {
   hiredEmployeeId?: number;
   hiredEmployeeName?: string;
   createdAt: string;
+  archivedAt?: string | null;
 }
 
 interface InterviewItem {
@@ -66,6 +69,7 @@ interface InterviewItem {
   result?: 'Pass' | 'Fail' | 'Hold';
   feedback?: string;
   createdAt: string;
+  archivedAt?: string | null;
 }
 
 const STAGES = [
@@ -99,6 +103,7 @@ export const Recruitment: React.FC = () => {
   const [candidateSearch, setCandidateSearch] = useState('');
   const [candidateStageFilter, setCandidateStageFilter] = useState('');
   const [candidatePositionFilter, setCandidatePositionFilter] = useState('');
+  const [candidateArchiveFilter, setCandidateArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [candidatePage, setCandidatePage] = useState(1);
   const [candidatePageSize, setCandidatePageSize] = useState(15);
   const [totalCandidates, setTotalCandidates] = useState(0);
@@ -109,6 +114,7 @@ export const Recruitment: React.FC = () => {
   const [loadingInterviews, setLoadingInterviews] = useState(false);
   const [interviewSearch, setInterviewSearch] = useState('');
   const [interviewStatusFilter, setInterviewStatusFilter] = useState('');
+  const [interviewArchiveFilter, setInterviewArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [interviewPage, setInterviewPage] = useState(1);
   const [interviewPageSize, setInterviewPageSize] = useState(15);
 
@@ -185,6 +191,24 @@ export const Recruitment: React.FC = () => {
     }
   };
 
+  const candidateArchive = useArchiveActions({
+    endpoint: '/recruitment/candidates',
+    label: 'Candidate',
+    onDone: () => {
+      fetchCandidates();
+      fetchOverview();
+    },
+  });
+
+  const interviewArchive = useArchiveActions({
+    endpoint: '/recruitment/interviews',
+    label: 'Interview',
+    onDone: () => {
+      fetchInterviews();
+      fetchOverview();
+    },
+  });
+
   const fetchCandidates = async () => {
     try {
       setLoadingCandidates(true);
@@ -193,6 +217,7 @@ export const Recruitment: React.FC = () => {
           search: candidateSearch || undefined,
           status: candidateStageFilter || undefined,
           position: candidatePositionFilter || undefined,
+          archiveStatus: candidateArchiveFilter,
           page: candidatePage,
           pageSize: candidatePageSize,
         },
@@ -215,6 +240,7 @@ export const Recruitment: React.FC = () => {
       const res = await apiClient.get('/recruitment/interviews', {
         params: {
           status: interviewStatusFilter || undefined,
+          archiveStatus: interviewArchiveFilter,
         },
       });
       if (res.data) setInterviews(res.data || []);
@@ -245,7 +271,7 @@ export const Recruitment: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'candidates') fetchCandidates();
     if (activeTab === 'interviews') fetchInterviews();
-  }, [activeTab, candidateSearch, candidateStageFilter, candidatePositionFilter, candidatePage, candidatePageSize, interviewStatusFilter, currentOrganization?.id, currentBranch?.id]);
+  }, [activeTab, candidateSearch, candidateStageFilter, candidatePositionFilter, candidateArchiveFilter, candidatePage, candidatePageSize, interviewStatusFilter, interviewArchiveFilter, currentOrganization?.id, currentBranch?.id]);
 
   useEffect(() => {
     const handleReload = () => {
@@ -635,47 +661,18 @@ export const Recruitment: React.FC = () => {
       header: 'Actions',
       align: 'right',
       render: (c) => (
-        <div className="flex items-center justify-end gap-1">
-          <button
-            onClick={() => handleOpenScheduleModal(c)}
-            className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-amber-600 cursor-pointer transition-colors"
-            title="Schedule Interview Round"
-          >
-            <Calendar size={13} />
-          </button>
-
-          {c.status !== 'Hired' && (
-            <button
-              onClick={() => handleOpenHireModal(c)}
-              className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-emerald-600 cursor-pointer transition-colors"
-              title="1-Click Onboard & Hire Employee"
-            >
-              <UserCheck size={13} />
-            </button>
-          )}
-
-          <button
-            onClick={() => handleOpenCandidateDrawer(c)}
-            className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-[var(--gold-500)] cursor-pointer transition-colors"
-            title="View Full Profile & Timeline"
-          >
-            <Eye size={13} />
-          </button>
-
-          <ArchiveActionButton
-            isArchived={c.status === 'Rejected'}
-            onArchive={() => handleStageChange(c.candidateId, 'Rejected')}
-            onRestore={() => handleStageChange(c.candidateId, 'Sourced')}
-            itemName={c.candidateName}
-          />
-          <button
-            onClick={() => handleDeleteCandidate(c.candidateId)}
-            className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer transition-colors"
-            title="Archive / Delete Application"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
+        <RowActionMenu
+          actions={[
+            { label: 'Schedule Interview', icon: <Calendar size={14} />, onClick: () => handleOpenScheduleModal(c) },
+            ...(c.status !== 'Hired' ? [{ label: 'Hire Employee', icon: <UserCheck size={14} />, onClick: () => handleOpenHireModal(c) }] : []),
+            { label: 'View Profile', icon: <Eye size={14} />, onClick: () => handleOpenCandidateDrawer(c) },
+            ...candidateArchive.rowActions({
+              id: c.candidateId,
+              name: c.candidateName,
+              isArchived: isRowArchived(c),
+            }),
+          ] as RowAction[]}
+        />
       ),
     },
   ];
@@ -788,25 +785,39 @@ export const Recruitment: React.FC = () => {
       header: 'Actions',
       align: 'right',
       render: (i) => (
-        <div className="flex items-center justify-end gap-1">
-          <button
-            onClick={() => handleOpenFeedbackModal(i)}
-            className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-emerald-600 cursor-pointer transition-colors"
-            title="Log Interview Feedback & Result"
-          >
-            <Edit2 size={13} />
-          </button>
-        </div>
+        <RowActionMenu
+          actions={[
+            { label: 'Evaluation & Feedback', icon: <Edit2 size={14} />, onClick: () => handleOpenFeedbackModal(i) },
+            ...interviewArchive.rowActions({
+              id: i.id,
+              name: `${i.candidateName} (${i.round})`,
+              isArchived: isRowArchived(i),
+            }),
+          ] as RowAction[]}
+        />
       ),
     },
   ];
 
-  // Filtered lists for Kanban
-  const filteredKanbanCandidates = candidates.filter((c) => {
+  // Filtered lists with Archive and Search
+  const filteredCandidates = candidates.filter((c) => {
+    const isAct = !isRowArchived(c);
+    return candidateArchiveFilter === 'all' || (candidateArchiveFilter === 'active' ? isAct : !isAct);
+  });
+
+  const filteredKanbanCandidates = filteredCandidates.filter((c) => {
     const s = candidateSearch.trim().toLowerCase();
     const matchSearch = !s || c.candidateName.toLowerCase().includes(s) || c.appliedFor.toLowerCase().includes(s);
     const matchPos = !candidatePositionFilter || c.appliedFor === candidatePositionFilter;
     return matchSearch && matchPos;
+  });
+
+  const filteredInterviews = interviews.filter((i) => {
+    const isAct = !isRowArchived(i);
+    const matchesArchive = interviewArchiveFilter === 'all' || (interviewArchiveFilter === 'active' ? isAct : !isAct);
+    const s = interviewSearch.trim().toLowerCase();
+    const matchesSearch = !s || i.candidateName.toLowerCase().includes(s) || i.appliedFor.toLowerCase().includes(s) || i.interviewerName.toLowerCase().includes(s);
+    return matchesArchive && matchesSearch;
   });
 
   return (
@@ -945,6 +956,10 @@ export const Recruitment: React.FC = () => {
             searchValue={candidateSearch}
             onSearchChange={(v) => { setCandidateSearch(v); setCandidatePage(1); }}
             searchPlaceholder="Search candidates by name, email, phone, or position..."
+            archiveFilter={{
+              value: candidateArchiveFilter,
+              onChange: (v) => { setCandidateArchiveFilter(v); setCandidatePage(1); },
+            }}
             filters={[
               {
                 id: 'status',
@@ -981,7 +996,7 @@ export const Recruitment: React.FC = () => {
           {viewMode === 'table' ? (
             <DataTable
               columns={candidateColumns}
-              data={candidates}
+              data={filteredCandidates}
               loading={loadingCandidates}
               emptyMessage="No candidate applications found matching the selected criteria."
               pagination={{
@@ -1055,6 +1070,10 @@ export const Recruitment: React.FC = () => {
             searchValue={interviewSearch}
             onSearchChange={(v) => { setInterviewSearch(v); setInterviewPage(1); }}
             searchPlaceholder="Search interviews by candidate, position or interviewer..."
+            archiveFilter={{
+              value: interviewArchiveFilter,
+              onChange: (v) => { setInterviewArchiveFilter(v); setInterviewPage(1); },
+            }}
             filters={[
               {
                 id: 'status',
@@ -1087,17 +1106,14 @@ export const Recruitment: React.FC = () => {
 
           <DataTable
             columns={interviewColumns}
-            data={interviews.filter(i => {
-              const s = interviewSearch.trim().toLowerCase();
-              return !s || i.candidateName.toLowerCase().includes(s) || i.appliedFor.toLowerCase().includes(s) || i.interviewerName.toLowerCase().includes(s);
-            })}
+            data={filteredInterviews}
             loading={loadingInterviews}
             emptyMessage="No interview rounds currently scheduled."
             pagination={{
               page: interviewPage,
               pageSize: interviewPageSize,
-              totalCount: interviews.length,
-              totalPages: Math.ceil(interviews.length / interviewPageSize),
+              totalCount: filteredInterviews.length,
+              totalPages: Math.ceil(filteredInterviews.length / interviewPageSize) || 1,
               onPageChange: setInterviewPage,
               onPageSizeChange: (s) => { setInterviewPageSize(s); setInterviewPage(1); },
             }}
@@ -1755,6 +1771,10 @@ export const Recruitment: React.FC = () => {
           fetchOverview();
         }}
       />
+
+      {/* Archive / Permanent Delete Dialogs */}
+      {candidateArchive.dialog}
+      {interviewArchive.dialog}
     </PageContainer>
   );
 };
