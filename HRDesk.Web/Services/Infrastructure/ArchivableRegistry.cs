@@ -42,7 +42,7 @@ public static class ArchivableRegistry
         Register("loan-types",         typeof(LoanType),                 AppPermissions.Keys.PayrollManageLoans,   "Loan type");
         Register("loans",              typeof(EmployeeLoan),             AppPermissions.Keys.PayrollManageLoans,   "Loan");
         Register("announcements",      typeof(Announcement),             AppPermissions.Keys.SystemSettings,       "Announcement");
-        Register("employees",          typeof(Employee),                 AppPermissions.Keys.EmployeesEdit,        "Employee");
+        Register("employees",          typeof(Employee),                 AppPermissions.Keys.EmployeesDelete,      "Employee");
         Register("employee-documents", typeof(EmployeeDocument),         AppPermissions.Keys.EmployeesEdit,        "Document");
         Register("documents",          typeof(EmployeeDocument),         AppPermissions.Keys.EmployeesEdit,        "Document");
         Register("leaves",             typeof(LeaveApplication),         AppPermissions.Keys.LeavesApply,          "Leave application");

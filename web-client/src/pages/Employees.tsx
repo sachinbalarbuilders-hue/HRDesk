@@ -62,7 +62,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
     }, { replace: true });
   };
 
-  const { hasPermission, isAdmin } = useAuth();
+  const { hasPermission, isAdmin, getPermissionScope } = useAuth();
   const { showSuccess, showError } = useToast();
   const { currentOrganization, currentBranch } = useOrganization();
   const [employees, setEmployees] = useState<any[]>([]);
@@ -269,17 +269,21 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
     navigate(`/employees/${emp.publicId}`);
   };
 
+  const deleteScope = getPermissionScope('Employees.Delete') || (isAdmin ? 'Permanent Delete' : 'Soft Delete');
+  const canCreate = isAdmin || hasPermission('Employees.Create');
+  const canEdit = isAdmin || hasPermission('Employees.Edit');
+  const canDelete = isAdmin || hasPermission('Employees.Delete');
+  const canBulkDelete = isAdmin || (canDelete && (deleteScope === 'Bulk Delete' || deleteScope === 'Permanent Delete' || deleteScope === 'All'));
+  const canPermanentDelete = isAdmin || (canDelete && (deleteScope === 'Permanent Delete' || deleteScope === 'All'));
+
   // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
   const employeeArchive = useArchiveActions({
     endpoint: '/employees',
     label: 'Employee',
     onDone: fetchEmployees,
+    canPermanentDelete,
+    canBulkDelete,
   });
-
-
-
-  const canCreate = isAdmin || hasPermission('Employees.Create');
-  const canEdit = isAdmin || hasPermission('Employees.Edit');
 
   const columns: ColumnDef<any>[] = [
     {
@@ -387,7 +391,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                   },
                 },
               ] : []),
-              ...(canEdit ? employeeArchive.rowActions({
+              ...(canDelete ? employeeArchive.rowActions({
                 id: emp.publicId,
                 name: emp.employeeName,
                 isArchived: isRowArchived(emp) || !isActive,
@@ -526,7 +530,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
             loading={loading}
             keyExtractor={(emp) => emp.publicId || emp.employeeId}
             selection={
-              canEdit
+              canBulkDelete
                 ? {
                     selectedRowKeys: selectedIds,
                     onChange: (keys) => setSelectedIds(keys),

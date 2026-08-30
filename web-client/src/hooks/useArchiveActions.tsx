@@ -42,7 +42,7 @@ function getArchiveSlug(endpoint: string): string {
   return segments[segments.length - 1] || clean;
 }
 
-export function useArchiveActions({ endpoint, onDone, label = 'Record' }: UseArchiveActionsOptions) {
+export function useArchiveActions({ endpoint, onDone, label = 'Record', canPermanentDelete = true, canBulkDelete = true }: UseArchiveActionsOptions) {
   const { showSuccess, showError } = useToast();
   const [pending, setPending] = useState<ArchiveRowTarget | null>(null);
   const [pendingBulkIds, setPendingBulkIds] = useState<(string | number)[] | null>(null);
@@ -198,21 +198,31 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record' }: UseArc
           disabled: target.disabled,
           dividerBefore: true,
         });
-      }
 
-      actions.push({
-        label: 'Delete',
-        icon: <Trash2 size={14} />,
-        onClick: () =>
-          target.isArchived ? confirmPermanentDelete(target) : void archive(target),
-        variant: 'danger',
-        disabled: target.disabled,
-        dividerBefore: !target.isArchived,
-      });
+        if (canPermanentDelete) {
+          actions.push({
+            label: 'Delete Permanently',
+            icon: <Trash2 size={14} />,
+            onClick: () => confirmPermanentDelete(target),
+            variant: 'danger',
+            disabled: target.disabled,
+            dividerBefore: false,
+          });
+        }
+      } else {
+        actions.push({
+          label: 'Delete',
+          icon: <Trash2 size={14} />,
+          onClick: () => void archive(target),
+          variant: 'danger',
+          disabled: target.disabled,
+          dividerBefore: true,
+        });
+      }
 
       return actions;
     },
-    [archive, restore, confirmPermanentDelete]
+    [archive, restore, confirmPermanentDelete, canPermanentDelete]
   );
 
   /**
@@ -221,20 +231,25 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record' }: UseArc
   const bulkActions = useCallback(
     (isArchivedView: boolean): BulkAction[] => {
       if (isArchivedView) {
-        return [
+        const actions: BulkAction[] = [
           {
             label: 'Restore Selected',
             icon: <RotateCcw size={13} />,
             variant: 'primary',
             onClick: (keys, _, clear) => bulkRestore(keys, clear),
           },
-          {
+        ];
+
+        if (canPermanentDelete) {
+          actions.push({
             label: 'Delete Permanently',
             icon: <Trash2 size={13} />,
             variant: 'danger',
             onClick: (keys, _, clear) => confirmBulkPermanentDelete(keys, clear),
-          },
-        ];
+          });
+        }
+
+        return actions;
       }
 
       return [
@@ -246,7 +261,7 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record' }: UseArc
         },
       ];
     },
-    [bulkArchive, bulkRestore, confirmBulkPermanentDelete]
+    [bulkArchive, bulkRestore, confirmBulkPermanentDelete, canPermanentDelete]
   );
 
   /** Render this once per page so the confirm modal has a mount point. */

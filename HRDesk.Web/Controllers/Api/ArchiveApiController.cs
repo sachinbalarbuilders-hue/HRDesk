@@ -134,6 +134,16 @@ public class ArchiveController : ControllerBase
         if (!await _permissionService.HasPermissionAsync(User, reg.Permission))
             return Forbid();
 
+        var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
+        if (!isSuperAdmin && methodName == nameof(IArchiveService.PermanentDeleteAsync))
+        {
+            var deleteScope = await _permissionService.GetPermissionScopeAsync(User, reg.Permission);
+            if (deleteScope != "Permanent Delete" && deleteScope != "All")
+            {
+                return StatusCode(403, new { message = "You do not have permission to permanently delete records." });
+            }
+        }
+
         if (!TryCoerceId(rawId, out var id))
             return BadRequest(new { message = $"Invalid id '{rawId}'." });
 
@@ -173,6 +183,26 @@ public class ArchiveController : ControllerBase
 
         if (!await _permissionService.HasPermissionAsync(User, reg.Permission))
             return Forbid();
+
+        var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
+        if (!isSuperAdmin)
+        {
+            var deleteScope = await _permissionService.GetPermissionScopeAsync(User, reg.Permission);
+            if (methodName == nameof(IArchiveService.BulkPermanentDeleteAsync))
+            {
+                if (deleteScope != "Permanent Delete" && deleteScope != "All")
+                {
+                    return StatusCode(403, new { message = "You do not have permission to permanently delete records in bulk." });
+                }
+            }
+            else if (methodName == nameof(IArchiveService.BulkArchiveAsync) || methodName == nameof(IArchiveService.BulkRestoreAsync))
+            {
+                if (deleteScope != "Bulk Delete" && deleteScope != "Permanent Delete" && deleteScope != "All")
+                {
+                    return StatusCode(403, new { message = "You do not have permission to perform bulk delete/restore operations." });
+                }
+            }
+        }
 
         if (rawIds == null || rawIds.Count == 0)
             return BadRequest(new { message = "No IDs provided." });

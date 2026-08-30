@@ -1007,9 +1007,19 @@ END;";
     [HttpDelete("{publicId:guid}")]
     public async Task<IActionResult> DeleteEmployee(Guid publicId, [FromQuery] bool permanent = false)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesEdit))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesDelete))
         {
             return Forbid();
+        }
+
+        var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
+        if (!isSuperAdmin)
+        {
+            var deleteScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesDelete);
+            if (permanent && deleteScope != "Permanent Delete")
+            {
+                return StatusCode(403, new { message = "You do not have permission to permanently delete employee records." });
+            }
         }
 
         _db.BypassArchiveFilter = true;
