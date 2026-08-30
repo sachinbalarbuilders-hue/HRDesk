@@ -176,10 +176,7 @@ export const PayrollRegister: React.FC = () => {
       key: 'employee',
       header: 'Employee',
       render: (r: any) => (
-        <div>
-          <div className="font-semibold text-[var(--ink)] text-xs">{r.employeeName}</div>
-          <div className="text-[10px] text-[var(--ink-muted)] font-mono">#{r.employeeId} · {r.designation || 'Staff'}</div>
-        </div>
+        <span className="font-semibold text-[var(--ink)] text-xs">{r.employeeName}</span>
       ),
     },
     {
