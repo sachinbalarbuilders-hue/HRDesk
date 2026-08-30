@@ -4,16 +4,16 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useOrganization } from '../../context/CompanyContext';
 import { exportToCSV } from '../../utils/csvHelper';
-import { PaginationToolbar } from '../../components/ui/PaginationToolbar';
-import { ArchiveToggle, type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
-import { TableSkeleton } from '../../components/ui/PageSkeleton';
+import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
+import { DataToolbar } from '../../components/ui/DataToolbar';
+import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 import { ProcessPayrollModal } from './ProcessPayrollModal';
 import { PayslipModal } from './PayslipModal';
 import {
   ChevronLeft, ChevronRight, Check, CreditCard, FileText,
-  Sparkles, Calculator, X, Download, Search,
+  Sparkles, Calculator, X, Download,
   DollarSign, TrendingDown, CheckCircle2, Users2,
 } from 'lucide-react';
 
@@ -176,16 +176,131 @@ export const PayrollRegister: React.FC = () => {
 
   const fmt = (n: number) => n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
+  const columns: ColumnDef<any>[] = [
+    ...(canManage
+      ? [
+          {
+            key: 'select',
+            header: (
+              <input
+                type="checkbox"
+                checked={records.length > 0 && selectedIds.length === records.length}
+                onChange={toggleSelectAll}
+                className="rounded border-[var(--rule)] cursor-pointer"
+                title="Select All"
+              />
+            ),
+            width: '40px',
+            align: 'center' as const,
+            className: 'w-10 text-center',
+            render: (r: any) => (
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(r.id)}
+                onChange={() => toggleSelectId(r.id)}
+                className="rounded border-[var(--rule)] cursor-pointer"
+              />
+            ),
+          },
+        ]
+      : []),
+    {
+      key: 'employee',
+      header: 'Employee',
+      render: (r: any) => (
+        <div>
+          <div className="font-semibold text-[var(--ink)] text-xs">{r.employeeName}</div>
+          <div className="text-[10px] text-[var(--ink-muted)] font-mono">#{r.employeeId} · {r.designation || 'Staff'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'department',
+      header: 'Department',
+      render: (r: any) => <span className="text-xs text-[var(--ink-muted)]">{r.department || '—'}</span>,
+    },
+    {
+      key: 'payableDays',
+      header: 'Payable Days',
+      align: 'center',
+      render: (r: any) => <span className="font-mono font-bold text-[var(--success)] text-xs">{r.payableDays}</span>,
+    },
+    {
+      key: 'lopDays',
+      header: 'LOP',
+      align: 'center',
+      render: (r: any) => (
+        <span className={`font-mono font-medium text-xs ${r.lopDays > 0 ? 'text-[var(--danger)]' : 'text-[var(--ink-muted)]'}`}>
+          {r.lopDays > 0 ? r.lopDays : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'grossSalary',
+      header: 'Gross Pay',
+      align: 'right',
+      render: (r: any) => <span className="font-mono text-xs text-[var(--ink)]">₹{fmt(r.grossSalary)}</span>,
+    },
+    {
+      key: 'totalDeductions',
+      header: 'Deductions',
+      align: 'right',
+      render: (r: any) => (
+        <span className="font-mono text-xs text-[var(--danger)]">
+          {r.totalDeductions > 0 ? `-₹${fmt(r.totalDeductions)}` : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'netSalary',
+      header: 'Net Salary',
+      align: 'right',
+      render: (r: any) => <span className="font-mono font-bold text-xs text-[var(--gold-500)]">₹{fmt(r.netSalary)}</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (r: any) => {
+        const cfg = STATUS_CONFIG[r.status];
+        return cfg ? (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${cfg.cls}`}>
+            {r.status === 'Approved' && <Check size={10} />}
+            {cfg.label} {r.isLocked ? '🔒' : ''}
+          </span>
+        ) : null;
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (r: any) => (
+        <RowActionMenu
+          actions={[
+            { label: 'View Payslip', icon: <FileText className="w-3.5 h-3.5" />, onClick: () => handleViewPayslip(r.id) },
+            ...(canManage && r.status === 'Draft' ? [{ label: 'Approve', icon: <Check className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Approved'), variant: 'success' as const }] : []),
+            ...(canManage && r.status === 'Approved' ? [{ label: 'Mark as Paid', icon: <CreditCard className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Paid'), variant: 'success' as const }] : []),
+            ...(canManage ? archive.rowActions({
+              id: r.id,
+              name: `Payroll (${r.employeeName})`,
+              isArchived: isRowArchived(r),
+            }) : []),
+          ] as RowAction[]}
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-4">
-
       {/* ── Month Header Bar ─────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4 p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-xl">
+      <div className="flex items-center justify-between gap-4 p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
         {/* Month navigator */}
         <div className="flex items-center gap-3">
           <button
             onClick={handlePrevMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--rule)] hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-[4px] border border-[var(--rule)] hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+            title="Previous Month"
           >
             <ChevronLeft size={16} />
           </button>
@@ -195,7 +310,8 @@ export const PayrollRegister: React.FC = () => {
           </div>
           <button
             onClick={handleNextMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--rule)] hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-[4px] border border-[var(--rule)] hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+            title="Next Month"
           >
             <ChevronRight size={16} />
           </button>
@@ -205,14 +321,14 @@ export const PayrollRegister: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-[var(--rule)] rounded-lg text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-sunken)] transition-colors"
+            className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 cursor-pointer font-data"
           >
             <Download size={13} /> Export CSV
           </button>
           {canManage && (
             <button
               onClick={() => setProcessModalOpen(true)}
-              className="btn-primary flex items-center gap-1.5 text-xs"
+              className="btn-primary flex items-center gap-1.5 text-xs py-1.5 px-3 cursor-pointer"
             >
               <Calculator size={14} /> Run Payroll
             </button>
@@ -229,209 +345,93 @@ export const PayrollRegister: React.FC = () => {
           { label: 'Employees',        value: String(totalCount),                        icon: <Users2 size={18} />,       iconCls: 'text-[var(--warning)] bg-[var(--warning-light)]', borderColor: 'var(--warning)'  },
         ] as const).map(({ label, value, icon, iconCls, borderColor }) => (
           <div key={label}
-            className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl p-4 flex items-center gap-3"
+            className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-4 flex items-center gap-3"
             style={{ borderLeft: `4px solid ${borderColor}` }}
           >
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconCls}`}>
+            <div className={`w-9 h-9 rounded-[4px] flex items-center justify-center shrink-0 ${iconCls}`}>
               {icon}
             </div>
             <div>
-              <div className="text-[11px] uppercase font-bold tracking-wide text-[var(--ink-muted)] font-ui">{label}</div>
+              <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] font-ui">{label}</div>
               <div className="text-lg font-bold font-data text-[var(--ink)] leading-tight">{value}</div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* ── Filters + Search bar ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none" />
-          <input
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search employee..."
-            className="register-input w-full text-sm"
-            style={{ paddingLeft: '2.25rem' }}
-          />
-        </div>
-
-        {/* Status filter */}
-        <select
-          value={statusFilter}
-          onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-          className="register-input text-sm"
-          style={{ width: '130px', flexShrink: 0 }}
-        >
-          <option value="all">All Statuses</option>
-          <option value="Draft">Draft</option>
-          <option value="Approved">Approved</option>
-          <option value="Paid">Paid</option>
-        </select>
-
-        {/* Department filter */}
-        <select
-          value={departmentId}
-          onChange={e => { setDepartmentId(e.target.value); setPage(1); }}
-          className="register-input text-sm"
-          style={{ width: '160px', flexShrink: 0 }}
-        >
-          <option value="">All Departments</option>
-          {departments
-            .filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
-            .map((d: any) => (
-              <option key={d.departmentId || d.id} value={String(d.departmentId || d.id)}>
-                {d.departmentName}
-              </option>
-            ))}
-        </select>
-
-        <ArchiveToggle value={archiveFilter} onChange={v => { setArchiveFilter(v); setPage(1); }} />
-
-        {!loading && (
-          <span className="text-xs text-[var(--ink-muted)] whitespace-nowrap" style={{ flexShrink: 0 }}>
-            {totalCount} record{totalCount !== 1 ? 's' : ''}
-          </span>
-        )}
-      </div>
+      {/* ── Unified DataToolbar ──────────────────────────────────────────────── */}
+      <DataToolbar
+        searchValue={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Search employee by name, ID or designation..."
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+        }}
+        filters={[
+          {
+            id: 'status',
+            ariaLabel: 'Status Filter',
+            value: statusFilter,
+            onChange: (v) => { setStatusFilter(v); setPage(1); },
+            options: [
+              { value: 'all', label: 'All Statuses' },
+              { value: 'Draft', label: 'Draft' },
+              { value: 'Approved', label: 'Approved' },
+              { value: 'Paid', label: 'Paid' },
+            ],
+          },
+          {
+            id: 'department',
+            ariaLabel: 'Department Filter',
+            value: departmentId,
+            onChange: (v) => { setDepartmentId(v); setPage(1); },
+            options: [
+              { value: '', label: 'All Departments' },
+              ...departments
+                .filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
+                .map((d: any) => ({
+                  value: String(d.departmentId || d.id),
+                  label: d.departmentName,
+                })),
+            ],
+          },
+        ]}
+      />
 
       {/* ── Bulk action bar ───────────────────────────────────────────────────── */}
       {selectedIds.length > 0 && canManage && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--accent-light)] border border-[var(--accent)]/30 rounded-lg text-xs">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--accent-light)] border border-[var(--accent)]/30 rounded-[4px] text-xs">
           <span className="font-semibold text-[var(--accent)]">
             {selectedIds.length} record{selectedIds.length !== 1 ? 's' : ''} selected
           </span>
           <div className="flex items-center gap-2">
-            <button onClick={handleBulkApprove} className="btn-primary py-1 px-3 text-xs flex items-center gap-1">
+            <button onClick={handleBulkApprove} className="btn-primary py-1 px-3 text-xs flex items-center gap-1 cursor-pointer">
               <Check size={12} /> Approve Selected
             </button>
-            <button onClick={() => setSelectedIds([])} className="text-[var(--ink-muted)] hover:text-[var(--ink)]">
+            <button onClick={() => setSelectedIds([])} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
               <X size={15} />
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Table ────────────────────────────────────────────────────────────── */}
-      <div className="border border-[var(--rule)] rounded-xl overflow-hidden bg-[var(--paper)]">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)]">
-                {canManage && (
-                  <th className="w-10 px-3 py-3 text-center">
-                    <input
-                      type="checkbox"
-                      checked={records.length > 0 && selectedIds.length === records.length}
-                      onChange={toggleSelectAll}
-                      className="rounded border-[var(--rule)]"
-                    />
-                  </th>
-                )}
-                <th className="px-4 py-3 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Employee</th>
-                <th className="px-4 py-3 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Department</th>
-                <th className="px-4 py-3 text-center text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Payable Days</th>
-                <th className="px-4 py-3 text-center text-[10px] uppercase font-bold text-[var(--danger)] font-ui">LOP</th>
-                <th className="px-4 py-3 text-right text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Gross Pay</th>
-                <th className="px-4 py-3 text-right text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Deductions</th>
-                <th className="px-4 py-3 text-right text-[10px] uppercase font-bold text-[var(--accent)] font-ui">Net Salary</th>
-                <th className="px-4 py-3 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Status</th>
-                <th className="px-4 py-3 text-right text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--rule)]">
-              {loading ? (
-                <tr><td colSpan={canManage ? 10 : 9} className="p-0"><TableSkeleton rows={8} /></td></tr>
-              ) : records.map((r) => (
-                <tr key={r.id} className={`hover:bg-[var(--surface-sunken)] transition-colors ${selectedIds.includes(r.id) ? 'bg-[var(--accent-light)]' : 'bg-[var(--paper)]'}`}>
-                  {canManage && (
-                    <td className="px-3 py-3 text-center">
-                      <input type="checkbox" checked={selectedIds.includes(r.id)}
-                        onChange={() => toggleSelectId(r.id)}
-                        className="rounded border-[var(--rule)]"
-                      />
-                    </td>
-                  )}
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-[var(--ink)] text-sm">{r.employeeName}</div>
-                    <div className="text-[11px] text-[var(--ink-muted)] font-mono">#{r.employeeId} · {r.designation}</div>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-[var(--ink-muted)]">{r.department}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="font-mono font-bold text-[var(--success)] text-sm">{r.payableDays}</span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`font-mono font-medium text-sm ${r.lopDays > 0 ? 'text-[var(--danger)]' : 'text-[var(--ink-muted)]'}`}>
-                      {r.lopDays > 0 ? r.lopDays : '—'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-[var(--ink)]">₹{fmt(r.grossSalary)}</td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-[var(--danger)]">
-                    {r.totalDeductions > 0 ? `-₹${fmt(r.totalDeductions)}` : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-[var(--accent)]">₹{fmt(r.netSalary)}</td>
-                  <td className="px-4 py-3">
-                    {(() => {
-                      const cfg = STATUS_CONFIG[r.status];
-                      return cfg ? (
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${cfg.cls}`}>
-                          {r.status === 'Approved' && <Check size={10} />}
-                          {cfg.label} {r.isLocked ? '🔒' : ''}
-                        </span>
-                      ) : null;
-                    })()}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <RowActionMenu actions={[
-                      { label: 'View Payslip', icon: <FileText className="w-3.5 h-3.5" />, onClick: () => handleViewPayslip(r.id) },
-                      ...(canManage && r.status === 'Draft' ? [{ label: 'Approve', icon: <Check className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Approved'), variant: 'success' as const }] : []),
-                      ...(canManage && r.status === 'Approved' ? [{ label: 'Mark as Paid', icon: <CreditCard className="w-3.5 h-3.5" />, onClick: () => handleUpdateStatus(r.id, 'Paid'), variant: 'success' as const }] : []),
-                      ...(canManage ? archive.rowActions({
-                        id: r.id,
-                        name: `Payroll (${r.employeeName})`,
-                        isArchived: isRowArchived(r)
-                      }) : []),
-                    ] as RowAction[]} />
-                  </td>
-                </tr>
-              ))}
-              {!loading && records.length === 0 && (
-                <tr>
-                  <td colSpan={canManage ? 10 : 9} className="py-16 text-center">
-                    <Sparkles className="w-10 h-10 mx-auto mb-3 text-[var(--ink-muted)] opacity-30" />
-                    <div className="font-semibold text-sm text-[var(--ink)]">
-                      No payroll records for {month} {year}
-                    </div>
-                    <p className="text-xs text-[var(--ink-muted)] mt-1 max-w-xs mx-auto">
-                      Click <span className="font-semibold">Run Payroll</span> to generate monthly salaries based on attendance data.
-                    </p>
-                    {canManage && (
-                      <button
-                        onClick={() => setProcessModalOpen(true)}
-                        className="btn-primary text-xs mt-4 inline-flex items-center gap-1.5"
-                      >
-                        <Calculator size={13} /> Run Payroll for {month} {year}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {totalCount > 0 && (
-          <div className="border-t border-[var(--rule)] px-4 py-3 bg-[var(--surface-sunken)]">
-            <PaginationToolbar
-              page={page} pageSize={pageSize}
-              totalCount={totalCount} totalPages={totalPages}
-              onPageChange={setPage}
-              onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-            />
-          </div>
-        )}
-      </div>
+      {/* ── Reusable DataTable with Standard Pagination ──────────────────────── */}
+      <DataTable
+        columns={columns}
+        data={records}
+        loading={loading}
+        showSrNo={!canManage}
+        emptyMessage={`No payroll records found for ${month} ${year}. Click "Run Payroll" to generate monthly salaries.`}
+        pagination={{
+          page,
+          pageSize,
+          totalCount,
+          totalPages,
+          onPageChange: setPage,
+          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+        }}
+      />
 
       {/* Modals */}
       <ProcessPayrollModal

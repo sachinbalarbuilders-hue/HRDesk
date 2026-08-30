@@ -2,11 +2,13 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
-import { ArchiveToggle, type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
+import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
+import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
+import { DataToolbar } from '../../components/ui/DataToolbar';
 import {
-  LayoutTemplate, Layers, Plus, Pencil, Trash2, X, ChevronDown, ChevronRight,
-  IndianRupee, Percent, Equal, Wand2, Zap,
+  Layers, Plus, Pencil, X,
+  IndianRupee, Percent, Equal, Wand2, Zap, ChevronDown, ChevronRight,
 } from 'lucide-react';
 
 interface Template { id: number; name: string; description?: string; isDefault: boolean; isActive: boolean; componentCount: number; archivedAt?: string; }
@@ -39,6 +41,9 @@ export const SalaryTemplatesTab: React.FC = () => {
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [previewing, setPreviewing] = useState(false);
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -53,7 +58,7 @@ export const SalaryTemplatesTab: React.FC = () => {
     finally { setLoading(false); }
   }, [archiveFilter]);
 
-  useEffect(() => { fetchAll(); }, [archiveFilter, fetchAll]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const toggleExpand = async (id: number) => {
     if (expandedId === id) { setExpandedId(null); return; }
@@ -64,7 +69,6 @@ export const SalaryTemplatesTab: React.FC = () => {
     } catch { setExpandedComponents([]); }
   };
 
-  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
   const templateArchive = useArchiveActions({
     endpoint: '/salary-templates',
     label: 'Salary Template',
@@ -158,227 +162,389 @@ export const SalaryTemplatesTab: React.FC = () => {
     finally { setPreviewing(false); }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-bold text-[var(--ink)] font-ui">Salary Structure Templates</h2>
-          <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-            Define CTC-based formulas (Basic=40% of CTC, HRA=50% of Basic, etc.) and assign to Pay Groups.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ArchiveToggle value={archiveFilter} onChange={setArchiveFilter} />
-          <button onClick={openCreateTemplate} className="btn-primary flex items-center gap-1.5 text-xs">
-            <Plus size={14} /> New Template
-          </button>
-        </div>
-      </div>
+  const filteredTemplates = templates.filter(t => {
+    const isAct = !isRowArchived(t);
+    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+    const s = search.trim().toLowerCase();
+    const matchesSearch = !s || t.name.toLowerCase().includes(s) || (t.description && t.description.toLowerCase().includes(s));
+    return matchesArchive && matchesSearch;
+  });
 
-      {/* Template list */}
-      {loading ? (
-        <div className="h-32 flex items-center justify-center text-[var(--ink-muted)] text-sm">Loading...</div>
-      ) : (
-        <div className="space-y-2">
-          {templates.map(t => (
-            <div key={t.id} className={`border border-[var(--rule)] rounded-[6px] bg-[var(--paper)] ${!t.isActive ? 'opacity-50' : ''}`}>
-              <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <button onClick={() => toggleExpand(t.id)} className="text-[var(--ink-muted)]">
-                    {expandedId === t.id ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
-                  </button>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-[var(--ink)]">{t.name}</span>
-                      {t.isDefault && <span className="text-[10px] bg-[var(--accent-light)] text-[var(--accent)] px-1.5 py-0.5 rounded-[3px] font-bold">DEFAULT</span>}
-                    </div>
-                    {t.description && <p className="text-[11px] text-[var(--ink-muted)]">{t.description}</p>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-[11px] text-[var(--ink-muted)]">
-                    <span className="font-bold text-[var(--ink)]">{t.componentCount}</span> components
-                  </div>
-                  <RowActionMenu actions={[
-                    { label: 'Edit Components', icon: <Layers size={14} />, onClick: () => openEditComponents(t.id) },
-                    { label: 'Edit Template', icon: <Pencil size={14} />, onClick: () => openEditTemplate(t) },
-                    ...templateArchive.rowActions({ id: t.id, name: t.name, isArchived: isRowArchived(t) })
-                  ] as RowAction[]} />
-                </div>
-              </div>
-              {expandedId === t.id && (
-                <div className="border-t border-[var(--rule)] px-4 py-3 bg-[var(--surface-sunken)]">
-                  {expandedComponents.length === 0 ? (
-                    <p className="text-xs text-[var(--ink-muted)]">No components defined. Click "Edit Formula" to add.</p>
-                  ) : (
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-[10px] uppercase text-[var(--ink-muted)] font-bold border-b border-[var(--rule)]">
-                          <th className="pb-1.5 text-left">Component</th>
-                          <th className="pb-1.5 text-left">Type</th>
-                          <th className="pb-1.5 text-left">Formula</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--rule)]">
-                        {expandedComponents.map((c: any) => (
-                          <tr key={c.id}>
-                            <td className="py-1.5 font-medium text-[var(--ink)]">{c.componentName}</td>
-                            <td className="py-1.5 text-[var(--ink-muted)]">{c.componentType}</td>
-                            <td className="py-1.5 font-mono text-[var(--teal-600)]">{
-                              c.calculationType === 'FixedAmount' ? `₹${(c.value||0).toLocaleString()}/month` :
-                              c.calculationType === 'PercentOfCTC' ? `${c.value}% of Monthly CTC` :
-                              c.calculationType === 'PercentOfComponent' ? `${c.value}% of ${c.baseComponentCode}` :
-                              c.calculationType === 'Remainder' ? 'Monthly CTC − other earnings' :
-                              c.calculationType === 'Statutory' ? 'Auto (PF/ESI/PT)' : c.calculationType
-                            }</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
+  const paginated = filteredTemplates.slice((page - 1) * pageSize, page * pageSize);
+
+  const columns: ColumnDef<Template>[] = [
+    {
+      key: 'name',
+      header: 'Template Name',
+      render: (t: Template) => (
+        <div className="flex items-start gap-2">
+          <button
+            onClick={() => toggleExpand(t.id)}
+            className="text-[var(--ink-muted)] hover:text-[var(--ink)] mt-0.5 cursor-pointer"
+            title="Preview components formula"
+          >
+            {expandedId === t.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-xs text-[var(--ink)]">{t.name}</span>
+              {t.isDefault && (
+                <span className="text-[9px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-1.5 py-0.2 rounded-[2px] font-bold">
+                  DEFAULT
+                </span>
               )}
             </div>
-          ))}
+            {t.description && <p className="text-[10px] text-[var(--ink-muted)]">{t.description}</p>}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'componentCount',
+      header: 'Components',
+      align: 'center',
+      render: (t: Template) => (
+        <span className="text-xs font-semibold text-[var(--ink)] font-data">
+          {t.componentCount} items
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      render: (t: Template) => (
+        <span
+          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] ${
+            t.isActive
+              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+              : 'bg-[var(--paper-subtle)] text-[var(--ink-muted)]'
+          }`}
+        >
+          {t.isActive ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (t: Template) => (
+        <RowActionMenu
+          actions={[
+            { label: 'Edit Formulas', icon: <Layers size={14} />, onClick: () => openEditComponents(t.id) },
+            { label: 'Edit Details', icon: <Pencil size={14} />, onClick: () => openEditTemplate(t) },
+            ...templateArchive.rowActions({ id: t.id, name: t.name, isArchived: isRowArchived(t) }),
+          ] as RowAction[]}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div>
+        <h2 className="text-base font-bold text-[var(--ink)] font-ui">Salary Structure Templates</h2>
+        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+          Define CTC-based formulas (Basic=40% of CTC, HRA=50% of Basic, etc.) and assign to Pay Groups.
+        </p>
+      </div>
+
+      {/* Unified DataToolbar */}
+      <DataToolbar
+        searchValue={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Search salary templates..."
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+        }}
+        primaryAction={{
+          label: 'New Template',
+          icon: <Plus size={14} />,
+          onClick: openCreateTemplate,
+        }}
+      />
+
+      {/* Reusable DataTable with Pagination */}
+      <DataTable
+        columns={columns}
+        data={paginated}
+        loading={loading}
+        emptyMessage="No salary structure templates found. Click 'New Template' to create one."
+        pagination={{
+          page,
+          pageSize,
+          totalCount: filteredTemplates.length,
+          totalPages: Math.ceil(filteredTemplates.length / pageSize) || 1,
+          onPageChange: setPage,
+          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+        }}
+      />
+
+      {/* Expanded Template Formula Drawer */}
+      {expandedId && (
+        <div className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] space-y-3">
+          <div className="flex items-center justify-between border-b border-[var(--rule)] pb-2">
+            <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
+              <Layers size={13} className="text-[var(--gold-500)]" />
+              Template Breakdown Formulas
+            </span>
+            <button
+              onClick={() => setExpandedId(null)}
+              className="text-[var(--ink-muted)] hover:text-[var(--ink)] text-xs cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+          {expandedComponents.length === 0 ? (
+            <p className="text-xs text-[var(--ink-muted)] py-2 italic">
+              No components configured yet. Click "Edit Formulas" on the action menu to add components.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-[10px] uppercase text-[var(--ink-muted)] font-bold border-b border-[var(--rule)]">
+                    <th className="pb-1.5 text-left">Component</th>
+                    <th className="pb-1.5 text-left">Type</th>
+                    <th className="pb-1.5 text-left">Formula Calculation</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--rule)]">
+                  {expandedComponents.map((c: any) => (
+                    <tr key={c.id}>
+                      <td className="py-2 font-medium text-[var(--ink)]">{c.componentName}</td>
+                      <td className="py-2 text-[var(--ink-muted)]">{c.componentType}</td>
+                      <td className="py-2 font-mono text-[var(--teal-600)]">{
+                        c.calculationType === 'FixedAmount' ? `₹${(c.value||0).toLocaleString()}/month` :
+                        c.calculationType === 'PercentOfCTC' ? `${c.value}% of Monthly CTC` :
+                        c.calculationType === 'PercentOfComponent' ? `${c.value}% of ${c.baseComponentCode}` :
+                        c.calculationType === 'Remainder' ? 'Monthly CTC − other earnings' :
+                        c.calculationType === 'Statutory' ? 'Auto (PF/ESI/PT)' : c.calculationType
+                      }</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
       {/* Template create/edit modal */}
       {templateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[var(--paper)] rounded-xl shadow-xl w-full max-w-sm">
-            <div className="flex items-center justify-between p-5 border-b border-[var(--rule)]">
-              <h3 className="font-bold text-[var(--ink)] font-ui">{editTplId ? 'Edit Template' : 'New Template'}</h3>
-              <button onClick={() => setTemplateModalOpen(false)} className="text-[var(--ink-muted)]"><X size={18} /></button>
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl w-full max-w-sm">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--rule)]">
+              <h3 className="font-bold text-sm text-[var(--ink)]">{editTplId ? 'Edit Template' : 'New Template'}</h3>
+              <button onClick={() => setTemplateModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <X size={16} />
+              </button>
             </div>
-            <form onSubmit={saveTemplate} className="p-5 space-y-4">
+            <form onSubmit={saveTemplate} className="p-4 space-y-4 text-xs">
               <div>
-                <label className="register-label">Template Name *</label>
-                <input value={tplForm.name} onChange={e => setTplForm(f => ({ ...f, name: e.target.value }))} required placeholder="e.g. Standard CTC Template" className="register-input w-full" />
+                <label className="font-semibold text-[var(--ink)] block mb-1">Template Name *</label>
+                <input
+                  value={tplForm.name}
+                  onChange={e => setTplForm(f => ({ ...f, name: e.target.value }))}
+                  required
+                  placeholder="e.g. Standard CTC Template"
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                />
               </div>
               <div>
-                <label className="register-label">Description</label>
-                <textarea value={tplForm.description} onChange={e => setTplForm(f => ({ ...f, description: e.target.value }))} rows={2} className="register-input w-full" />
+                <label className="font-semibold text-[var(--ink)] block mb-1">Description</label>
+                <input
+                  value={tplForm.description}
+                  onChange={e => setTplForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder="e.g. For corporate and engineering roles"
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                />
               </div>
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setTemplateModalOpen(false)} className="btn-outline text-xs">Cancel</button>
-                <button type="submit" disabled={saving} className="btn-primary text-xs">{saving ? 'Saving...' : editTplId ? 'Update' : 'Create'}</button>
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--rule)]">
+                <button
+                  type="button"
+                  onClick={() => setTemplateModalOpen(false)}
+                  className="btn-outline text-xs py-1.5 px-3 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary text-xs py-1.5 px-4 cursor-pointer"
+                >
+                  {saving ? 'Saving...' : editTplId ? 'Update' : 'Create'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Edit components modal */}
-      {editComponentsId !== null && (
+      {/* Edit Components Formula Modal */}
+      {editComponentsId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[var(--paper)] rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-[var(--rule)] sticky top-0 bg-[var(--paper)] z-10">
-              <h3 className="font-bold text-[var(--ink)] font-ui">Edit Salary Formula</h3>
-              <button onClick={() => setEditComponentsId(null)} className="text-[var(--ink-muted)]"><X size={18} /></button>
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--rule)]">
+              <div>
+                <h3 className="font-bold text-sm text-[var(--ink)]">Configure Salary Formulas</h3>
+                <p className="text-xs text-[var(--ink-muted)]">Set calculation rules for each component in this template</p>
+              </div>
+              <button onClick={() => setEditComponentsId(null)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <X size={16} />
+              </button>
             </div>
-            <div className="p-5 space-y-4">
-              {/* Rows */}
-              <div className="space-y-2">
-                {editRows.map((row, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-[var(--surface-sunken)] p-2 rounded-[4px] border border-[var(--rule)]">
-                    {/* Component */}
-                    <div className="col-span-3">
-                      <select value={row.componentId} onChange={e => updateRow(idx, 'componentId', parseInt(e.target.value))} className="register-input w-full text-xs">
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-[var(--ink)]">Component Formula Rules ({editRows.length})</span>
+                <button onClick={addComponentRow} className="btn-outline text-xs flex items-center gap-1 py-1 px-2.5 cursor-pointer">
+                  <Plus size={12} /> Add Component
+                </button>
+              </div>
+
+              {editRows.length === 0 ? (
+                <div className="text-center py-8 text-[var(--ink-muted)] border border-dashed border-[var(--rule)] rounded-[4px]">
+                  No components in this template yet. Click "Add Component" above.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {editRows.map((row, idx) => (
+                    <div key={idx} className="flex items-center gap-2 p-2.5 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] flex-wrap">
+                      <select
+                        value={row.componentId}
+                        onChange={e => updateRow(idx, 'componentId', e.target.value)}
+                        className="px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--ink)] flex-1 min-w-36 font-semibold cursor-pointer"
+                      >
                         {components.filter(c => c.isActive).map(c => (
-                          <option key={c.id} value={c.id}>{c.componentName} ({c.componentType})</option>
+                          <option key={c.id} value={c.id}>
+                            {c.componentName} ({c.componentCode}) — {c.componentType}
+                          </option>
                         ))}
                       </select>
-                    </div>
-                    {/* Calculation type */}
-                    <div className="col-span-3">
-                      <select value={row.calculationType} onChange={e => updateRow(idx, 'calculationType', e.target.value)} className="register-input w-full text-xs">
-                        {CALC_TYPES.map(ct => <option key={ct.value} value={ct.value}>{ct.label}</option>)}
-                      </select>
-                    </div>
-                    {/* Value */}
-                    <div className="col-span-2">
-                      {(row.calculationType === 'FixedAmount' || row.calculationType === 'PercentOfCTC' || row.calculationType === 'PercentOfComponent') ? (
-                        <input type="number" min="0" step="0.01" value={row.value} onChange={e => updateRow(idx, 'value', e.target.value)} placeholder={row.calculationType === 'FixedAmount' ? '₹ amount' : '% value'} className="register-input w-full text-xs font-mono" />
-                      ) : <span className="text-[11px] text-[var(--ink-muted)] italic px-2">auto</span>}
-                    </div>
-                    {/* Base component */}
-                    <div className="col-span-3">
-                      {row.calculationType === 'PercentOfComponent' ? (
-                        <select value={row.baseComponentCode} onChange={e => updateRow(idx, 'baseComponentCode', e.target.value)} className="register-input w-full text-xs">
-                          <option value="">— base —</option>
-                          {components.filter(c => c.isActive && c.componentType === 'Earning').map(c => (
-                            <option key={c.id} value={c.componentCode}>{c.componentCode} – {c.componentName}</option>
-                          ))}
-                        </select>
-                      ) : <span />}
-                    </div>
-                    {/* Remove */}
-                    <div className="col-span-1 flex justify-end">
-                      <button onClick={() => removeRow(idx)} className="p-1 text-[var(--ink-muted)] hover:text-red-600"><X size={13} /></button>
-                    </div>
-                  </div>
-                ))}
-                <button onClick={addComponentRow} className="text-xs text-[var(--teal-600)] hover:underline flex items-center gap-1 mt-1">
-                  <Plus size={13} /> Add Component
-                </button>
-              </div>
 
-              {/* CTC Preview */}
-              <div className="border border-[var(--rule)] rounded-[6px] p-4 bg-[var(--surface-sunken)] space-y-3">
-                <p className="text-xs font-bold text-[var(--ink)] flex items-center gap-1.5"><Wand2 size={13} /> Preview CTC Breakdown</p>
-                <div className="flex gap-2">
-                  <input type="number" value={previewCTC} onChange={e => setPreviewCTC(e.target.value)} placeholder="Annual CTC (e.g. 600000)" className="register-input flex-1 text-xs font-mono" />
-                  <button onClick={handlePreview} disabled={!previewCTC || previewing} className="btn-outline text-xs px-3">
-                    {previewing ? '...' : 'Preview'}
-                  </button>
+                      <select
+                        value={row.calculationType}
+                        onChange={e => updateRow(idx, 'calculationType', e.target.value)}
+                        className="px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--ink)] min-w-40 cursor-pointer"
+                      >
+                        {CALC_TYPES.map(ct => (
+                          <option key={ct.value} value={ct.value}>{ct.label}</option>
+                        ))}
+                      </select>
+
+                      {['FixedAmount', 'PercentOfCTC', 'PercentOfComponent'].includes(row.calculationType) && (
+                        <input
+                          type="number"
+                          value={row.value ?? ''}
+                          onChange={e => updateRow(idx, 'value', e.target.value)}
+                          placeholder={row.calculationType === 'FixedAmount' ? '₹ Amount' : '% Value'}
+                          className="w-24 px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs font-mono text-[var(--ink)]"
+                          min={0}
+                        />
+                      )}
+
+                      {row.calculationType === 'PercentOfComponent' && (
+                        <input
+                          type="text"
+                          value={row.baseComponentCode || ''}
+                          onChange={e => updateRow(idx, 'baseComponentCode', e.target.value.toUpperCase())}
+                          placeholder="Base Code (e.g. BASIC)"
+                          className="w-32 px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs font-mono text-[var(--ink)] uppercase"
+                        />
+                      )}
+
+                      <button
+                        onClick={() => removeRow(idx)}
+                        className="text-[var(--danger)] hover:bg-rose-50 dark:hover:bg-rose-950/40 p-1 rounded-[2px] transition-colors ml-auto cursor-pointer"
+                        title="Remove Component"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
+              )}
+
+              {/* CTC Preview Tool */}
+              <div className="border-t border-[var(--rule)] pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-[var(--ink)] flex items-center gap-1.5">
+                    <Wand2 size={13} className="text-[var(--gold-500)]" />
+                    Simulate & Preview CTC Breakdown
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={previewCTC}
+                      onChange={e => setPreviewCTC(e.target.value)}
+                      placeholder="Annual CTC (e.g. 600000)"
+                      className="w-48 px-2.5 py-1 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs font-mono text-[var(--ink)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handlePreview}
+                      disabled={previewing || !previewCTC}
+                      className="btn-outline text-xs py-1 px-2.5 cursor-pointer"
+                    >
+                      {previewing ? 'Simulating...' : 'Simulate'}
+                    </button>
+                  </div>
+                </div>
+
                 {previewRows.length > 0 && (
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="text-[10px] uppercase text-[var(--ink-muted)] font-bold border-b border-[var(--rule)]">
-                        <th className="pb-1 text-left">Component</th>
-                        <th className="pb-1 text-left">Type</th>
-                        <th className="pb-1 text-right">Monthly (₹)</th>
-                        <th className="pb-1 text-left pl-3">Formula</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {previewRows.map(r => (
-                        <tr key={r.componentCode} className="border-b border-[var(--rule)]">
-                          <td className="py-1 font-medium text-[var(--ink)]">{r.componentName}</td>
-                          <td className="py-1 text-[var(--ink-muted)]">{r.componentType}</td>
-                          <td className="py-1 text-right font-mono font-semibold text-[var(--ink)]">
-                            {r.calculationType === 'Statutory' ? '—' : `₹${r.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-                          </td>
-                          <td className="py-1 pl-3 text-[10px] text-[var(--ink-muted)]">{r.formula}</td>
+                  <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--paper)]">
+                    <table className="w-full text-xs">
+                      <thead className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] text-[10px] uppercase font-bold text-[var(--ink-muted)]">
+                        <tr>
+                          <th className="px-3 py-1.5 text-left">Component</th>
+                          <th className="px-3 py-1.5 text-left">Type</th>
+                          <th className="px-3 py-1.5 text-left">Formula</th>
+                          <th className="px-3 py-1.5 text-right">Monthly (₹)</th>
+                          <th className="px-3 py-1.5 text-right">Annual (₹)</th>
                         </tr>
-                      ))}
-                      <tr className="font-bold">
-                        <td colSpan={2} className="pt-2 text-right text-[var(--ink)]">Monthly Total:</td>
-                        <td className="pt-2 text-right font-mono text-[var(--teal-600)]">
-                          ₹{previewRows.filter(r => r.componentType === 'Earning' && r.calculationType !== 'Statutory').reduce((s, r) => s + r.amount, 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                        </td>
-                        <td />
-                      </tr>
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--rule)] font-mono">
+                        {previewRows.map((r, i) => (
+                          <tr key={i} className="hover:bg-[var(--surface-sunken)]">
+                            <td className="px-3 py-1.5 font-sans font-medium text-[var(--ink)]">{r.componentName}</td>
+                            <td className="px-3 py-1.5 font-sans text-[var(--ink-muted)]">{r.componentType}</td>
+                            <td className="px-3 py-1.5 text-[var(--teal-600)]">{r.formula}</td>
+                            <td className="px-3 py-1.5 text-right font-bold text-[var(--ink)]">₹{r.amount.toLocaleString()}</td>
+                            <td className="px-3 py-1.5 text-right text-[var(--ink-muted)]">₹{(r.amount * 12).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
+            </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--rule)]">
-                <button onClick={() => setEditComponentsId(null)} className="btn-outline text-xs">Cancel</button>
-                <button onClick={saveComponents} disabled={saving} className="btn-primary text-xs">
-                  {saving ? 'Saving...' : 'Save Formula'}
-                </button>
-              </div>
+            <div className="flex justify-end gap-2 p-4 border-t border-[var(--rule)]">
+              <button
+                type="button"
+                onClick={() => setEditComponentsId(null)}
+                className="btn-outline text-xs py-1.5 px-3 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveComponents}
+                disabled={saving}
+                className="btn-primary text-xs py-1.5 px-4 cursor-pointer"
+              >
+                {saving ? 'Saving...' : 'Save Formulas'}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
       {templateArchive.dialog}
     </div>
   );

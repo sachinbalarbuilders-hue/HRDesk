@@ -2,8 +2,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
+import { exportToCSV } from '../../utils/csvHelper';
+import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
+import { DataToolbar } from '../../components/ui/DataToolbar';
 import {
-  Search, Check, UserX, ExternalLink, X,
+  Check, UserX, ExternalLink, X,
 } from 'lucide-react';
 
 interface EmpRow {
@@ -39,6 +42,8 @@ export const EmployeeSalariesTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterGroup, setFilterGroup] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // Bulk selection
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -78,6 +83,8 @@ export const EmployeeSalariesTab: React.FC = () => {
     return matchSearch && matchGroup;
   });
 
+  const paginatedRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+
   // ── Selection helpers ──────────────────────────────────────────────────────
   const allSelected = filtered.length > 0 && filtered.every(r => selected.has(r.employeeId));
   const toggleAll = () => {
@@ -113,54 +120,176 @@ export const EmployeeSalariesTab: React.FC = () => {
     finally { setBulkSaving(false); }
   };
 
+  const handleExportCSV = () => {
+    if (!filtered.length) { showError('Export Empty', 'No employee records to export.'); return; }
+    exportToCSV('Employee_Salaries_Overview', filtered.map(r => ({
+      'Employee Code': r.employeeCode || '',
+      'Employee Name': r.employeeName,
+      Department: r.department || '',
+      Designation: r.designation || '',
+      'Pay Group': r.payGroupName || 'Not Assigned',
+      'Annual CTC (₹)': r.annualCTC || 0,
+      'Monthly CTC (₹)': r.monthlyCTC || 0,
+      'Salary Template': r.templateName || '',
+      'Effective Date': r.ctcEffectiveFrom || '',
+    })));
+    showSuccess('Export Complete', 'Employee salaries exported to CSV.');
+  };
+
+  const columns: ColumnDef<EmpRow>[] = [
+    {
+      key: 'select',
+      header: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={toggleAll}
+          className="rounded border-[var(--rule)] cursor-pointer"
+          title="Select All"
+        />
+      ),
+      width: '40px',
+      align: 'center',
+      className: 'w-10 text-center',
+      render: (row: EmpRow) => (
+        <input
+          type="checkbox"
+          checked={selected.has(row.employeeId)}
+          onChange={() => toggleOne(row.employeeId)}
+          className="rounded border-[var(--rule)] cursor-pointer"
+        />
+      ),
+    },
+    {
+      key: 'employee',
+      header: 'Employee',
+      render: (row: EmpRow) => (
+        <div>
+          <p className="font-semibold text-[var(--ink)] text-xs">{row.employeeName}</p>
+          {row.employeeCode && <p className="text-[10px] font-mono text-[var(--ink-muted)]">{row.employeeCode}</p>}
+        </div>
+      ),
+    },
+    {
+      key: 'department',
+      header: 'Department',
+      render: (row: EmpRow) => (
+        <div>
+          <span className="text-xs text-[var(--ink-muted)]">{row.department ?? '—'}</span>
+          {row.designation && <p className="text-[10px] text-[var(--ink-muted)]">{row.designation}</p>}
+        </div>
+      ),
+    },
+    {
+      key: 'payGroup',
+      header: 'Pay Group',
+      render: (row: EmpRow) =>
+        row.payGroupName ? (
+          <div>
+            <span className="text-xs font-medium text-[var(--ink)]">{row.payGroupName}</span>
+            {row.payGroupBasis && (
+              <span className="text-[10px] text-[var(--ink-muted)] block">
+                {BASIS_LABELS[row.payGroupBasis] ?? row.payGroupBasis}
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="text-[10px] px-2 py-0.5 rounded-[2px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">
+            Not assigned
+          </span>
+        ),
+    },
+    {
+      key: 'annualCTC',
+      header: 'Annual CTC',
+      render: (row: EmpRow) =>
+        row.annualCTC != null ? (
+          <span className="text-xs font-semibold text-[var(--ink)] font-mono">₹{fmt(row.annualCTC)}</span>
+        ) : (
+          <span className="text-[10px] px-2 py-0.5 rounded-[2px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">
+            Not set
+          </span>
+        ),
+    },
+    {
+      key: 'monthlyCTC',
+      header: 'Monthly',
+      render: (row: EmpRow) => (
+        <span className="text-xs font-mono text-[var(--ink-muted)]">
+          {row.monthlyCTC != null ? `₹${fmt(row.monthlyCTC)}` : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'template',
+      header: 'Template',
+      render: (row: EmpRow) => (
+        <div>
+          <span className="text-xs text-[var(--ink-muted)]">{row.templateName ?? '—'}</span>
+          {row.ctcEffectiveFrom && <p className="text-[10px] text-[var(--ink-muted)]">from {row.ctcEffectiveFrom}</p>}
+        </div>
+      ),
+    },
+    {
+      key: 'action',
+      header: 'Action',
+      align: 'right',
+      render: (row: EmpRow) => (
+        <Link
+          to={`/employees/${row.publicId}?tab=payroll`}
+          className="text-xs text-[var(--gold-500)] hover:underline inline-flex items-center gap-1 font-medium"
+          title="Open employee payroll tab"
+        >
+          <ExternalLink size={11} />
+          {row.annualCTC != null ? 'Revise' : 'Set CTC'}
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div>
         <h2 className="text-base font-bold text-[var(--ink)] font-ui">Employee Salaries</h2>
         <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-          Assign pay groups and CTC to employees in bulk. Select employees and use the action bar below.
+          Assign pay groups and CTC structures to employees. Select employees and use the action bar below to assign in bulk.
         </p>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search employees..."
-            className="register-input w-full text-sm"
-            style={{ paddingLeft: '2.25rem' }}
-          />
-        </div>
-        <select
-          value={filterGroup}
-          onChange={e => setFilterGroup(e.target.value)}
-          className="register-input text-sm"
-          style={{ width: '170px', flexShrink: 0 }}
-        >
-          <option value="">All Pay Groups</option>
-          <option value="0">⚠ Not Assigned</option>
-          {payGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-        </select>
-        <span className="text-xs text-[var(--ink-muted)] whitespace-nowrap" style={{ flexShrink: 0 }}>
-          {filtered.length} employees
-        </span>
-      </div>
+      {/* Unified DataToolbar */}
+      <DataToolbar
+        searchValue={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Search employees by name or code..."
+        filters={[
+          {
+            id: 'payGroup',
+            ariaLabel: 'Pay Group Filter',
+            value: filterGroup,
+            onChange: (v) => { setFilterGroup(v); setPage(1); },
+            options: [
+              { value: '', label: 'All Pay Groups' },
+              { value: '0', label: '⚠ Not Assigned' },
+              ...payGroups.map(g => ({ value: String(g.id), label: g.name })),
+            ],
+          },
+        ]}
+        onExport={handleExportCSV}
+        exportLabel="Export CSV"
+      />
 
       {/* Bulk action bar — appears when rows are selected */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 p-3 bg-[var(--accent-light)] border border-[var(--accent)] rounded-[6px] flex-wrap">
-          <span className="text-xs font-semibold text-[var(--accent)]">
+        <div className="flex items-center gap-3 p-3 bg-[var(--accent-light)] border border-[var(--accent)] rounded-[4px] flex-wrap text-xs">
+          <span className="font-semibold text-[var(--accent)]">
             {selected.size} selected
           </span>
           <div className="flex items-center gap-2 flex-1 flex-wrap">
             <select
               value={bulkGroupId}
               onChange={e => setBulkGroupId(e.target.value)}
-              className="register-input text-xs flex-1 min-w-40"
+              className="px-2.5 py-1.5 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--ink)] flex-1 min-w-40 cursor-pointer"
             >
               <option value="">— Assign to pay group —</option>
               {payGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -168,104 +297,40 @@ export const EmployeeSalariesTab: React.FC = () => {
             <button
               onClick={handleBulkAssign}
               disabled={!bulkGroupId || bulkSaving}
-              className="btn-primary text-xs flex items-center gap-1"
+              className="btn-primary text-xs flex items-center gap-1 cursor-pointer py-1.5 px-3"
             >
               <Check size={12} /> {bulkSaving ? 'Saving...' : 'Assign'}
             </button>
             <button
               onClick={handleBulkUnassign}
               disabled={bulkSaving}
-              className="btn-outline text-xs flex items-center gap-1 text-[var(--danger)] border-[var(--danger)] hover:bg-[var(--danger-light)]"
+              className="btn-outline text-xs flex items-center gap-1 text-[var(--danger)] border-[var(--danger)] hover:bg-[var(--danger-light)] cursor-pointer py-1.5 px-3"
             >
               <UserX size={12} /> Remove from Group
             </button>
           </div>
-          <button onClick={() => setSelected(new Set())} className="text-[var(--ink-muted)] hover:text-[var(--ink)]">
+          <button onClick={() => setSelected(new Set())} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
             <X size={15} />
           </button>
         </div>
       )}
 
-      {/* Table */}
-      {loading ? (
-        <div className="h-32 flex items-center justify-center text-[var(--ink-muted)] text-sm">Loading...</div>
-      ) : (
-        <div className="rounded-[4px] border border-[var(--rule)] overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-[var(--surface-sunken)] border-b border-[var(--rule)]">
-              <tr>
-                <th className="px-3 py-2.5 w-8">
-                  <input type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded" />
-                </th>
-                <th className="px-3 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Employee</th>
-                <th className="px-3 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Department</th>
-                <th className="px-3 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Pay Group</th>
-                <th className="px-3 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Annual CTC</th>
-                <th className="px-3 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Monthly</th>
-                <th className="px-3 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Template</th>
-                <th className="px-3 py-2.5 text-right text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--rule)]">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-[var(--ink-muted)] text-sm">
-                    No employees found.
-                  </td>
-                </tr>
-              ) : filtered.map(row => (
-                <tr key={row.employeeId} className={`bg-[var(--paper)] hover:bg-[var(--surface-sunken)] transition-colors ${selected.has(row.employeeId) ? 'bg-[var(--accent-light)]' : ''}`}>
-                  <td className="px-3 py-2.5">
-                    <input type="checkbox" checked={selected.has(row.employeeId)} onChange={() => toggleOne(row.employeeId)} className="rounded" />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <p className="font-semibold text-[var(--ink)] text-xs">{row.employeeName}</p>
-                    {row.employeeCode && <p className="text-[10px] font-mono text-[var(--ink-muted)]">{row.employeeCode}</p>}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-[var(--ink-muted)]">
-                    {row.department ?? '—'}
-                    {row.designation && <p className="text-[10px]">{row.designation}</p>}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {row.payGroupName ? (
-                      <span className="text-xs font-medium text-[var(--ink)]">
-                        {row.payGroupName}
-                        {row.payGroupBasis && <span className="text-[10px] text-[var(--ink-muted)] block">{BASIS_LABELS[row.payGroupBasis] ?? row.payGroupBasis}</span>}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded-[3px] bg-[var(--warning-light)] text-[var(--warning)] font-semibold">Not assigned</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {row.annualCTC != null ? (
-                      <span className="text-xs font-semibold text-[var(--ink)] font-mono">₹{fmt(row.annualCTC)}</span>
-                    ) : (
-                      <span className="text-[11px] px-1.5 py-0.5 rounded-[3px] bg-[var(--warning-light)] text-[var(--warning)] font-semibold">Not set</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs font-mono text-[var(--ink-muted)]">
-                    {row.monthlyCTC != null ? `₹${fmt(row.monthlyCTC)}` : '—'}
-                  </td>
-                  <td className="px-3 py-2.5 text-xs text-[var(--ink-muted)]">
-                    {row.templateName ?? '—'}
-                    {row.ctcEffectiveFrom && <p className="text-[10px]">from {row.ctcEffectiveFrom}</p>}
-                  </td>
-                  <td className="px-3 py-2.5 text-right">
-                    <Link
-                      to={`/employees/${row.publicId}?tab=payroll`}
-                      className="text-xs text-[var(--accent)] hover:underline flex items-center gap-1 ml-auto font-medium w-fit"
-                      title="Open employee payroll tab"
-                    >
-                      <ExternalLink size={11} />
-                      {row.annualCTC != null ? 'Revise' : 'Set CTC'}
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* Reusable DataTable with Pagination */}
+      <DataTable
+        columns={columns}
+        data={paginatedRows}
+        loading={loading}
+        showSrNo={false}
+        emptyMessage="No employees found matching the filter criteria."
+        pagination={{
+          page,
+          pageSize,
+          totalCount: filtered.length,
+          totalPages: Math.ceil(filtered.length / pageSize) || 1,
+          onPageChange: setPage,
+          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+        }}
+      />
     </div>
   );
 };

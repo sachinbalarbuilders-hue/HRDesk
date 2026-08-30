@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { Plus, Pencil, Trash2, X, Layers } from 'lucide-react';
+import { Plus, Pencil, X, Check, Minus } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
-import { ArchiveToggle, type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
+import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
+import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
+import { DataToolbar } from '../../components/ui/DataToolbar';
 
 interface SalaryComponent {
   id: number;
@@ -24,10 +26,22 @@ const COMPONENT_TYPES = ['Earning', 'Deduction', 'Informational'];
 const CATEGORIES = ['Basic', 'Allowance', 'Statutory', 'Reimbursement', 'Bonus', 'Other'];
 
 const TYPE_COLORS: Record<string, string> = {
-  Earning: 'bg-[var(--success-light)] text-[var(--success)]',
-  Deduction: 'bg-[var(--danger-light)] text-[var(--danger)]',
-  Informational: 'bg-[var(--info-light)] text-[var(--info)]',
+  Earning: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300',
+  Deduction: 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300',
+  Informational: 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300',
 };
+
+const Dot: React.FC<{ on: boolean }> = ({ on }) => (
+  <span
+    className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] ${
+      on
+        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold'
+        : 'bg-[var(--paper-subtle)] text-[var(--ink-muted)]'
+    }`}
+  >
+    {on ? <Check size={10} /> : <Minus size={10} />}
+  </span>
+);
 
 const emptyForm = {
   componentName: '',
@@ -50,7 +64,10 @@ export const SalaryComponentsTab: React.FC = () => {
   const [form, setForm] = useState<typeof emptyForm>({ ...emptyForm });
   const [saving, setSaving] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const fetchComponents = useCallback(async () => {
     try {
@@ -113,32 +130,10 @@ export const SalaryComponentsTab: React.FC = () => {
     }
   };
 
-  const handleToggleActive = async (c: SalaryComponent) => {
-    try {
-      await apiClient.post('/salary-templates/components', {
-        id: c.id,
-        componentName: c.componentName,
-        componentCode: c.componentCode,
-        componentType: c.componentType,
-        category: c.category,
-        isEpfApplicable: c.isEpfApplicable,
-        isEsiApplicable: c.isEsiApplicable,
-        isTaxable: c.isTaxable,
-        isActive: !c.isActive,
-        displayOrder: c.displayOrder,
-      });
-      showSuccess(c.isActive ? 'Component deactivated' : 'Component activated');
-      fetchComponents();
-    } catch {
-      showError('Failed to update component');
-    }
-  };
-
   const F = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(f => {
       const updated = { ...f, [name]: value };
-      // Auto-generate code from name if code hasn't been manually edited
       if (name === 'componentName' && !editId) {
         updated.componentCode = value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
       }
@@ -148,145 +143,213 @@ export const SalaryComponentsTab: React.FC = () => {
   const FC = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.checked }));
 
-  const filtered = typeFilter === 'all' ? components : components.filter(c => c.componentType === typeFilter);
-  const grouped = COMPONENT_TYPES.map(type => ({
-    type,
-    items: filtered.filter(c => c.componentType === type),
-  })).filter(g => g.items.length > 0);
+  const filtered = components.filter(c => {
+    const isAct = !isRowArchived(c);
+    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+    const matchesType = typeFilter === 'all' || c.componentType === typeFilter;
+    const s = search.trim().toLowerCase();
+    const matchesSearch = !s || c.componentName.toLowerCase().includes(s) || c.componentCode.toLowerCase().includes(s) || c.category.toLowerCase().includes(s);
+    return matchesArchive && matchesType && matchesSearch;
+  }).sort((a, b) => a.displayOrder - b.displayOrder);
+
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  const columns: ColumnDef<SalaryComponent>[] = [
+    {
+      key: 'displayOrder',
+      header: '#',
+      width: '45px',
+      align: 'center',
+      render: (c) => <span className="font-mono text-xs text-[var(--ink-muted)]">{c.displayOrder}</span>,
+    },
+    {
+      key: 'componentName',
+      header: 'Component',
+      render: (c) => (
+        <div>
+          <span className="font-semibold text-[var(--ink)] text-xs block">{c.componentName}</span>
+          <span className={`inline-block px-1.5 py-0.2 rounded-[2px] text-[9px] font-bold ${TYPE_COLORS[c.componentType]}`}>
+            {c.componentType}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'componentCode',
+      header: 'Code',
+      render: (c) => (
+        <code className="text-xs font-mono px-1.5 py-0.5 rounded bg-[var(--paper-subtle)] text-[var(--teal-600)]">
+          {c.componentCode}
+        </code>
+      ),
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      render: (c) => <span className="text-xs text-[var(--ink-muted)]">{c.category}</span>,
+    },
+    {
+      key: 'isEpfApplicable',
+      header: 'EPF',
+      align: 'center',
+      render: (c) => <Dot on={c.isEpfApplicable} />,
+    },
+    {
+      key: 'isEsiApplicable',
+      header: 'ESI',
+      align: 'center',
+      render: (c) => <Dot on={c.isEsiApplicable} />,
+    },
+    {
+      key: 'isTaxable',
+      header: 'Taxable',
+      align: 'center',
+      render: (c) => <Dot on={c.isTaxable} />,
+    },
+    {
+      key: 'isActive',
+      header: 'Status',
+      align: 'center',
+      render: (c) => (
+        <span
+          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] ${
+            c.isActive
+              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+              : 'bg-[var(--paper-subtle)] text-[var(--ink-muted)]'
+          }`}
+        >
+          {c.isActive ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (c) => (
+        <RowActionMenu
+          actions={[
+            { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(c) },
+            ...archive.rowActions({ id: c.id, name: c.componentName, isArchived: isRowArchived(c) }),
+          ] as RowAction[]}
+        />
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-bold text-[var(--ink)] font-ui">Salary Components</h2>
-          <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-            Define earnings, deductions, and informational items available in salary templates.
-          </p>
-        </div>
-        <button onClick={openCreate} className="btn-primary flex items-center gap-1.5 text-xs">
-          <Plus size={14} /> New Component
-        </button>
+      <div>
+        <h2 className="text-base font-bold text-[var(--ink)] font-ui">Salary Components</h2>
+        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+          Define earnings, deductions, and informational items available in salary templates.
+        </p>
       </div>
 
-      {/* Type filter */}
-      <div className="flex items-center gap-2">
-        {['all', ...COMPONENT_TYPES].map(t => (
-          <button
-            key={t}
-            onClick={() => setTypeFilter(t)}
-            className={`text-xs px-3 py-1 rounded-full font-medium transition-colors ${
-              typeFilter === t ? 'bg-[var(--brand)] text-white' : 'bg-[var(--surface-sunken)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
-            }`}
-          >
-            {t === 'all' ? 'All Types' : t}
-          </button>
-        ))}
-        <ArchiveToggle value={archiveFilter} onChange={setArchiveFilter} />
-      </div>
+      {/* Unified DataToolbar */}
+      <DataToolbar
+        searchValue={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Search component name, code, category..."
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+        }}
+        filters={[
+          {
+            id: 'typeFilter',
+            ariaLabel: 'Component Type Filter',
+            value: typeFilter,
+            onChange: (v) => { setTypeFilter(v); setPage(1); },
+            options: [
+              { value: 'all', label: 'All Types' },
+              ...COMPONENT_TYPES.map(t => ({ value: t, label: `${t}s` })),
+            ],
+          },
+        ]}
+        primaryAction={{
+          label: 'New Component',
+          icon: <Plus size={14} />,
+          onClick: openCreate,
+        }}
+      />
 
-      {loading ? (
-        <div className="h-32 flex items-center justify-center text-[var(--ink-muted)] text-sm">Loading...</div>
-      ) : components.length === 0 ? (
-        <div className="h-32 flex flex-col items-center justify-center text-[var(--ink-muted)] text-sm gap-2">
-          <Layers size={32} className="opacity-30" />
-          <span>No components yet. Create one to get started.</span>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {grouped.map(({ type, items }) => (
-            <div key={type}>
-              <p className="text-[11px] font-bold uppercase text-[var(--ink-muted)] mb-2 tracking-wider flex items-center gap-2">
-                <span className={`px-2 py-0.5 rounded-[3px] text-[10px] font-bold ${TYPE_COLORS[type]}`}>{type}s</span>
-              </p>
-              <div className="rounded-[4px] border border-[var(--rule)] overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-[var(--surface-sunken)] border-b border-[var(--rule)]">
-                    <tr>
-                      <th className="px-4 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui w-8">#</th>
-                      <th className="px-4 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Component</th>
-                      <th className="px-4 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Code</th>
-                      <th className="px-4 py-2.5 text-left text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Category</th>
-                      <th className="px-4 py-2.5 text-center text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">EPF</th>
-                      <th className="px-4 py-2.5 text-center text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">ESI</th>
-                      <th className="px-4 py-2.5 text-center text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Taxable</th>
-                      <th className="px-4 py-2.5 text-center text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui">Status</th>
-                      <th className="px-4 py-2.5 text-right text-[10px] uppercase font-bold text-[var(--ink-muted)] font-ui"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--rule)]">
-                    {items.sort((a, b) => a.displayOrder - b.displayOrder).map(c => (
-                      <tr key={c.id} className={`bg-[var(--paper)] hover:bg-[var(--surface-sunken)] transition-colors ${!c.isActive ? 'opacity-40' : ''}`}>
-                        <td className="px-4 py-2.5 text-[11px] text-[var(--ink-muted)] font-mono">{c.displayOrder}</td>
-                        <td className="px-4 py-2.5">
-                          <span className="font-semibold text-[var(--ink)] text-xs">{c.componentName}</span>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <code className="text-[11px] font-mono bg-[var(--surface-sunken)] px-1.5 py-0.5 rounded text-[var(--teal-600)]">{c.componentCode}</code>
-                        </td>
-                        <td className="px-4 py-2.5 text-xs text-[var(--ink-muted)]">{c.category}</td>
-                        <td className="px-4 py-2.5 text-center">
-                          <Dot on={c.isEpfApplicable} />
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <Dot on={c.isEsiApplicable} />
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <Dot on={c.isTaxable} />
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[3px] ${c.isActive ? 'bg-[var(--success-light)] text-[var(--success)]' : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'}`}>
-                            {c.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <RowActionMenu actions={[
-                            { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(c) },
-                            ...archive.rowActions({ id: c.id, name: c.componentName, isArchived: isRowArchived(c) })
-                          ] as RowAction[]} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Reusable DataTable with Pagination */}
+      <DataTable
+        columns={columns}
+        data={paginated}
+        loading={loading}
+        showSrNo={false}
+        emptyMessage="No salary components found matching your filter criteria."
+        pagination={{
+          page,
+          pageSize,
+          totalCount: filtered.length,
+          totalPages: Math.ceil(filtered.length / pageSize) || 1,
+          onPageChange: setPage,
+          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+        }}
+      />
 
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[var(--paper)] rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-[var(--rule)]">
-              <h3 className="font-bold text-[var(--ink)] font-ui">{editId ? 'Edit Component' : 'New Salary Component'}</h3>
-              <button onClick={() => setModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)]"><X size={18} /></button>
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--rule)]">
+              <h3 className="font-bold text-sm text-[var(--ink)] font-ui">{editId ? 'Edit Component' : 'New Salary Component'}</h3>
+              <button onClick={() => setModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <X size={16} />
+              </button>
             </div>
-            <form onSubmit={handleSave} className="p-5 space-y-4">
+            <form onSubmit={handleSave} className="p-4 space-y-4 text-xs">
               {/* Name + Code */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="register-label">Component Name *</label>
-                  <input name="componentName" value={form.componentName} onChange={F} required placeholder="e.g. Travel Allowance" className="register-input w-full" />
+                  <label className="font-semibold text-[var(--ink)] block mb-1">Component Name *</label>
+                  <input
+                    name="componentName"
+                    value={form.componentName}
+                    onChange={F}
+                    required
+                    placeholder="e.g. Basic Salary, HRA"
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                  />
                 </div>
                 <div>
-                  <label className="register-label">Code <span className="text-[10px] text-[var(--ink-muted)] font-normal">(auto-generated, used in formulas)</span></label>
-                  <input name="componentCode" value={form.componentCode} onChange={F} required placeholder="AUTO" className="register-input w-full font-mono uppercase" />
+                  <label className="font-semibold text-[var(--ink)] block mb-1">Code * (UPPERCASE)</label>
+                  <input
+                    name="componentCode"
+                    value={form.componentCode}
+                    onChange={F}
+                    required
+                    placeholder="e.g. BASIC, HRA, PF"
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs font-mono text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)]"
+                  />
                 </div>
               </div>
 
               {/* Type + Category */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="register-label">Type *</label>
-                  <select name="componentType" value={form.componentType} onChange={F} className="register-input w-full">
+                  <label className="font-semibold text-[var(--ink)] block mb-1">Component Type</label>
+                  <select
+                    name="componentType"
+                    value={form.componentType}
+                    onChange={F}
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui cursor-pointer"
+                  >
                     {COMPONENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="register-label">Category</label>
-                  <select name="category" value={form.category} onChange={F} className="register-input w-full">
+                  <label className="font-semibold text-[var(--ink)] block mb-1">Category</label>
+                  <select
+                    name="category"
+                    value={form.category}
+                    onChange={F}
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui cursor-pointer"
+                  >
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
@@ -294,40 +357,52 @@ export const SalaryComponentsTab: React.FC = () => {
 
               {/* Display Order */}
               <div>
-                <label className="register-label">Display Order</label>
-                <input type="number" name="displayOrder" value={form.displayOrder} onChange={F} min={1} className="register-input w-full" />
-                <p className="text-[10px] text-[var(--ink-muted)] mt-0.5">Lower number = appears first in payslip (e.g. Basic = 1, HRA = 2)</p>
+                <label className="font-semibold text-[var(--ink)] block mb-1">Display Order (lower numbers appear first on payslip)</label>
+                <input
+                  type="number"
+                  name="displayOrder"
+                  value={form.displayOrder}
+                  onChange={F}
+                  min={1}
+                  max={999}
+                  className="w-24 px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                />
               </div>
 
-              {/* Flags */}
-              <div>
-                <label className="register-label">Applicability</label>
-                <div className="grid grid-cols-3 gap-2 mt-1">
-                  {[
-                    { name: 'isEpfApplicable', label: 'EPF Applicable', checked: form.isEpfApplicable },
-                    { name: 'isEsiApplicable', label: 'ESI Applicable', checked: form.isEsiApplicable },
-                    { name: 'isTaxable', label: 'Taxable', checked: form.isTaxable },
-                  ].map(({ name, label, checked }) => (
-                    <label key={name} className="flex items-center gap-2 p-2 border border-[var(--rule)] rounded-[4px] cursor-pointer hover:border-[var(--teal-500)] bg-[var(--surface-sunken)]">
-                      <input type="checkbox" name={name} checked={checked} onChange={FC} className="rounded" />
-                      <span className="text-xs font-medium text-[var(--ink)]">{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Active toggle (edit only) */}
-              {editId && (
+              {/* Checkboxes */}
+              <div className="space-y-2 border-t border-[var(--rule)] pt-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="isTaxable" checked={form.isTaxable} onChange={FC} className="rounded" />
+                  <span className="text-[var(--ink)] font-medium">Taxable (included in income tax calculation)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="isEpfApplicable" checked={form.isEpfApplicable} onChange={FC} className="rounded" />
+                  <span className="text-[var(--ink)] font-medium">EPF Qualifying (included in PF wage for 12% calculation)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="isEsiApplicable" checked={form.isEsiApplicable} onChange={FC} className="rounded" />
+                  <span className="text-[var(--ink)] font-medium">ESI Qualifying (included in gross wages for ESI threshold)</span>
+                </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" name="isActive" checked={form.isActive} onChange={FC} className="rounded" />
-                  <span className="text-xs font-medium text-[var(--ink)]">Active</span>
+                  <span className="text-[var(--ink)] font-medium">Active (available for selection in salary templates)</span>
                 </label>
-              )}
+              </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setModalOpen(false)} className="btn-outline text-xs">Cancel</button>
-                <button type="submit" disabled={saving} className="btn-primary text-xs">
-                  {saving ? 'Saving...' : editId ? 'Update' : 'Create'}
+              <div className="flex justify-end gap-2 pt-3 border-t border-[var(--rule)]">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="btn-outline text-xs py-1.5 px-3 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary text-xs py-1.5 px-4 cursor-pointer"
+                >
+                  {saving ? 'Saving...' : editId ? 'Update Component' : 'Create Component'}
                 </button>
               </div>
             </form>
@@ -338,8 +413,3 @@ export const SalaryComponentsTab: React.FC = () => {
     </div>
   );
 };
-
-// Small dot indicator
-const Dot: React.FC<{ on: boolean }> = ({ on }) => (
-  <span className={`inline-block w-2 h-2 rounded-full ${on ? 'bg-[var(--success)]' : 'bg-[var(--rule)]'}`} />
-);

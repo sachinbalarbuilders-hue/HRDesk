@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
-import { ArchiveToggle, type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
+import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
+import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
+import { DataToolbar } from '../../components/ui/DataToolbar';
 import {
-  Users, Plus, Pencil, Trash2, X, CheckCircle2, MapPin, ChevronDown, ChevronRight,
+  Users, Plus, Pencil, X, MapPin, ChevronDown, ChevronRight,
 } from 'lucide-react';
 
 interface PayGroup {
@@ -62,8 +64,11 @@ export const PayGroupsTab: React.FC = () => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [groupEmployees, setGroupEmployees] = useState<any[]>([]);
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     try {
       setLoading(true);
       const [grpRes, tplRes] = await Promise.all([
@@ -74,9 +79,10 @@ export const PayGroupsTab: React.FC = () => {
       setTemplates(tplRes.data || []);
     } catch { showError('Failed to load pay groups'); }
     finally { setLoading(false); }
-  };
+  }, [archiveFilter]);
 
-  useEffect(() => { fetchGroups(); }, [archiveFilter]);
+  useEffect(() => { fetchGroups(); }, [fetchGroups]);
+
   const openCreate = () => { setEditId(null); setForm({ ...emptyForm }); setModalOpen(true); };
   const openEdit = (g: PayGroup) => {
     setEditId(g.id);
@@ -90,7 +96,6 @@ export const PayGroupsTab: React.FC = () => {
     setModalOpen(true);
   };
 
-  // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
   const payGroupArchive = useArchiveActions({
     endpoint: '/pay-groups',
     label: 'Pay Group',
@@ -133,191 +138,288 @@ export const PayGroupsTab: React.FC = () => {
   const FC = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [e.target.name]: e.target.checked }));
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-bold text-[var(--ink)] font-ui">Pay Groups</h2>
-          <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-            Configure salary calculation basis, statutory deduction applicability, and link templates.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ArchiveToggle value={archiveFilter} onChange={setArchiveFilter} />
-          <button onClick={openCreate} className="btn-primary flex items-center gap-1.5 text-xs">
-            <Plus size={14} /> New Pay Group
+  const filteredGroups = groups.filter(g => {
+    const isAct = !isRowArchived(g);
+    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+    const s = search.trim().toLowerCase();
+    const matchesSearch = !s || g.name.toLowerCase().includes(s) || (g.description && g.description.toLowerCase().includes(s));
+    return matchesArchive && matchesSearch;
+  });
+
+  const paginatedGroups = filteredGroups.slice((page - 1) * pageSize, page * pageSize);
+
+  const columns: ColumnDef<PayGroup>[] = [
+    {
+      key: 'name',
+      header: 'Group Name',
+      render: (g: PayGroup) => (
+        <div className="flex items-start gap-2">
+          <button
+            onClick={() => toggleExpand(g.id)}
+            className="text-[var(--ink-muted)] hover:text-[var(--ink)] mt-0.5 cursor-pointer"
+            title="Toggle employee list"
+          >
+            {expandedId === g.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
+          <div>
+            <p className="font-semibold text-[var(--ink)] text-xs">{g.name}</p>
+            {g.description && <p className="text-[10px] text-[var(--ink-muted)]">{g.description}</p>}
+          </div>
         </div>
+      ),
+    },
+    {
+      key: 'salaryBasis',
+      header: 'Salary Basis',
+      render: (g: PayGroup) => (
+        <span className="text-xs font-medium text-[var(--ink)]">
+          {BASIS_LABELS[g.salaryBasis] ?? g.salaryBasis}
+        </span>
+      ),
+    },
+    {
+      key: 'statutoryRules',
+      header: 'Statutory Rules',
+      render: (g: PayGroup) => (
+        <div className="flex gap-1.5 flex-wrap items-center">
+          {[['PF', g.pfApplicable], ['ESI', g.esiApplicable], ['PT', g.ptApplicable]].map(([lbl, on]) => (
+            <span
+              key={lbl as string}
+              className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] ${
+                on
+                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-[var(--paper-subtle)] text-[var(--ink-muted)]'
+              }`}
+            >
+              {lbl as string}
+            </span>
+          ))}
+          {g.ptApplicable && g.ptState && (
+            <span className="text-[10px] text-[var(--ink-muted)] flex items-center gap-0.5">
+              <MapPin size={9} />{g.ptState}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'template',
+      header: 'Salary Template',
+      render: (g: PayGroup) => (
+        <span className="text-xs text-[var(--ink-muted)]">
+          {g.templateName ?? <span className="italic">None</span>}
+        </span>
+      ),
+    },
+    {
+      key: 'employeeCount',
+      header: 'Employees',
+      align: 'center',
+      render: (g: PayGroup) => (
+        <span className="text-xs font-semibold text-[var(--ink)] font-data">{g.employeeCount}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (g: PayGroup) => (
+        <RowActionMenu
+          actions={[
+            { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(g) },
+            ...payGroupArchive.rowActions({ id: g.id, name: g.name, isArchived: isRowArchived(g) }),
+          ] as RowAction[]}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div>
+        <h2 className="text-base font-bold text-[var(--ink)] font-ui">Pay Groups</h2>
+        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+          Configure salary calculation basis, statutory deduction applicability, and link templates.
+        </p>
       </div>
 
-      {/* Group list */}
-      {loading ? (
-        <div className="h-32 flex items-center justify-center text-[var(--ink-muted)] text-sm">Loading...</div>
-      ) : groups.length === 0 ? (
-        <div className="border border-dashed border-[var(--rule)] rounded-[6px] p-8 text-center bg-[var(--paper)]">
-          <Users size={32} className="mx-auto text-[var(--ink-muted)] mb-2" />
-          <p className="font-semibold text-sm text-[var(--ink)]">No Pay Groups</p>
-          <p className="text-xs text-[var(--ink-muted)] mt-1">Create your first pay group to start configuring salary structures.</p>
-          <button onClick={openCreate} className="btn-primary mt-3 text-xs inline-flex items-center gap-1">
-            <Plus size={13} /> Create Pay Group
-          </button>
-        </div>
-      ) : (
-        <div className="border border-[var(--rule)] rounded-[6px] overflow-hidden">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] text-[10px] uppercase text-[var(--ink-muted)] font-bold text-left">
-                <th className="px-4 py-2.5">Group Name</th>
-                <th className="px-4 py-2.5">Salary Basis</th>
-                <th className="px-4 py-2.5">Statutory Rules</th>
-                <th className="px-4 py-2.5">Salary Template</th>
-                <th className="px-4 py-2.5">Employees</th>
-                <th className="px-4 py-2.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--rule)]">
-              {groups.map(g => (
-                <React.Fragment key={g.id}>
-                  <tr className={`bg-[var(--paper)] hover:bg-[var(--surface-sunken)] transition-colors ${!g.isActive ? 'opacity-50' : ''}`}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => toggleExpand(g.id)} className="text-[var(--ink-muted)] hover:text-[var(--ink)]">
-                          {expandedId === g.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        </button>
-                        <div>
-                          <p className="font-semibold text-[var(--ink)]">{g.name}</p>
-                          {g.description && <p className="text-[11px] text-[var(--ink-muted)]">{g.description}</p>}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-medium text-[var(--ink)]">{BASIS_LABELS[g.salaryBasis] ?? g.salaryBasis}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1.5 flex-wrap">
-                        {[['PF', g.pfApplicable], ['ESI', g.esiApplicable], ['PT', g.ptApplicable]].map(([lbl, on]) => (
-                          <span key={lbl as string} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[3px] ${on ? 'bg-[var(--success-light)] text-[var(--success)]' : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'}`}>
-                            {lbl as string}
-                          </span>
-                        ))}
-                        {g.ptApplicable && g.ptState && (
-                          <span className="text-[10px] text-[var(--ink-muted)] flex items-center gap-0.5">
-                            <MapPin size={9} />{g.ptState}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-[var(--ink-muted)]">
-                      {g.templateName ?? <span className="italic">None</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-semibold text-[var(--ink)]">{g.employeeCount}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <RowActionMenu actions={[
-                        { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(g) },
-                        ...payGroupArchive.rowActions({ id: g.id, name: g.name, isArchived: isRowArchived(g) })
-                      ] as RowAction[]} />
-                    </td>
-                  </tr>
-                  {expandedId === g.id && (
-                    <tr className="bg-[var(--surface-sunken)]">
-                      <td colSpan={6} className="px-8 py-3">
-                        {groupEmployees.length === 0 ? (
-                          <p className="text-xs text-[var(--ink-muted)]">No employees in this group yet.</p>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {groupEmployees.map((emp: any) => (
-                              <span key={emp.employeeId} className="text-xs bg-[var(--paper)] border border-[var(--rule)] px-2 py-1 rounded-[4px] text-[var(--ink)]">
-                                {emp.employeeName} {emp.designation ? `· ${emp.designation}` : ''}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
+      {/* Unified DataToolbar */}
+      <DataToolbar
+        searchValue={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+        searchPlaceholder="Search pay groups..."
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+        }}
+        primaryAction={{
+          label: 'New Pay Group',
+          icon: <Plus size={14} />,
+          onClick: openCreate,
+        }}
+      />
+
+      {/* Reusable DataTable with standard Pagination */}
+      <DataTable
+        columns={columns}
+        data={paginatedGroups}
+        loading={loading}
+        emptyMessage="No pay groups found. Click 'New Pay Group' to create one."
+        pagination={{
+          page,
+          pageSize,
+          totalCount: filteredGroups.length,
+          totalPages: Math.ceil(filteredGroups.length / pageSize) || 1,
+          onPageChange: setPage,
+          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+        }}
+      />
+
+      {/* Expanded Employees Drawer */}
+      {expandedId && (
+        <div className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] space-y-2">
+          <div className="flex items-center justify-between border-b border-[var(--rule)] pb-2">
+            <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
+              <Users size={13} className="text-[var(--gold-500)]" />
+              Assigned Employees in Pay Group ({groupEmployees.length})
+            </span>
+            <button
+              onClick={() => setExpandedId(null)}
+              className="text-[var(--ink-muted)] hover:text-[var(--ink)] text-xs cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
+          {groupEmployees.length === 0 ? (
+            <p className="text-xs text-[var(--ink-muted)] py-2 italic">No employees assigned to this pay group yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto py-1">
+              {groupEmployees.map((emp: any) => (
+                <span
+                  key={emp.employeeId}
+                  className="text-xs bg-[var(--paper)] border border-[var(--rule)] px-2.5 py-1 rounded-[2px] text-[var(--ink)]"
+                >
+                  {emp.employeeName} {emp.designation ? `· ${emp.designation}` : ''}
+                </span>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
       )}
 
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[var(--paper)] rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-[var(--rule)]">
-              <h3 className="font-bold text-[var(--ink)] font-ui">{editId ? 'Edit Pay Group' : 'New Pay Group'}</h3>
-              <button onClick={() => setModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)]"><X size={18} /></button>
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--rule)]">
+              <h3 className="font-bold text-sm text-[var(--ink)]">
+                {editId ? 'Edit Pay Group' : 'New Pay Group'}
+              </h3>
+              <button onClick={() => setModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <X size={16} />
+              </button>
             </div>
-            <form onSubmit={handleSave} className="p-5 space-y-4">
-              {/* Name */}
+            <form onSubmit={handleSave} className="p-4 space-y-4 text-xs">
               <div>
-                <label className="register-label">Group Name *</label>
-                <input name="name" value={form.name} onChange={F} required placeholder="e.g. Management Staff" className="register-input w-full" />
-              </div>
-              <div>
-                <label className="register-label">Description</label>
-                <textarea name="description" value={form.description} onChange={F} rows={2} placeholder="Brief description" className="register-input w-full" />
+                <label className="font-semibold text-[var(--ink)] block mb-1">Group Name *</label>
+                <input
+                  name="name"
+                  value={form.name}
+                  onChange={F}
+                  required
+                  placeholder="e.g. Corporate Staff, Factory Workers"
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                />
               </div>
 
-              {/* Salary Basis */}
               <div>
-                <label className="register-label">Salary Calculation Basis</label>
-                <select name="salaryBasis" value={form.salaryBasis} onChange={F} className="register-input w-full">
-                  {Object.entries(BASIS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                <label className="font-semibold text-[var(--ink)] block mb-1">Description</label>
+                <input
+                  name="description"
+                  value={form.description}
+                  onChange={F}
+                  placeholder="Optional notes"
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-[var(--ink)] block mb-1">Salary Calculation Basis</label>
+                <select
+                  name="salaryBasis"
+                  value={form.salaryBasis}
+                  onChange={F}
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui cursor-pointer"
+                >
+                  {Object.entries(BASIS_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
                 </select>
               </div>
 
-              {/* Template */}
               <div>
-                <label className="register-label">Default Salary Structure Template</label>
-                <select name="templateId" value={form.templateId} onChange={F} className="register-input w-full">
-                  <option value="">— None —</option>
+                <label className="font-semibold text-[var(--ink)] block mb-1">Salary Structure Template</label>
+                <select
+                  name="templateId"
+                  value={form.templateId}
+                  onChange={F}
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui cursor-pointer"
+                >
+                  <option value="">— None (manual components) —</option>
                   {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </div>
 
-              {/* Statutory */}
-              <div className="space-y-2">
-                <label className="register-label">Statutory Deductions</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { name: 'pfApplicable', label: 'Provident Fund (PF)', checked: form.pfApplicable },
-                    { name: 'esiApplicable', label: 'ESI', checked: form.esiApplicable },
-                    { name: 'ptApplicable', label: 'Professional Tax (PT)', checked: form.ptApplicable },
-                  ].map(({ name, label, checked }) => (
-                    <label key={name} className="flex items-center gap-2 p-2 border border-[var(--rule)] rounded-[4px] cursor-pointer hover:border-[var(--teal-500)] bg-[var(--surface-sunken)]">
-                      <input type="checkbox" name={name} checked={checked} onChange={FC} className="rounded" />
-                      <span className="text-xs font-medium text-[var(--ink)]">{label}</span>
-                    </label>
-                  ))}
-                </div>
+              <div className="space-y-2 border-t border-[var(--rule)] pt-3">
+                <p className="font-bold text-[var(--ink)] text-[11px] uppercase tracking-wider">Statutory Deductions</p>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="pfApplicable" checked={form.pfApplicable} onChange={FC} className="rounded" />
+                  <span className="text-[var(--ink)] font-medium">EPF Applicable (12% employee + 12% employer)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="esiApplicable" checked={form.esiApplicable} onChange={FC} className="rounded" />
+                  <span className="text-[var(--ink)] font-medium">ESI Applicable (0.75% emp + 3.25% employer)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="ptApplicable" checked={form.ptApplicable} onChange={FC} className="rounded" />
+                  <span className="text-[var(--ink)] font-medium">Professional Tax (PT) Applicable</span>
+                </label>
                 {form.ptApplicable && (
-                  <div>
-                    <label className="register-label">PT State</label>
-                    <select name="ptState" value={form.ptState} onChange={F} className="register-input w-full">
+                  <div className="pl-6 pt-1">
+                    <label className="text-[var(--ink-muted)] block mb-1 text-[11px]">PT State Slabs</label>
+                    <select
+                      name="ptState"
+                      value={form.ptState}
+                      onChange={F}
+                      className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui cursor-pointer"
+                    >
                       {STATES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setModalOpen(false)} className="btn-outline text-xs">Cancel</button>
-                <button type="submit" disabled={saving} className="btn-primary text-xs">
-                  {saving ? 'Saving...' : editId ? 'Update' : 'Create'}
+              <div className="flex justify-end gap-2 pt-3 border-t border-[var(--rule)]">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="btn-outline text-xs py-1.5 px-3 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary text-xs py-1.5 px-4 cursor-pointer"
+                >
+                  {saving ? 'Saving...' : editId ? 'Update Group' : 'Create Group'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
       {payGroupArchive.dialog}
     </div>
   );
