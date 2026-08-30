@@ -111,7 +111,7 @@ public static class AppPermissions
 
         new(Keys.EmployeesCreate, "Create Scope", Modules.Employees, "Add new employees to the organization", 
             SupportsScope: true, 
-            ScopeOptions: new[] { "Reporting To", "Own Department", "Own Branch" },
+            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
         new(Keys.EmployeesEdit, "Edit Scope", Modules.Employees, "Update employee personal and job details", 
