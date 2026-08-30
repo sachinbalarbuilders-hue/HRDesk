@@ -29,6 +29,7 @@ import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
+import { DataTable, type ColumnDef } from '../components/ui/DataTable';
 import { AuthImage } from '../components/ui/AuthImage';
 
 const formatDate = (dateStr: string | null | undefined) => {
@@ -56,6 +57,7 @@ export const Employees: React.FC = () => {
   const [pageSize, setPageSize] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   // Modals
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -257,6 +259,114 @@ export const Employees: React.FC = () => {
   const canCreate = isAdmin || hasPermission('Employees.Create');
   const canEdit = isAdmin || hasPermission('Employees.Edit');
 
+  const columns: ColumnDef<any>[] = [
+    {
+      key: 'photo',
+      header: 'Photo',
+      width: '45px',
+      align: 'center',
+      render: (emp) => (
+        <div className="w-7 h-7 mx-auto rounded-full overflow-hidden flex items-center justify-center bg-[var(--paper)] border border-[var(--rule)] shrink-0">
+          {emp.photoPath ? (
+            <AuthImage
+              src={`/Thumbnail?employeeId=${emp.employeeId}`}
+              alt={emp.employeeName}
+              className="w-full h-full aspect-square object-cover"
+              fallbackInitial={emp.employeeName?.charAt(0) || 'E'}
+              fallbackClassName="w-full h-full text-[10px] flex items-center justify-center bg-[var(--navy-900)] text-[var(--gold-500)] font-bold"
+            />
+          ) : (
+            <div className="w-full h-full bg-[var(--navy-900)] text-[var(--gold-500)] font-bold flex items-center justify-center text-[10px]">
+              {emp.employeeName?.charAt(0) || 'E'}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'employeeName',
+      header: 'Employee Name',
+      render: (emp) => (
+        <button
+          type="button"
+          onClick={() => handleRowClick(emp)}
+          className="font-semibold text-[var(--ink)] hover:text-[var(--gold-600)] hover:underline text-left cursor-pointer"
+        >
+          {emp.employeeName}
+        </button>
+      ),
+    },
+    {
+      key: 'employeeCode',
+      header: 'Employee ID',
+      render: (emp) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] bg-[var(--paper)] border border-[var(--rule)] font-mono text-[11px] font-bold text-[var(--gold-600)] shadow-2xs">
+          {emp.employeeCode || `EMP#${String(emp.employeeId).padStart(3, '0')}`}
+        </span>
+      ),
+    },
+    {
+      key: 'department',
+      header: 'Department',
+      render: (emp) => <span className="text-xs text-[var(--ink)]">{emp.department || '—'}</span>,
+    },
+    {
+      key: 'designation',
+      header: 'Designation',
+      render: (emp) => <span className="text-xs text-[var(--ink-muted)]">{emp.designation || '—'}</span>,
+    },
+    {
+      key: 'reportingManager',
+      header: 'Reporting Manager',
+      render: (emp) => <span className="text-xs text-[var(--ink-muted)]">{emp.reportingManager || '—'}</span>,
+    },
+    {
+      key: 'joiningDate',
+      header: 'Joining Date',
+      align: 'center',
+      render: (emp) => <span className="font-mono text-xs text-[var(--ink-muted)]">{formatDate(emp.joiningDate)}</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      render: (emp) => {
+        const isActive = emp.status?.toLowerCase() === 'active';
+        return (
+          <span className="inline-flex items-center gap-1.5 justify-center text-xs">
+            <span className={isActive ? 'status-dot-ok' : 'status-dot-err'} />
+            <span className={isActive ? 'text-[var(--ok-600)] font-medium' : 'text-[var(--err-600)]'}>
+              {emp.status}
+            </span>
+          </span>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (emp) => {
+        const isActive = emp.status?.toLowerCase() === 'active';
+        return (
+          <RowActionMenu
+            actions={[
+              { label: 'View', icon: <Eye size={14} />, onClick: () => navigate(`/employees/${emp.publicId}`) },
+              ...(canEdit ? [
+                { label: 'Edit', icon: <Pencil size={14} />, onClick: () => navigate(`/employees/${emp.publicId}/edit`) },
+              ] : []),
+              ...(canEdit ? employeeArchive.rowActions({
+                id: emp.publicId,
+                name: emp.employeeName,
+                isArchived: isRowArchived(emp) || !isActive,
+              }) : []),
+            ] as RowAction[]}
+          />
+        );
+      },
+    },
+  ];
+
   return (
     <PageContainer>
       <PageHeader title="Employee Directory" description="Manage your organization's workforce" />
@@ -343,127 +453,31 @@ export const Employees: React.FC = () => {
         }
       />
 
-      {/* 3. Primary Table: Ruled Ledger Table */}
-      <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
-        <div className="overflow-x-auto">
-          <table className="register-table">
-            <thead>
-              <tr>
-                <th className="w-12 text-center font-mono text-xs uppercase text-[var(--ink-muted)]">Sr.</th>
-                <th className="w-10 text-center">Photo</th>
-                <th>Employee Name</th>
-                <th>Employee ID</th>
-                <th>Department</th>
-                <th>Designation</th>
-                <th>Reporting Manager</th>
-                <th className="text-right">Joining Date</th>
-                <th className="text-center">Status</th>
-                <th className="text-right w-16">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={10} className="p-0">
-                    <TableSkeleton rows={8} />
-                  </td>
-                </tr>
-              ) : employees.map((emp, index) => {
-                const isActive = emp.status?.toLowerCase() === 'active';
-                const srNo = (page - 1) * pageSize + index + 1;
-
-                return (
-                  <tr
-                    key={emp.employeeId}
-                    onClick={() => handleRowClick(emp)}
-                    className="cursor-pointer"
-                  >
-                    <td className="text-center font-mono text-xs text-[var(--ink-muted)] w-12">
-                      {srNo}
-                    </td>
-                    <td className="text-center font-data text-xs text-[var(--ink-muted)] w-10">
-                      <div className="w-7 h-7 mx-auto rounded-full overflow-hidden flex items-center justify-center bg-[var(--paper)] border border-[var(--rule)] shrink-0">
-                        {emp.photoPath ? (
-                          <AuthImage 
-                            src={`/Thumbnail?employeeId=${emp.employeeId}`} 
-                            alt={emp.employeeName} 
-                            className="w-full h-full aspect-square object-cover" 
-                            fallbackInitial={emp.employeeName.charAt(0)}
-                            fallbackClassName="w-full h-full text-[10px] flex items-center justify-center bg-[var(--navy-900)] text-[var(--gold-500)] font-bold"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-[var(--navy-900)] text-[var(--gold-500)] font-bold flex items-center justify-center text-[10px]">
-                            {emp.employeeName.charAt(0)}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="font-semibold text-[var(--ink)]">
-                      {emp.employeeName}
-                    </td>
-                    <td className="font-data text-xs">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] bg-[var(--paper)] border border-[var(--rule)] font-mono text-[11px] font-bold text-[var(--gold-600)] shadow-2xs">
-                        {emp.employeeCode || `EMP#${String(emp.employeeId).padStart(3, '0')}`}
-                      </span>
-                    </td>
-                    <td className="text-xs text-[var(--ink)]">
-                      {emp.department || '-'}
-                    </td>
-                    <td className="text-xs text-[var(--ink-muted)]">
-                      {emp.designation || '-'}
-                    </td>
-                    <td className="text-xs text-[var(--ink-muted)]">
-                      {emp.reportingManager || '-'}
-                    </td>
-                    <td className="text-center font-data text-xs text-[var(--ink-muted)]">
-                      {formatDate(emp.joiningDate)}
-                    </td>
-                    <td className="text-center text-xs">
-                      <span className="inline-flex items-center gap-1.5 justify-center">
-                        <span className={isActive ? 'status-dot-ok' : 'status-dot-err'} />
-                        <span className={isActive ? 'text-[var(--ok-600)]' : 'text-[var(--err-600)]'}>
-                          {emp.status}
-                        </span>
-                      </span>
-                    </td>
-                    <td className="text-right">
-                      <RowActionMenu actions={[
-                        { label: 'View', icon: <Eye size={14} />, onClick: () => navigate(`/employees/${emp.publicId}`) },
-                        ...(canEdit ? [
-                          { label: 'Edit', icon: <Pencil size={14} />, onClick: () => navigate(`/employees/${emp.publicId}/edit`) },
-                        ] : []),
-                        ...(canEdit ? employeeArchive.rowActions({
-                          id: emp.publicId,
-                          name: emp.employeeName,
-                          isArchived: isRowArchived(emp) || !isActive,
-                        }) : []),
-                      ] as RowAction[]} />
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {employees.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={10} className="py-12 text-center text-xs font-data text-[var(--ink-muted)]">
-                    No employees found matching search criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <PaginationToolbar
-          page={page}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          totalPages={totalPages}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-          pageSizeOptions={[10, 20, 50, 100]}
-        />
-      </div>
+      {/* 3. Primary DataTable with Multi-Selection & Bulk Actions */}
+      <DataTable
+        columns={columns}
+        data={employees}
+        loading={loading}
+        keyExtractor={(emp) => emp.publicId || emp.employeeId}
+        selection={
+          canEdit
+            ? {
+                selectedRowKeys: selectedIds,
+                onChange: (keys) => setSelectedIds(keys),
+                bulkActions: employeeArchive.bulkActions(archiveFilter === 'archived'),
+              }
+            : undefined
+        }
+        emptyMessage="No employees found matching search criteria."
+        pagination={{
+          page,
+          pageSize,
+          totalCount,
+          totalPages,
+          onPageChange: setPage,
+          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+        }}
+      />
 
       {/* 6. Bulk Import Modal */}
       <BulkImportModal

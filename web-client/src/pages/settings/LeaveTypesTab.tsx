@@ -247,6 +247,8 @@ export const LeaveTypesTab: React.FC = () => {
     },
   ];
 
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+
   return (
     <div className="space-y-4">
       <DataToolbar
@@ -289,12 +291,18 @@ export const LeaveTypesTab: React.FC = () => {
         columns={leaveColumns}
         data={paginatedLeaves}
         loading={loading}
+        keyExtractor={(l) => l.id}
+        selection={{
+          selectedRowKeys: selectedIds,
+          onChange: (keys) => setSelectedIds(keys),
+          bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
+        }}
         emptyMessage="No leave categories configured."
         pagination={{
           page,
           pageSize,
           totalCount: filteredLeaves.length,
-          totalPages: Math.ceil(filteredLeaves.length / pageSize),
+          totalPages: Math.ceil(filteredLeaves.length / pageSize) || 1,
           onPageChange: setPage,
           onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
         }}

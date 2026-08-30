@@ -178,6 +178,8 @@ export const DepartmentsTab: React.FC = () => {
     },
   ];
 
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+
   return (
     <div className="space-y-4">
       <DataToolbar
@@ -203,12 +205,18 @@ export const DepartmentsTab: React.FC = () => {
         columns={deptColumns}
         data={paginatedDepts}
         loading={loading}
+        keyExtractor={(d) => d.id}
+        selection={{
+          selectedRowKeys: selectedIds,
+          onChange: (keys) => setSelectedIds(keys),
+          bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
+        }}
         emptyMessage="No departments found matching your search."
         pagination={{
           page,
           pageSize,
           totalCount: filteredDepts.length,
-          totalPages: Math.ceil(filteredDepts.length / pageSize),
+          totalPages: Math.ceil(filteredDepts.length / pageSize) || 1,
           onPageChange: setPage,
           onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
         }}

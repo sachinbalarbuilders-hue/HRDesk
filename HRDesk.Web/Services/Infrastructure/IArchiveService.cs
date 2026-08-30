@@ -20,6 +20,12 @@ public sealed record ArchiveResult(bool Success, string Message, string? ErrorCo
     public const string NoOp = "NO_OP";
 }
 
+public sealed record BulkArchiveResult(int SuccessCount, int FailureCount, List<string> Messages)
+{
+    public bool AllSucceeded => FailureCount == 0;
+    public static BulkArchiveResult Create(int success, int failure, List<string> messages) => new(success, failure, messages);
+}
+
 /// <summary>
 /// THE single place archive / restore / permanent-delete logic lives.
 ///
@@ -67,6 +73,25 @@ public interface IArchiveService
     /// </param>
     Task<ArchiveResult> PermanentDeleteAsync<T>(
         object id,
+        Func<T, string?>? guard = null,
+        Func<T, Task>? cascade = null,
+        CancellationToken ct = default) where T : class, IArchivable;
+
+    /// <summary>Bulk soft-deletes a collection of IDs.</summary>
+    Task<BulkArchiveResult> BulkArchiveAsync<T>(
+        IEnumerable<object> ids,
+        Func<T, string?>? guard = null,
+        CancellationToken ct = default) where T : class, IArchivable;
+
+    /// <summary>Bulk restores a collection of IDs.</summary>
+    Task<BulkArchiveResult> BulkRestoreAsync<T>(
+        IEnumerable<object> ids,
+        Func<T, string?>? guard = null,
+        CancellationToken ct = default) where T : class, IArchivable;
+
+    /// <summary>Bulk permanently deletes a collection of IDs.</summary>
+    Task<BulkArchiveResult> BulkPermanentDeleteAsync<T>(
+        IEnumerable<object> ids,
         Func<T, string?>? guard = null,
         Func<T, Task>? cascade = null,
         CancellationToken ct = default) where T : class, IArchivable;

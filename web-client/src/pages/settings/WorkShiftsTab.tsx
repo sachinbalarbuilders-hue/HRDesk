@@ -79,6 +79,7 @@ export const WorkShiftsTab: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [activeSubTab, setActiveSubTab] = useState<'shifts' | 'cycles'>('shifts');
+  const [selectedShiftIds, setSelectedShiftIds] = useState<(string | number)[]>([]);
 
   const [shifts, setShifts] = useState<any[]>([]);
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
@@ -91,6 +92,9 @@ export const WorkShiftsTab: React.FC = () => {
   const [cycles, setCycles] = useState<ShiftCycle[]>([]);
   const [cyclesLoading, setCyclesLoading] = useState(false);
   const [cycleArchiveFilter, setCycleArchiveFilter] = useState<ArchiveFilterValue>('active');
+  const [cyclePage, setCyclePage] = useState(1);
+  const [cyclePageSize, setCyclePageSize] = useState(10);
+  const [selectedCycleIds, setSelectedCycleIds] = useState<(string | number)[]>([]);
   const [cycleModalOpen, setCycleModalOpen] = useState(false);
   const [editingCycleId, setEditingCycleId] = useState<number | null>(null);
   const [cycleForm, setCycleForm] = useState({
@@ -392,6 +396,70 @@ export const WorkShiftsTab: React.FC = () => {
     },
   ];
 
+  const [cycleSearch, setCycleSearch] = useState('');
+  const sCycle = cycleSearch.trim().toLowerCase();
+  const filteredCycles = cycles.filter(c => {
+    const isAct = !isRowArchived(c);
+    const matchesArchive = cycleArchiveFilter === 'all' || (cycleArchiveFilter === 'active' ? isAct : !isAct);
+    const matchesSearch = !sCycle || c.name.toLowerCase().includes(sCycle) || (c.description && c.description.toLowerCase().includes(sCycle));
+    return matchesArchive && matchesSearch;
+  });
+  const paginatedCycles = filteredCycles.slice((cyclePage - 1) * cyclePageSize, cyclePage * cyclePageSize);
+
+  const cycleColumns: ColumnDef<ShiftCycle>[] = [
+    {
+      key: 'name',
+      header: 'Rotation Cycle',
+      render: (cycle) => (
+        <div className="space-y-1 py-1">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-xs text-[var(--ink)]">{cycle.name}</span>
+            <span className="px-1.5 py-0.2 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] text-[10px] font-data font-bold text-[var(--ink-muted)]">
+              {cycle.cycleLengthDays}-day cycle
+            </span>
+          </div>
+          {cycle.description && <p className="text-[11px] text-[var(--ink-muted)]">{cycle.description}</p>}
+          <CyclePreviewStrip slots={cycle.slots} cycleLengthDays={cycle.cycleLengthDays} />
+        </div>
+      ),
+    },
+    {
+      key: 'shifts',
+      header: 'Shifts Included',
+      render: (cycle) => {
+        const names = Array.from(new Set(cycle.slots.filter(s => !s.isWeekOff && s.shiftName).map(s => s.shiftName)));
+        const hasWO = cycle.slots.some(s => s.isWeekOff);
+        return (
+          <div className="flex flex-wrap gap-1 text-[10px] text-[var(--ink-muted)]">
+            {names.map(name => (
+              <span key={name} className="px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)]">
+                {name}
+              </span>
+            ))}
+            {hasWO && (
+              <span className="px-1.5 py-0.5 rounded-[2px] bg-[var(--surface-sunken)] border border-[var(--rule)] text-[var(--ink-muted)]">
+                Week Off
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (cycle) => (
+        <RowActionMenu
+          actions={[
+            { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => openEditCycle(cycle) },
+            ...cycleArchive.rowActions({ id: cycle.id, name: cycle.name, isArchived: isRowArchived(cycle) }),
+          ] as RowAction[]}
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* ── Sub Tab Navigation ────────────────────────────────────────────── */}
@@ -461,12 +529,18 @@ export const WorkShiftsTab: React.FC = () => {
             columns={shiftColumns}
             data={paginatedShifts}
             loading={loading}
+            keyExtractor={(item) => item.id}
+            selection={{
+              selectedRowKeys: selectedShiftIds,
+              onChange: (keys) => setSelectedShiftIds(keys),
+              bulkActions: shiftArchive.bulkActions(archiveFilter === 'archived'),
+            }}
             emptyMessage="No work shifts defined."
             pagination={{
               page,
               pageSize,
               totalCount: filteredShifts.length,
-              totalPages: Math.ceil(filteredShifts.length / pageSize),
+              totalPages: Math.ceil(filteredShifts.length / pageSize) || 1,
               onPageChange: setPage,
               onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
             }}
@@ -477,84 +551,41 @@ export const WorkShiftsTab: React.FC = () => {
       {/* ── View: Shift Cycles ────────────────────────────────────────────── */}
       {activeSubTab === 'cycles' && (
         <section className="space-y-4">
-          <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-            <div>
-              <h3 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider flex items-center gap-2">
-                <RefreshCw size={13} className="text-[var(--gold-500)]" />
-                Shift Rotation Cycles
-              </h3>
-              <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
-                Define repeating shift patterns of any length — 3-shift weekly, 4-on/2-off, hospital rotations, etc.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <ArchiveToggle value={cycleArchiveFilter} onChange={setCycleArchiveFilter} />
-              <button
-                onClick={openCreateCycle}
-                className="btn-primary flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus size={13} />
-                <span className="text-xs">New Cycle</span>
-              </button>
-            </div>
-          </div>
+          <DataToolbar
+            searchValue={cycleSearch}
+            onSearchChange={(v) => { setCycleSearch(v); setCyclePage(1); }}
+            searchPlaceholder="Search rotation cycles..."
+            archiveFilter={{
+              value: cycleArchiveFilter,
+              onChange: (v) => { setCycleArchiveFilter(v); setCyclePage(1); },
+            }}
+            primaryAction={{
+              label: 'New Cycle',
+              icon: <Plus size={13} />,
+              onClick: openCreateCycle,
+            }}
+          />
 
-          {cyclesLoading ? (
-            <div className="text-xs text-[var(--ink-muted)] py-8 text-center">Loading cycles…</div>
-          ) : cycles.length === 0 ? (
-            <div className="text-center py-12 border border-dashed border-[var(--rule)] rounded-[4px] bg-[var(--paper)]">
-              <RefreshCw size={28} className="mx-auto text-[var(--ink-muted)] mb-2 opacity-40 animate-spin-slow" />
-              <p className="text-xs font-semibold text-[var(--ink)]">No shift rotation cycles defined yet</p>
-              <p className="text-[11px] text-[var(--ink-muted)] mt-1 max-w-sm mx-auto">
-                Create a cycle (e.g. 21-day 3-shift rotation, or 6-day 4-on/2-off) to auto-generate rotational rosters.
-              </p>
-              <button
-                onClick={openCreateCycle}
-                className="btn-primary mt-4 inline-flex items-center gap-1.5 text-xs cursor-pointer"
-              >
-                <Plus size={13} />
-                <span>Create First Cycle</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {cycles.map(cycle => (
-                <div
-                  key={cycle.id}
-                  className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] hover:border-[var(--gold-500)]/40 transition-colors shadow-2xs"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-xs text-[var(--ink)]">{cycle.name}</span>
-                        <span className="px-1.5 py-0.5 rounded-[2px] bg-[var(--surface)] border border-[var(--rule)] text-[10px] font-data font-bold text-[var(--ink-muted)]">
-                          {cycle.cycleLengthDays}-day cycle
-                        </span>
-                      </div>
-                      {cycle.description && (
-                        <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">{cycle.description}</p>
-                      )}
-                      <CyclePreviewStrip slots={cycle.slots} cycleLengthDays={cycle.cycleLengthDays} />
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {Array.from(new Set(cycle.slots.filter(s => !s.isWeekOff && s.shiftName).map(s => s.shiftName))).map(name => (
-                          <span key={name} className="text-[10px] text-[var(--ink-muted)]">· {name}</span>
-                        ))}
-                        {cycle.slots.some(s => s.isWeekOff) && (
-                          <span className="text-[10px] text-[var(--ink-muted)]">· Week Off days included</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <RowActionMenu actions={[
-                        { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => openEditCycle(cycle) },
-                        ...cycleArchive.rowActions({ id: cycle.id, name: cycle.name, isArchived: isRowArchived(cycle) }),
-                      ] as RowAction[]} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <DataTable
+            columns={cycleColumns}
+            data={paginatedCycles}
+            loading={cyclesLoading}
+            keyExtractor={(c) => c.id}
+            selection={{
+              selectedRowKeys: selectedCycleIds,
+              onChange: (keys) => setSelectedCycleIds(keys),
+              bulkActions: cycleArchive.bulkActions(cycleArchiveFilter === 'archived'),
+            }}
+            emptyMessage="No shift rotation cycles defined yet."
+            pagination={{
+              page: cyclePage,
+              pageSize: cyclePageSize,
+              totalCount: filteredCycles.length,
+              totalPages: Math.ceil(filteredCycles.length / cyclePageSize) || 1,
+              onPageChange: setCyclePage,
+              onPageSizeChange: (s) => { setCyclePageSize(s); setCyclePage(1); },
+            }}
+          />
         </section>
       )}
 

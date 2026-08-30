@@ -204,6 +204,8 @@ export const DesignationsTab: React.FC = () => {
     },
   ];
 
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+
   return (
     <div className="space-y-4">
       <DataToolbar
@@ -241,12 +243,18 @@ export const DesignationsTab: React.FC = () => {
         columns={desigColumns}
         data={paginatedDesigs}
         loading={loading}
+        keyExtractor={(d) => d.id}
+        selection={{
+          selectedRowKeys: selectedIds,
+          onChange: (keys) => setSelectedIds(keys),
+          bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
+        }}
         emptyMessage="No designations found matching your search."
         pagination={{
           page,
           pageSize,
           totalCount: filteredDesigs.length,
-          totalPages: Math.ceil(filteredDesigs.length / pageSize),
+          totalPages: Math.ceil(filteredDesigs.length / pageSize) || 1,
           onPageChange: setPage,
           onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
         }}

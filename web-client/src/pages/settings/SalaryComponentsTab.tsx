@@ -68,6 +68,7 @@ export const SalaryComponentsTab: React.FC = () => {
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   const fetchComponents = useCallback(async () => {
     try {
@@ -275,12 +276,18 @@ export const SalaryComponentsTab: React.FC = () => {
         }}
       />
 
-      {/* Reusable DataTable with Pagination */}
+      {/* Reusable DataTable with Pagination and Bulk Actions */}
       <DataTable
         columns={columns}
         data={paginated}
         loading={loading}
         showSrNo={false}
+        keyExtractor={(c) => c.id}
+        selection={{
+          selectedRowKeys: selectedIds,
+          onChange: (keys) => setSelectedIds(keys),
+          bulkActions: archive.bulkActions(archiveFilter === 'archived'),
+        }}
         emptyMessage="No salary components found matching your filter criteria."
         pagination={{
           page,

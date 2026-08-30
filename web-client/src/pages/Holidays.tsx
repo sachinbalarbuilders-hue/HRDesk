@@ -1,18 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
+import { DataTable, type ColumnDef } from '../components/ui/DataTable';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
-import { PaginationToolbar } from '../components/ui/PaginationToolbar';
-import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 import {
   Calendar as CalendarIcon,
   Plus,
-  Trash2,
   Edit2,
   X,
   Globe,
@@ -45,57 +43,66 @@ export const Holidays: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   // Modals
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Form State
   const [form, setForm] = useState({
     name: '',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
+    startDate: '',
+    endDate: '',
+    days: 1,
     isGlobal: true,
+    applicableTo: 'All Branches',
     description: '',
   });
 
-  const fetchHolidays = async () => {
+  const fetchHolidays = useCallback(async () => {
     try {
       setLoading(true);
       const res = await apiClient.get('/holidays', {
         params: {
-          year: parseInt(yearFilter) || new Date().getFullYear(),
-          search: search || undefined,
+          year: yearFilter,
           branchId: currentBranch?.id || undefined,
+          search: search || undefined,
           status: archiveFilter,
+          archiveStatus: archiveFilter,
         },
       });
-      setHolidays(res.data.items || []);
-    } catch (err: any) {
-      showError('Failed to fetch holidays', err.response?.data?.message || 'Network error');
+      const items = Array.isArray(res.data?.items)
+        ? res.data.items
+        : Array.isArray(res.data)
+        ? res.data
+        : [];
+      setHolidays(items);
+    } catch {
+      showError('Failed to load holidays', 'Unable to retrieve holiday schedule.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [yearFilter, currentBranch?.id, search, archiveFilter]);
 
   useEffect(() => {
     fetchHolidays();
-  }, [yearFilter, search, currentOrganization?.id, currentBranch?.id, archiveFilter]);
+  }, [fetchHolidays]);
 
+  // Handle Tenant/Branch switcher events
   useEffect(() => {
-    const handleReload = () => {
-      setPage(1);
+    const handleContextChange = () => {
       fetchHolidays();
     };
-
-    window.addEventListener('hrdesk:tenant_changed', handleReload);
-    window.addEventListener('hrdesk:branch_changed', handleReload);
-
+    window.addEventListener('hrdesk:tenant_changed', handleContextChange);
+    window.addEventListener('hrdesk:branch_changed', handleContextChange);
     return () => {
-      window.removeEventListener('hrdesk:tenant_changed', handleReload);
-      window.removeEventListener('hrdesk:branch_changed', handleReload);
+      window.removeEventListener('hrdesk:tenant_changed', handleContextChange);
+      window.removeEventListener('hrdesk:branch_changed', handleContextChange);
     };
-  }, [yearFilter, search, currentOrganization?.id, currentBranch?.id]);
+  }, [fetchHolidays]);
 
   const handleOpenAdd = () => {
     setEditingId(null);
@@ -103,7 +110,9 @@ export const Holidays: React.FC = () => {
       name: '',
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date().toISOString().split('T')[0],
+      days: 1,
       isGlobal: true,
+      applicableTo: 'All Branches',
       description: '',
     });
     setHolidayModalOpen(true);
@@ -115,8 +124,10 @@ export const Holidays: React.FC = () => {
       name: h.name,
       startDate: h.startDate,
       endDate: h.endDate,
+      days: h.days,
       isGlobal: h.isGlobal,
-      description: h.description,
+      applicableTo: h.applicableTo || 'All Branches',
+      description: h.description || '',
     });
     setHolidayModalOpen(true);
   };
@@ -160,7 +171,8 @@ export const Holidays: React.FC = () => {
   };
 
   const handleExport = () => {
-    exportToCSV(`Company_Holidays_${yearFilter}`, holidays, [
+    const holidayList = Array.isArray(holidays) ? holidays : [];
+    exportToCSV(`Company_Holidays_${yearFilter}`, holidayList, [
       { key: 'name', label: 'Holiday Title' },
       { key: 'startDate', label: 'Start Date' },
       { key: 'endDate', label: 'End Date' },
@@ -173,13 +185,88 @@ export const Holidays: React.FC = () => {
   };
 
   // Archive & Search filtering on returned list
-  const filteredHolidays = holidays.filter(h => {
+  const holidayList = Array.isArray(holidays) ? holidays : [];
+  const filteredHolidays = holidayList.filter(h => {
     const isAct = !isRowArchived(h);
     return archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
   });
   const totalCount = filteredHolidays.length;
   const totalPages = Math.ceil(totalCount / pageSize) || 1;
   const paginatedHolidays = filteredHolidays.slice((page - 1) * pageSize, page * pageSize);
+
+  const columns: ColumnDef<Holiday>[] = [
+    {
+      key: 'name',
+      header: 'Holiday Title',
+      render: (h) => (
+        <div className="font-semibold text-[var(--ink)] flex items-center gap-2 text-xs">
+          <CalendarIcon className="w-3.5 h-3.5 text-[var(--accent)]" />
+          <span>{h.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'startDate',
+      header: 'Start Date',
+      render: (h) => <span className="font-mono text-xs text-[var(--ink)]">{h.startDate}</span>,
+    },
+    {
+      key: 'endDate',
+      header: 'End Date',
+      render: (h) => <span className="font-mono text-xs text-[var(--ink)]">{h.endDate}</span>,
+    },
+    {
+      key: 'days',
+      header: 'Duration',
+      render: (h) => (
+        <span className="font-mono font-bold text-xs text-[var(--accent)]">
+          {h.days} {h.days === 1 ? 'Day' : 'Days'}
+        </span>
+      ),
+    },
+    {
+      key: 'applicableTo',
+      header: 'Applicability',
+      render: (h) =>
+        h.isGlobal ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300">
+            <Globe className="w-3 h-3" />
+            Company-wide
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+            <Building className="w-3 h-3" />
+            {h.applicableTo}
+          </span>
+        ),
+    },
+    {
+      key: 'description',
+      header: 'Description',
+      render: (h) => (
+        <span className="max-w-[240px] truncate text-xs text-[var(--ink-muted)] block" title={h.description}>
+          {h.description || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (h) => (
+        <RowActionMenu
+          actions={[
+            { label: 'Edit', icon: <Edit2 className="w-3.5 h-3.5" />, onClick: () => handleOpenEdit(h) },
+            ...holidayArchive.rowActions({
+              id: h.id,
+              name: h.name,
+              isArchived: isRowArchived(h),
+            }),
+          ] as RowAction[]}
+        />
+      ),
+    },
+  ];
 
   return (
     <PageContainer>
@@ -216,201 +303,130 @@ export const Holidays: React.FC = () => {
         }}
       />
 
-      {/* 3. Holidays Table */}
-      <div className="card overflow-hidden">
-        {loading ? (
-          <div className="p-6">
-            <TableSkeleton rows={6} />
-          </div>
-        ) : holidays.length === 0 ? (
-          <div className="p-12 text-center text-xs text-[var(--ink-muted)]">
-            <CalendarIcon className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
-            <div className="font-semibold text-sm text-[var(--ink)]">No Holidays Configured</div>
-            <p className="mt-1">No official holidays registered for year {yearFilter}. Click "Add Holiday" to register one.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-[var(--rule)] bg-[var(--paper-subtle)] text-[var(--ink-muted)] font-mono text-[11px] uppercase tracking-wider">
-                  <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
-                  <th className="p-3.5 font-semibold">Holiday Title</th>
-                  <th className="p-3.5 font-semibold">Start Date</th>
-                  <th className="p-3.5 font-semibold">End Date</th>
-                  <th className="p-3.5 font-semibold">Duration</th>
-                  <th className="p-3.5 font-semibold">Applicability</th>
-                  <th className="p-3.5 font-semibold">Description</th>
-                  <th className="p-3.5 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--rule)]">
-                {paginatedHolidays.map((h, idx) => {
-                  const srNo = (page - 1) * pageSize + idx + 1;
-                  return (
-                    <tr key={h.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
-                      <td className="p-3.5 font-mono text-center text-xs text-[var(--ink-muted)]">
-                        {srNo}
-                      </td>
-                      <td className="p-3.5">
-                        <div className="font-semibold text-[var(--ink)] flex items-center gap-2">
-                          <CalendarIcon className="w-3.5 h-3.5 text-[var(--accent)]" />
-                          <span>{h.name}</span>
-                        </div>
-                      </td>
+      {/* 3. Holidays DataTable with Selection & Bulk Actions */}
+      <DataTable
+        columns={columns}
+        data={paginatedHolidays}
+        loading={loading}
+        keyExtractor={(h) => h.id}
+        selection={{
+          selectedRowKeys: selectedIds,
+          onChange: (keys) => setSelectedIds(keys),
+          bulkActions: holidayArchive.bulkActions(archiveFilter === 'archived'),
+        }}
+        emptyMessage={`No official holidays registered for year ${yearFilter}. Click "Add Holiday" to register one.`}
+        pagination={{
+          page,
+          pageSize,
+          totalCount,
+          totalPages,
+          onPageChange: setPage,
+          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+        }}
+      />
 
-                    <td className="p-3.5 font-mono text-[var(--ink)]">
-                      {h.startDate}
-                    </td>
-
-                    <td className="p-3.5 font-mono text-[var(--ink)]">
-                      {h.endDate}
-                    </td>
-
-                    <td className="p-3.5 font-mono font-bold text-[var(--accent)]">
-                      {h.days} {h.days === 1 ? 'Day' : 'Days'}
-                    </td>
-
-                    <td className="p-3.5">
-                      {h.isGlobal ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300">
-                          <Globe className="w-3 h-3" />
-                          Company-wide
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
-                          <Building className="w-3 h-3" />
-                          {h.applicableTo}
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="p-3.5 max-w-[240px] truncate text-[var(--ink-muted)]" title={h.description}>
-                      {h.description || '—'}
-                    </td>
-
-                    <td className="p-3.5 text-right">
-                      <RowActionMenu actions={[
-                        { label: 'Edit', icon: <Edit2 className="w-3.5 h-3.5" />, onClick: () => handleOpenEdit(h) },
-                        ...holidayArchive.rowActions({
-                          id: h.id,
-                          name: h.name,
-                          isArchived: isRowArchived(h),
-                        }),
-                      ] as RowAction[]} />
-                    </td>
-                  </tr>
-                );
-              })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination Toolbar */}
-        {!loading && totalCount > 0 && (
-          <div className="border-t border-[var(--rule)] p-3">
-            <PaginationToolbar
-              page={page}
-              pageSize={pageSize}
-              totalCount={totalCount}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* 4. Add / Edit Holiday Panel */}
+      {/* Add/Edit Holiday Modal */}
       {holidayModalOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-[1px]">
-          <div className="w-full max-w-[480px] bg-[var(--surface)] h-full shadow-[var(--shadow-xl)] flex flex-col border-l border-[var(--border)] animate-slide-in-right">
-            <div className="p-5 pb-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
-              <div>
-                <h3 className="text-base font-semibold text-[var(--text-primary)]">
-                  {editingId ? 'Edit Holiday' : 'Add Holiday'}
-                </h3>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Configure paid non-working calendar days.</p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-[var(--accent)]" />
+                {editingId ? 'Edit Holiday' : 'Register Holiday'}
+              </h3>
               <button
                 onClick={() => setHolidayModalOpen(false)}
-                className="p-1.5 rounded-[var(--radius-md)] hover:bg-[var(--surface-secondary)] text-[var(--text-muted)] cursor-pointer"
+                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveHoliday} className="flex-1 overflow-y-auto p-5 space-y-4 text-sm">
+            <form onSubmit={handleSaveHoliday} className="space-y-4 text-xs font-ui">
               <div>
-                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Holiday Title *</label>
+                <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Holiday Title *</label>
                 <input
                   type="text"
+                  required
+                  placeholder="e.g. Independence Day, Diwali"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. Independence Day, Diwali, New Year"
-                  className="register-input"
-                  required
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Start Date *</label>
+                  <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Start Date *</label>
                   <input
                     type="date"
-                    value={form.startDate}
-                    onChange={(e) => setForm({ ...form, startDate: e.target.value, endDate: e.target.value >= form.endDate ? e.target.value : form.endDate })}
-                    className="register-input font-data"
                     required
+                    value={form.startDate}
+                    onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-data"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">End Date *</label>
+                  <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">End Date *</label>
                   <input
                     type="date"
+                    required
                     value={form.endDate}
                     onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className="register-input font-data"
-                    required
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-data"
                   />
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.isGlobal}
-                  onChange={(e) => setForm({ ...form, isGlobal: e.target.checked })}
-                  className="rounded border-[var(--border)] text-[var(--accent)]"
-                />
-                <span className="text-sm font-medium text-[var(--text-primary)]">Global holiday (all employees)</span>
-              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Number of Days</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.days}
+                    onChange={(e) => setForm({ ...form, days: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-data"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Scope</label>
+                  <select
+                    value={form.isGlobal ? 'true' : 'false'}
+                    onChange={(e) => setForm({ ...form, isGlobal: e.target.value === 'true' })}
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)]"
+                  >
+                    <option value="true">Company-wide (All Branches)</option>
+                    <option value="false">Branch Specific</option>
+                  </select>
+                </div>
+              </div>
 
               <div>
-                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Description / Notes</label>
+                <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Description / Note</label>
                 <textarea
+                  rows={2}
+                  placeholder="Optional details or instructions..."
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Details regarding holiday observance or festival..."
-                  rows={3}
-                  className="register-input"
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)]"
                 />
               </div>
 
-              <div className="pt-3 border-t border-[var(--border)] flex items-center justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--rule)]">
                 <button
                   type="button"
                   onClick={() => setHolidayModalOpen(false)}
-                  className="btn-secondary"
+                  className="btn-outline text-xs py-1.5 px-3 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn-primary"
+                  className="btn-primary text-xs py-1.5 px-4 cursor-pointer"
                 >
-                  {submitting ? 'Saving...' : editingId ? 'Update Holiday' : 'Save Holiday'}
+                  {submitting ? 'Saving...' : editingId ? 'Update Holiday' : 'Create Holiday'}
                 </button>
               </div>
             </form>
@@ -418,21 +434,18 @@ export const Holidays: React.FC = () => {
         </div>
       )}
 
-      {/* 5. Bulk Import Modal */}
+      {/* CSV Bulk Import Modal */}
       <BulkImportModal
         isOpen={importModalOpen}
         onClose={() => setImportModalOpen(false)}
         title="Import Company Holidays"
-        templateFilename="Company_Holidays"
-        templateHeaders={['HolidayName', 'StartDate', 'EndDate', 'IsGlobal', 'Description']}
-        templateSampleRow={['Diwali Festival', '2026-11-08', '2026-11-09', 'true', 'Festival of Lights']}
-        onImportComplete={() => {
-          showSuccess('Imported', 'Holidays imported successfully.');
-          fetchHolidays();
-        }}
+        templateFilename="Holidays_Template"
+        templateHeaders={['Holiday Title', 'Start Date (YYYY-MM-DD)', 'End Date (YYYY-MM-DD)', 'Days', 'Is Global (TRUE/FALSE)', 'Description']}
+        templateSampleRow={['Independence Day', '2026-08-15', '2026-08-15', '1', 'TRUE', 'National Holiday']}
+        onImportComplete={fetchHolidays}
       />
 
-      {/* Permanent-delete confirmation (only reachable from the Archive view) */}
+      {/* Render shared archive confirm dialog */}
       {holidayArchive.dialog}
     </PageContainer>
   );

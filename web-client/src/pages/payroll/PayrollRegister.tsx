@@ -13,7 +13,7 @@ import { ProcessPayrollModal } from './ProcessPayrollModal';
 import { PayslipModal } from './PayslipModal';
 import {
   ChevronLeft, ChevronRight, Check, CreditCard, FileText,
-  Sparkles, Calculator, X, Download,
+  Calculator, Download,
   DollarSign, TrendingDown, CheckCircle2, Users2,
 } from 'lucide-react';
 
@@ -56,7 +56,7 @@ export const PayrollRegister: React.FC = () => {
   const [pageSize, setPageSize]     = useState(20);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   const [processModalOpen, setProcessModalOpen] = useState(false);
   const [payslipModalOpen, setPayslipModalOpen] = useState(false);
@@ -144,12 +144,12 @@ export const PayrollRegister: React.FC = () => {
     }
   };
 
-  const handleBulkApprove = async () => {
-    if (!selectedIds.length) return;
+  const handleBulkApprove = async (selectedKeys: (string | number)[], _: any, clearSelection?: () => void) => {
+    if (!selectedKeys.length) return;
     try {
-      await apiClient.post('/payroll/bulk-status', { ids: selectedIds, status: 'Approved' });
-      showSuccess('Bulk Approved', `Approved ${selectedIds.length} records.`);
-      setSelectedIds([]);
+      await apiClient.post('/payroll/bulk-status', { ids: selectedKeys, status: 'Approved' });
+      showSuccess('Bulk Approved', `Approved ${selectedKeys.length} records.`);
+      clearSelection?.();
       fetchRecords();
     } catch (err: any) {
       showError('Bulk Approval Failed', err.response?.data?.message || 'Server error');
@@ -169,41 +169,9 @@ export const PayrollRegister: React.FC = () => {
     showSuccess('Export Complete', `Payroll ledger for ${selectedMonth} downloaded.`);
   };
 
-  const toggleSelectAll = () =>
-    setSelectedIds(selectedIds.length === records.length ? [] : records.map(r => r.id));
-  const toggleSelectId = (id: number) =>
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-
   const fmt = (n: number) => n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
   const columns: ColumnDef<any>[] = [
-    ...(canManage
-      ? [
-          {
-            key: 'select',
-            header: (
-              <input
-                type="checkbox"
-                checked={records.length > 0 && selectedIds.length === records.length}
-                onChange={toggleSelectAll}
-                className="rounded border-[var(--rule)] cursor-pointer"
-                title="Select All"
-              />
-            ),
-            width: '40px',
-            align: 'center' as const,
-            className: 'w-10 text-center',
-            render: (r: any) => (
-              <input
-                type="checkbox"
-                checked={selectedIds.includes(r.id)}
-                onChange={() => toggleSelectId(r.id)}
-                className="rounded border-[var(--rule)] cursor-pointer"
-              />
-            ),
-          },
-        ]
-      : []),
     {
       key: 'employee',
       header: 'Employee',
@@ -399,29 +367,29 @@ export const PayrollRegister: React.FC = () => {
         ]}
       />
 
-      {/* ── Bulk action bar ───────────────────────────────────────────────────── */}
-      {selectedIds.length > 0 && canManage && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--accent-light)] border border-[var(--accent)]/30 rounded-[4px] text-xs">
-          <span className="font-semibold text-[var(--accent)]">
-            {selectedIds.length} record{selectedIds.length !== 1 ? 's' : ''} selected
-          </span>
-          <div className="flex items-center gap-2">
-            <button onClick={handleBulkApprove} className="btn-primary py-1 px-3 text-xs flex items-center gap-1 cursor-pointer">
-              <Check size={12} /> Approve Selected
-            </button>
-            <button onClick={() => setSelectedIds([])} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
-              <X size={15} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Reusable DataTable with Standard Pagination ──────────────────────── */}
+      {/* ── Reusable DataTable with Selection and Bulk Actions ──────────────── */}
       <DataTable
         columns={columns}
         data={records}
         loading={loading}
         showSrNo={!canManage}
+        selection={
+          canManage
+            ? {
+                selectedRowKeys: selectedIds,
+                onChange: (keys) => setSelectedIds(keys),
+                bulkActions: [
+                  {
+                    label: 'Approve Selected',
+                    icon: <Check size={12} />,
+                    variant: 'primary',
+                    onClick: handleBulkApprove,
+                  },
+                  ...archive.bulkActions(archiveFilter === 'archived'),
+                ],
+              }
+            : undefined
+        }
         emptyMessage={`No payroll records found for ${month} ${year}. Click "Run Payroll" to generate monthly salaries.`}
         pagination={{
           page,

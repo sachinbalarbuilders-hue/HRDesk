@@ -67,6 +67,7 @@ export const PayGroupsTab: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -260,11 +261,17 @@ export const PayGroupsTab: React.FC = () => {
         }}
       />
 
-      {/* Reusable DataTable with standard Pagination */}
+      {/* Reusable DataTable with standard Pagination and Bulk Selection */}
       <DataTable
         columns={columns}
         data={paginatedGroups}
         loading={loading}
+        keyExtractor={(g) => g.id}
+        selection={{
+          selectedRowKeys: selectedIds,
+          onChange: (keys) => setSelectedIds(keys),
+          bulkActions: payGroupArchive.bulkActions(archiveFilter === 'archived'),
+        }}
         emptyMessage="No pay groups found. Click 'New Pay Group' to create one."
         pagination={{
           page,

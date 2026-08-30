@@ -4,36 +4,18 @@ import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import type { RowAction } from '../components/ui/RowActionMenu';
-
-/**
- * ONE button, always labelled "Delete", everywhere in the app.
- *
- *   Row in the ACTIVE list   → "Delete" archives it (reversible, one click, no modal)
- *   Row in the ARCHIVE view  → "Delete" permanently removes it (confirm modal, red)
- *                              plus a separate "Restore" action
- *
- * There is no "Archive" button and no "Soft delete" label in the UI. The label never
- * changes; only the endpoint it calls does.
- *
- * USAGE
- * -----
- *   const archive = useArchiveActions({ endpoint: '/masters/departments', onDone: fetchData });
- *
- *   <RowActionMenu actions={[
- *     { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => openEdit(item) },
- *     ...archive.rowActions({ id: item.id, name: item.name, isArchived: isArchived(item) }),
- *   ]} />
- *
- *   {archive.dialog}   ← render once per page, outside the table
- */
+import type { BulkAction } from '../components/ui/DataTable';
 
 export interface UseArchiveActionsOptions {
   /**
-   * Base REST path for the resource, no trailing slash. e.g. '/masters/departments'.
+   * Base REST path for the resource, no trailing slash. e.g. '/masters/departments' or '/recruitment/candidates'.
    * Conventions the backend implements for every archivable resource:
    *   DELETE {endpoint}/{id}                 → archive
    *   DELETE {endpoint}/{id}?permanent=true  → permanent delete
    *   POST   {endpoint}/{id}/restore         → restore
+   *   POST   {endpoint}/bulk-archive         → bulk archive
+   *   POST   {endpoint}/bulk-restore         → bulk restore
+   *   POST   {endpoint}/bulk-delete          → bulk permanent delete
    */
   endpoint: string;
 
@@ -54,9 +36,17 @@ export interface ArchiveRowTarget {
   disabled?: boolean;
 }
 
+function getArchiveSlug(endpoint: string): string {
+  const clean = endpoint.split('?')[0].replace(/^\/api\//, '').replace(/^\//, '');
+  const segments = clean.split('/').filter(Boolean);
+  return segments[segments.length - 1] || clean;
+}
+
 export function useArchiveActions({ endpoint, onDone, label = 'Record' }: UseArchiveActionsOptions) {
   const { showSuccess, showError } = useToast();
   const [pending, setPending] = useState<ArchiveRowTarget | null>(null);
+  const [pendingBulkIds, setPendingBulkIds] = useState<(string | number)[] | null>(null);
+  const [clearSelectionCallback, setClearSelectionCallback] = useState<(() => void) | null>(null);
   const [busy, setBusy] = useState(false);
 
   const fail = useCallback(
@@ -95,7 +85,89 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record' }: UseArc
   /** "Delete" inside the archive view. Irreversible, so it opens the confirm modal first. */
   const confirmPermanentDelete = useCallback((target: ArchiveRowTarget) => setPending(target), []);
 
+  /** Bulk soft-delete / archive */
+  const bulkArchive = useCallback(
+    async (ids: (string | number)[], clearSelection?: () => void) => {
+      if (ids.length === 0) return;
+      try {
+        const slug = getArchiveSlug(endpoint);
+        try {
+          await apiClient.post(`/archive/${slug}/bulk-archive`, { ids: ids.map(String) });
+        } catch (err: any) {
+          if (err?.response?.status === 404) {
+            await apiClient.post(`${endpoint}/bulk-archive`, { ids: ids.map(String) });
+          } else {
+            throw err;
+          }
+        }
+        showSuccess(`Bulk Deleted`, `${ids.length} ${label.toLowerCase()}(s) moved to archive.`);
+        clearSelection?.();
+        onDone?.();
+      } catch (err) {
+        fail(err, 'Bulk Delete Failed');
+      }
+    },
+    [endpoint, label, onDone, showSuccess, fail]
+  );
+
+  /** Bulk restore */
+  const bulkRestore = useCallback(
+    async (ids: (string | number)[], clearSelection?: () => void) => {
+      if (ids.length === 0) return;
+      try {
+        const slug = getArchiveSlug(endpoint);
+        try {
+          await apiClient.post(`/archive/${slug}/bulk-restore`, { ids: ids.map(String) });
+        } catch (err: any) {
+          if (err?.response?.status === 404) {
+            await apiClient.post(`${endpoint}/bulk-restore`, { ids: ids.map(String) });
+          } else {
+            throw err;
+          }
+        }
+        showSuccess(`Bulk Restored`, `${ids.length} ${label.toLowerCase()}(s) restored.`);
+        clearSelection?.();
+        onDone?.();
+      } catch (err) {
+        fail(err, 'Bulk Restore Failed');
+      }
+    },
+    [endpoint, label, onDone, showSuccess, fail]
+  );
+
+  /** Confirm bulk permanent delete */
+  const confirmBulkPermanentDelete = useCallback((ids: (string | number)[], clearSelection?: () => void) => {
+    setPendingBulkIds(ids);
+    setClearSelectionCallback(() => clearSelection || null);
+  }, []);
+
   const runPermanentDelete = useCallback(async () => {
+    if (pendingBulkIds && pendingBulkIds.length > 0) {
+      setBusy(true);
+      try {
+        const slug = getArchiveSlug(endpoint);
+        try {
+          await apiClient.post(`/archive/${slug}/bulk-delete`, { ids: pendingBulkIds.map(String) });
+        } catch (err: any) {
+          if (err?.response?.status === 404) {
+            await apiClient.post(`${endpoint}/bulk-delete`, { ids: pendingBulkIds.map(String) });
+          } else {
+            throw err;
+          }
+        }
+        showSuccess(`Bulk Deleted`, `${pendingBulkIds.length} ${label.toLowerCase()}(s) permanently deleted.`);
+        clearSelectionCallback?.();
+        setPendingBulkIds(null);
+        setClearSelectionCallback(null);
+        onDone?.();
+      } catch (err) {
+        fail(err, 'Bulk Permanent Delete Failed');
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
     if (!pending) return;
     setBusy(true);
     try {
@@ -108,11 +180,10 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record' }: UseArc
     } finally {
       setBusy(false);
     }
-  }, [pending, endpoint, label, onDone, showSuccess, fail]);
+  }, [pending, pendingBulkIds, clearSelectionCallback, endpoint, label, onDone, showSuccess, fail]);
 
   /**
-   * Builds the action list for RowActionMenu. Always emits exactly one "Delete";
-   * archived rows additionally get "Restore".
+   * Builds the action list for RowActionMenu.
    */
   const rowActions = useCallback(
     (target: ArchiveRowTarget): RowAction[] => {
@@ -144,19 +215,67 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record' }: UseArc
     [archive, restore, confirmPermanentDelete]
   );
 
+  /**
+   * Generates standard BulkAction definitions for DataTable.
+   */
+  const bulkActions = useCallback(
+    (isArchivedView: boolean): BulkAction[] => {
+      if (isArchivedView) {
+        return [
+          {
+            label: 'Restore Selected',
+            icon: <RotateCcw size={13} />,
+            variant: 'primary',
+            onClick: (keys, _, clear) => bulkRestore(keys, clear),
+          },
+          {
+            label: 'Delete Permanently',
+            icon: <Trash2 size={13} />,
+            variant: 'danger',
+            onClick: (keys, _, clear) => confirmBulkPermanentDelete(keys, clear),
+          },
+        ];
+      }
+
+      return [
+        {
+          label: 'Delete Selected',
+          icon: <Trash2 size={13} />,
+          variant: 'danger',
+          onClick: (keys, _, clear) => bulkArchive(keys, clear),
+        },
+      ];
+    },
+    [bulkArchive, bulkRestore, confirmBulkPermanentDelete]
+  );
+
   /** Render this once per page so the confirm modal has a mount point. */
   const dialog = (
     <ConfirmDialog
-      open={pending !== null}
-      onClose={() => setPending(null)}
+      open={pending !== null || (pendingBulkIds !== null && pendingBulkIds.length > 0)}
+      onClose={() => {
+        setPending(null);
+        setPendingBulkIds(null);
+        setClearSelectionCallback(null);
+      }}
       onConfirm={runPermanentDelete}
-      itemName={pending?.name}
+      itemName={pendingBulkIds ? `${pendingBulkIds.length} selected ${label.toLowerCase()}s` : pending?.name}
       busy={busy}
       tone="danger"
     />
   );
 
-  return { rowActions, dialog, archive, restore, confirmPermanentDelete };
+  return {
+    rowActions,
+    dialog,
+    archive,
+    restore,
+    confirmPermanentDelete,
+    bulkArchive,
+    bulkRestore,
+    confirmBulkPermanentDelete,
+    bulkActions,
+  };
 }
 
 /**

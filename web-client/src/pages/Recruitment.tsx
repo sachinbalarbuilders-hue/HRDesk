@@ -108,6 +108,7 @@ export const Recruitment: React.FC = () => {
   const [candidatePageSize, setCandidatePageSize] = useState(15);
   const [totalCandidates, setTotalCandidates] = useState(0);
   const [totalCandidatePages, setTotalCandidatePages] = useState(1);
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<(string | number)[]>([]);
 
   // Interviews State
   const [interviews, setInterviews] = useState<InterviewItem[]>([]);
@@ -117,6 +118,7 @@ export const Recruitment: React.FC = () => {
   const [interviewArchiveFilter, setInterviewArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [interviewPage, setInterviewPage] = useState(1);
   const [interviewPageSize, setInterviewPageSize] = useState(15);
+  const [selectedInterviewIds, setSelectedInterviewIds] = useState<(string | number)[]>([]);
 
   // Lookups (Departments & Designations)
   const [departments, setDepartments] = useState<any[]>([]);
@@ -998,6 +1000,12 @@ export const Recruitment: React.FC = () => {
               columns={candidateColumns}
               data={filteredCandidates}
               loading={loadingCandidates}
+              keyExtractor={(c) => c.candidateId}
+              selection={{
+                selectedRowKeys: selectedCandidateIds,
+                onChange: (keys) => setSelectedCandidateIds(keys),
+                bulkActions: candidateArchive.bulkActions(candidateArchiveFilter === 'archived'),
+              }}
               emptyMessage="No candidate applications found matching the selected criteria."
               pagination={{
                 page: candidatePage,
@@ -1108,6 +1116,12 @@ export const Recruitment: React.FC = () => {
             columns={interviewColumns}
             data={filteredInterviews}
             loading={loadingInterviews}
+            keyExtractor={(i) => i.id}
+            selection={{
+              selectedRowKeys: selectedInterviewIds,
+              onChange: (keys) => setSelectedInterviewIds(keys),
+              bulkActions: interviewArchive.bulkActions(interviewArchiveFilter === 'archived'),
+            }}
             emptyMessage="No interview rounds currently scheduled."
             pagination={{
               page: interviewPage,

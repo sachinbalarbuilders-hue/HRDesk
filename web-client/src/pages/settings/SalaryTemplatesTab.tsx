@@ -44,6 +44,7 @@ export const SalaryTemplatesTab: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -267,11 +268,17 @@ export const SalaryTemplatesTab: React.FC = () => {
         }}
       />
 
-      {/* Reusable DataTable with Pagination */}
+      {/* Reusable DataTable with Pagination and Bulk Actions */}
       <DataTable
         columns={columns}
         data={paginated}
         loading={loading}
+        keyExtractor={(t) => t.id}
+        selection={{
+          selectedRowKeys: selectedIds,
+          onChange: (keys) => setSelectedIds(keys),
+          bulkActions: templateArchive.bulkActions(archiveFilter === 'archived'),
+        }}
         emptyMessage="No salary structure templates found. Click 'New Template' to create one."
         pagination={{
           page,

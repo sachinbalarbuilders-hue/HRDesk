@@ -51,6 +51,25 @@ public class ArchiveController : ControllerBase
     public Task<IActionResult> PermanentDelete(string entity, string id)
         => Invoke(entity, id, nameof(IArchiveService.PermanentDeleteAsync));
 
+    // ── BULK OPERATIONS ──────────────────────────────────────────────────────
+
+    public class BulkArchiveRequest
+    {
+        public List<string> Ids { get; set; } = new();
+    }
+
+    [HttpPost("{entity}/bulk-archive")]
+    public Task<IActionResult> BulkArchive(string entity, [FromBody] BulkArchiveRequest request)
+        => InvokeBulk(entity, request?.Ids, nameof(IArchiveService.BulkArchiveAsync));
+
+    [HttpPost("{entity}/bulk-restore")]
+    public Task<IActionResult> BulkRestore(string entity, [FromBody] BulkArchiveRequest request)
+        => InvokeBulk(entity, request?.Ids, nameof(IArchiveService.BulkRestoreAsync));
+
+    [HttpPost("{entity}/bulk-delete")]
+    public Task<IActionResult> BulkPermanentDelete(string entity, [FromBody] BulkArchiveRequest request)
+        => InvokeBulk(entity, request?.Ids, nameof(IArchiveService.BulkPermanentDeleteAsync));
+
     // ── GET /api/archive/{entity} — archive view ─────────────────────────────
 
     [HttpGet("{entity}")]
@@ -145,6 +164,55 @@ public class ArchiveController : ControllerBase
             ArchiveResult.NotFound => NotFound(new { success = false, message = result.Message }),
             _ => BadRequest(new { success = false, message = result.Message, code = result.ErrorCode })
         };
+    }
+
+    private async Task<IActionResult> InvokeBulk(string entity, List<string>? rawIds, string methodName)
+    {
+        if (!ArchivableRegistry.TryResolve(entity, out var reg))
+            return NotFound(new { message = $"Unknown archivable entity '{entity}'." });
+
+        if (!await _permissionService.HasPermissionAsync(User, reg.Permission))
+            return Forbid();
+
+        if (rawIds == null || rawIds.Count == 0)
+            return BadRequest(new { message = "No IDs provided." });
+
+        var coercedIds = new List<object>();
+        foreach (var raw in rawIds)
+        {
+            if (TryCoerceId(raw, out var id))
+                coercedIds.Add(id);
+        }
+
+        if (coercedIds.Count == 0)
+            return BadRequest(new { message = "No valid IDs provided." });
+
+        var method = typeof(IArchiveService)
+            .GetMethods()
+            .First(m => m.Name == methodName && m.IsGenericMethodDefinition)
+            .MakeGenericMethod(reg.EntityType);
+
+        var parameters = method.GetParameters();
+        var args = new object?[parameters.Length];
+        args[0] = coercedIds;
+        for (int i = 1; i < parameters.Length; i++)
+            args[i] = parameters[i].ParameterType == typeof(CancellationToken)
+                ? CancellationToken.None
+                : null;
+
+        var task = (Task)method.Invoke(_archive, args)!;
+        await task;
+
+        var result = (BulkArchiveResult)task.GetType().GetProperty("Result")!.GetValue(task)!;
+
+        return Ok(new
+        {
+            success = result.AllSucceeded,
+            successCount = result.SuccessCount,
+            failureCount = result.FailureCount,
+            messages = result.Messages,
+            message = $"{result.SuccessCount} record(s) processed successfully" + (result.FailureCount > 0 ? $", {result.FailureCount} failed." : ".")
+        });
     }
 
     /// <summary>Accepts both integer PKs and Guid PKs (Branch, Role, Employee use Guid publicIds).</summary>

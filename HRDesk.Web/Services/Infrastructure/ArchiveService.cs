@@ -67,6 +67,11 @@ public class ArchiveService : IArchiveService
         entity.ArchivedAt = DateTime.UtcNow;
         entity.ArchivedBy = CurrentUser;
 
+        if (entity is Employee empArchive)
+        {
+            empArchive.Status = "inactive";
+        }
+
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation(
@@ -111,6 +116,11 @@ public class ArchiveService : IArchiveService
 
         entity.ArchivedAt = null;
         entity.ArchivedBy = null;
+
+        if (entity is Employee empRestore)
+        {
+            empRestore.Status = "active";
+        }
 
         await _db.SaveChangesAsync(ct);
 
@@ -178,6 +188,81 @@ public class ArchiveService : IArchiveService
         return ArchiveResult.Ok($"{Label<T>()} permanently deleted.");
     }
 
+    // ── Bulk Operations ──────────────────────────────────────────────────────
+
+    public async Task<BulkArchiveResult> BulkArchiveAsync<T>(
+        IEnumerable<object> ids,
+        Func<T, string?>? guard = null,
+        CancellationToken ct = default) where T : class, IArchivable
+    {
+        int success = 0;
+        int fail = 0;
+        var msgs = new List<string>();
+
+        foreach (var id in ids)
+        {
+            var res = await ArchiveAsync<T>(id, guard, ct);
+            if (res.Success)
+                success++;
+            else
+            {
+                fail++;
+                msgs.Add($"ID {id}: {res.Message}");
+            }
+        }
+
+        return BulkArchiveResult.Create(success, fail, msgs);
+    }
+
+    public async Task<BulkArchiveResult> BulkRestoreAsync<T>(
+        IEnumerable<object> ids,
+        Func<T, string?>? guard = null,
+        CancellationToken ct = default) where T : class, IArchivable
+    {
+        int success = 0;
+        int fail = 0;
+        var msgs = new List<string>();
+
+        foreach (var id in ids)
+        {
+            var res = await RestoreAsync<T>(id, guard, ct);
+            if (res.Success)
+                success++;
+            else
+            {
+                fail++;
+                msgs.Add($"ID {id}: {res.Message}");
+            }
+        }
+
+        return BulkArchiveResult.Create(success, fail, msgs);
+    }
+
+    public async Task<BulkArchiveResult> BulkPermanentDeleteAsync<T>(
+        IEnumerable<object> ids,
+        Func<T, string?>? guard = null,
+        Func<T, Task>? cascade = null,
+        CancellationToken ct = default) where T : class, IArchivable
+    {
+        int success = 0;
+        int fail = 0;
+        var msgs = new List<string>();
+
+        foreach (var id in ids)
+        {
+            var res = await PermanentDeleteAsync<T>(id, guard, cascade, ct);
+            if (res.Success)
+                success++;
+            else
+            {
+                fail++;
+                msgs.Add($"ID {id}: {res.Message}");
+            }
+        }
+
+        return BulkArchiveResult.Create(success, fail, msgs);
+    }
+
     // ── Reads ────────────────────────────────────────────────────────────────
 
     public async Task<List<T>> GetArchivedAsync<T>(CancellationToken ct = default)
@@ -222,6 +307,30 @@ public class ArchiveService : IArchiveService
         _db.BypassArchiveFilter = true;
         try
         {
+            if (typeof(T) == typeof(Employee))
+            {
+                if (id is Guid g)
+                    return await _db.Employees.FirstOrDefaultAsync(e => e.PublicId == g, ct) as T;
+                if (id is string s && Guid.TryParse(s, out var parsedGuid))
+                    return await _db.Employees.FirstOrDefaultAsync(e => e.PublicId == parsedGuid, ct) as T;
+                if (id is int intId)
+                    return await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == intId, ct) as T;
+                if (id is string s2 && int.TryParse(s2, out var parsedInt))
+                    return await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == parsedInt, ct) as T;
+            }
+
+            if (typeof(T) == typeof(Branch))
+            {
+                if (id is Guid g)
+                    return await _db.Branches.FirstOrDefaultAsync(b => b.PublicId == g, ct) as T;
+                if (id is string s && Guid.TryParse(s, out var parsedGuid))
+                    return await _db.Branches.FirstOrDefaultAsync(b => b.PublicId == parsedGuid, ct) as T;
+                if (id is int intId)
+                    return await _db.Branches.FirstOrDefaultAsync(b => b.Id == intId, ct) as T;
+                if (id is string s2 && int.TryParse(s2, out var parsedInt))
+                    return await _db.Branches.FirstOrDefaultAsync(b => b.Id == parsedInt, ct) as T;
+            }
+
             var entityType = _db.Model.FindEntityType(typeof(T));
             var pk = entityType?.FindPrimaryKey();
             
