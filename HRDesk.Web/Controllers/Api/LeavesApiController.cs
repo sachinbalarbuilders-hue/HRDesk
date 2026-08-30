@@ -6,6 +6,7 @@ using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace HRDesk.Web.Controllers.Api;
 
@@ -277,6 +278,37 @@ public class LeavesController : ControllerBase
         }
 
         return Ok(types.Select(t => new { LeaveTypeId = t.Id, t.Code, t.Name, t.IsPaid, t.TextColor, t.BackgroundColor }));
+    }
+
+    [HttpGet("employees")]
+    public async Task<IActionResult> GetEligibleEmployees([FromQuery] int? branchId = null)
+    {
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+
+        var query = _db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Where(e => e.Status == "Active" || e.Status == "Onboarding")
+            .AsQueryable();
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(e => e.BranchId == activeBranch.Value);
+        }
+
+        query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.LeavesApply);
+
+        var list = await query
+            .OrderBy(e => e.EmployeeName)
+            .Select(e => new
+            {
+                employeeId = e.EmployeeId,
+                employeeName = e.EmployeeName,
+                departmentName = e.Department != null ? e.Department.DepartmentName : null
+            })
+            .ToListAsync();
+
+        return Ok(list);
     }
 
     private bool IsLeaveTypeEligible(LeaveType lt, Employee emp)
@@ -584,6 +616,380 @@ public class LeavesController : ControllerBase
         await _db.SaveChangesAsync();
 
         return Ok(new { success = true, message = "Leave application restored to Pending status." });
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateLeave(int id, [FromBody] LeaveApplyRequestDto dto)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesEdit))
+        {
+            return Forbid();
+        }
+
+        var query = _db.LeaveApplications.Where(la => la.Id == id);
+        query = await _permissionService.ApplyLeaveScopeAsync(query, User, AppPermissions.Keys.LeavesEdit);
+
+        var leave = await query.FirstOrDefaultAsync();
+        if (leave == null)
+        {
+            return NotFound(new { message = "Leave application not found or unauthorized." });
+        }
+
+        if (leave.Status != "Pending")
+        {
+            return BadRequest(new { message = "Only Pending leave requests can be edited." });
+        }
+
+        if (dto.StartDate > dto.EndDate)
+        {
+            return BadRequest(new { message = "End date cannot be earlier than start date." });
+        }
+
+        var overlappingLeaves = await _db.LeaveApplications
+            .Where(la => la.Id != id &&
+                         la.EmployeeId == leave.EmployeeId &&
+                         la.Status != "Rejected" &&
+                         la.Status != "Cancelled" &&
+                         la.Status != "Archived" &&
+                         dto.StartDate <= la.EndDate &&
+                         dto.EndDate >= la.StartDate)
+            .ToListAsync();
+
+        if (overlappingLeaves.Any())
+        {
+            bool isAllowedHalfDayCombo = false;
+            if (dto.StartDate == dto.EndDate && overlappingLeaves.Count == 1)
+            {
+                var existing = overlappingLeaves.First();
+                if (existing.StartDate == existing.EndDate && existing.StartDate == dto.StartDate)
+                {
+                    if ((dto.DayType == "First Half" && existing.DayType == "Second Half") ||
+                        (dto.DayType == "Second Half" && existing.DayType == "First Half"))
+                    {
+                        isAllowedHalfDayCombo = true;
+                    }
+                }
+            }
+
+            if (!isAllowedHalfDayCombo)
+            {
+                var conflict = overlappingLeaves.First();
+                return BadRequest(new
+                {
+                    message = $"Leave overlap error: An active leave application already exists for this employee covering {conflict.StartDate:dd MMM yyyy} to {conflict.EndDate:dd MMM yyyy} ({conflict.DayType}, Status: {conflict.Status})."
+                });
+            }
+        }
+
+        bool isHalf = dto.DayType == "First Half" || dto.DayType == "Second Half";
+        decimal totalDays = isHalf ? 0.5m : (dto.EndDate.DayNumber - dto.StartDate.DayNumber + 1);
+
+        leave.LeaveTypeId = dto.LeaveTypeId;
+        leave.StartDate = dto.StartDate;
+        leave.EndDate = dto.EndDate;
+        leave.TotalDays = totalDays;
+        leave.DayType = dto.DayType ?? "Full Day";
+        leave.Reason = dto.Reason;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Leave application updated successfully.", id = leave.Id });
+    }
+
+    [HttpPost("{id}/cancel")]
+    public async Task<IActionResult> CancelLeave(int id, [FromBody] LeaveStatusUpdateDto? dto)
+    {
+        var leave = await _db.LeaveApplications.FindAsync(id);
+        if (leave == null)
+        {
+            return NotFound(new { message = "Leave application not found." });
+        }
+
+        if (leave.Status != "Pending" && leave.Status != "Approved")
+        {
+            return BadRequest(new { message = "Only Pending or Approved leaves can be cancelled." });
+        }
+
+        var hasApprove = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesApprove);
+        var hasEdit = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesEdit);
+        var hasApply = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesApply);
+
+        if (!hasApprove && !hasEdit && !hasApply)
+        {
+            return Forbid();
+        }
+
+        bool isAllowed = false;
+        if (hasApprove)
+        {
+            var allowed = await _permissionService.ApplyLeaveScopeAsync(_db.LeaveApplications.Where(l => l.Id == id), User, AppPermissions.Keys.LeavesApprove);
+            isAllowed = await allowed.AnyAsync();
+        }
+        if (!isAllowed && hasEdit)
+        {
+            var allowed = await _permissionService.ApplyLeaveScopeAsync(_db.LeaveApplications.Where(l => l.Id == id), User, AppPermissions.Keys.LeavesEdit);
+            isAllowed = await allowed.AnyAsync();
+        }
+        if (!isAllowed && hasApply)
+        {
+            var allowed = await _permissionService.ApplyLeaveScopeAsync(_db.LeaveApplications.Where(l => l.Id == id), User, AppPermissions.Keys.LeavesApply);
+            isAllowed = await allowed.AnyAsync();
+        }
+
+        if (!isAllowed)
+        {
+            return Forbid();
+        }
+
+        bool wasApproved = leave.Status == "Approved";
+        var sDate = leave.StartDate;
+        var eDate = leave.EndDate;
+        var empId = leave.EmployeeId;
+
+        leave.Status = "Cancelled";
+        if (!string.IsNullOrWhiteSpace(dto?.Remarks))
+        {
+            leave.Reason = $"{leave.Reason} [Cancelled: {dto.Remarks}]";
+        }
+
+        await _db.SaveChangesAsync();
+
+        if (wasApproved)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    for (var d = sDate; d <= eDate; d = d.AddDays(1))
+                    {
+                        await _processor.ProcessDailyAttendanceAsync(d, empId);
+                    }
+                }
+                catch { }
+            });
+        }
+
+        return Ok(new { success = true, message = "Leave application cancelled.", id = leave.Id });
+    }
+
+    [HttpPost("bulk-archive")]
+    public async Task<IActionResult> BulkArchive([FromBody] BulkActionRequest request)
+    {
+        return await HandleBulkDelete(request, permanent: false);
+    }
+
+    [HttpPost("bulk-delete")]
+    public async Task<IActionResult> BulkDelete([FromBody] BulkActionRequest request)
+    {
+        return await HandleBulkDelete(request, permanent: true);
+    }
+
+    private async Task<IActionResult> HandleBulkDelete(BulkActionRequest request, bool permanent)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesDelete))
+        {
+            return Forbid();
+        }
+
+        var deleteScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.LeavesDelete);
+        if (permanent && deleteScope != "Permanent Delete" && deleteScope != "All")
+        {
+            return Forbid();
+        }
+        if (!permanent && deleteScope != "Bulk Delete" && deleteScope != "Permanent Delete" && deleteScope != "All")
+        {
+            return Forbid();
+        }
+
+        var idList = request?.GetIntIds() ?? new List<int>();
+        if (idList.Count == 0)
+        {
+            return BadRequest(new { message = "No records selected for deletion." });
+        }
+
+        var query = _db.LeaveApplications.Where(la => idList.Contains(la.Id));
+        query = await _permissionService.ApplyLeaveScopeAsync(query, User, AppPermissions.Keys.LeavesDelete);
+        var leaves = await query.ToListAsync();
+
+        var affected = leaves.Where(l => l.Status == "Approved" || l.Status == "Adjusted" || permanent)
+            .Select(l => new { l.StartDate, l.EndDate, l.EmployeeId })
+            .ToList();
+
+        if (permanent)
+        {
+            _db.LeaveApplications.RemoveRange(leaves);
+        }
+        else
+        {
+            foreach (var l in leaves)
+            {
+                l.Status = "Archived";
+            }
+        }
+
+        await _db.SaveChangesAsync();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                foreach (var item in affected)
+                {
+                    for (var d = item.StartDate; d <= item.EndDate; d = d.AddDays(1))
+                    {
+                        await _processor.ProcessDailyAttendanceAsync(d, item.EmployeeId);
+                    }
+                }
+            }
+            catch { }
+        });
+
+        return Ok(new { success = true, permanent, message = $"Successfully {(permanent ? "deleted" : "archived")} {leaves.Count} leave request(s)." });
+    }
+
+    [HttpPost("bulk-restore")]
+    public async Task<IActionResult> BulkRestore([FromBody] BulkActionRequest request)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesDelete))
+        {
+            return Forbid();
+        }
+
+        var deleteScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.LeavesDelete);
+        if (deleteScope != "Bulk Delete" && deleteScope != "Permanent Delete" && deleteScope != "All")
+        {
+            return Forbid();
+        }
+
+        var idList = request?.GetIntIds() ?? new List<int>();
+        if (idList.Count == 0)
+        {
+            return BadRequest(new { message = "No records selected for restoration." });
+        }
+
+        var query = _db.LeaveApplications.Where(la => idList.Contains(la.Id) && (la.Status == "Archived" || la.Status == "Cancelled"));
+        query = await _permissionService.ApplyLeaveScopeAsync(query, User, AppPermissions.Keys.LeavesDelete);
+        var leaves = await query.ToListAsync();
+
+        foreach (var l in leaves)
+        {
+            l.Status = "Pending";
+        }
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = $"Successfully restored {leaves.Count} leave request(s)." });
+    }
+
+    [HttpPost("bulk-approve")]
+    public async Task<IActionResult> BulkApprove([FromBody] BulkActionRequest request)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesApprove))
+        {
+            return Forbid();
+        }
+
+        var idList = request?.GetIntIds() ?? new List<int>();
+        if (idList.Count == 0)
+        {
+            return BadRequest(new { message = "No records selected for approval." });
+        }
+
+        var query = _db.LeaveApplications.Where(la => idList.Contains(la.Id) && la.Status == "Pending");
+        query = await _permissionService.ApplyLeaveScopeAsync(query, User, AppPermissions.Keys.LeavesApprove);
+        var leaves = await query.ToListAsync();
+
+        var approver = User.Identity?.Name ?? "Admin";
+
+        foreach (var l in leaves)
+        {
+            l.Status = "Approved";
+            l.ApprovedBy = approver;
+        }
+
+        await _db.SaveChangesAsync();
+
+        var affected = leaves.Select(l => new { l.StartDate, l.EndDate, l.EmployeeId }).ToList();
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                foreach (var item in affected)
+                {
+                    for (var d = item.StartDate; d <= item.EndDate; d = d.AddDays(1))
+                    {
+                        await _processor.ProcessDailyAttendanceAsync(d, item.EmployeeId);
+                    }
+                }
+            }
+            catch { }
+        });
+
+        return Ok(new { success = true, message = $"Successfully approved {leaves.Count} leave request(s)." });
+    }
+
+    [HttpPost("bulk-reject")]
+    public async Task<IActionResult> BulkReject([FromBody] BulkActionRequest request)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesApprove))
+        {
+            return Forbid();
+        }
+
+        var idList = request?.GetIntIds() ?? new List<int>();
+        if (idList.Count == 0)
+        {
+            return BadRequest(new { message = "No records selected for rejection." });
+        }
+
+        var query = _db.LeaveApplications.Where(la => idList.Contains(la.Id) && la.Status == "Pending");
+        query = await _permissionService.ApplyLeaveScopeAsync(query, User, AppPermissions.Keys.LeavesApprove);
+        var leaves = await query.ToListAsync();
+
+        var approver = User.Identity?.Name ?? "Admin";
+
+        foreach (var l in leaves)
+        {
+            l.Status = "Rejected";
+            l.ApprovedBy = approver;
+            if (!string.IsNullOrWhiteSpace(request?.Reason))
+            {
+                l.Reason = $"{l.Reason} [Rejected: {request.Reason}]";
+            }
+        }
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = $"Successfully rejected {leaves.Count} leave request(s)." });
+    }
+
+    public class BulkActionRequest
+    {
+        public JsonElement? Ids { get; set; }
+        public string? Reason { get; set; }
+
+        public List<int> GetIntIds()
+        {
+            var result = new List<int>();
+            if (!Ids.HasValue) return result;
+
+            if (Ids.Value.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var elem in Ids.Value.EnumerateArray())
+                {
+                    if (elem.ValueKind == JsonValueKind.Number && elem.TryGetInt32(out var num))
+                    {
+                        result.Add(num);
+                    }
+                    else if (elem.ValueKind == JsonValueKind.String && int.TryParse(elem.GetString(), out var strNum))
+                    {
+                        result.Add(strNum);
+                    }
+                }
+            }
+            return result;
+        }
     }
 
     public record LeaveApplyRequestDto(int? EmployeeId, int LeaveTypeId, DateOnly StartDate, DateOnly EndDate, string? DayType, string? Reason);

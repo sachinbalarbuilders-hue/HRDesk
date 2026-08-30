@@ -45,8 +45,6 @@ public static class ArchivableRegistry
         Register("employees",          typeof(Employee),                 AppPermissions.Keys.EmployeesDelete,      "Employee");
         Register("employee-documents", typeof(EmployeeDocument),         AppPermissions.Keys.EmployeesEdit,        "Document");
         Register("documents",          typeof(EmployeeDocument),         AppPermissions.Keys.EmployeesEdit,        "Document");
-        Register("leaves",             typeof(LeaveApplication),         AppPermissions.Keys.LeavesApply,          "Leave application");
-        Register("regularizations",    typeof(AttendanceRegularization), AppPermissions.Keys.AttendanceRegularize, "Regularization");
         Register("payroll",            typeof(PayrollMaster),            AppPermissions.Keys.PayrollProcess,       "Payroll record");
         Register("candidates",         typeof(HRDesk.Web.Areas.Recruitment.Models.Candidate),         AppPermissions.Keys.RecruitmentCandidates, "Candidate");
         Register("interviews",         typeof(HRDesk.Web.Areas.Recruitment.Models.InterviewSchedule), AppPermissions.Keys.RecruitmentInterviews, "Interview");

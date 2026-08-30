@@ -38,12 +38,18 @@ if (Test-Path $publishPath) {
 }
 dotnet publish "$webPath\HRDesk.Web.csproj" -c Release -o $publishPath --nologo
 
-# ── 3. Inject production appsettings ────────────────────────────────────────
-Write-Host "`n[3/4] Injecting SmarterASP Production Configuration..." -ForegroundColor Yellow
-if (Test-Path $smarterAspJson) {
-    Copy-Item -Path $smarterAspJson -Destination "$publishPath\appsettings.json"            -Force
-    Copy-Item -Path $smarterAspJson -Destination "$publishPath\appsettings.Production.json" -Force
+# ── 3. Inject non-sensitive template appsettings & Clean up ────────────────
+Write-Host "`n[3/4] Injecting template configuration and cleaning sensitive files..." -ForegroundColor Yellow
+$exampleJson = "$webPath\appsettings.example.json"
+if (Test-Path $exampleJson) {
+    Copy-Item -Path $exampleJson -Destination "$publishPath\appsettings.json"            -Force
+    Copy-Item -Path $exampleJson -Destination "$publishPath\appsettings.Production.json" -Force
 }
+
+# Remove any development or sensitive config files that dotnet publish copied to the output directory
+Remove-Item -Path "$publishPath\appsettings.Development.json" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$publishPath\appsettings.SmarterAsp.json" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$publishPath\appsettings.example.json" -Force -ErrorAction SilentlyContinue
 
 # ── 4. Deploy via MSDeploy (Web Deploy) ─────────────────────────────────────
 # -enableRule:AppOffline  — MSDeploy automatically uploads app_offline.htm,

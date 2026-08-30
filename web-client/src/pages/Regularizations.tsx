@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -26,6 +26,9 @@ import {
   Trash2,
   Archive,
   RotateCcw,
+  Pencil,
+  ChevronDown,
+  Ban,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
@@ -47,8 +50,155 @@ interface RegularizationItem {
   createdAt: string;
 }
 
+interface StatusApprovalDropdownProps {
+  row: RegularizationItem;
+  canApprove: boolean;
+  canCancel: boolean;
+  onApprove: (id: number) => void;
+  onReject: (id: number) => void;
+  onCancel: (id: number) => void;
+}
+
+const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
+  row,
+  canApprove,
+  canCancel,
+  onApprove,
+  onReject,
+  onCancel,
+}) => {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
+  if (row.status === 'Approved') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+        <span>Approved</span>
+      </span>
+    );
+  }
+
+  if (row.status === 'Rejected') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+        <span className="w-2 h-2 rounded-full bg-rose-500" />
+        <span>Rejected</span>
+      </span>
+    );
+  }
+
+  if (row.status === 'Cancelled') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gray-500/10 text-gray-500 dark:text-gray-400 border border-gray-500/20">
+        <span className="w-2 h-2 rounded-full bg-gray-400" />
+        <span>Cancelled</span>
+      </span>
+    );
+  }
+
+  if (row.status === 'Archived') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
+        <span className="w-2 h-2 rounded-full bg-slate-400" />
+        <span>Archived</span>
+      </span>
+    );
+  }
+
+  // Pending Status
+  if (!canApprove && !canCancel) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+        <span className="w-2 h-2 rounded-full bg-amber-500" />
+        <span>Pending</span>
+      </span>
+    );
+  }
+
+  return (
+    <div className="relative inline-block text-left" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="inline-flex items-center justify-between gap-2 px-2.5 py-1 rounded-md text-xs font-medium border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--ink)] shadow-2xs cursor-pointer transition-all hover:border-[var(--gold-500)]"
+      >
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          <span className="font-semibold">Pending</span>
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-[var(--ink-muted)] transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 mt-1 w-32 rounded-lg bg-[var(--paper)] border border-[var(--rule)] shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-100 font-sans">
+          {canApprove && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onApprove(row.id);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-left cursor-pointer transition-colors"
+              >
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="font-semibold">Approve</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onReject(row.id);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-left cursor-pointer transition-colors"
+              >
+                <X className="w-3.5 h-3.5 text-rose-500" />
+                <span className="font-semibold">Reject</span>
+              </button>
+            </>
+          )}
+          {canCancel && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onCancel(row.id);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 text-left cursor-pointer transition-colors"
+            >
+              <Ban className="w-3.5 h-3.5 text-gray-500" />
+              <span className="font-semibold">Cancel</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const Regularizations: React.FC = () => {
-  const { hasPermission, isAdmin } = useAuth();
+  const { hasPermission, isAdmin, getPermissionScope, user } = useAuth();
+  const createScope = getPermissionScope('Attendance.Regularize');
+  const editScope = getPermissionScope('Regularizations.Edit');
+  const approveScope = getPermissionScope('Regularizations.Approve');
+  const canApprove = isAdmin || hasPermission('Regularizations.Approve');
+  const canEdit = isAdmin || hasPermission('Regularizations.Edit');
+  const canCreate = isAdmin || hasPermission('Attendance.Regularize');
   const { showSuccess, showError } = useToast();
   const { currentOrganization, currentBranch } = useOrganization();
 
@@ -71,6 +221,7 @@ export const Regularizations: React.FC = () => {
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectTargetId, setRejectTargetId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -129,15 +280,17 @@ export const Regularizations: React.FC = () => {
   // 2. Fetch Employee List for Dropdown
   const fetchEmployees = async () => {
     try {
-      const res = await apiClient.get('/employees', {
-        params: { pageSize: 200, branchId: currentBranch?.id || undefined }
+      const res = await apiClient.get('/regularizations/employees', {
+        params: { branchId: currentBranch?.id || undefined }
       });
-      const list = (res.data.items || []).map((e: any) => ({
+      const list = (res.data || []).map((e: any) => ({
         employeeId: e.employeeId || e.id,
         employeeName: e.employeeName || e.name,
       }));
       setEmployees(list);
-      if (list.length > 0 && regForm.employeeId === 0) {
+      if (createScope === 'Own' && user?.employeeId) {
+        setRegForm(prev => ({ ...prev, employeeId: user.employeeId! }));
+      } else if (list.length > 0 && regForm.employeeId === 0) {
         setRegForm(prev => ({ ...prev, employeeId: list[0].employeeId }));
       }
     } catch (e) {
@@ -202,6 +355,16 @@ export const Regularizations: React.FC = () => {
     }
   };
 
+  const handleCancel = async (id: number) => {
+    try {
+      await apiClient.post(`/regularizations/${id}/cancel`);
+      showSuccess('Cancelled', 'Regularization request cancelled.');
+      fetchData();
+    } catch (err: any) {
+      showError('Cancellation Failed', err.response?.data?.message || 'Server error');
+    }
+  };
+
   const handleOpenReject = (id: number) => {
     setRejectTargetId(id);
     setRejectReason('');
@@ -245,6 +408,27 @@ export const Regularizations: React.FC = () => {
     }
   };
 
+  const handleOpenEdit = (r: RegularizationItem) => {
+    setEditingId(r.id);
+    const inTime = r.punchTimeIn ? new Date(r.punchTimeIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '09:00';
+    const outTime = r.punchTimeOut ? new Date(r.punchTimeOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '18:00';
+    const punchTarget = (r.punchTimeIn && r.punchTimeOut) ? 'both' : r.punchTimeIn ? 'in' : r.punchTimeOut ? 'out' : 'both';
+    const reqDate = r.requestDate ? r.requestDate.split('T')[0] : new Date().toISOString().split('T')[0];
+
+    setRegForm({
+      employeeId: r.employeeId,
+      requestType: r.requestType || 'Missed Punch',
+      requestDate: reqDate,
+      punchTarget,
+      punchTimeIn: inTime,
+      punchTimeOut: outTime,
+      waivePenalty: r.waivePenalty ?? true,
+      reason: r.reason || '',
+      document: null,
+    });
+    setCreateModalOpen(true);
+  };
+
   const handleSubmitRegularization = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regForm.employeeId) {
@@ -253,36 +437,57 @@ export const Regularizations: React.FC = () => {
     }
     try {
       setSubmitting(true);
-      await apiClient.post('/regularizations', {
-        employeeId: regForm.employeeId,
-        requestType: regForm.requestType,
-        waivePenalty: regForm.waivePenalty,
-        reason: regForm.reason,
-        items: [
-          {
-            requestDate: regForm.requestDate,
-            punchTarget: regForm.punchTarget,
-            punchTimeIn: regForm.punchTimeIn,
-            punchTimeOut: regForm.punchTimeOut,
-            reason: regForm.reason,
-          },
-        ],
-      });
-      showSuccess('Submitted', 'Regularization request created successfully.');
+      if (editingId) {
+        await apiClient.put(`/regularizations/${editingId}`, {
+          requestDate: regForm.requestDate,
+          requestType: regForm.requestType,
+          punchTarget: regForm.punchTarget,
+          punchTimeIn: regForm.punchTimeIn,
+          punchTimeOut: regForm.punchTimeOut,
+          waivePenalty: regForm.waivePenalty,
+          reason: regForm.reason,
+        });
+        showSuccess('Updated', 'Regularization request updated successfully.');
+      } else {
+        await apiClient.post('/regularizations', {
+          employeeId: regForm.employeeId,
+          requestType: regForm.requestType,
+          waivePenalty: regForm.waivePenalty,
+          reason: regForm.reason,
+          items: [
+            {
+              requestDate: regForm.requestDate,
+              punchTarget: regForm.punchTarget,
+              punchTimeIn: regForm.punchTimeIn,
+              punchTimeOut: regForm.punchTimeOut,
+              reason: regForm.reason,
+            },
+          ],
+        });
+        showSuccess('Submitted', 'Regularization request created successfully.');
+      }
       setCreateModalOpen(false);
+      setEditingId(null);
       fetchData();
     } catch (err: any) {
-      showError('Submission Failed', err.response?.data?.message || 'Server error');
+      showError(editingId ? 'Update Failed' : 'Submission Failed', err.response?.data?.message || 'Server error');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const deleteScope = getPermissionScope('Regularizations.Delete') || (isAdmin ? 'Bulk Delete' : 'Soft Delete');
+  const canDelete = isAdmin || hasPermission('Regularizations.Delete');
+  const canBulkDelete = isAdmin || (canDelete && (deleteScope === 'Bulk Delete' || deleteScope === 'Permanent Delete' || deleteScope === 'All'));
+  const canPermanentDelete = isAdmin || (canDelete && (deleteScope === 'Permanent Delete' || deleteScope === 'All'));
 
   // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
   const regularizationArchive = useArchiveActions({
     endpoint: '/regularizations',
     label: 'Regularization Request',
     onDone: fetchData,
+    canPermanentDelete,
+    canBulkDelete,
   });
 
   const handleExport = () => {
@@ -304,17 +509,18 @@ export const Regularizations: React.FC = () => {
     );
   };
 
-  const canManage = isAdmin || hasPermission('Attendance.Regularize');
+  const canManage = canApprove;
 
   const customBulkActions = useMemo(() => {
     if (archiveFilter === 'archived') {
       return regularizationArchive.bulkActions(true);
     }
     return [
-      {
-        label: 'Bulk Approve',
-        icon: <CheckCheck size={13} />,
-        variant: 'primary' as const,
+      ...(canManage ? [
+        {
+          label: 'Bulk Approve',
+          icon: <CheckCheck size={13} />,
+          variant: 'primary' as const,
         onClick: async (_keys: (string | number)[], selectedRows: RegularizationItem[], clear: () => void) => {
           const pendingIds = selectedRows.filter((r) => r.status === 'Pending').map((r) => r.id);
           if (!pendingIds.length) {
@@ -350,10 +556,11 @@ export const Regularizations: React.FC = () => {
             showError('Bulk Rejection Failed', err.response?.data?.message || 'Server error');
           }
         },
-      },
+      }
+      ] : []),
       ...regularizationArchive.bulkActions(false),
     ];
-  }, [archiveFilter, regularizationArchive, showError, showSuccess]);
+  }, [archiveFilter, regularizationArchive, showError, showSuccess, canManage]);
 
   return (
     <PageContainer>
@@ -384,11 +591,26 @@ export const Regularizations: React.FC = () => {
         ]}
         onExport={handleExport}
         onImport={canManage ? () => setImportModalOpen(true) : undefined}
-        primaryAction={{
+        primaryAction={canCreate ? {
           label: 'Apply Regularization',
           icon: <Plus className="w-3.5 h-3.5" />,
-          onClick: () => setCreateModalOpen(true),
-        }}
+          onClick: () => {
+            setEditingId(null);
+            const defaultEmpId = (createScope === 'Own' && user?.employeeId) ? user.employeeId : (employees[0]?.employeeId || 0);
+            setRegForm({
+              employeeId: defaultEmpId,
+              requestType: 'Missed Punch',
+              requestDate: new Date().toISOString().split('T')[0],
+              punchTarget: 'both',
+              punchTimeIn: '09:00',
+              punchTimeOut: '18:00',
+              waivePenalty: true,
+              reason: '',
+              document: null,
+            });
+            setCreateModalOpen(true);
+          },
+        } : undefined}
       />
 
       {/* 4. Ledger Table Section */}
@@ -466,35 +688,21 @@ export const Regularizations: React.FC = () => {
             header: 'Status',
             render: (r) => {
               const isArchived = r.status === 'Archived' || r.status === 'Cancelled';
-              if (r.status === 'Pending')
-                return (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                    Pending
-                  </span>
-                );
-              if (r.status === 'Approved')
-                return (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-                    <Check className="w-3 h-3 text-emerald-600" />
-                    Approved
-                  </span>
-                );
-              if (r.status === 'Rejected')
-                return (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
-                    <X className="w-3 h-3 text-rose-600" />
-                    Rejected
-                  </span>
-                );
-              if (isArchived)
-                return (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                    <Archive className="w-3 h-3 text-slate-500" />
-                    Archived
-                  </span>
-                );
-              return <span>{r.status}</span>;
+              const isPending = r.status === 'Pending';
+              const canEditThis = canEdit && isPending && !isArchived && (editScope !== 'Own' || r.employeeId === user?.employeeId);
+              const canApproveThis = canApprove && isPending && !isArchived && (approveScope !== 'Own' || r.employeeId === user?.employeeId);
+              const canCancelThis = isPending && !isArchived && (canApproveThis || canEditThis || r.employeeId === user?.employeeId);
+
+              return (
+                <StatusApprovalDropdown
+                  row={r}
+                  canApprove={canApproveThis}
+                  canCancel={canCancelThis}
+                  onApprove={handleApprove}
+                  onReject={handleOpenReject}
+                  onCancel={handleCancel}
+                />
+              );
             },
           },
           {
@@ -503,20 +711,22 @@ export const Regularizations: React.FC = () => {
             align: 'right',
             render: (r) => {
               const isArchived = r.status === 'Archived' || r.status === 'Cancelled';
-              return canManage ? (
+              const isPending = r.status === 'Pending';
+              const canEditThis = canEdit && isPending && !isArchived && (editScope !== 'Own' || r.employeeId === user?.employeeId);
+
+              return canDelete || canEditThis ? (
                 <RowActionMenu
                   actions={[
-                    ...(!isArchived && r.status === 'Pending'
-                      ? [
-                          { label: 'Approve', icon: <Check className="w-4 h-4" />, onClick: () => handleApprove(r.id), variant: 'success' as const },
-                          { label: 'Reject', icon: <X className="w-4 h-4" />, onClick: () => handleOpenReject(r.id), variant: 'danger' as const },
-                        ]
+                    ...(canEditThis
+                      ? [{ label: 'Edit', icon: <Pencil className="w-4 h-4" />, onClick: () => handleOpenEdit(r) }]
                       : []),
-                    ...regularizationArchive.rowActions({
-                      id: r.id,
-                      name: `Regularization #${r.id} (${r.employeeName})`,
-                      isArchived: isArchived || isRowArchived(r),
-                    }),
+                    ...(canDelete
+                      ? regularizationArchive.rowActions({
+                          id: r.id,
+                          name: `Regularization #${r.id} (${r.employeeName})`,
+                          isArchived: isArchived || isRowArchived(r),
+                        })
+                      : []),
                   ]}
                 />
               ) : (
@@ -528,7 +738,7 @@ export const Regularizations: React.FC = () => {
           },
         ]}
         selection={
-          canManage
+          canManage || canBulkDelete
             ? {
                 selectedRowKeys: selectedIds,
                 onChange: (keys) => setSelectedIds(keys),
@@ -554,11 +764,13 @@ export const Regularizations: React.FC = () => {
           <div className="w-full max-w-[480px] bg-[var(--surface)] h-full shadow-[var(--shadow-xl)] flex flex-col border-l border-[var(--border)] animate-slide-in-right">
             <div className="p-5 pb-4 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
               <div>
-                <h3 className="text-base font-semibold text-[var(--text-primary)]">Apply Attendance Regularization</h3>
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                  {editingId ? 'Edit Attendance Regularization' : 'Apply Attendance Regularization'}
+                </h3>
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">Correct missed punches, early exit, or late arrivals.</p>
               </div>
               <button
-                onClick={() => setCreateModalOpen(false)}
+                onClick={() => { setCreateModalOpen(false); setEditingId(null); }}
                 className="p-1.5 rounded-[var(--radius-md)] hover:bg-[var(--surface-secondary)] text-[var(--text-muted)] cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -570,17 +782,20 @@ export const Regularizations: React.FC = () => {
               <div>
                 <label className="block font-semibold text-[var(--ink)] mb-1">Select Employee *</label>
                 <select
-                  value={regForm.employeeId}
-                  onChange={(e) => setRegForm({ ...regForm, employeeId: parseInt(e.target.value) || 0 })}
-                  className="register-input w-full font-medium"
-                  required
-                >
-                  {employees.map((e) => (
-                    <option key={e.employeeId} value={e.employeeId}>
-                      {e.employeeName} (#{e.employeeId})
-                    </option>
-                  ))}
-                </select>
+                className={`register-input w-full ${createScope === 'Own' || editingId !== null ? 'opacity-70 bg-gray-50 dark:bg-gray-900 cursor-not-allowed' : ''}`}
+                value={regForm.employeeId}
+                onChange={(e) => setRegForm({ ...regForm, employeeId: Number(e.target.value) })}
+                required
+                disabled={createScope === 'Own' || editingId !== null}
+              >
+                {(Array.isArray(employees) ? employees : [])
+                  .filter(emp => createScope !== 'Own' || emp.employeeId === user?.employeeId)
+                  .map(emp => (
+                  <option key={emp.employeeId} value={emp.employeeId}>
+                    {emp.employeeName}
+                  </option>
+                ))}
+              </select>
               </div>
 
               {/* Date & Type */}
@@ -750,7 +965,7 @@ export const Regularizations: React.FC = () => {
               <div className="pt-2 border-t border-[var(--rule)] flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setCreateModalOpen(false)}
+                  onClick={() => { setCreateModalOpen(false); setEditingId(null); }}
                   className="btn-secondary py-1.5 px-3"
                 >
                   Cancel
@@ -760,7 +975,7 @@ export const Regularizations: React.FC = () => {
                   disabled={submitting}
                   className="btn-primary py-1.5 px-4 flex items-center gap-1.5"
                 >
-                  {submitting ? 'Saving...' : 'Submit Regularization'}
+                  {submitting ? 'Saving...' : editingId ? 'Update Regularization' : 'Submit Regularization'}
                 </button>
               </div>
             </form>

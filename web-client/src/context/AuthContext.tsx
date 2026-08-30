@@ -124,18 +124,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasPermission = (permissionKey: string): boolean => {
     if (!user) return false;
-    if (user.isPlatformUser) return true;
-    if (user.role === 'Admin') return true;
+    if (user.isPlatformUser || user.role === 'SuperAdmin') return true;
     return permissions.includes(permissionKey);
   };
 
   const getPermissionScope = (permissionKey: string): string | undefined => {
     if (!user) return undefined;
-    if (user.isPlatformUser || user.role === 'Admin') return 'All';
+    if (user.isPlatformUser || user.role === 'SuperAdmin') return 'All';
     return permissionScopes[permissionKey];
   };
 
-  const isAdmin = user?.isPlatformUser || user?.role === 'Admin' || user?.role === 'HR' || user?.role === 'Manager';
+  const isAdmin = Boolean(user?.isPlatformUser || user?.role === 'SuperAdmin');
 
   return (
     <AuthContext.Provider

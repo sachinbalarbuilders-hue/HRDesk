@@ -29,7 +29,8 @@ public static class AppPermissions
         public const string Attendance = "Attendance";
         public const string Regularizations = "Regularizations";
         public const string ShiftsAndRoster = "Shifts & Roster";
-        public const string Leaves = "Leaves & Comp-Off";
+        public const string Leaves = "Leaves";
+        public const string CompOff = "Comp-Off";
         public const string Payroll = "Payroll & Loans";
         public const string Masters = "Masters & Structure";
         public const string Recruitment = "Recruitment";
@@ -51,6 +52,9 @@ public static class AppPermissions
 
         // 3. Regularizations Module
         public const string AttendanceRegularize = "Attendance.Regularize";
+        public const string RegularizationsView = "Regularizations.View";
+        public const string RegularizationsEdit = "Regularizations.Edit";
+        public const string RegularizationsApprove = "Regularizations.Approve";
         public const string RegularizationsDelete = "Regularizations.Delete";
 
         // 4. Shifts & Roster Module
@@ -58,15 +62,23 @@ public static class AppPermissions
         public const string AttendanceRoster = "Attendance.Roster";
         public const string HolidaysManage = "Holidays.Manage";
 
-        // 5. Leaves & Comp-Off Module
+        // 5. Leaves Module
         public const string LeavesView = "Leaves.View";
         public const string LeavesApply = "Leaves.Apply";
+        public const string LeavesEdit = "Leaves.Edit";
         public const string LeavesApprove = "Leaves.Approve";
+        public const string LeavesDelete = "Leaves.Delete";
         public const string LeavesManageTypes = "Leaves.ManageTypes";
         public const string LeavesManageAllocations = "Leaves.ManageAllocations";
-        public const string CompOffApprove = "CompOff.Approve";
 
-        // 6. Payroll & Loans Module
+        // 6. Comp-Off Module
+        public const string CompOffView = "CompOff.View";
+        public const string CompOffApply = "CompOff.Apply";
+        public const string CompOffEdit = "CompOff.Edit";
+        public const string CompOffApprove = "CompOff.Approve";
+        public const string CompOffDelete = "CompOff.Delete";
+
+        // 7. Payroll & Loans Module
         public const string PayrollView = "Payroll.View";
         public const string PayrollProcess = "Payroll.Process";
         public const string PayrollManageSalary = "Payroll.ManageSalary";
@@ -109,7 +121,7 @@ public static class AppPermissions
 
         new(Keys.EmployeesCreate, "Create Scope", Modules.Employees, "Add new employees to the organization", 
             SupportsScope: true, 
-            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
         new(Keys.EmployeesEdit, "Edit Scope", Modules.Employees, "Update employee personal and job details", 
@@ -134,14 +146,29 @@ public static class AppPermissions
             DefaultScope: "Own Branch"),
 
         // 3. Regularizations
-        new(Keys.AttendanceRegularize, "Approval Scope", Modules.Regularizations, "Approve or reject attendance regularizations", 
+        new(Keys.RegularizationsView, "View Scope", Modules.Regularizations, "View attendance regularization requests", 
             SupportsScope: true, 
-            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AttendanceRegularize, "Create Scope", Modules.Regularizations, "Submit attendance regularization requests", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.RegularizationsEdit, "Edit Scope", Modules.Regularizations, "Edit submitted regularization requests", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.RegularizationsApprove, "Approve Scope", Modules.Regularizations, "Approve or reject attendance regularizations", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
         new(Keys.RegularizationsDelete, "Delete Scope", Modules.Regularizations, "Archive or permanently delete regularization requests", 
             SupportsScope: true, 
-            ScopeOptions: new[] { "Soft Delete", "Permanent Delete" },
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
             DefaultScope: "Soft Delete"),
 
         // 4. Shifts & Roster
@@ -160,31 +187,62 @@ public static class AppPermissions
             ScopeOptions: new[] { "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        // 5. Leaves & Comp-Off
+        // 5. Leaves
         new(Keys.LeavesView, "View Scope", Modules.Leaves, "View submitted leave applications", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        new(Keys.LeavesApply, "Apply Scope", Modules.Leaves, "Submit leave on behalf of staff", 
+        new(Keys.LeavesApply, "Create Scope", Modules.Leaves, "Submit leave on behalf of staff", 
             SupportsScope: true, 
-            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.LeavesEdit, "Edit Scope", Modules.Leaves, "Edit submitted leave applications", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
         new(Keys.LeavesApprove, "Approve Scope", Modules.Leaves, "Approve or reject leave requests", 
             SupportsScope: true, 
-            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        new(Keys.CompOffApprove, "Comp-Off Approval Scope", Modules.Leaves, "Approve weekend / overtime comp-off credits", 
+        new(Keys.LeavesDelete, "Delete Scope", Modules.Leaves, "Archive or permanently delete leave applications", 
             SupportsScope: true, 
-            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
-            DefaultScope: "Own Branch"),
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
 
         new(Keys.LeavesManageTypes, "Manage Leave Types", Modules.Leaves, "Configure leave quotas and rules"),
         new(Keys.LeavesManageAllocations, "Manage Allocations", Modules.Leaves, "Credit and adjust leave balances"),
 
-        // 6. Payroll & Loans
+        // 6. Comp-Off
+        new(Keys.CompOffView, "View Scope", Modules.CompOff, "View comp-off balance and duty credits", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.CompOffApply, "Create Scope", Modules.CompOff, "Request or grant comp-off duty credits", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.CompOffEdit, "Edit Scope", Modules.CompOff, "Edit comp-off credit records", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.CompOffApprove, "Approve Scope", Modules.CompOff, "Approve or reject weekend / overtime comp-off credits", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.CompOffDelete, "Delete Scope", Modules.CompOff, "Archive or permanently delete comp-off records", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
+
+        // 7. Payroll & Loans
         new(Keys.PayrollView, "View Scope", Modules.Payroll, "View salary statements and payroll reports", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Own", "Department", "Own Branch" },

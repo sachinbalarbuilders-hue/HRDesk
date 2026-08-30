@@ -69,8 +69,8 @@ export const AppLayout: React.FC = () => {
       group: 'Time & Attendance',
       items: [
         { name: 'Attendance', href: '/attendance', icon: CalendarCheck, show: isAdmin || hasPermission('Attendance.View') },
-        { name: 'Regularization', href: '/regularizations', icon: Clock, show: isAdmin || hasPermission('Attendance.View') || hasPermission('Attendance.Regularize') },
-        { name: 'Shifts', href: '/shifts', icon: Layers, show: isAdmin || hasPermission('Attendance.View') },
+        { name: 'Regularization', href: '/regularizations', icon: Clock, show: isAdmin || hasPermission('Regularizations.View') || hasPermission('Attendance.Regularize') || hasPermission('Regularizations.Approve') },
+        { name: 'Shifts', href: '/shifts', icon: Layers, show: isAdmin || hasPermission('Shifts.Manage') || hasPermission('Attendance.Roster') },
         { name: 'Leaves', href: '/leaves', icon: CalendarOff, show: isAdmin || hasPermission('Leaves.View') },
         { name: 'Holidays', href: '/holidays', icon: Sparkles, show: true },
       ],
@@ -85,7 +85,7 @@ export const AppLayout: React.FC = () => {
     {
       group: 'Settings',
       items: [
-        { name: 'Settings', href: '/settings', icon: SettingsIcon, show: isAdmin },
+        { name: 'Settings', href: '/settings', icon: SettingsIcon, show: isAdmin || hasPermission('System.Settings') || hasPermission('System.Roles') || hasPermission('System.Devices') },
         { name: 'Scanner', href: '/scanner', icon: Camera, show: true },
       ],
     },

@@ -50,3 +50,5 @@
     <Content Remove="logs\**\*" />
   </ItemGroup>
 </Project>
+
+<!-- Force rebuild -->

@@ -7,6 +7,7 @@ using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace HRDesk.Web.Controllers.Api;
 
@@ -51,8 +52,44 @@ public class RegularizationsController : ControllerBase
         List<RegularizationCreateItem> Items
     );
 
+    public record UpdateRegularizationRequest(
+        DateOnly RequestDate,
+        string? RequestType,
+        string? PunchTarget, // "in", "out", "both"
+        string? PunchTimeIn, // "HH:mm"
+        string? PunchTimeOut, // "HH:mm"
+        bool WaivePenalty,
+        string? Reason
+    );
+
     public record RejectRequest(string? Reason);
-    public record BulkActionRequest(List<int> Ids, string? Reason);
+    public class BulkActionRequest
+    {
+        public JsonElement? Ids { get; set; }
+        public string? Reason { get; set; }
+
+        public List<int> GetIntIds()
+        {
+            var result = new List<int>();
+            if (!Ids.HasValue) return result;
+
+            if (Ids.Value.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var elem in Ids.Value.EnumerateArray())
+                {
+                    if (elem.ValueKind == JsonValueKind.Number && elem.TryGetInt32(out var num))
+                    {
+                        result.Add(num);
+                    }
+                    else if (elem.ValueKind == JsonValueKind.String && int.TryParse(elem.GetString(), out var strNum))
+                    {
+                        result.Add(strNum);
+                    }
+                }
+            }
+            return result;
+        }
+    }
 
     public record CreateCompOffDto(
         int EmployeeId,
@@ -78,7 +115,7 @@ public class RegularizationsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceView) &&
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsView) &&
             !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize))
         {
             return Forbid();
@@ -103,9 +140,19 @@ public class RegularizationsController : ControllerBase
         {
             empScopedQuery = empScopedQuery.Where(e => e.BranchId == activeBranch.Value);
         }
-        empScopedQuery = await _permissionService.ApplyEmployeeScopeAsync(empScopedQuery, User, AppPermissions.Keys.AttendanceRegularize);
-        var allowedEmpIds = await empScopedQuery.Select(e => e.EmployeeId).ToListAsync();
+        
+        var allowedEmpIds = new List<int>();
 
+        if (await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsView))
+        {
+            var viewQuery = await _permissionService.ApplyEmployeeScopeAsync(empScopedQuery, User, AppPermissions.Keys.RegularizationsView);
+            allowedEmpIds = await viewQuery.Select(e => e.EmployeeId).ToListAsync();
+        }
+
+        if (!allowedEmpIds.Any())
+        {
+            return Ok(new { items = new List<object>(), totalCount = 0, page, pageSize, totalPages = 0 });
+        }
         query = query.Where(r => allowedEmpIds.Contains(r.EmployeeId));
 
         // Archive Filter scoping
@@ -254,6 +301,37 @@ public class RegularizationsController : ControllerBase
         });
     }
 
+    [HttpGet("employees")]
+    public async Task<IActionResult> GetEligibleEmployees([FromQuery] int? branchId = null)
+    {
+        var activeBranch = branchId ?? _tenantProvider.BranchId;
+
+        var query = _db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Where(e => e.Status == "Active" || e.Status == "Onboarding")
+            .AsQueryable();
+
+        if (activeBranch.HasValue && activeBranch.Value > 0)
+        {
+            query = query.Where(e => e.BranchId == activeBranch.Value);
+        }
+
+        query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.AttendanceRegularize);
+
+        var list = await query
+            .OrderBy(e => e.EmployeeName)
+            .Select(e => new
+            {
+                employeeId = e.EmployeeId,
+                employeeName = e.EmployeeName,
+                departmentName = e.Department != null ? e.Department.DepartmentName : null
+            })
+            .ToListAsync();
+
+        return Ok(list);
+    }
+
     // ==========================================
     // 3. CREATE REGULARIZATION REQUEST(S)
     // ==========================================
@@ -263,6 +341,17 @@ public class RegularizationsController : ControllerBase
         if (request.Items == null || request.Items.Count == 0)
         {
             return BadRequest(new { message = "At least one regularization date item is required." });
+        }
+
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize))
+        {
+            return Forbid();
+        }
+
+        var allowedEmps = await _permissionService.ApplyEmployeeScopeAsync(_db.Employees, User, AppPermissions.Keys.AttendanceRegularize);
+        if (!await allowedEmps.AnyAsync(e => e.EmployeeId == request.EmployeeId))
+        {
+            return Forbid();
         }
 
         var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == request.EmployeeId);
@@ -323,12 +412,72 @@ public class RegularizationsController : ControllerBase
     }
 
     // ==========================================
+    // 3.1 UPDATE REGULARIZATION REQUEST
+    // ==========================================
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateRegularization(int id, [FromBody] UpdateRegularizationRequest request)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsEdit))
+        {
+            return Forbid();
+        }
+
+        var reg = await _db.AttendanceRegularizations.FindAsync(id);
+        if (reg == null)
+        {
+            return NotFound(new { message = "Regularization record not found." });
+        }
+
+        if (reg.Status != "Pending")
+        {
+            return BadRequest(new { message = "Only Pending regularization requests can be edited." });
+        }
+
+        var allowedEmps = await _permissionService.ApplyEmployeeScopeAsync(_db.Employees, User, AppPermissions.Keys.RegularizationsEdit);
+        if (!await allowedEmps.AnyAsync(e => e.EmployeeId == reg.EmployeeId))
+        {
+            return Forbid();
+        }
+
+        DateTime? inTime = null;
+        DateTime? outTime = null;
+
+        var target = request.PunchTarget ?? "both";
+        if (target == "in" || target == "both")
+        {
+            if (!string.IsNullOrWhiteSpace(request.PunchTimeIn) && TimeOnly.TryParse(request.PunchTimeIn, out var tIn))
+            {
+                inTime = request.RequestDate.ToDateTime(tIn);
+            }
+        }
+
+        if (target == "out" || target == "both")
+        {
+            if (!string.IsNullOrWhiteSpace(request.PunchTimeOut) && TimeOnly.TryParse(request.PunchTimeOut, out var tOut))
+            {
+                outTime = request.RequestDate.ToDateTime(tOut);
+            }
+        }
+
+        reg.RequestDate = request.RequestDate;
+        reg.RequestType = request.RequestType ?? reg.RequestType;
+        reg.PunchTimeIn = inTime;
+        reg.PunchTimeOut = outTime;
+        reg.WaivePenalty = request.WaivePenalty;
+        reg.Reason = request.Reason;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Regularization request updated successfully.", id = reg.Id });
+    }
+
+    // ==========================================
     // 4. APPROVE REGULARIZATION
     // ==========================================
     [HttpPost("{id}/approve")]
     public async Task<IActionResult> ApproveRegularization(int id)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsApprove))
         {
             return Forbid();
         }
@@ -342,6 +491,12 @@ public class RegularizationsController : ControllerBase
         if (reg.Status == "Approved")
         {
             return BadRequest(new { message = "This request has already been approved." });
+        }
+
+        var allowedEmps = await _permissionService.ApplyEmployeeScopeAsync(_db.Employees, User, AppPermissions.Keys.RegularizationsApprove);
+        if (!await allowedEmps.AnyAsync(e => e.EmployeeId == reg.EmployeeId))
+        {
+            return Forbid();
         }
 
         reg.Status = "Approved";
@@ -362,7 +517,7 @@ public class RegularizationsController : ControllerBase
     [HttpPost("{id}/reject")]
     public async Task<IActionResult> RejectRegularization(int id, [FromBody] RejectRequest? request)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsApprove))
         {
             return Forbid();
         }
@@ -371,6 +526,12 @@ public class RegularizationsController : ControllerBase
         if (reg == null)
         {
             return NotFound(new { message = "Regularization record not found." });
+        }
+
+        var allowedEmps = await _permissionService.ApplyEmployeeScopeAsync(_db.Employees, User, AppPermissions.Keys.RegularizationsApprove);
+        if (!await allowedEmps.AnyAsync(e => e.EmployeeId == reg.EmployeeId))
+        {
+            return Forbid();
         }
 
         reg.Status = "Rejected";
@@ -387,23 +548,86 @@ public class RegularizationsController : ControllerBase
     }
 
     // ==========================================
+    // 5.1 CANCEL REGULARIZATION
+    // ==========================================
+    [HttpPost("{id}/cancel")]
+    public async Task<IActionResult> CancelRegularization(int id, [FromBody] RejectRequest? request)
+    {
+        var reg = await _db.AttendanceRegularizations.FindAsync(id);
+        if (reg == null)
+        {
+            return NotFound(new { message = "Regularization record not found." });
+        }
+
+        if (reg.Status != "Pending")
+        {
+            return BadRequest(new { message = "Only Pending requests can be cancelled." });
+        }
+
+        var hasApprove = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsApprove);
+        var hasEdit = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsEdit);
+        var hasCreate = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize);
+
+        if (!hasApprove && !hasEdit && !hasCreate)
+        {
+            return Forbid();
+        }
+
+        bool isAllowed = false;
+        if (hasApprove)
+        {
+            var allowed = await _permissionService.ApplyEmployeeScopeAsync(_db.Employees, User, AppPermissions.Keys.RegularizationsApprove);
+            isAllowed = await allowed.AnyAsync(e => e.EmployeeId == reg.EmployeeId);
+        }
+        if (!isAllowed && hasEdit)
+        {
+            var allowed = await _permissionService.ApplyEmployeeScopeAsync(_db.Employees, User, AppPermissions.Keys.RegularizationsEdit);
+            isAllowed = await allowed.AnyAsync(e => e.EmployeeId == reg.EmployeeId);
+        }
+        if (!isAllowed && hasCreate)
+        {
+            var allowed = await _permissionService.ApplyEmployeeScopeAsync(_db.Employees, User, AppPermissions.Keys.AttendanceRegularize);
+            isAllowed = await allowed.AnyAsync(e => e.EmployeeId == reg.EmployeeId);
+        }
+
+        if (!isAllowed)
+        {
+            return Forbid();
+        }
+
+        reg.Status = "Cancelled";
+        if (!string.IsNullOrWhiteSpace(request?.Reason))
+        {
+            reg.Reason = $"{reg.Reason} [Cancelled: {request.Reason}]";
+        }
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Regularization request cancelled.", id = reg.Id });
+    }
+
+    // ==========================================
     // 6. BULK APPROVE
     // ==========================================
     [HttpPost("bulk-approve")]
     public async Task<IActionResult> BulkApprove([FromBody] BulkActionRequest request)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsApprove))
         {
             return Forbid();
         }
 
-        if (request.Ids == null || request.Ids.Count == 0)
+        var idList = request?.GetIntIds() ?? new List<int>();
+        if (idList.Count == 0)
         {
             return BadRequest(new { message = "No records selected for approval." });
         }
 
+        var allowedEmps = await _permissionService.ApplyEmployeeScopeAsync(_db.Employees, User, AppPermissions.Keys.RegularizationsApprove);
+        var allowedEmpIds = await allowedEmps.Select(e => e.EmployeeId).ToListAsync();
+
         var requests = await _db.AttendanceRegularizations
-            .Where(r => request.Ids.Contains(r.Id) && r.Status == "Pending")
+            .Where(r => idList.Contains(r.Id) && r.Status == "Pending" && allowedEmpIds.Contains(r.EmployeeId))
             .ToListAsync();
 
         var approver = User.Identity?.Name ?? "Admin";
@@ -438,18 +662,22 @@ public class RegularizationsController : ControllerBase
     [HttpPost("bulk-reject")]
     public async Task<IActionResult> BulkReject([FromBody] BulkActionRequest request)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsApprove))
         {
             return Forbid();
         }
 
-        if (request.Ids == null || request.Ids.Count == 0)
+        var idList = request?.GetIntIds() ?? new List<int>();
+        if (idList.Count == 0)
         {
             return BadRequest(new { message = "No records selected for rejection." });
         }
 
+        var allowedEmps = await _permissionService.ApplyEmployeeScopeAsync(_db.Employees, User, AppPermissions.Keys.RegularizationsApprove);
+        var allowedEmpIds = await allowedEmps.Select(e => e.EmployeeId).ToListAsync();
+
         var requests = await _db.AttendanceRegularizations
-            .Where(r => request.Ids.Contains(r.Id) && r.Status == "Pending")
+            .Where(r => idList.Contains(r.Id) && r.Status == "Pending" && allowedEmpIds.Contains(r.EmployeeId))
             .ToListAsync();
 
         var approver = User.Identity?.Name ?? "Admin";
@@ -481,7 +709,13 @@ public class RegularizationsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteRegularization(int id, [FromQuery] bool permanent = false)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsDelete))
+        {
+            return Forbid();
+        }
+
+        var deleteScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.RegularizationsDelete);
+        if (permanent && deleteScope != "Permanent Delete" && deleteScope != "Bulk Delete" && deleteScope != "All")
         {
             return Forbid();
         }
@@ -529,7 +763,7 @@ public class RegularizationsController : ControllerBase
     [HttpPost("{id}/restore")]
     public async Task<IActionResult> RestoreRegularization(int id)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRegularize))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsDelete))
         {
             return Forbid();
         }
@@ -549,6 +783,103 @@ public class RegularizationsController : ControllerBase
         await _db.SaveChangesAsync();
 
         return Ok(new { success = true, message = "Regularization request restored to Pending status." });
+    }
+
+    [HttpPost("bulk-archive")]
+    public async Task<IActionResult> BulkArchiveRegularization([FromBody] BulkActionRequest request)
+    {
+        return await HandleBulkDelete(request, permanent: false);
+    }
+
+    [HttpPost("bulk-delete")]
+    public async Task<IActionResult> BulkDeleteRegularization([FromBody] BulkActionRequest request)
+    {
+        return await HandleBulkDelete(request, permanent: true);
+    }
+
+    private async Task<IActionResult> HandleBulkDelete(BulkActionRequest request, bool permanent)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsDelete))
+        {
+            return Forbid();
+        }
+
+        var deleteScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.RegularizationsDelete);
+        if (permanent && deleteScope != "Permanent Delete" && deleteScope != "All")
+        {
+            return Forbid();
+        }
+        if (!permanent && deleteScope != "Bulk Delete" && deleteScope != "Permanent Delete" && deleteScope != "All")
+        {
+            return Forbid();
+        }
+
+        var idList = request?.GetIntIds() ?? new List<int>();
+        if (idList.Count == 0)
+        {
+            return BadRequest(new { message = "No records selected for deletion." });
+        }
+
+        var requests = await _db.AttendanceRegularizations
+            .Where(r => idList.Contains(r.Id))
+            .ToListAsync();
+
+        var affected = requests.Where(r => r.Status == "Approved" || permanent).Select(r => new { r.RequestDate, r.EmployeeId }).Distinct().ToList();
+
+        if (permanent)
+        {
+            _db.AttendanceRegularizations.RemoveRange(requests);
+        }
+        else
+        {
+            foreach (var r in requests)
+            {
+                r.Status = "Archived";
+            }
+        }
+
+        await _db.SaveChangesAsync();
+
+        foreach (var item in affected)
+        {
+            await _processor.ProcessDailyAttendanceAsync(item.RequestDate, item.EmployeeId);
+        }
+
+        return Ok(new { success = true, permanent, message = $"Successfully {(permanent ? "deleted" : "archived")} {requests.Count} request(s)." });
+    }
+
+    [HttpPost("bulk-restore")]
+    public async Task<IActionResult> BulkRestoreRegularization([FromBody] BulkActionRequest request)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.RegularizationsDelete))
+        {
+            return Forbid();
+        }
+
+        var deleteScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.RegularizationsDelete);
+        if (deleteScope != "Bulk Delete" && deleteScope != "Permanent Delete" && deleteScope != "All")
+        {
+            return Forbid();
+        }
+
+        var idList = request?.GetIntIds() ?? new List<int>();
+        if (idList.Count == 0)
+        {
+            return BadRequest(new { message = "No records selected for restoration." });
+        }
+
+        var requests = await _db.AttendanceRegularizations
+            .Where(r => idList.Contains(r.Id) && (r.Status == "Archived" || r.Status == "Cancelled"))
+            .ToListAsync();
+
+        foreach (var r in requests)
+        {
+            r.Status = "Pending";
+        }
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = $"Successfully restored {requests.Count} request(s)." });
     }
 
     // ==========================================
@@ -680,5 +1011,40 @@ public class RegularizationsController : ControllerBase
         await _compOffService.RejectRequestAsync(id, approver, reasonDto?.Reason ?? "Rejected by admin");
 
         return Ok(new { message = "Comp Off request rejected.", id });
+    }
+
+    [HttpPost("compoff/{id}/cancel")]
+    public async Task<IActionResult> CancelCompOff(int id, [FromBody] RejectRequest? reasonDto)
+    {
+        var compOff = await _db.CompOffRequests.FindAsync(id);
+        if (compOff == null) return NotFound(new { message = "Comp Off record not found." });
+
+        if (compOff.Status != "Pending")
+        {
+            return BadRequest(new { message = "Only Pending Comp Off requests can be cancelled." });
+        }
+
+        compOff.Status = "Cancelled";
+        if (!string.IsNullOrWhiteSpace(reasonDto?.Reason))
+        {
+            compOff.RejectionReason = $"Cancelled: {reasonDto.Reason}";
+        }
+        compOff.UpdatedAt = DateTime.Now;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Comp Off request cancelled.", id });
+    }
+
+    [HttpDelete("compoff/{id}")]
+    public async Task<IActionResult> DeleteCompOff(int id)
+    {
+        var compOff = await _db.CompOffRequests.FindAsync(id);
+        if (compOff == null) return NotFound(new { message = "Comp Off record not found." });
+
+        _db.CompOffRequests.Remove(compOff);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, message = "Comp Off request deleted.", id });
     }
 }

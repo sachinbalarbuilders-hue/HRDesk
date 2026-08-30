@@ -22,6 +22,7 @@ import {
   Settings,
   Eye,
   Layers,
+  CalendarCheck,
 } from 'lucide-react';
 
 interface RolesPermissionsTabProps {
@@ -260,8 +261,11 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
       case 'Shifts & Roster':
       case 'Shifts & Schedule':
         return <Clock size={16} className="text-orange-600 dark:text-orange-400" />;
+      case 'Leaves':
       case 'Leaves & Comp-Off':
         return <Palmtree size={16} className="text-emerald-600 dark:text-emerald-400" />;
+      case 'Comp-Off':
+        return <CalendarCheck size={16} className="text-teal-600 dark:text-teal-400" />;
       case 'Payroll & Loans':
         return <CreditCard size={16} className="text-blue-600 dark:text-blue-400" />;
       case 'Masters & Structure':

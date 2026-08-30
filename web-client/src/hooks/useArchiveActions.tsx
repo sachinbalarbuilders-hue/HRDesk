@@ -24,6 +24,12 @@ export interface UseArchiveActionsOptions {
 
   /** Singular noun used in toasts, e.g. "Department". Defaults to "Record". */
   label?: string;
+
+  /** Whether the row can be permanently deleted. Defaults to true. */
+  canPermanentDelete?: boolean;
+
+  /** Whether bulk archive/delete operations are enabled. Defaults to true. */
+  canBulkDelete?: boolean;
 }
 
 export interface ArchiveRowTarget {
@@ -230,6 +236,8 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
    */
   const bulkActions = useCallback(
     (isArchivedView: boolean): BulkAction[] => {
+      if (!canBulkDelete) return [];
+
       if (isArchivedView) {
         const actions: BulkAction[] = [
           {
@@ -261,7 +269,7 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
         },
       ];
     },
-    [bulkArchive, bulkRestore, confirmBulkPermanentDelete, canPermanentDelete]
+    [bulkArchive, bulkRestore, confirmBulkPermanentDelete, canPermanentDelete, canBulkDelete]
   );
 
   /** Render this once per page so the confirm modal has a mount point. */
