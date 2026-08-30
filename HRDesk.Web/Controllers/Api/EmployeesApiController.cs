@@ -558,7 +558,7 @@ END;";
 
         if (!isSuperAdmin)
         {
-            if ((createScope == AppPermissions.Scopes.Department || createScope == "Own Department" || createScope == "Department") && currentEmp?.DepartmentId != null)
+            if ((createScope == AppPermissions.Scopes.Department || createScope == "Own Department" || createScope == "Department" || createScope == AppPermissions.Scopes.Reporting || createScope == "Reporting To" || createScope == "Reporting") && currentEmp?.DepartmentId != null)
             {
                 departments = departments.Where(d => d.Id == currentEmp.DepartmentId.Value).ToList();
             }
@@ -609,6 +609,7 @@ END;";
             managers,
             roles,
             userDepartmentId = currentEmp?.DepartmentId,
+            userEmployeeId = currentEmpId,
             createScope = createScope
         });
     }
@@ -639,7 +640,7 @@ END;";
 
         if (!isSuperAdmin)
         {
-            if (createScope == AppPermissions.Scopes.Department || createScope == "Own Department" || createScope == "Department")
+            if (createScope == AppPermissions.Scopes.Department || createScope == "Own Department" || createScope == "Department" || createScope == AppPermissions.Scopes.Reporting || createScope == "Reporting To" || createScope == "Reporting")
             {
                 if (currentEmp?.DepartmentId != null)
                 {
@@ -650,7 +651,8 @@ END;";
                     targetDeptId = currentEmp.DepartmentId.Value;
                 }
             }
-            else if (createScope == AppPermissions.Scopes.Reporting || createScope == "Reporting To" || createScope == "Reporting")
+            
+            if (createScope == AppPermissions.Scopes.Reporting || createScope == "Reporting To" || createScope == "Reporting")
             {
                 if (currentEmpId.HasValue)
                 {
