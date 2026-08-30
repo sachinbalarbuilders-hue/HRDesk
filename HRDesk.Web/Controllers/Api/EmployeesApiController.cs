@@ -818,29 +818,12 @@ END;";
         var editScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesEdit);
         var isSuperOrAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin") || User.IsInRole("Administrator");
 
-        bool canEditBasic = isSuperOrAdmin 
-            || string.IsNullOrEmpty(editScope) 
-            || editScope == AppPermissions.Scopes.EditBasicInfo 
-            || editScope == AppPermissions.Scopes.EditAllDetails 
-            || editScope == AppPermissions.Scopes.All 
-            || editScope == AppPermissions.Scopes.OwnBranch 
-            || editScope == AppPermissions.Scopes.Department;
-
+        bool canEditBasic = true;
         bool canEditJobDetails = isSuperOrAdmin 
             || string.IsNullOrEmpty(editScope)
-            || editScope == AppPermissions.Scopes.EditAllDetails 
-            || editScope == AppPermissions.Scopes.All 
-            || editScope == AppPermissions.Scopes.OwnBranch 
-            || editScope == AppPermissions.Scopes.Department 
-            || (editScope != AppPermissions.Scopes.EditBasicInfo && editScope != AppPermissions.Scopes.EditStatusChanges && editScope != AppPermissions.Scopes.EditCompensation);
+            || editScope != AppPermissions.Scopes.EditBasicInfo;
 
-        bool canEditLifecycle = isSuperOrAdmin 
-            || string.IsNullOrEmpty(editScope)
-            || editScope == AppPermissions.Scopes.EditStatusChanges 
-            || editScope == AppPermissions.Scopes.EditAllDetails 
-            || editScope == AppPermissions.Scopes.All 
-            || editScope == AppPermissions.Scopes.OwnBranch 
-            || editScope == AppPermissions.Scopes.Department;
+        bool canEditLifecycle = canEditJobDetails;
 
         // 1. Personal / Basic Details
         if (canEditBasic)

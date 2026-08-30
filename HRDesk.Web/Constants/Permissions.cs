@@ -14,8 +14,6 @@ public static class AppPermissions
 
         // Edit Scopes
         public const string EditBasicInfo = "Basic Information";
-        public const string EditStatusChanges = "Status Changes";
-        public const string EditCompensation = "Compensation";
         public const string EditAllDetails = "All Details";
 
         // Delete Scopes
@@ -118,7 +116,7 @@ public static class AppPermissions
 
         new(Keys.EmployeesEdit, "Edit Scope", Modules.Employees, "Update employee personal and job details", 
             SupportsScope: true, 
-            ScopeOptions: new[] { "Basic Information", "Status Changes", "Compensation", "All Details" },
+            ScopeOptions: new[] { "Basic Information", "All Details" },
             DefaultScope: "All Details"),
 
         new(Keys.EmployeesDelete, "Delete Scope", Modules.Employees, "Archive or remove employee records", 
