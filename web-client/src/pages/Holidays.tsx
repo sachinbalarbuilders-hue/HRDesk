@@ -72,7 +72,7 @@ export const Holidays: React.FC = () => {
 
   const fetchDepartments = useCallback(async () => {
     try {
-      const res = await apiClient.get('/masters', {
+      const res = await apiClient.get('/masters/overview', {
         params: { branchId: currentBranch?.id || undefined }
       });
       const items = Array.isArray(res.data?.departments)
@@ -83,8 +83,8 @@ export const Holidays: React.FC = () => {
         ? res.data
         : [];
       setDepartments(items.map((d: any) => ({
-        id: d.id || d.departmentId,
-        name: d.name || d.departmentName,
+        id: Number(d.id || d.departmentId),
+        name: String(d.name || d.departmentName),
       })));
     } catch (e) {
       console.error('Failed to load departments', e);

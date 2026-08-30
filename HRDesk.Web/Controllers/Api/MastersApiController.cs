@@ -152,6 +152,7 @@ public class MastersController : ControllerBase
         bool IsActive,
         string? OutsideAttendancePolicy = "Block");
 
+    [HttpGet]
     [HttpGet("overview")]
     public async Task<IActionResult> GetOverview([FromQuery] int? branchId = null)
     {
@@ -188,10 +189,10 @@ public class MastersController : ControllerBase
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
-            deptQuery = deptQuery.Where(d => d.BranchId == activeBranch.Value);
-            desigQuery = desigQuery.Where(d => d.BranchId == activeBranch.Value);
-            leaveQuery = leaveQuery.Where(l => l.BranchId == activeBranch.Value);
-            shiftQuery = shiftQuery.Where(s => s.BranchId == activeBranch.Value);
+            deptQuery = deptQuery.Where(d => d.BranchId == activeBranch.Value || d.BranchId == null);
+            desigQuery = desigQuery.Where(d => d.BranchId == activeBranch.Value || d.BranchId == null);
+            leaveQuery = leaveQuery.Where(l => l.BranchId == activeBranch.Value || l.BranchId == null);
+            shiftQuery = shiftQuery.Where(s => s.BranchId == activeBranch.Value || s.BranchId == null);
         }
 
         var depts = await deptQuery.ToListAsync();
