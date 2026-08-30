@@ -65,7 +65,7 @@ public class AttendanceController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceMonthlySheet))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceView))
         {
             return Forbid();
         }
@@ -107,7 +107,7 @@ public class AttendanceController : ControllerBase
             empQuery = empQuery.Where(e => e.EmployeeName.ToLower().Contains(s));
         }
 
-        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceMonthlySheet);
+        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceView);
 
         var totalCount = await empQuery.CountAsync();
         var tCount = sw.ElapsedMilliseconds;
@@ -1120,7 +1120,7 @@ public class AttendanceController : ControllerBase
     {
         var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
         bool isSelf = currentEmpId.HasValue && currentEmpId.Value == employeeId;
-        if (!isSelf && !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceMonthlySheet))
+        if (!isSelf && !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceView))
         {
             return Forbid();
         }

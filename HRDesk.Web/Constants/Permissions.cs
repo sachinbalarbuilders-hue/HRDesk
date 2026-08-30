@@ -48,8 +48,6 @@ public static class AppPermissions
 
         // 2. Attendance Module
         public const string AttendanceView = "Attendance.View";
-        public const string AttendanceProcess = "Attendance.Process";
-        public const string AttendanceMonthlySheet = "Attendance.MonthlySheet";
 
         // 3. Regularizations Module
         public const string AttendanceRegularize = "Attendance.Regularize";
@@ -130,19 +128,9 @@ public static class AppPermissions
             DefaultScope: "Own Branch"),
 
         // 2. Attendance
-        new(Keys.AttendanceView, "View Scope", Modules.Attendance, "View biometric logs and daily attendance", 
+        new(Keys.AttendanceView, "View Scope", Modules.Attendance, "View biometric logs, daily attendance, and monthly registers", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
-            DefaultScope: "Own Branch"),
-
-        new(Keys.AttendanceProcess, "Process Attendance", Modules.Attendance, "Run attendance calculation engine",
-            SupportsScope: true,
-            ScopeOptions: new[] { "Own Branch" },
-            DefaultScope: "Own Branch"),
-
-        new(Keys.AttendanceMonthlySheet, "Monthly Sheet Scope", Modules.Attendance, "Access aggregated monthly attendance sheet", 
-            SupportsScope: true, 
-            ScopeOptions: new[] { "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
         // 3. Regularizations

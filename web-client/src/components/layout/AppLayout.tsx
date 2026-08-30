@@ -68,7 +68,7 @@ export const AppLayout: React.FC = () => {
     {
       group: 'Time & Attendance',
       items: [
-        { name: 'Attendance', href: '/attendance', icon: CalendarCheck, show: isAdmin || hasPermission('Attendance.View') || hasPermission('Attendance.MonthlySheet') },
+        { name: 'Attendance', href: '/attendance', icon: CalendarCheck, show: isAdmin || hasPermission('Attendance.View') },
         { name: 'Regularization', href: '/regularizations', icon: Clock, show: isAdmin || hasPermission('Attendance.View') || hasPermission('Attendance.Regularize') },
         { name: 'Shifts', href: '/shifts', icon: Layers, show: isAdmin || hasPermission('Attendance.View') },
         { name: 'Leaves', href: '/leaves', icon: CalendarOff, show: isAdmin || hasPermission('Leaves.View') },
