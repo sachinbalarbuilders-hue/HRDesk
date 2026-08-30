@@ -167,31 +167,29 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     }
   }, [currentBranch?.id, isEditing]);
 
-  // Auto-select department and reporting manager if scoped
+  // Auto-select department if scoped to a specific department or only 1 department available
   useEffect(() => {
     if (!isEditing && lookups) {
       const isDeptScoped = lookups.createScope === 'Department' || lookups.createScope === 'Own Department' || lookups.createScope === 'Reporting To' || lookups.createScope === 'Reporting';
       const isReportingScoped = lookups.createScope === 'Reporting To' || lookups.createScope === 'Reporting';
 
-      setFormData(prev => {
-        let newDeptId = prev.departmentId;
-        if (isDeptScoped && lookups.userDepartmentId) {
-          newDeptId = prev.departmentId || String(lookups.userDepartmentId);
-        } else if (lookups.departments?.length === 1 && !prev.departmentId) {
-          newDeptId = String(lookups.departments[0].departmentId);
-        }
-
-        let newManagerId = prev.reportingManagerId;
-        if (isReportingScoped && (lookups.userEmployeeId || lookups.managers?.length === 1)) {
-          newManagerId = prev.reportingManagerId || String(lookups.userEmployeeId || lookups.managers[0]?.employeeId);
-        }
-
-        return {
+      if (isDeptScoped && lookups.userDepartmentId) {
+        setFormData(prev => ({
           ...prev,
-          departmentId: newDeptId,
-          reportingManagerId: newManagerId,
-        };
-      });
+          departmentId: prev.departmentId || String(lookups.userDepartmentId),
+          reportingManagerId: isReportingScoped && (lookups.userEmployeeId || lookups.managers?.length === 1)
+            ? (prev.reportingManagerId || String(lookups.userEmployeeId || lookups.managers[0]?.employeeId))
+            : prev.reportingManagerId,
+        }));
+      } else if (lookups.departments?.length === 1 && !formData.departmentId) {
+        setFormData(prev => ({
+          ...prev,
+          departmentId: String(lookups.departments[0].departmentId),
+          reportingManagerId: isReportingScoped && (lookups.userEmployeeId || lookups.managers?.length === 1)
+            ? (prev.reportingManagerId || String(lookups.userEmployeeId || lookups.managers[0]?.employeeId))
+            : prev.reportingManagerId,
+        }));
+      }
     }
   }, [lookups, isEditing]);
 
@@ -206,49 +204,52 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     const validContacts = emergencyContacts.filter(c => c.name || c.phone);
     const submitData = {
       ...formData,
-      emergencyContacts: validContacts.length > 0 ? JSON.stringify(validContacts) : undefined
+      emergencyContacts: validContacts.length > 0 ? JSON.stringify(validContacts) : '',
+      // Also populate the legacy single-contact fields from the first entry
+      emergencyContactName: validContacts[0]?.name || '',
+      emergencyContactRelation: validContacts[0]?.relation || '',
+      emergencyContactPhone: validContacts[0]?.phone || '',
     };
     onSubmit(submitData);
   };
 
   return (
     <form id="employeeForm" onSubmit={handleSubmit} className="space-y-6">
-      {/* 1. Basic Details */}
+      {/* 1. Personal Details */}
       <section className="space-y-3">
-        <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">1. Basic Information</h4>
-        <div className="grid grid-cols-2 gap-3">
+        <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">1. Personal Details</h4>
+        
+        {/* Auto ID - only show if not editing an existing employee or if we want to show it always */}
+        <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between mb-3">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-[var(--ink)]">
-                Employee ID / Code
-              </label>
-              {!isEditing && (
-                <span className="text-[10px] text-[var(--gold-600)] dark:text-[var(--gold-400)] font-medium">
-                  ✨ Auto-Generated
-                </span>
-              )}
-            </div>
-            <input
-              type="number"
-              disabled={isEditing}
-              value={formData.employeeId}
-              onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-              placeholder={isEditing ? 'e.g. 101' : 'Leave blank for next series ID'}
-              className={`register-input w-full font-data ${isEditing ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
-            />
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] font-ui block">
+              Employee Code &amp; ID
+            </span>
+            <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+              System-generated with branch prefix
+            </p>
+          </div>
+          <span className="font-mono text-xs font-bold text-[var(--gold-600)] px-2.5 py-1 rounded-[3px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
+            {(() => {
+              const branch = branches?.find((b: any) => String(b.id) === String(formData.branchId || currentBranch?.id));
+              const rawPrefix = branch?.code || 'EMP#';
+              const prefix = (rawPrefix.endsWith('#') || rawPrefix.endsWith('-') || rawPrefix.endsWith('_') || rawPrefix.endsWith('/'))
+                ? rawPrefix
+                : `${rawPrefix}#`;
+              const num = formData.employeeId ? String(formData.employeeId).padStart(3, '0') : '00X (Auto)';
+              return `${prefix}${num}`;
+            })()}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Full Legal Name *</label>
+            <input type="text" required value={formData.employeeName} onChange={(e) => setFormData({ ...formData, employeeName: e.target.value })} placeholder="e.g. Ramesh Patel" className="register-input w-full" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-              Full Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.employeeName}
-              onChange={(e) => setFormData({ ...formData, employeeName: e.target.value })}
-              placeholder="e.g. Rahul Sharma"
-              className="register-input w-full"
-            />
+            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Date of Birth</label>
+            <input type="date" value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} className="register-input w-full" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Gender</label>
@@ -256,12 +257,107 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               <option value="">Select Gender</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
-              <option value="Other">Other</option>
+              <option value="Non-Binary">Non-Binary</option>
+              <option value="Transgender">Transgender</option>
+              <option value="Undisclosed">Prefer not to say</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Date of Birth</label>
-            <input type="date" value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} className="register-input w-full font-data" />
+            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Blood Group</label>
+            <select value={formData.bloodGroup} onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })} className="register-input w-full">
+              <option value="">Select</option>
+              <option value="A+">A+</option><option value="A-">A-</option>
+              <option value="B+">B+</option><option value="B-">B-</option>
+              <option value="O+">O+</option><option value="O-">O-</option>
+              <option value="AB+">AB+</option><option value="AB-">AB-</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Marital Status</label>
+            <select value={formData.maritalStatus} onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value })} className="register-input w-full">
+              <option value="">Select Status</option>
+              <option value="Single">Single</option>
+              <option value="Married">Married</option>
+              <option value="Divorced">Divorced</option>
+              <option value="Widowed">Widowed</option>
+              <option value="Separated">Separated</option>
+              <option value="Domestic Partner">Domestic Partner</option>
+            </select>
+          </div>
+          <div className="col-span-2">
+            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Nationality</label>
+            <input type="text" value={formData.nationality} onChange={(e) => setFormData({ ...formData, nationality: e.target.value })} placeholder="e.g. Indian" className="register-input w-full" />
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Contact Details */}
+      <section className="space-y-3">
+        <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">2. Contact Details</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Phone Number</label>
+            <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="9876543210" className="register-input w-full font-data" />
+          </div>
+          <div></div>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-[var(--ink)]">Work Email</label>
+              {isBasicInfoOnly && (
+                <span className="text-[10px] text-[var(--ink-muted)]">🔒 Corporate</span>
+              )}
+            </div>
+            <input 
+              disabled={isBasicInfoOnly}
+              type="email" 
+              value={formData.workEmail} 
+              onChange={(e) => setFormData({ ...formData, workEmail: e.target.value })} 
+              placeholder="work@company.com" 
+              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`} 
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Personal Email</label>
+            <input type="email" value={formData.personalEmail} onChange={(e) => setFormData({ ...formData, personalEmail: e.target.value })} placeholder="personal@gmail.com" className="register-input w-full" />
+          </div>
+        </div>
+      </section>
+
+      {/* 2.5 Addresses */}
+      <section className="space-y-3">
+        <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">3. Addresses</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Current Address</label>
+            <textarea
+              value={formData.currentAddress}
+              onChange={(e) => setFormData({ ...formData, currentAddress: e.target.value })}
+              placeholder="Full current address"
+              className="register-input w-full min-h-[60px]"
+            />
+          </div>
+          <div className="col-span-2">
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-[var(--ink)]">Permanent Address</label>
+              <label className="flex items-center gap-1.5 text-xs text-[var(--ink-muted)] cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="accent-[var(--gold-500)]"
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData({ ...formData, permanentAddress: formData.currentAddress });
+                    }
+                  }}
+                />
+                Same as Current Address
+              </label>
+            </div>
+            <textarea
+              value={formData.permanentAddress}
+              onChange={(e) => setFormData({ ...formData, permanentAddress: e.target.value })}
+              placeholder="Full permanent address"
+              className="register-input w-full min-h-[60px]"
+            />
           </div>
         </div>
       </section>
