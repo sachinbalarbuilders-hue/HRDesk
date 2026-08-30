@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
+import { DataTable } from '../components/ui/DataTable';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
@@ -65,6 +66,8 @@ export const Loans: React.FC = () => {
   const { hasPermission, isAdmin } = useAuth();
   const { currentOrganization, currentBranch } = useOrganization();
   const navigate = useNavigate();
+
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   const [loans, setLoans] = useState<LoanRecord[]>([]);
   const [loanTypes, setLoanTypes] = useState<Array<{ id: number; name: string }>>([]);
@@ -407,7 +410,7 @@ export const Loans: React.FC = () => {
         onSearchChange={setSearch}
         archiveFilter={{
           value: archiveFilter,
-          onChange: (v) => { setArchiveFilter(v); setPage(1); },
+          onChange: (v) => { setArchiveFilter(v); setPage(1); setSelectedIds([]); },
         }}
         filters={[
           {
@@ -462,157 +465,177 @@ export const Loans: React.FC = () => {
       />
 
       {/* 4. Loans Table */}
-      <div className="card overflow-hidden">
-        {loading ? (
-          <div className="p-6">
-            <TableSkeleton rows={8} />
-          </div>
-        ) : loans.length === 0 ? (
-          <div className="p-12 text-center text-xs text-[var(--ink-muted)]">
-            <CreditCard className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
-            <div className="font-semibold text-sm text-[var(--ink)]">No Loan Applications Found</div>
-            <p className="mt-1">There are no employee loan records matching the selected filters.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-[var(--rule)] bg-[var(--paper-subtle)] text-[var(--ink-muted)] font-mono text-[11px] uppercase tracking-wider">
-                  <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
-                  <th className="p-3.5 font-semibold">Application #</th>
-                  <th className="p-3.5 font-semibold">Employee</th>
-                  <th className="p-3.5 font-semibold">Type</th>
-                  <th className="p-3.5 font-semibold">Principal</th>
-                  <th className="p-3.5 font-semibold">Monthly EMI</th>
-                  <th className="p-3.5 font-semibold">Remaining</th>
-                  <th className="p-3.5 font-semibold">Status</th>
-                  <th className="p-3.5 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--rule)]">
-                {loans.map((l, idx) => {
-                  const srNo = (page - 1) * pageSize + idx + 1;
-                  return (
-                    <tr key={l.id} className="hover:bg-[var(--paper-subtle)] transition-colors">
-                      <td className="p-3.5 font-mono text-center text-xs text-[var(--ink-muted)]">
-                        {srNo}
-                      </td>
-
-                      <td className="p-3.5 font-mono font-semibold text-[var(--accent)]">
-                        <button
-                          onClick={() => navigate(`/loans/${l.id}`)}
-                          className="hover:underline cursor-pointer text-left"
-                          title="View payment summary"
-                        >
-                          {l.appNumber}
-                        </button>
-                        <div className="text-[10px] text-[var(--ink-muted)] font-normal">
-                          {l.appDate}
-                        </div>
-                      </td>
-
-                    <td className="p-3.5">
-                      <div className="font-semibold text-[var(--ink)]">{l.employeeName}</div>
-                      <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
-                        <Building2 className="w-3 h-3" />
-                        <span>{l.department}</span>
-                      </div>
-                    </td>
-
-                    <td className="p-3.5 font-medium text-[var(--ink)]">
-                      {l.loanType}
-                    </td>
-
-                    <td className="p-3.5 font-mono font-bold text-[var(--ink)]">
-                      ₹{l.principalAmount.toLocaleString()}
-                    </td>
-
-                    <td className="p-3.5 font-mono text-indigo-600 font-semibold">
-                      ₹{l.monthlyEmi.toLocaleString()} / mo
-                    </td>
-
-                    <td className="p-3.5 font-mono font-bold text-amber-700 dark:text-amber-300">
-                      ₹{l.remainingAmount.toLocaleString()}
-                    </td>
-
-                    <td className="p-3.5">
-                      {l.status === 'Pending' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                          Pending
-                        </span>
-                      )}
-                      {l.status === 'Manager Approved' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200">
-                          <Check className="w-3 h-3 text-indigo-600" />
-                          Mgr Approved
-                        </span>
-                      )}
-                      {l.status === 'Approved' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
-                          <Check className="w-3 h-3 text-blue-600" />
-                          HR Approved
-                        </span>
-                      )}
-                      {l.status === 'Disbursed' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-                          <CheckCircle className="w-3 h-3 text-emerald-600" />
-                          Disbursed
-                        </span>
-                      )}
-                      {l.status === 'Closed' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                          Closed
-                        </span>
-                      )}
-                      {l.status === 'Rejected' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
-                          <X className="w-3 h-3 text-rose-600" />
-                          Rejected
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="p-3.5 text-right">
-                      <RowActionMenu actions={[
-                        { label: 'View Details', icon: <Eye size={14} />, onClick: () => navigate(`/loans/${l.id}`) },
-                        ...(canManage && (l.status === 'Pending' || l.status === 'Manager Approved') ? [
-                          { label: 'Edit', icon: <Pencil size={14} />, onClick: () => handleOpenEdit(l) },
-                          { label: l.status === 'Pending' ? 'Manager Approve' : 'HR Approve', icon: <Check size={14} />, onClick: () => handleApprove(l.id), variant: 'success' as const },
-                          { label: 'Reject', icon: <X size={14} />, onClick: () => handleOpenReject(l.id), variant: 'danger' as const },
-                        ] : []),
-                        ...(canManage && l.status === 'Approved' ? [
-                          { label: 'Disburse', icon: <Check size={14} />, onClick: () => handleDisburse(l.id), variant: 'success' as const },
-                        ] : []),
-                        ...(canManage ? loanArchive.rowActions({
-                          id: l.id,
-                          name: `${l.appNumber} (${l.employeeName})`,
-                          isArchived: isRowArchived(l) || l.status === 'Closed' || l.status === 'Rejected',
-                        }) : []),
-                      ] as RowAction[]} />
-                    </td>
-                  </tr>
+      <DataTable
+        data={loans}
+        loading={loading}
+        keyExtractor={(l) => l.id}
+        emptyMessage="No loan applications match the selected filters."
+        columns={[
+          {
+            key: 'appNumber',
+            header: 'Application #',
+            render: (l) => (
+              <div>
+                <button
+                  onClick={() => navigate(`/loans/${l.id}`)}
+                  className="font-mono font-semibold text-[var(--accent)] hover:underline cursor-pointer text-left"
+                  title="View payment summary"
+                >
+                  {l.appNumber}
+                </button>
+                <div className="text-[10px] text-[var(--ink-muted)] font-normal mt-0.5">{l.appDate}</div>
+              </div>
+            ),
+          },
+          {
+            key: 'employee',
+            header: 'Employee',
+            render: (l) => (
+              <div>
+                <div className="font-semibold text-[var(--ink)]">{l.employeeName}</div>
+                <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
+                  <Building2 className="w-3 h-3" />
+                  <span>{l.department}</span>
+                </div>
+              </div>
+            ),
+          },
+          {
+            key: 'loanType',
+            header: 'Type',
+            render: (l) => <span className="font-medium text-[var(--ink)]">{l.loanType}</span>,
+          },
+          {
+            key: 'principalAmount',
+            header: 'Principal',
+            render: (l) => (
+              <span className="font-mono font-bold text-[var(--ink)]">
+                ₹{l.principalAmount.toLocaleString()}
+              </span>
+            ),
+          },
+          {
+            key: 'monthlyEmi',
+            header: 'Monthly EMI',
+            render: (l) => (
+              <span className="font-mono text-indigo-600 font-semibold">
+                ₹{l.monthlyEmi.toLocaleString()} / mo
+              </span>
+            ),
+          },
+          {
+            key: 'remainingAmount',
+            header: 'Remaining',
+            render: (l) => (
+              <span className="font-mono font-bold text-amber-700 dark:text-amber-300">
+                ₹{l.remainingAmount.toLocaleString()}
+              </span>
+            ),
+          },
+          {
+            key: 'status',
+            header: 'Status',
+            render: (l) => {
+              if (l.status === 'Pending')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Pending
+                  </span>
                 );
-              })}
-              </tbody>
-            </table>
-          </div>
-        )}
+              if (l.status === 'Manager Approved')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200">
+                    <Check className="w-3 h-3 text-indigo-600" />
+                    Mgr Approved
+                  </span>
+                );
+              if (l.status === 'Approved')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                    <Check className="w-3 h-3 text-blue-600" />
+                    HR Approved
+                  </span>
+                );
+              if (l.status === 'Disbursed')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                    <CheckCircle className="w-3 h-3 text-emerald-600" />
+                    Disbursed
+                  </span>
+                );
+              if (l.status === 'Closed')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                    Closed
+                  </span>
+                );
+              if (l.status === 'Rejected')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
+                    <X className="w-3 h-3 text-rose-600" />
+                    Rejected
+                  </span>
+                );
+              return <span>{l.status}</span>;
+            },
+          },
+          {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            render: (l) => (
+              <RowActionMenu
+                actions={[
+                  { label: 'View Details', icon: <Eye size={14} />, onClick: () => navigate(`/loans/${l.id}`) },
+                  ...(canManage && (l.status === 'Pending' || l.status === 'Manager Approved')
+                    ? [
+                        { label: 'Edit', icon: <Pencil size={14} />, onClick: () => handleOpenEdit(l) },
+                        {
+                          label: l.status === 'Pending' ? 'Manager Approve' : 'HR Approve',
+                          icon: <Check size={14} />,
+                          onClick: () => handleApprove(l.id),
+                          variant: 'success' as const,
+                        },
+                        { label: 'Reject', icon: <X size={14} />, onClick: () => handleOpenReject(l.id), variant: 'danger' as const },
+                      ]
+                    : []),
+                  ...(canManage && l.status === 'Approved'
+                    ? [{ label: 'Disburse', icon: <Check size={14} />, onClick: () => handleDisburse(l.id), variant: 'success' as const }]
+                    : []),
+                  ...(canManage
+                    ? loanArchive.rowActions({
+                        id: l.id,
+                        name: `${l.appNumber} (${l.employeeName})`,
+                        isArchived: isRowArchived(l) || l.status === 'Closed' || l.status === 'Rejected',
+                      })
+                    : []),
+                ] as RowAction[]}
+              />
+            ),
+          },
+        ]}
+        selection={
+          canManage
+            ? {
+                selectedRowKeys: selectedIds,
+                onChange: (keys) => setSelectedIds(keys),
+                bulkActions: loanArchive.bulkActions(archiveFilter === 'archived'),
+              }
+            : undefined
+        }
+        pagination={{
+          page,
+          pageSize,
+          totalCount,
+          totalPages,
+          onPageChange: setPage,
+          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+        }}
+      />
 
-        {/* Pagination Toolbar */}
-        {!loading && totalCount > 0 && (
-          <div className="border-t border-[var(--rule)] p-3">
-            <PaginationToolbar
-              page={page}
-              pageSize={pageSize}
-              totalCount={totalCount}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-            />
-          </div>
-        )}
-      </div>
+      {/* Permanent delete confirm dialog */}
+      {loanArchive.dialog}
 
       {/* 5. Apply Loan Slide-in Panel (Left) */}
       {applyModalOpen && (

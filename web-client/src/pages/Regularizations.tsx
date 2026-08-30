@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useOrganization } from '../context/CompanyContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
+import { DataTable } from '../components/ui/DataTable';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
@@ -63,7 +64,7 @@ export const Regularizations: React.FC = () => {
   const [metrics, setMetrics] = useState({ pending: 0, approved: 0, rejected: 0, archived: 0, total: 0 });
 
   // Selected row IDs for batch actions
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   // Employee list for modal selection
   const [employees, setEmployees] = useState<Array<{ employeeId: number; employeeName: string }>>([]);
@@ -303,264 +304,247 @@ export const Regularizations: React.FC = () => {
     );
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.length === items.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(items.filter(i => i.status === 'Pending').map(i => i.id));
-    }
-  };
-
-  const toggleSelectId = (id: number) => {
-    setSelectedIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
   const canManage = isAdmin || hasPermission('Attendance.Regularize');
+
+  const customBulkActions = useMemo(() => {
+    if (archiveFilter === 'archived') {
+      return regularizationArchive.bulkActions(true);
+    }
+    return [
+      {
+        label: 'Bulk Approve',
+        icon: <CheckCheck size={13} />,
+        variant: 'primary' as const,
+        onClick: async (_keys: (string | number)[], selectedRows: RegularizationItem[], clear: () => void) => {
+          const pendingIds = selectedRows.filter((r) => r.status === 'Pending').map((r) => r.id);
+          if (!pendingIds.length) {
+            showError('Selection Notice', 'Please select pending requests to approve.');
+            return;
+          }
+          try {
+            await apiClient.post('/regularizations/bulk-approve', { ids: pendingIds });
+            showSuccess('Bulk Approved', `Successfully approved ${pendingIds.length} request(s).`);
+            clear();
+            fetchData();
+          } catch (err: any) {
+            showError('Bulk Approval Failed', err.response?.data?.message || 'Server error');
+          }
+        },
+      },
+      {
+        label: 'Bulk Reject',
+        icon: <XCircle size={13} />,
+        variant: 'danger' as const,
+        onClick: async (_keys: (string | number)[], selectedRows: RegularizationItem[], clear: () => void) => {
+          const pendingIds = selectedRows.filter((r) => r.status === 'Pending').map((r) => r.id);
+          if (!pendingIds.length) {
+            showError('Selection Notice', 'Please select pending requests to reject.');
+            return;
+          }
+          try {
+            await apiClient.post('/regularizations/bulk-reject', { ids: pendingIds, reason: 'Bulk rejected by operator' });
+            showSuccess('Bulk Rejected', `Successfully rejected ${pendingIds.length} request(s).`);
+            clear();
+            fetchData();
+          } catch (err: any) {
+            showError('Bulk Rejection Failed', err.response?.data?.message || 'Server error');
+          }
+        },
+      },
+      ...regularizationArchive.bulkActions(false),
+    ];
+  }, [archiveFilter, regularizationArchive, showError, showSuccess]);
 
   return (
     <PageContainer>
       <PageHeader title="Regularizations" description="Attendance correction requests" />
 
-
       {/* 3. Toolbar & Filters */}
-      <div className="space-y-3">
-        <DataToolbar
-          searchPlaceholder="Search employee, application #, or reason..."
-          searchValue={search}
-          onSearchChange={setSearch}
-          archiveFilter={{
-            value: archiveFilter,
-            onChange: (v) => { setArchiveFilter(v); setPage(1); },
-          }}
-          filters={[
-            {
-              id: 'status',
-              ariaLabel: 'Status Filter',
-              value: statusFilter,
-              onChange: (v) => { setStatusFilter(v); setPage(1); },
-              options: [
-                { label: 'All Statuses', value: 'all' },
-                { label: 'Pending Approval', value: 'Pending' },
-                { label: 'Approved', value: 'Approved' },
-                { label: 'Rejected', value: 'Rejected' },
-              ],
-            },
-          ]}
-          onExport={handleExport}
-          onImport={canManage ? () => setImportModalOpen(true) : undefined}
-          primaryAction={{
-            label: 'Apply Regularization',
-            icon: <Plus className="w-3.5 h-3.5" />,
-            onClick: () => setCreateModalOpen(true),
-          }}
-        />
-
-        {/* Batch Action Bar */}
-        {selectedIds.length > 0 && canManage && (
-          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 p-2.5 rounded-lg flex items-center justify-between gap-3 text-xs animate-in fade-in duration-150">
-            <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-medium">
-              <span className="font-bold font-data text-sm">{selectedIds.length}</span> request(s) selected for bulk review.
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleBulkApprove}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3 py-1.5 rounded-md flex items-center gap-1 shadow-sm text-xs"
-              >
-                <CheckCheck className="w-3.5 h-3.5" />
-                <span>Bulk Approve</span>
-              </button>
-              <button
-                onClick={handleBulkReject}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3 py-1.5 rounded-md flex items-center gap-1 shadow-sm text-xs"
-              >
-                <XCircle className="w-3.5 h-3.5" />
-                <span>Bulk Reject</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      <DataToolbar
+        searchPlaceholder="Search employee, application #, or reason..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        archiveFilter={{
+          value: archiveFilter,
+          onChange: (v) => { setArchiveFilter(v); setPage(1); setSelectedIds([]); },
+        }}
+        filters={[
+          {
+            id: 'status',
+            ariaLabel: 'Status Filter',
+            value: statusFilter,
+            onChange: (v) => { setStatusFilter(v); setPage(1); setSelectedIds([]); },
+            options: [
+              { label: 'All Statuses', value: 'all' },
+              { label: 'Pending Approval', value: 'Pending' },
+              { label: 'Approved', value: 'Approved' },
+              { label: 'Rejected', value: 'Rejected' },
+            ],
+          },
+        ]}
+        onExport={handleExport}
+        onImport={canManage ? () => setImportModalOpen(true) : undefined}
+        primaryAction={{
+          label: 'Apply Regularization',
+          icon: <Plus className="w-3.5 h-3.5" />,
+          onClick: () => setCreateModalOpen(true),
+        }}
+      />
 
       {/* 4. Ledger Table Section */}
-      <div className="card overflow-hidden">
-        {loading ? (
-          <div className="p-6">
-            <TableSkeleton rows={8} />
-          </div>
-        ) : items.length === 0 ? (
-          <div className="p-12 text-center text-xs text-[var(--ink-muted)]">
-            <Clock className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
-            <div className="font-semibold text-sm text-[var(--ink)]">No Regularization Records Found</div>
-            <p className="mt-1">There are no attendance regularization requests matching your filter criteria.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-[var(--rule)] bg-[var(--paper-subtle)] text-[var(--ink-muted)] font-mono text-[11px] uppercase tracking-wider">
-                  {canManage && (
-                    <th className="p-3.5 w-10 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.length > 0 && selectedIds.length === items.filter(i => i.status === 'Pending').length}
-                        onChange={toggleSelectAll}
-                        className="rounded border-[var(--rule)] cursor-pointer"
-                      />
-                    </th>
-                  )}
-                  <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
-                  <th className="p-3.5 font-semibold">Employee</th>
-                  <th className="p-3.5 font-semibold">Request Date</th>
-                  <th className="p-3.5 font-semibold">Adjusted Timings</th>
-                  <th className="p-3.5 font-semibold">Type & Penalty</th>
-                  <th className="p-3.5 font-semibold">Reason</th>
-                  <th className="p-3.5 font-semibold">Status</th>
-                  <th className="p-3.5 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--rule)]">
-                {items.map((r, idx) => {
-                  const isSelected = selectedIds.includes(r.id);
-                  const isArchived = r.status === 'Archived' || r.status === 'Cancelled';
-                  const srNo = (page - 1) * pageSize + idx + 1;
-                  return (
-                    <tr
-                      key={r.id}
-                      className={`hover:bg-[var(--paper-subtle)] transition-colors ${
-                        isArchived ? 'opacity-70 bg-[var(--paper-subtle)]/40' : ''
-                      } ${isSelected ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}
-                    >
-                      {canManage && (
-                        <td className="p-3.5 text-center">
-                          {r.status === 'Pending' ? (
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSelectId(r.id)}
-                              className="rounded border-[var(--rule)] cursor-pointer"
-                            />
-                          ) : (
-                            <span className="text-[var(--ink-muted)] opacity-30">•</span>
-                          )}
-                        </td>
-                      )}
-
-                      <td className="p-3.5 font-mono text-center text-xs text-[var(--ink-muted)]">
-                        {srNo}
-                      </td>
-
-                      <td className="p-3.5">
-                        <div className="font-semibold text-[var(--ink)]">{r.employeeName}</div>
-                        <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
-                          <Building2 className="w-3 h-3" />
-                          <span>{r.departmentName}</span>
-                        </div>
-                      </td>
-
-                      <td className="p-3.5 font-mono">
-                        <div className="font-medium text-[var(--ink)]">{r.requestDate}</div>
-                        <div className="text-[10px] text-[var(--ink-muted)]">
-                          Filed: {new Date(r.createdAt).toLocaleDateString()}
-                        </div>
-                      </td>
-
-                      <td className="p-3.5 font-mono text-[11px]">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[var(--ink-muted)]">In:</span>
-                          <span className="font-bold text-emerald-600">
-                            {r.punchTimeIn
-                              ? new Date(r.punchTimeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
-                              : '—'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[var(--ink-muted)]">Out:</span>
-                          <span className="font-bold text-indigo-600">
-                            {r.punchTimeOut
-                              ? new Date(r.punchTimeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
-                              : '—'}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="p-3.5">
-                        <div className="font-medium text-[var(--ink)]">{r.requestType}</div>
-                      </td>
-
-                      <td className="p-3.5 max-w-[200px] truncate text-[var(--ink-muted)]" title={r.reason || ''}>
-                        {r.reason || '—'}
-                      </td>
-
-                      <td className="p-3.5">
-                        {r.status === 'Pending' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                            Pending
-                          </span>
-                        )}
-                        {r.status === 'Approved' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-                            <Check className="w-3 h-3 text-emerald-600" />
-                            Approved
-                          </span>
-                        )}
-                        {r.status === 'Rejected' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
-                            <X className="w-3 h-3 text-rose-600" />
-                            Rejected
-                          </span>
-                        )}
-                        {isArchived && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                            <Archive className="w-3 h-3 text-slate-500" />
-                            Archived
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="p-3.5 text-right">
-                        {canManage ? (
-                          <RowActionMenu actions={[
-                            ...(!isArchived && r.status === 'Pending' ? [
-                              { label: 'Approve', icon: <Check className="w-4 h-4" />, onClick: () => handleApprove(r.id), variant: 'success' as const },
-                              { label: 'Reject', icon: <X className="w-4 h-4" />, onClick: () => handleOpenReject(r.id), variant: 'danger' as const },
-                            ] : []),
-                            ...regularizationArchive.rowActions({
-                              id: r.id,
-                              name: `Regularization #${r.id} (${r.employeeName})`,
-                              isArchived: isArchived || isRowArchived(r),
-                            }),
-                          ]} />
-                        ) : (
-                          <div className="text-[10px] text-[var(--ink-muted)] font-mono">
-                            {r.approvedBy ? `by ${r.approvedBy}` : '—'}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination Toolbar */}
-        {!loading && totalCount > 0 && (
-          <div className="border-t border-[var(--rule)] p-3">
-            <PaginationToolbar
-              page={page}
-              pageSize={pageSize}
-              totalCount={totalCount}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-            />
-          </div>
-        )}
-      </div>
+      <DataTable
+        data={items}
+        loading={loading}
+        keyExtractor={(r) => r.id}
+        emptyMessage="No attendance regularization requests matching your filter criteria."
+        columns={[
+          {
+            key: 'employee',
+            header: 'Employee',
+            render: (r) => (
+              <div>
+                <div className="font-semibold text-[var(--ink)]">{r.employeeName}</div>
+                <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
+                  <Building2 className="w-3 h-3" />
+                  <span>{r.departmentName}</span>
+                </div>
+              </div>
+            ),
+          },
+          {
+            key: 'requestDate',
+            header: 'Request Date',
+            render: (r) => (
+              <div className="font-mono">
+                <div className="font-medium text-[var(--ink)]">{r.requestDate}</div>
+                <div className="text-[10px] text-[var(--ink-muted)]">
+                  Filed: {new Date(r.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            ),
+          },
+          {
+            key: 'timings',
+            header: 'Adjusted Timings',
+            render: (r) => (
+              <div className="font-mono text-[11px]">
+                <div className="flex items-center gap-2">
+                  <span className="text-[var(--ink-muted)]">In:</span>
+                  <span className="font-bold text-emerald-600">
+                    {r.punchTimeIn
+                      ? new Date(r.punchTimeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+                      : '—'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[var(--ink-muted)]">Out:</span>
+                  <span className="font-bold text-indigo-600">
+                    {r.punchTimeOut
+                      ? new Date(r.punchTimeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+                      : '—'}
+                  </span>
+                </div>
+              </div>
+            ),
+          },
+          {
+            key: 'requestType',
+            header: 'Type & Penalty',
+            render: (r) => <div className="font-medium text-[var(--ink)]">{r.requestType}</div>,
+          },
+          {
+            key: 'reason',
+            header: 'Reason',
+            render: (r) => (
+              <div className="max-w-[200px] truncate text-[var(--ink-muted)]" title={r.reason || ''}>
+                {r.reason || '—'}
+              </div>
+            ),
+          },
+          {
+            key: 'status',
+            header: 'Status',
+            render: (r) => {
+              const isArchived = r.status === 'Archived' || r.status === 'Cancelled';
+              if (r.status === 'Pending')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Pending
+                  </span>
+                );
+              if (r.status === 'Approved')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                    <Check className="w-3 h-3 text-emerald-600" />
+                    Approved
+                  </span>
+                );
+              if (r.status === 'Rejected')
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
+                    <X className="w-3 h-3 text-rose-600" />
+                    Rejected
+                  </span>
+                );
+              if (isArchived)
+                return (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    <Archive className="w-3 h-3 text-slate-500" />
+                    Archived
+                  </span>
+                );
+              return <span>{r.status}</span>;
+            },
+          },
+          {
+            key: 'actions',
+            header: 'Actions',
+            align: 'right',
+            render: (r) => {
+              const isArchived = r.status === 'Archived' || r.status === 'Cancelled';
+              return canManage ? (
+                <RowActionMenu
+                  actions={[
+                    ...(!isArchived && r.status === 'Pending'
+                      ? [
+                          { label: 'Approve', icon: <Check className="w-4 h-4" />, onClick: () => handleApprove(r.id), variant: 'success' as const },
+                          { label: 'Reject', icon: <X className="w-4 h-4" />, onClick: () => handleOpenReject(r.id), variant: 'danger' as const },
+                        ]
+                      : []),
+                    ...regularizationArchive.rowActions({
+                      id: r.id,
+                      name: `Regularization #${r.id} (${r.employeeName})`,
+                      isArchived: isArchived || isRowArchived(r),
+                    }),
+                  ]}
+                />
+              ) : (
+                <div className="text-[10px] text-[var(--ink-muted)] font-mono">
+                  {r.approvedBy ? `by ${r.approvedBy}` : '—'}
+                </div>
+              );
+            },
+          },
+        ]}
+        selection={
+          canManage
+            ? {
+                selectedRowKeys: selectedIds,
+                onChange: (keys) => setSelectedIds(keys),
+                bulkActions: customBulkActions,
+              }
+            : undefined
+        }
+        pagination={{
+          page,
+          pageSize,
+          totalCount,
+          totalPages,
+          onPageChange: setPage,
+          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+        }}
+      />
 
       {/* ========================================================================= */}
       {/* 5. APPLY REGULARIZATION MODAL */}
