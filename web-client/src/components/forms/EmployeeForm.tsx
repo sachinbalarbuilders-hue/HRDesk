@@ -167,6 +167,24 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     }
   }, [currentBranch?.id, isEditing]);
 
+  // Auto-select department if scoped to a specific department or only 1 department available
+  useEffect(() => {
+    if (!isEditing && lookups) {
+      const isDeptScoped = lookups.createScope === 'Department' || lookups.createScope === 'Own Department';
+      if (isDeptScoped && lookups.userDepartmentId) {
+        setFormData(prev => ({
+          ...prev,
+          departmentId: prev.departmentId || String(lookups.userDepartmentId),
+        }));
+      } else if (lookups.departments?.length === 1 && !formData.departmentId) {
+        setFormData(prev => ({
+          ...prev,
+          departmentId: String(lookups.departments[0].departmentId),
+        }));
+      }
+    }
+  }, [lookups, isEditing]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Validate account number confirmation if bank details are filled
@@ -431,12 +449,17 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             </div>
           )}
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Department</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-[var(--ink)]">Department</label>
+              {(lookups?.createScope === 'Department' || lookups?.createScope === 'Own Department') && (
+                <span className="text-[10px] text-[var(--gold-600)] dark:text-[var(--gold-400)] font-medium">🔒 Your Department</span>
+              )}
+            </div>
             <select 
-              disabled={isBasicInfoOnly}
+              disabled={isBasicInfoOnly || ((lookups?.createScope === 'Department' || lookups?.createScope === 'Own Department') && lookups?.departments?.length === 1)}
               value={formData.departmentId} 
               onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })} 
-              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+              className={`register-input w-full ${isBasicInfoOnly || ((lookups?.createScope === 'Department' || lookups?.createScope === 'Own Department') && lookups?.departments?.length === 1) ? 'opacity-80 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
             >
               <option value="">Select Department</option>
               {lookups?.departments

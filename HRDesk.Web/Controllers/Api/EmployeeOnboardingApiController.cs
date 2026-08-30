@@ -332,6 +332,32 @@ public class EmployeeOnboardingController : ControllerBase
 
         var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var targetBranchId = dto.BranchId ?? _tenantProvider.BranchId;
+        var targetDeptId = dto.DepartmentId;
+
+        // Scoping enforcement based on caller's Employees.Create permission scope
+        var createScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesCreate);
+        var currentEmp = await _permissionService.GetCurrentEmployeeAsync(User);
+        var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
+
+        if (!isSuperAdmin)
+        {
+            if ((createScope == AppPermissions.Scopes.Department || createScope == "Own Department" || createScope == "Department") && currentEmp?.DepartmentId != null)
+            {
+                if (dto.DepartmentId.HasValue && dto.DepartmentId.Value != currentEmp.DepartmentId.Value)
+                {
+                    return BadRequest(new { message = "You are only authorized to generate onboarding links for your own department." });
+                }
+                targetDeptId = currentEmp.DepartmentId.Value;
+            }
+            else if (createScope == AppPermissions.Scopes.OwnBranch && currentEmp?.BranchId != null)
+            {
+                if (dto.BranchId.HasValue && dto.BranchId.Value != currentEmp.BranchId.Value)
+                {
+                    return BadRequest(new { message = "You are only authorized to generate onboarding links for your own branch." });
+                }
+                targetBranchId = currentEmp.BranchId.Value;
+            }
+        }
 
         // SaaS Seat Quota Enforcement
         var (canAdd, errorMsg) = await _entitlementService.CanAddEmployeeAsync(targetOrgId);
@@ -350,7 +376,7 @@ public class EmployeeOnboardingController : ControllerBase
         {
             EmployeeId = targetEmpId,
             EmployeeName = dto.EmployeeName.Trim(),
-            DepartmentId = dto.DepartmentId,
+            DepartmentId = targetDeptId,
             DesignationId = dto.DesignationId,
             BranchId = targetBranchId,
             Status = "Onboarding", // specific status for onboarding drafts

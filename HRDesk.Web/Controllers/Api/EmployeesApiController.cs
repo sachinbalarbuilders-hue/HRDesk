@@ -551,9 +551,47 @@ END;";
         var designations = await _cache.GetDesignationsAsync();
         var shifts = await _cache.GetShiftsAsync();
 
-        var managers = await _db.Employees
+        var createScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesCreate);
+        var currentEmp = await _permissionService.GetCurrentEmployeeAsync(User);
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
+
+        if (!isSuperAdmin)
+        {
+            if ((createScope == AppPermissions.Scopes.Department || createScope == "Own Department" || createScope == "Department") && currentEmp?.DepartmentId != null)
+            {
+                departments = departments.Where(d => d.Id == currentEmp.DepartmentId.Value).ToList();
+            }
+            else if (createScope == AppPermissions.Scopes.OwnBranch && currentEmp?.BranchId != null)
+            {
+                departments = departments.Where(d => d.BranchId == null || d.BranchId == currentEmp.BranchId).ToList();
+            }
+        }
+
+        var managersQuery = _db.Employees
             .AsNoTracking()
-            .Where(e => e.Status == "active")
+            .Where(e => e.Status == "active");
+
+        if (!isSuperAdmin)
+        {
+            if (createScope == AppPermissions.Scopes.Reporting || createScope == "Reporting To" || createScope == "Reporting")
+            {
+                if (currentEmpId.HasValue)
+                {
+                    managersQuery = managersQuery.Where(e => e.EmployeeId == currentEmpId.Value);
+                }
+            }
+            else if ((createScope == AppPermissions.Scopes.Department || createScope == "Own Department" || createScope == "Department") && currentEmp?.DepartmentId != null)
+            {
+                managersQuery = managersQuery.Where(e => e.DepartmentId == currentEmp.DepartmentId.Value);
+            }
+            else if (createScope == AppPermissions.Scopes.OwnBranch && currentEmp?.BranchId != null)
+            {
+                managersQuery = managersQuery.Where(e => e.BranchId == currentEmp.BranchId);
+            }
+        }
+
+        var managers = await managersQuery
             .OrderBy(e => e.EmployeeName)
             .Select(e => new { e.EmployeeId, e.EmployeeName, Department = e.Department != null ? e.Department.DepartmentName : null, e.BranchId })
             .ToListAsync();
@@ -569,7 +607,9 @@ END;";
             designations = designations.Select(d => new { DesignationId = d.Id, d.DesignationName, d.BranchId }),
             shifts = shifts.Select(s => new { ShiftId = s.Id, s.ShiftName, s.StartTime, s.EndTime }),
             managers,
-            roles
+            roles,
+            userDepartmentId = currentEmp?.DepartmentId,
+            createScope = createScope
         });
     }
 
@@ -588,6 +628,48 @@ END;";
 
         var targetOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var targetBranchId = dto.BranchId ?? _tenantProvider.BranchId;
+        var targetDeptId = dto.DepartmentId;
+        var targetManagerId = dto.ReportingManagerId;
+
+        // Scoping enforcement based on caller's Employees.Create permission scope
+        var createScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesCreate);
+        var currentEmp = await _permissionService.GetCurrentEmployeeAsync(User);
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
+
+        if (!isSuperAdmin)
+        {
+            if (createScope == AppPermissions.Scopes.Department || createScope == "Own Department" || createScope == "Department")
+            {
+                if (currentEmp?.DepartmentId != null)
+                {
+                    if (dto.DepartmentId.HasValue && dto.DepartmentId.Value != currentEmp.DepartmentId.Value)
+                    {
+                        return BadRequest(new { message = "You are only authorized to add employees to your own department." });
+                    }
+                    targetDeptId = currentEmp.DepartmentId.Value;
+                }
+            }
+            else if (createScope == AppPermissions.Scopes.Reporting || createScope == "Reporting To" || createScope == "Reporting")
+            {
+                if (currentEmpId.HasValue)
+                {
+                    if (dto.ReportingManagerId.HasValue && dto.ReportingManagerId.Value != currentEmpId.Value)
+                    {
+                        return BadRequest(new { message = "You are only authorized to add employees who report directly to you." });
+                    }
+                    targetManagerId = currentEmpId.Value;
+                }
+            }
+            else if (createScope == AppPermissions.Scopes.OwnBranch && currentEmp?.BranchId != null)
+            {
+                if (dto.BranchId.HasValue && dto.BranchId.Value != currentEmp.BranchId.Value)
+                {
+                    return BadRequest(new { message = "You are only authorized to add employees to your own branch." });
+                }
+                targetBranchId = currentEmp.BranchId.Value;
+            }
+        }
 
         // SaaS Seat Quota Enforcement
         var (canAdd, errorMsg) = await _entitlementService.CanAddEmployeeAsync(targetOrgId);
@@ -637,9 +719,9 @@ END;";
             Phone = dto.Phone?.Trim(),
             DateOfBirth = dto.DateOfBirth,
             JoiningDate = dto.JoiningDate ?? DateOnly.FromDateTime(DateTime.Today),
-            DepartmentId = dto.DepartmentId,
+            DepartmentId = targetDeptId,
             DesignationId = dto.DesignationId,
-            ReportingManagerId = dto.ReportingManagerId,
+            ReportingManagerId = targetManagerId,
             Weekoff = dto.Weekoff ?? "Sunday",
             BranchId = targetBranchId,
             Status = "active",
