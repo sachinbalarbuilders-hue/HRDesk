@@ -444,31 +444,38 @@ public class PayrollController : ControllerBase
     private static string ConvertNumberToWords(int number)
     {
         if (number == 0) return "Zero Rupees Only";
-        if (number < 0) return "Minus " + ConvertNumberToWords(Math.Abs(number));
+        if (number < 0) return "Minus " + ConvertNumberToWordsHelper(Math.Abs(number)) + " Rupees Only";
+
+        return (ConvertNumberToWordsHelper(number) + " Rupees Only").Replace("  ", " ").Trim();
+    }
+
+    private static string ConvertNumberToWordsHelper(int number)
+    {
+        if (number == 0) return "";
 
         string words = "";
 
         if ((number / 10000000) > 0)
         {
-            words += ConvertNumberToWords(number / 10000000) + " Crore ";
+            words += ConvertNumberToWordsHelper(number / 10000000) + " Crore ";
             number %= 10000000;
         }
 
         if ((number / 100000) > 0)
         {
-            words += ConvertNumberToWords(number / 100000) + " Lakh ";
+            words += ConvertNumberToWordsHelper(number / 100000) + " Lakh ";
             number %= 100000;
         }
 
         if ((number / 1000) > 0)
         {
-            words += ConvertNumberToWords(number / 1000) + " Thousand ";
+            words += ConvertNumberToWordsHelper(number / 1000) + " Thousand ";
             number %= 1000;
         }
 
         if ((number / 100) > 0)
         {
-            words += ConvertNumberToWords(number / 100) + " Hundred ";
+            words += ConvertNumberToWordsHelper(number / 100) + " Hundred ";
             number %= 100;
         }
 
@@ -489,7 +496,7 @@ public class PayrollController : ControllerBase
             }
         }
 
-        return (words + " Rupees Only").Replace("  ", " ").Trim();
+        return words.Trim();
     }
     /// <summary>
     /// Returns list of employees eligible for payroll in a given month,
