@@ -16,6 +16,8 @@ import {
   Globe,
   Building,
   Building2,
+  Loader2,
+  Search as SearchIcon,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
@@ -51,6 +53,8 @@ export const Holidays: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [departments, setDepartments] = useState<Array<{ id: number; name: string }>>([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [deptSearch, setDeptSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
@@ -74,6 +78,7 @@ export const Holidays: React.FC = () => {
 
   const fetchDepartments = useCallback(async () => {
     try {
+      setDepartmentsLoading(true);
       const res = await apiClient.get('/masters/overview', {
         params: { branchId: currentBranch?.id || undefined }
       });
@@ -90,6 +95,8 @@ export const Holidays: React.FC = () => {
       })));
     } catch (e) {
       console.error('Failed to load departments', e);
+    } finally {
+      setDepartmentsLoading(false);
     }
   }, [currentBranch?.id]);
 
@@ -140,6 +147,7 @@ export const Holidays: React.FC = () => {
 
   const handleOpenAdd = () => {
     setEditingId(null);
+    setDeptSearch('');
     setForm({
       name: '',
       startDate: new Date().toISOString().split('T')[0],
@@ -155,6 +163,7 @@ export const Holidays: React.FC = () => {
 
   const handleOpenEdit = (h: Holiday) => {
     setEditingId(h.id);
+    setDeptSearch('');
     const hasDepts = (h.departmentIds && h.departmentIds.length > 0) || Boolean(h.departmentId);
     const scopeType = h.isGlobal ? 'global' : (hasDepts ? 'department' : 'branch');
     const deptIds = h.departmentIds && h.departmentIds.length > 0
@@ -512,6 +521,27 @@ export const Holidays: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Search filter for departments */}
+                  <div className="relative">
+                    <SearchIcon className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                    <input
+                      type="text"
+                      placeholder="Search department..."
+                      value={deptSearch}
+                      onChange={(e) => setDeptSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)]"
+                    />
+                    {deptSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setDeptSearch('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
                   {/* Selected Departments Chips */}
                   {form.departmentIds.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 p-2 bg-[var(--paper)] rounded-[4px] border border-[var(--rule)] max-h-24 overflow-y-auto">
@@ -544,43 +574,54 @@ export const Holidays: React.FC = () => {
 
                   {/* Scrollable Checkbox List */}
                   <div className="border border-[var(--rule)] rounded-[4px] bg-[var(--paper)] max-h-44 overflow-y-auto p-1.5 space-y-0.5">
-                    {departments.length === 0 ? (
-                      <div className="text-xs text-[var(--ink-muted)] text-center py-3">No departments found</div>
+                    {departmentsLoading ? (
+                      <div className="flex items-center justify-center gap-2 py-6 text-xs text-[var(--ink-muted)]">
+                        <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)]" />
+                        <span>Loading departments...</span>
+                      </div>
+                    ) : departments.length === 0 ? (
+                      <div className="text-xs text-[var(--ink-muted)] text-center py-4">No departments found</div>
+                    ) : departments.filter((d) => d.name.toLowerCase().includes(deptSearch.toLowerCase().trim())).length === 0 ? (
+                      <div className="text-xs text-[var(--ink-muted)] text-center py-4">
+                        No departments matching "{deptSearch}"
+                      </div>
                     ) : (
-                      departments.map((dept) => {
-                        const isSelected = form.departmentIds.includes(dept.id);
-                        return (
-                          <label
-                            key={dept.id}
-                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[3px] cursor-pointer transition-colors text-xs select-none ${
-                              isSelected
-                                ? 'bg-[var(--accent)]/10 text-[var(--ink)] font-semibold'
-                                : 'hover:bg-[var(--surface)] text-[var(--ink)]'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setForm({
-                                    ...form,
-                                    departmentIds: [...form.departmentIds, dept.id],
-                                  });
-                                } else {
-                                  setForm({
-                                    ...form,
-                                    departmentIds: form.departmentIds.filter((x) => x !== dept.id),
-                                  });
-                                }
-                              }}
-                              className="rounded text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
-                            />
-                            <Building2 className="w-3.5 h-3.5 text-[var(--ink-muted)] shrink-0" />
-                            <span>{dept.name}</span>
-                          </label>
-                        );
-                      })
+                      departments
+                        .filter((d) => d.name.toLowerCase().includes(deptSearch.toLowerCase().trim()))
+                        .map((dept) => {
+                          const isSelected = form.departmentIds.includes(dept.id);
+                          return (
+                            <label
+                              key={dept.id}
+                              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[3px] cursor-pointer transition-colors text-xs select-none ${
+                                isSelected
+                                  ? 'bg-[var(--accent)]/10 text-[var(--ink)] font-semibold'
+                                  : 'hover:bg-[var(--surface)] text-[var(--ink)]'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setForm({
+                                      ...form,
+                                      departmentIds: [...form.departmentIds, dept.id],
+                                    });
+                                  } else {
+                                    setForm({
+                                      ...form,
+                                      departmentIds: form.departmentIds.filter((x) => x !== dept.id),
+                                    });
+                                  }
+                                }}
+                                className="rounded text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
+                              />
+                              <Building2 className="w-3.5 h-3.5 text-[var(--ink-muted)] shrink-0" />
+                              <span>{dept.name}</span>
+                            </label>
+                          );
+                        })
                     )}
                   </div>
                 </div>
