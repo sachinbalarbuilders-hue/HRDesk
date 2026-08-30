@@ -33,7 +33,9 @@ interface Holiday {
   branchId?: number | null;
   branchName?: string | null;
   departmentId?: number | null;
+  departmentIds?: number[] | null;
   departmentName?: string | null;
+  departmentNames?: string[] | null;
   archivedAt?: string | null;
   status?: string;
 }
@@ -66,7 +68,7 @@ export const Holidays: React.FC = () => {
     days: 1,
     scopeType: 'global' as 'global' | 'branch' | 'department',
     branchId: null as number | null,
-    departmentId: null as number | null,
+    departmentIds: [] as number[],
     description: '',
   });
 
@@ -145,7 +147,7 @@ export const Holidays: React.FC = () => {
       days: 1,
       scopeType: 'global',
       branchId: currentBranch?.id ? parseInt(currentBranch.id) : null,
-      departmentId: null,
+      departmentIds: [],
       description: '',
     });
     setHolidayModalOpen(true);
@@ -153,7 +155,12 @@ export const Holidays: React.FC = () => {
 
   const handleOpenEdit = (h: Holiday) => {
     setEditingId(h.id);
-    const scopeType = h.isGlobal ? 'global' : (h.departmentId ? 'department' : 'branch');
+    const hasDepts = (h.departmentIds && h.departmentIds.length > 0) || Boolean(h.departmentId);
+    const scopeType = h.isGlobal ? 'global' : (hasDepts ? 'department' : 'branch');
+    const deptIds = h.departmentIds && h.departmentIds.length > 0
+      ? h.departmentIds
+      : (h.departmentId ? [h.departmentId] : []);
+
     setForm({
       name: h.name,
       startDate: h.startDate,
@@ -161,7 +168,7 @@ export const Holidays: React.FC = () => {
       days: h.days,
       scopeType,
       branchId: h.branchId ?? (currentBranch?.id ? parseInt(currentBranch.id) : null),
-      departmentId: h.departmentId ?? null,
+      departmentIds: deptIds,
       description: h.description || '',
     });
     setHolidayModalOpen(true);
@@ -181,8 +188,8 @@ export const Holidays: React.FC = () => {
       return;
     }
 
-    if (form.scopeType === 'department' && !form.departmentId) {
-      showError('Validation Error', 'Please select a department for department-specific holiday.');
+    if (form.scopeType === 'department' && form.departmentIds.length === 0) {
+      showError('Validation Error', 'Please select at least one department.');
       return;
     }
 
@@ -194,7 +201,8 @@ export const Holidays: React.FC = () => {
       description: form.description?.trim() || '',
       isGlobal: form.scopeType === 'global',
       branchId: form.scopeType === 'global' ? null : (form.branchId || (currentBranch?.id ? parseInt(currentBranch.id) : null)),
-      departmentId: form.scopeType === 'department' ? (form.departmentId ? Number(form.departmentId) : null) : null,
+      departmentIds: form.scopeType === 'department' ? form.departmentIds : [],
+      departmentId: form.scopeType === 'department' && form.departmentIds.length > 0 ? form.departmentIds[0] : null,
     };
 
     try {
@@ -283,11 +291,18 @@ export const Holidays: React.FC = () => {
             </span>
           );
         }
-        if (h.departmentName || h.departmentId) {
+        if ((h.departmentIds && h.departmentIds.length > 0) || h.departmentName || h.departmentId) {
+          const deptText = h.departmentNames && h.departmentNames.length > 1
+            ? `${h.departmentNames.length} Depts (${h.departmentNames.join(', ')})`
+            : (h.departmentName ? `Dept: ${h.departmentName}` : h.applicableTo);
+
           return (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-              <Building2 className="w-3 h-3" />
-              {h.departmentName ? `Dept: ${h.departmentName}` : h.applicableTo}
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 max-w-[220px] truncate"
+              title={h.departmentNames?.join(', ') || h.departmentName || h.applicableTo}
+            >
+              <Building2 className="w-3 h-3 shrink-0" />
+              <span className="truncate">{deptText}</span>
             </span>
           );
         }
@@ -473,21 +488,101 @@ export const Holidays: React.FC = () => {
               </div>
 
               {form.scopeType === 'department' && (
-                <div className="animate-in fade-in duration-150">
-                  <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Applicable Department *</label>
-                  <select
-                    required
-                    value={form.departmentId ?? ''}
-                    onChange={(e) => setForm({ ...form, departmentId: e.target.value ? Number(e.target.value) : null })}
-                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
-                  >
-                    <option value="">-- Select Department --</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
+                <div className="space-y-2 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-bold text-[var(--ink)] uppercase tracking-wider">
+                      Applicable Departments * ({form.departmentIds.length} Selected)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, departmentIds: departments.map((d) => d.id) })}
+                        className="text-[11px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
+                      >
+                        Select All
+                      </button>
+                      <span className="text-[var(--rule)]">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, departmentIds: [] })}
+                        className="text-[11px] font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Selected Departments Chips */}
+                  {form.departmentIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 p-2 bg-[var(--paper)] rounded-[4px] border border-[var(--rule)] max-h-24 overflow-y-auto">
+                      {form.departmentIds.map((id) => {
+                        const dept = departments.find((d) => d.id === id);
+                        return (
+                          <span
+                            key={id}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)]"
+                          >
+                            <Building2 className="w-3 h-3 text-[var(--accent)]" />
+                            {dept?.name || `Dept #${id}`}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setForm({
+                                  ...form,
+                                  departmentIds: form.departmentIds.filter((x) => x !== id),
+                                })
+                              }
+                              className="hover:text-red-500 cursor-pointer ml-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Scrollable Checkbox List */}
+                  <div className="border border-[var(--rule)] rounded-[4px] bg-[var(--paper)] max-h-44 overflow-y-auto p-1.5 space-y-0.5">
+                    {departments.length === 0 ? (
+                      <div className="text-xs text-[var(--ink-muted)] text-center py-3">No departments found</div>
+                    ) : (
+                      departments.map((dept) => {
+                        const isSelected = form.departmentIds.includes(dept.id);
+                        return (
+                          <label
+                            key={dept.id}
+                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[3px] cursor-pointer transition-colors text-xs select-none ${
+                              isSelected
+                                ? 'bg-[var(--accent)]/10 text-[var(--ink)] font-semibold'
+                                : 'hover:bg-[var(--surface)] text-[var(--ink)]'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setForm({
+                                    ...form,
+                                    departmentIds: [...form.departmentIds, dept.id],
+                                  });
+                                } else {
+                                  setForm({
+                                    ...form,
+                                    departmentIds: form.departmentIds.filter((x) => x !== dept.id),
+                                  });
+                                }
+                              }}
+                              className="rounded text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
+                            />
+                            <Building2 className="w-3.5 h-3.5 text-[var(--ink-muted)] shrink-0" />
+                            <span>{dept.name}</span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               )}
 

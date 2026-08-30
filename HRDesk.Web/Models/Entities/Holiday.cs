@@ -36,5 +36,8 @@ public sealed class Holiday : IMustHaveTenant, IArchivable
     public int? DepartmentId { get; set; }
 
     public Department? Department { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.Column("department_ids")]
+    public string? DepartmentIds { get; set; }
 }
 

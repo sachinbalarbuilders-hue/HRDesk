@@ -45,7 +45,8 @@ public class HolidaysController : ControllerBase
         string? Description,
         bool IsGlobal,
         int? BranchId = null,
-        int? DepartmentId = null
+        int? DepartmentId = null,
+        int[]? DepartmentIds = null
     );
 
     [HttpGet]
@@ -60,6 +61,8 @@ public class HolidaysController : ControllerBase
         var startOfYear = new DateOnly(targetYear, 1, 1);
         var endOfYear = new DateOnly(targetYear, 12, 31);
         var activeBranch = branchId ?? _tenantProvider.BranchId;
+
+        var allDepts = await _db.Departments.AsNoTracking().ToDictionaryAsync(d => d.Id, d => d.DepartmentName);
 
         var query = _db.Holidays
             .Include(h => h.Branch)
@@ -81,7 +84,8 @@ public class HolidaysController : ControllerBase
 
         if (departmentId.HasValue && departmentId.Value > 0)
         {
-            query = query.Where(h => h.DepartmentId == departmentId.Value || h.DepartmentId == null);
+            var deptStr = departmentId.Value.ToString();
+            query = query.Where(h => h.IsGlobal || h.DepartmentId == departmentId.Value || (h.DepartmentIds != null && ("," + h.DepartmentIds + ",").Contains("," + deptStr + ",")));
         }
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -90,9 +94,51 @@ public class HolidaysController : ControllerBase
             query = query.Where(h => h.HolidayName.ToLower().Contains(s) || (h.Description != null && h.Description.ToLower().Contains(s)));
         }
 
-        var holidays = await query
-            .OrderBy(h => h.StartDate)
-            .Select(h => new
+        var rawHolidays = await query.OrderBy(h => h.StartDate).ToListAsync();
+
+        var holidays = rawHolidays.Select(h =>
+        {
+            var deptIdList = !string.IsNullOrWhiteSpace(h.DepartmentIds)
+                ? h.DepartmentIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(str => int.TryParse(str, out var v) ? v : 0)
+                    .Where(v => v > 0)
+                    .Distinct()
+                    .ToList()
+                : (h.DepartmentId.HasValue ? new List<int> { h.DepartmentId.Value } : new List<int>());
+
+            var deptNames = deptIdList
+                .Select(id => allDepts.TryGetValue(id, out var n) ? n : "")
+                .Where(n => !string.IsNullOrEmpty(n))
+                .ToList();
+
+            if (deptNames.Count == 0 && h.Department != null)
+            {
+                deptNames.Add(h.Department.DepartmentName);
+            }
+
+            string applicableTo;
+            if (h.IsGlobal)
+            {
+                applicableTo = "Company-wide";
+            }
+            else if (deptNames.Count > 1)
+            {
+                applicableTo = $"Depts: {string.Join(", ", deptNames)}";
+            }
+            else if (deptNames.Count == 1)
+            {
+                applicableTo = h.Branch != null ? $"{h.Branch.Name} • {deptNames[0]}" : $"Dept: {deptNames[0]}";
+            }
+            else if (h.Branch != null)
+            {
+                applicableTo = $"Branch: {h.Branch.Name}";
+            }
+            else
+            {
+                applicableTo = "Branch Specific";
+            }
+
+            return new
             {
                 id = h.Id,
                 name = h.HolidayName,
@@ -101,22 +147,16 @@ public class HolidaysController : ControllerBase
                 days = h.EndDate.DayNumber - h.StartDate.DayNumber + 1,
                 isGlobal = h.IsGlobal,
                 description = h.Description ?? "",
-                applicableTo = h.IsGlobal
-                    ? "Company-wide"
-                    : h.Department != null && h.Branch != null
-                        ? $"{h.Branch.Name} • {h.Department.DepartmentName}"
-                        : h.Department != null
-                            ? $"Dept: {h.Department.DepartmentName}"
-                            : h.Branch != null
-                                ? $"Branch: {h.Branch.Name}"
-                                : "Branch Specific",
+                applicableTo,
                 branchId = h.BranchId,
                 branchName = h.Branch != null ? h.Branch.Name : null,
-                departmentId = h.DepartmentId,
-                departmentName = h.Department != null ? h.Department.DepartmentName : null,
+                departmentId = deptIdList.FirstOrDefault(),
+                departmentIds = deptIdList.ToArray(),
+                departmentName = string.Join(", ", deptNames),
+                departmentNames = deptNames.ToArray(),
                 archivedAt = h.ArchivedAt
-            })
-            .ToListAsync();
+            };
+        }).ToList();
 
         return Ok(new
         {
@@ -142,6 +182,10 @@ public class HolidaysController : ControllerBase
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var targetBranch = dto.BranchId ?? _tenantProvider.BranchId;
 
+        var deptIds = dto.DepartmentIds != null && dto.DepartmentIds.Length > 0
+            ? dto.DepartmentIds.Where(d => d > 0).Distinct().ToArray()
+            : (dto.DepartmentId.HasValue && dto.DepartmentId.Value > 0 ? new[] { dto.DepartmentId.Value } : Array.Empty<int>());
+
         var holiday = new Holiday
         {
             HolidayName = dto.Name.Trim(),
@@ -151,7 +195,8 @@ public class HolidaysController : ControllerBase
             IsGlobal = dto.IsGlobal,
             OrganizationId = orgId,
             BranchId = dto.IsGlobal ? null : (targetBranch > 0 ? targetBranch : null),
-            DepartmentId = dto.IsGlobal ? null : (dto.DepartmentId > 0 ? dto.DepartmentId : null),
+            DepartmentId = dto.IsGlobal ? null : (deptIds.Length > 0 ? deptIds[0] : null),
+            DepartmentIds = dto.IsGlobal ? null : (deptIds.Length > 0 ? string.Join(",", deptIds) : null),
         };
 
         _db.Holidays.Add(holiday);
@@ -171,8 +216,23 @@ public class HolidaysController : ControllerBase
         holiday.EndDate = dto.EndDate;
         holiday.Description = dto.Description?.Trim();
         holiday.IsGlobal = dto.IsGlobal;
-        holiday.BranchId = dto.IsGlobal ? null : (dto.BranchId.HasValue && dto.BranchId.Value > 0 ? dto.BranchId.Value : null);
-        holiday.DepartmentId = dto.IsGlobal ? null : (dto.DepartmentId.HasValue && dto.DepartmentId.Value > 0 ? dto.DepartmentId.Value : null);
+
+        if (dto.IsGlobal)
+        {
+            holiday.BranchId = null;
+            holiday.DepartmentId = null;
+            holiday.DepartmentIds = null;
+        }
+        else
+        {
+            var deptIds = dto.DepartmentIds != null && dto.DepartmentIds.Length > 0
+                ? dto.DepartmentIds.Where(d => d > 0).Distinct().ToArray()
+                : (dto.DepartmentId.HasValue && dto.DepartmentId.Value > 0 ? new[] { dto.DepartmentId.Value } : Array.Empty<int>());
+
+            holiday.BranchId = dto.BranchId.HasValue && dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
+            holiday.DepartmentId = deptIds.Length > 0 ? deptIds[0] : null;
+            holiday.DepartmentIds = deptIds.Length > 0 ? string.Join(",", deptIds) : null;
+        }
 
         await _db.SaveChangesAsync();
         return Ok(new { message = "Holiday updated successfully.", id = holiday.Id });
