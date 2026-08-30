@@ -127,10 +127,10 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
                       {payslip.employee.employeeName}
                     </td>
                     <td className="w-1/4 py-1.5 px-3 font-semibold text-slate-600 bg-slate-50 border-r border-slate-200">
-                      Employee ID
+                      Employee ID / Code
                     </td>
                     <td className="w-1/4 py-1.5 px-3 font-mono font-semibold text-slate-900">
-                      #{payslip.employee.employeeId}
+                      {payslip.employee.employeeCode || `EMP#${String(payslip.employee.employeeId).padStart(3, '0')}`}
                     </td>
                   </tr>
                   <tr className="border-b border-slate-200">

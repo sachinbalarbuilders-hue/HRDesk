@@ -304,16 +304,18 @@ public class PayrollController : ControllerBase
             employee = new
             {
                 employeeId = record.EmployeeId,
+                employeeCode = $"EMP#{record.EmployeeId:D3}",
                 employeeName = record.Employee?.EmployeeName ?? "Unknown",
                 department = record.Employee?.Department?.DepartmentName ?? "General",
                 designation = record.Employee?.Designation?.DesignationName ?? "Staff",
                 joiningDate = record.Employee?.JoiningDate?.ToString("yyyy-MM-dd"),
                 phone = record.Employee?.Phone,
-                bankAccount = "XXXX-XXXX-XXXX",
-                bankName = "Corporate Salary Account",
-                ifsc = "HDFC0001234",
-                pan = "ABCDE1234F",
-                uan = "100234567890"
+                bankAccount = !string.IsNullOrWhiteSpace(record.Employee?.BankAccountNumber) ? record.Employee.BankAccountNumber : "—",
+                bankName = !string.IsNullOrWhiteSpace(record.Employee?.BankName) ? record.Employee.BankName : "Corporate Salary Account",
+                ifsc = !string.IsNullOrWhiteSpace(record.Employee?.BankIfscCode) ? record.Employee.BankIfscCode : "—",
+                pan = !string.IsNullOrWhiteSpace(record.Employee?.PanNumber) ? record.Employee.PanNumber : "—",
+                uan = !string.IsNullOrWhiteSpace(record.Employee?.UanNumber) ? record.Employee.UanNumber : "—",
+                pf = !string.IsNullOrWhiteSpace(record.Employee?.PfNumber) ? record.Employee.PfNumber : "—"
             },
             attendance = new
             {
