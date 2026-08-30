@@ -361,7 +361,10 @@ public class AttendanceProcessorService : IAttendanceProcessorService
 
         // 2. Check Holiday (Always respected above all, never sandwiched)
         var isHoliday = context.Holidays.Any(h => 
-            (h.IsGlobal || (h.EligibleEmployees != null && h.EligibleEmployees.Any(he => he.EmployeeId == emp.EmployeeId))));
+            (h.IsGlobal || 
+             (h.DepartmentId.HasValue && emp.DepartmentId.HasValue && h.DepartmentId.Value == emp.DepartmentId.Value && (!h.BranchId.HasValue || h.BranchId == emp.BranchId)) ||
+             (h.BranchId.HasValue && !h.DepartmentId.HasValue && h.BranchId.Value == emp.BranchId) ||
+             (h.EligibleEmployees != null && h.EligibleEmployees.Any(he => he.EmployeeId == emp.EmployeeId))));
         
         if (isHoliday)
         {

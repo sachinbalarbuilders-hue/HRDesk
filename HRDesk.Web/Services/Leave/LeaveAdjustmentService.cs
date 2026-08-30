@@ -36,7 +36,10 @@ namespace HRDesk.Web.Services
             decimal dayMultiplier = (dayType == "First Half" || dayType == "Second Half") ? 0.5m : 1.0m;
 
             var holidaysList = await _db.Holidays
-                .Where(h => h.IsGlobal || _db.HolidayEmployees.Any(he => he.HolidayId == h.Id && he.EmployeeId == employeeId))
+                .Where(h => h.IsGlobal || 
+                            (h.DepartmentId.HasValue && emp.DepartmentId.HasValue && h.DepartmentId.Value == emp.DepartmentId.Value && (!h.BranchId.HasValue || h.BranchId == emp.BranchId)) ||
+                            (h.BranchId.HasValue && !h.DepartmentId.HasValue && h.BranchId.Value == emp.BranchId) ||
+                            _db.HolidayEmployees.Any(he => he.HolidayId == h.Id && he.EmployeeId == employeeId))
                 .ToListAsync();
 
             var dayInfos = new System.Collections.Generic.List<(DateOnly Date, bool IsWorkDay, bool IsWeekoff, bool IsHoliday)>();

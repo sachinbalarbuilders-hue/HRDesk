@@ -44,11 +44,12 @@ public class HolidaysController : ControllerBase
         DateOnly EndDate,
         string? Description,
         bool IsGlobal,
-        int? BranchId = null
+        int? BranchId = null,
+        int? DepartmentId = null
     );
 
     [HttpGet]
-    public async Task<IActionResult> GetHolidays([FromQuery] int? year = null, [FromQuery] string? search = null, [FromQuery] int? branchId = null, [FromQuery] string status = "active")
+    public async Task<IActionResult> GetHolidays([FromQuery] int? year = null, [FromQuery] string? search = null, [FromQuery] int? branchId = null, [FromQuery] int? departmentId = null, [FromQuery] string status = "active")
     {
         if (status.Equals("archived", StringComparison.OrdinalIgnoreCase) || status.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
@@ -61,6 +62,8 @@ public class HolidaysController : ControllerBase
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 
         var query = _db.Holidays
+            .Include(h => h.Branch)
+            .Include(h => h.Department)
             .AsNoTracking()
             .Where(h => (h.StartDate >= startOfYear && h.StartDate <= endOfYear) ||
                         (h.EndDate >= startOfYear && h.EndDate <= endOfYear))
@@ -74,6 +77,11 @@ public class HolidaysController : ControllerBase
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
             query = query.Where(h => h.BranchId == activeBranch.Value || h.BranchId == null);
+        }
+
+        if (departmentId.HasValue && departmentId.Value > 0)
+        {
+            query = query.Where(h => h.DepartmentId == departmentId.Value || h.DepartmentId == null);
         }
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -93,9 +101,19 @@ public class HolidaysController : ControllerBase
                 days = h.EndDate.DayNumber - h.StartDate.DayNumber + 1,
                 isGlobal = h.IsGlobal,
                 description = h.Description ?? "",
-                applicableTo = h.IsGlobal ? "All Staff" : "Department Specific",
+                applicableTo = h.IsGlobal
+                    ? "Company-wide"
+                    : h.Department != null && h.Branch != null
+                        ? $"{h.Branch.Name} • {h.Department.DepartmentName}"
+                        : h.Department != null
+                            ? $"Dept: {h.Department.DepartmentName}"
+                            : h.Branch != null
+                                ? $"Branch: {h.Branch.Name}"
+                                : "Branch Specific",
                 branchId = h.BranchId,
                 branchName = h.Branch != null ? h.Branch.Name : null,
+                departmentId = h.DepartmentId,
+                departmentName = h.Department != null ? h.Department.DepartmentName : null,
                 archivedAt = h.ArchivedAt
             })
             .ToListAsync();
@@ -132,7 +150,8 @@ public class HolidaysController : ControllerBase
             Description = dto.Description?.Trim(),
             IsGlobal = dto.IsGlobal,
             OrganizationId = orgId,
-            BranchId = targetBranch
+            BranchId = dto.IsGlobal ? null : (targetBranch > 0 ? targetBranch : null),
+            DepartmentId = dto.IsGlobal ? null : (dto.DepartmentId > 0 ? dto.DepartmentId : null),
         };
 
         _db.Holidays.Add(holiday);
@@ -152,7 +171,8 @@ public class HolidaysController : ControllerBase
         holiday.EndDate = dto.EndDate;
         holiday.Description = dto.Description?.Trim();
         holiday.IsGlobal = dto.IsGlobal;
-        if (dto.BranchId.HasValue) holiday.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
+        holiday.BranchId = dto.IsGlobal ? null : (dto.BranchId.HasValue && dto.BranchId.Value > 0 ? dto.BranchId.Value : null);
+        holiday.DepartmentId = dto.IsGlobal ? null : (dto.DepartmentId.HasValue && dto.DepartmentId.Value > 0 ? dto.DepartmentId.Value : null);
 
         await _db.SaveChangesAsync();
         return Ok(new { message = "Holiday updated successfully.", id = holiday.Id });
