@@ -50,6 +50,8 @@ public static class ArchivableRegistry
         Register("payroll",            typeof(PayrollMaster),            AppPermissions.Keys.PayrollProcess,       "Payroll record");
         Register("candidates",         typeof(HRDesk.Web.Areas.Recruitment.Models.Candidate),         AppPermissions.Keys.RecruitmentCandidates, "Candidate");
         Register("interviews",         typeof(HRDesk.Web.Areas.Recruitment.Models.InterviewSchedule), AppPermissions.Keys.RecruitmentInterviews, "Interview");
+        Register("employee-exits",     typeof(EmployeeExit),             AppPermissions.Keys.EmployeesEdit,        "Employee exit");
+        Register("exits",              typeof(EmployeeExit),             AppPermissions.Keys.EmployeesEdit,        "Employee exit");
     }
 
     private static void Register(string slug, Type type, string permission, string displayName)

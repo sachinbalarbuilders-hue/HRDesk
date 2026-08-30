@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { clsx } from 'clsx';
 
-type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
+type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 
 interface ModalProps {
   open?: boolean;
@@ -22,6 +22,7 @@ const sizeClasses: Record<ModalSize, string> = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
 };
 
 export const Modal: React.FC<ModalProps> = ({

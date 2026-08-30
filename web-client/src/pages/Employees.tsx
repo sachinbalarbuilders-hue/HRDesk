@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -22,6 +22,8 @@ import {
   RotateCcw,
   Link,
   Copy,
+  Users,
+  UserMinus,
 } from 'lucide-react';
 import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
@@ -31,6 +33,8 @@ import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { DataTable, type ColumnDef } from '../components/ui/DataTable';
 import { AuthImage } from '../components/ui/AuthImage';
+import { EmployeeExits } from './employees/EmployeeExits';
+import { InitiateExitModal } from '../components/employees/InitiateExitModal';
 
 const formatDate = (dateStr: string | null | undefined) => {
   if (!dateStr) return '-';
@@ -42,8 +46,22 @@ const formatDate = (dateStr: string | null | undefined) => {
   return `${dd}/${mm}/${yyyy}`;
 };
 
-export const Employees: React.FC = () => {
+interface EmployeesProps {
+  defaultTab?: 'directory' | 'exits';
+}
+
+export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'directory' | 'exits') || defaultTab;
+
+  const setActiveTab = (tab: 'directory' | 'exits') => {
+    setSearchParams(prev => {
+      prev.set('tab', tab);
+      return prev;
+    }, { replace: true });
+  };
+
   const { hasPermission, isAdmin } = useAuth();
   const { showSuccess, showError } = useToast();
   const { currentOrganization, currentBranch } = useOrganization();
@@ -58,6 +76,10 @@ export const Employees: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+
+  // Exit Modal State
+  const [exitModalOpen, setExitModalOpen] = useState(false);
+  const [exitTargetEmp, setExitTargetEmp] = useState<{ employeeId: number; employeeName: string } | null>(null);
 
   // Modals
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -263,20 +285,20 @@ export const Employees: React.FC = () => {
     {
       key: 'photo',
       header: 'Photo',
-      width: '45px',
+      width: '60px',
       align: 'center',
       render: (emp) => (
-        <div className="w-7 h-7 mx-auto rounded-full overflow-hidden flex items-center justify-center bg-[var(--paper)] border border-[var(--rule)] shrink-0">
+        <div className="w-10 h-10 mx-auto rounded-full overflow-hidden flex items-center justify-center bg-[var(--paper)] border border-[var(--rule)] shadow-2xs shrink-0">
           {emp.photoPath ? (
             <AuthImage
               src={`/Thumbnail?employeeId=${emp.employeeId}`}
               alt={emp.employeeName}
               className="w-full h-full aspect-square object-cover"
               fallbackInitial={emp.employeeName?.charAt(0) || 'E'}
-              fallbackClassName="w-full h-full text-[10px] flex items-center justify-center bg-[var(--navy-900)] text-[var(--gold-500)] font-bold"
+              fallbackClassName="w-full h-full text-xs flex items-center justify-center bg-[var(--navy-900)] text-[var(--gold-500)] font-bold"
             />
           ) : (
-            <div className="w-full h-full bg-[var(--navy-900)] text-[var(--gold-500)] font-bold flex items-center justify-center text-[10px]">
+            <div className="w-full h-full bg-[var(--navy-900)] text-[var(--gold-500)] font-bold flex items-center justify-center text-xs">
               {emp.employeeName?.charAt(0) || 'E'}
             </div>
           )}
@@ -355,6 +377,16 @@ export const Employees: React.FC = () => {
               ...(canEdit ? [
                 { label: 'Edit', icon: <Pencil size={14} />, onClick: () => navigate(`/employees/${emp.publicId}/edit`) },
               ] : []),
+              ...(canEdit && isActive ? [
+                {
+                  label: 'Initiate Exit',
+                  icon: <UserMinus size={14} className="text-amber-500" />,
+                  onClick: () => {
+                    setExitTargetEmp({ employeeId: emp.employeeId, employeeName: emp.employeeName });
+                    setExitModalOpen(true);
+                  },
+                },
+              ] : []),
               ...(canEdit ? employeeArchive.rowActions({
                 id: emp.publicId,
                 name: emp.employeeName,
@@ -369,115 +401,167 @@ export const Employees: React.FC = () => {
 
   return (
     <PageContainer>
-      <PageHeader title="Employee Directory" description="Manage your organization's workforce" />
+      <PageHeader title="Workforce Management" description="Manage your organization's employee directory and exit lifecycle" />
 
-      {/* 2. Unified Common Action Toolbar */}
-      <DataToolbar
-        searchValue={search}
-        onSearchChange={(val) => {
-          setSearch(val);
-          setPage(1);
-        }}
-        searchPlaceholder="Search employees by name, phone or ID..."
-        archiveFilter={{
-          value: archiveFilter,
-          onChange: (val) => {
-            setArchiveFilter(val);
-            setPage(1);
-          },
-        }}
-        filters={[
-          {
-            id: 'department',
-            value: departmentId,
-            onChange: (val) => {
-              setDepartmentId(val);
+      {/* Sub-Navigation Tabs */}
+      <div className="flex items-center justify-between mb-4 border-b border-[var(--rule)]">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('directory')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 cursor-pointer transition-colors ${
+              activeTab === 'directory'
+                ? 'border-[var(--gold-500)] text-[var(--gold-600)] bg-[var(--surface-sunken)]/50'
+                : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
+            }`}
+          >
+            <Users size={14} />
+            <span>Employee Directory</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('exits')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 cursor-pointer transition-colors ${
+              activeTab === 'exits'
+                ? 'border-[var(--gold-500)] text-[var(--gold-600)] bg-[var(--surface-sunken)]/50'
+                : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
+            }`}
+          >
+            <UserMinus size={14} />
+            <span>Exit & Offboarding</span>
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'exits' ? (
+        <EmployeeExits />
+      ) : (
+        <>
+          {/* 2. Unified Common Action Toolbar */}
+          <DataToolbar
+            searchValue={search}
+            onSearchChange={(val) => {
+              setSearch(val);
               setPage(1);
-            },
-            options: [
-              { value: '', label: 'All Departments' },
-              ...(lookups?.departments
-                ?.filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
-                .map((d: any) => ({
-                  value: d.departmentId.toString(),
-                  label: d.departmentName,
-                })) || []),
-            ],
-          },
-        ]}
-        onExport={handleExportCSV}
-        exportLabel="Export CSV"
-        onImport={canCreate ? () => setImportModalOpen(true) : undefined}
-        importLabel="Import CSV"
-        primaryAction={
-          canCreate
-            ? {
-                label: 'Add Employee',
-                icon: <Plus size={14} />,
-                onClick: () => navigate('/employees/add'),
-              }
-            : undefined
-        }
-        customActions={
-          <>
-            {canCreate && (
-              <button
-                type="button"
-                onClick={() => {
-                  setGeneratedLink('');
-                  setOnboardingForm({ employeeName: '', workEmail: '', departmentId: '', designationId: '' });
-                  setGenerateLinkModalOpen(true);
-                }}
-                className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
-                title="Generate Self-Onboarding Link"
-              >
-                <Link size={13} className="text-[var(--gold-500)]" />
-                <span>Generate Onboarding Link</span>
-              </button>
-            )}
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => {
-                  fetchPrefixSettings();
-                  setPrefixModalOpen(true);
-                }}
-                className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
-                title="Configure Series Code, Connector and Sequence"
-              >
-                <Sliders size={13} className="text-[var(--gold-500)]" />
-                <span>Prefix Setup</span>
-              </button>
-            )}
-          </>
-        }
-      />
+            }}
+            searchPlaceholder="Search employees by name, phone or ID..."
+            archiveFilter={{
+              value: archiveFilter,
+              onChange: (val) => {
+                setArchiveFilter(val);
+                setPage(1);
+              },
+            }}
+            filters={[
+              {
+                id: 'department',
+                value: departmentId,
+                onChange: (val) => {
+                  setDepartmentId(val);
+                  setPage(1);
+                },
+                options: [
+                  { value: '', label: 'All Departments' },
+                  ...(lookups?.departments
+                    ?.filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
+                    .map((d: any) => ({
+                      value: d.departmentId.toString(),
+                      label: d.departmentName,
+                    })) || []),
+                ],
+              },
+            ]}
+            onExport={handleExportCSV}
+            exportLabel="Export CSV"
+            onImport={canCreate ? () => setImportModalOpen(true) : undefined}
+            importLabel="Import CSV"
+            primaryAction={
+              canCreate
+                ? {
+                    label: 'Add Employee',
+                    icon: <Plus size={14} />,
+                    onClick: () => navigate('/employees/add'),
+                  }
+                : undefined
+            }
+            customActions={
+              <>
+                {canCreate && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeneratedLink('');
+                      setOnboardingForm({ employeeName: '', workEmail: '', departmentId: '', designationId: '' });
+                      setGenerateLinkModalOpen(true);
+                    }}
+                    className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
+                    title="Generate Self-Onboarding Link"
+                  >
+                    <Link size={13} className="text-[var(--gold-500)]" />
+                    <span>Generate Onboarding Link</span>
+                  </button>
+                )}
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetchPrefixSettings();
+                      setPrefixModalOpen(true);
+                    }}
+                    className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
+                    title="Configure Series Code, Connector and Sequence"
+                  >
+                    <Sliders size={13} className="text-[var(--gold-500)]" />
+                    <span>Prefix Setup</span>
+                  </button>
+                )}
+              </>
+            }
+          />
 
-      {/* 3. Primary DataTable with Multi-Selection & Bulk Actions */}
-      <DataTable
-        columns={columns}
-        data={employees}
-        loading={loading}
-        keyExtractor={(emp) => emp.publicId || emp.employeeId}
-        selection={
-          canEdit
-            ? {
-                selectedRowKeys: selectedIds,
-                onChange: (keys) => setSelectedIds(keys),
-                bulkActions: employeeArchive.bulkActions(archiveFilter === 'archived'),
-              }
-            : undefined
-        }
-        emptyMessage="No employees found matching search criteria."
-        pagination={{
-          page,
-          pageSize,
-          totalCount,
-          totalPages,
-          onPageChange: setPage,
-          onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
-        }}
-      />
+          {/* 3. Primary DataTable with Multi-Selection & Bulk Actions */}
+          <DataTable
+            columns={columns}
+            data={employees}
+            loading={loading}
+            keyExtractor={(emp) => emp.publicId || emp.employeeId}
+            selection={
+              canEdit
+                ? {
+                    selectedRowKeys: selectedIds,
+                    onChange: (keys) => setSelectedIds(keys),
+                    bulkActions: employeeArchive.bulkActions(archiveFilter === 'archived'),
+                  }
+                : undefined
+            }
+            emptyMessage="No employees found matching search criteria."
+            pagination={{
+              page,
+              pageSize,
+              totalCount,
+              totalPages,
+              onPageChange: setPage,
+              onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+            }}
+          />
+        </>
+      )}
+
+      {/* Initiate Exit Modal from row actions */}
+      {exitModalOpen && (
+        <InitiateExitModal
+          isOpen={exitModalOpen}
+          preselectedEmployee={exitTargetEmp}
+          onClose={() => {
+            setExitModalOpen(false);
+            setExitTargetEmp(null);
+          }}
+          onSuccess={() => {
+            fetchEmployees();
+            setActiveTab('exits');
+          }}
+        />
+      )}
 
       {/* 6. Bulk Import Modal */}
       <BulkImportModal

@@ -104,6 +104,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<InAppNotification> InAppNotifications => Set<InAppNotification>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<EmployeeExit> EmployeeExits => Set<EmployeeExit>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -575,6 +576,19 @@ public sealed class BiometricAttendanceDbContext : DbContext
             .WithMany(pg => pg.Employees)
             .HasForeignKey(e => e.PayGroupId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<EmployeeExit>(entity =>
+        {
+            entity.ToTable("employee_exits");
+            entity.HasOne(ex => ex.Organization)
+                  .WithMany()
+                  .HasForeignKey(ex => ex.OrganizationId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(ex => ex.Employee)
+                  .WithMany()
+                  .HasForeignKey(ex => new { ex.OrganizationId, ex.EmployeeId })
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<LeaveTypeEligibility>(entity =>
         {
