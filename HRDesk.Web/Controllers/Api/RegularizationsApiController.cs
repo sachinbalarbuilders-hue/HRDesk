@@ -126,7 +126,7 @@ public class RegularizationsController : ControllerBase
         var query = _db.AttendanceRegularizations
             .AsNoTracking()
             .Include(r => r.Employee)
-                .ThenInclude(e => e.Department)
+                .ThenInclude(e => e!.Department)
             .AsQueryable();
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
@@ -688,7 +688,7 @@ public class RegularizationsController : ControllerBase
             r.Status = "Rejected";
             r.ApprovedBy = approver;
             r.ApproveDate = now;
-            if (!string.IsNullOrWhiteSpace(request.Reason))
+            if (request != null && !string.IsNullOrWhiteSpace(request.Reason))
             {
                 r.Reason = $"{r.Reason} [Rejected: {request.Reason}]";
             }
@@ -898,7 +898,7 @@ public class RegularizationsController : ControllerBase
         var query = _db.CompOffRequests
             .AsNoTracking()
             .Include(c => c.Employee)
-                .ThenInclude(e => e.Department)
+                .ThenInclude(e => e!.Department)
             .Include(c => c.Shift)
             .AsQueryable();
 

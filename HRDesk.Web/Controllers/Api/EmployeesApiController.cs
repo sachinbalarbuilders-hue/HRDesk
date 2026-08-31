@@ -1,7 +1,6 @@
 using HRDesk.Web.Constants;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
-using HRDesk.Web.Models;
 using HRDesk.Web.Services;
 using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;

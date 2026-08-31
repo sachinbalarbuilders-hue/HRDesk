@@ -56,7 +56,7 @@ public class AuthController : ControllerBase
             .IgnoreQueryFilters()
             .Include(u => u.CustomRole)
             .Include(u => u.Employee)
-                .ThenInclude(e => e.Branch)
+                .ThenInclude(e => e!.Branch)
             .Include(u => u.Organization)
             .FirstOrDefaultAsync(u => u.IsActive && u.Username == cleanUsername);
 
@@ -67,7 +67,7 @@ public class AuthController : ControllerBase
                 .IgnoreQueryFilters()
                 .Include(u => u.CustomRole)
                 .Include(u => u.Employee)
-                    .ThenInclude(e => e.Branch)
+                    .ThenInclude(e => e!.Branch)
                 .Include(u => u.Organization)
                 .FirstOrDefaultAsync(u => u.IsActive &&
                     u.Employee != null && (u.Employee.WorkEmail == cleanUsername || u.Employee.PersonalEmail == cleanUsername));
@@ -302,7 +302,7 @@ public class AuthController : ControllerBase
             .IgnoreQueryFilters()
             .Include(u => u.CustomRole)
             .Include(u => u.Employee)
-                .ThenInclude(e => e.Branch)
+                .ThenInclude(e => e!.Branch)
             .Include(u => u.Organization)
             .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
 

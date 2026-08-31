@@ -382,7 +382,7 @@ public class AttendanceController : ControllerBase
         var query = _db.DailyAttendance
             .AsNoTracking()
             .Include(a => a.Employee)
-                .ThenInclude(e => e.Department)
+                .ThenInclude(e => e!.Department)
             .Include(a => a.Shift)
             .Where(a => a.RecordDate == targetDate);
 
@@ -390,30 +390,30 @@ public class AttendanceController : ControllerBase
         var activeBranch = branchId ?? _tenantProvider.BranchId;
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
-            query = query.Where(a => a.BranchId == activeBranch.Value || a.Employee.BranchId == activeBranch.Value);
+            query = query.Where(a => a.BranchId == activeBranch.Value || (a.Employee != null && a.Employee.BranchId == activeBranch.Value));
         }
 
         if (departmentId.HasValue && departmentId.Value > 0)
         {
-            query = query.Where(a => a.Employee.DepartmentId == departmentId.Value);
+            query = query.Where(a => a.Employee != null && a.Employee.DepartmentId == departmentId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim().ToLower();
-            query = query.Where(a => a.Employee.EmployeeName.ToLower().Contains(s));
+            query = query.Where(a => a.Employee != null && a.Employee.EmployeeName.ToLower().Contains(s));
         }
 
         query = await _permissionService.ApplyAttendanceScopeAsync(query, User, AppPermissions.Keys.AttendanceView);
 
         var logs = await query
-            .OrderBy(a => a.Employee.EmployeeName)
+            .OrderBy(a => a.Employee != null ? a.Employee.EmployeeName : string.Empty)
             .Select(a => new
             {
                 id = a.Id,
                 employeeId = a.EmployeeId,
-                employeeName = a.Employee.EmployeeName,
-                department = a.Employee.Department != null ? a.Employee.Department.DepartmentName : "General",
+                employeeName = a.Employee != null ? a.Employee.EmployeeName : string.Empty,
+                department = (a.Employee != null && a.Employee.Department != null) ? a.Employee.Department.DepartmentName : "General",
                 recordDate = a.RecordDate,
                 inTime = a.InTime != null ? a.InTime.Value.ToString("HH:mm") : null,
                 outTime = a.OutTime != null ? a.OutTime.Value.ToString("HH:mm") : null,
@@ -1090,7 +1090,7 @@ public class AttendanceController : ControllerBase
         if (shift == null)
         {
             var employee = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == currentEmpId.Value);
-            shift = await _db.Shifts.AsNoTracking().FirstOrDefaultAsync(s => s.BranchId == employee.BranchId || s.BranchId == null);
+            shift = await _db.Shifts.AsNoTracking().FirstOrDefaultAsync(s => (employee != null && s.BranchId == employee.BranchId) || s.BranchId == null);
         }
 
         string shiftName = shift?.ShiftName ?? "General Shift";

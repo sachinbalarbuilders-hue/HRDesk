@@ -14,7 +14,7 @@ public class ShiftChangeRequest : IMustHaveTenant
     public int OrganizationId { get; set; }
 
     [ForeignKey("OrganizationId")]
-    public virtual Organization Organization { get; set; } = null!;
+    public virtual Organization? Organization { get; set; }
 
     [Column("branch_id")]
     public int? BranchId { get; set; }

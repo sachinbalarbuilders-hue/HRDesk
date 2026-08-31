@@ -129,7 +129,7 @@ public class EmployeeDocumentsController : ControllerBase
             DocumentType = documentType.Trim(),
             FileName = file.FileName,
             FilePath = uniqueFileName,
-            ContentType = file.ContentType,
+            ContentType = file.ContentType ?? "application/octet-stream",
             UploadedAt = DateTime.UtcNow
         };
 

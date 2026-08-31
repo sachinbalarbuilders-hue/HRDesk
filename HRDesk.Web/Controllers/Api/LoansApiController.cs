@@ -160,7 +160,7 @@ public class LoansController : ControllerBase
         var query = _db.EmployeeLoans
             .AsNoTracking()
             .Include(l => l.Employee)
-                .ThenInclude(e => e.Department)
+                .ThenInclude(e => e!.Department)
             .Include(l => l.LoanType)
             .AsQueryable();
 
@@ -398,7 +398,7 @@ public class LoansController : ControllerBase
 
             return Ok(new { message = "Loan application submitted successfully.", id = loan.Id, applicationNumber = appNo });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return StatusCode(500, new { message = "Failed to create loan application. Please try again or contact support." });
         }

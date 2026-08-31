@@ -52,7 +52,7 @@ public class PaymentsController : ControllerBase
             var order = await _paymentService.CreateOrderAsync(dto, orgId);
             return Ok(order);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return BadRequest(new { message = "Payment order creation failed. Please try again." });
         }

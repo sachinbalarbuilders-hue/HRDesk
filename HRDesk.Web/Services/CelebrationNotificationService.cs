@@ -145,14 +145,15 @@ namespace HRDesk.Web.Services
                         var p1 = cmd.CreateParameter(); p1.ParameterName = "@id"; p1.Value = employee.EmployeeId; cmd.Parameters.Add(p1);
                         var p2 = cmd.CreateParameter(); p2.ParameterName = "@org"; p2.Value = employee.OrganizationId; cmd.Parameters.Add(p2);
                         
-                        bool wasClosed = cmd.Connection.State == System.Data.ConnectionState.Closed;
-                        if (wasClosed) await cmd.Connection.OpenAsync();
+                        var conn = cmd.Connection;
+                        bool wasClosed = conn != null && conn.State == System.Data.ConnectionState.Closed;
+                        if (wasClosed && conn != null) await conn.OpenAsync();
                         try 
                         {
                             var res = await cmd.ExecuteScalarAsync();
                             if (res != null && res != DBNull.Value) dbPhotoBytes = (byte[])res;
                         }
-                        finally { if (wasClosed) await cmd.Connection.CloseAsync(); }
+                        finally { if (wasClosed && conn != null) await conn.CloseAsync(); }
                     }
 
                     if (dbPhotoBytes != null && dbPhotoBytes.Length > 0)
@@ -218,14 +219,15 @@ The entire *{employee.Organization?.Name ?? "Setu Developers"}* family wishes yo
                         var p1 = cmd.CreateParameter(); p1.ParameterName = "@id"; p1.Value = employee.EmployeeId; cmd.Parameters.Add(p1);
                         var p2 = cmd.CreateParameter(); p2.ParameterName = "@org"; p2.Value = employee.OrganizationId; cmd.Parameters.Add(p2);
                         
-                        bool wasClosed = cmd.Connection.State == System.Data.ConnectionState.Closed;
-                        if (wasClosed) await cmd.Connection.OpenAsync();
+                        var conn = cmd.Connection;
+                        bool wasClosed = conn != null && conn.State == System.Data.ConnectionState.Closed;
+                        if (wasClosed && conn != null) await conn.OpenAsync();
                         try 
                         {
                             var res = await cmd.ExecuteScalarAsync();
                             if (res != null && res != DBNull.Value) dbPhotoBytes = (byte[])res;
                         }
-                        finally { if (wasClosed) await cmd.Connection.CloseAsync(); }
+                        finally { if (wasClosed && conn != null) await conn.CloseAsync(); }
                     }
 
                     if (dbPhotoBytes != null && dbPhotoBytes.Length > 0)

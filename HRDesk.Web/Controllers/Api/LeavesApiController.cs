@@ -57,7 +57,7 @@ public class LeavesController : ControllerBase
         var query = _db.LeaveApplications
             .AsNoTracking()
             .Include(la => la.Employee)
-                .ThenInclude(e => e.Department)
+                .ThenInclude(e => e!.Department)
             .Include(la => la.LeaveType)
             .AsQueryable();
 

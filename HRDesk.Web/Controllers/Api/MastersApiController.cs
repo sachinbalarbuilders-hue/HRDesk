@@ -557,7 +557,7 @@ public class MastersController : ControllerBase
 
             return Ok(new { message = "Shift created successfully.", id = shift.Id });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return StatusCode(500, new { message = "Failed to create shift. Please try again or contact support." });
         }

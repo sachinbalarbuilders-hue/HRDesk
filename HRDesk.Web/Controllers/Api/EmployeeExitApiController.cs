@@ -710,7 +710,7 @@ END;";
         if (data == null || data.Length == 0)
             return NotFound(new { message = "Requested document not available." });
 
-        return File(data, contentType, filename);
+        return File(data, contentType ?? "application/pdf", filename);
     }
 
     // ── 10. COMPLETE OFFBOARDING & RELIEVE EMPLOYEE ──────────────────────────

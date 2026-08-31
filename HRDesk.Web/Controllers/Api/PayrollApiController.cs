@@ -56,9 +56,9 @@ public class PayrollController : ControllerBase
         var query = _db.PayrollMasters
             .AsNoTracking()
             .Include(p => p.Employee)
-                .ThenInclude(e => e.Department)
+                .ThenInclude(e => e!.Department)
             .Include(p => p.Employee)
-                .ThenInclude(e => e.Designation)
+                .ThenInclude(e => e!.Designation)
             .Where(p => p.Month == targetMonth)
             .AsQueryable();
 
@@ -187,7 +187,7 @@ public class PayrollController : ControllerBase
                 month = dto.Month
             });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return StatusCode(500, new { message = "Payroll processing failed. Please try again or contact support." });
         }
@@ -224,9 +224,9 @@ public class PayrollController : ControllerBase
         var record = await _db.PayrollMasters
             .AsNoTracking()
             .Include(p => p.Employee)
-                .ThenInclude(e => e.Department)
+                .ThenInclude(e => e!.Department)
             .Include(p => p.Employee)
-                .ThenInclude(e => e.Designation)
+                .ThenInclude(e => e!.Designation)
             .Include(p => p.PayrollDetails)
             .Include(p => p.Organization)
             .FirstOrDefaultAsync(p => p.Id == id);

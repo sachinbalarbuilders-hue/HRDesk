@@ -157,7 +157,7 @@ public class TeamOfficeSyncService : ITeamOfficeSyncService
                 .FirstOrDefaultAsync(s => s.SettingKey == "TeamOffice_MaxRecord", cancellationToken);
 
             string currentMonthTag = DateTime.Today.ToString("MMyyyy");
-            string lastRecordParam = lastRecordSetting?.SettingValue;
+            string? lastRecordParam = lastRecordSetting?.SettingValue;
 
             if (string.IsNullOrWhiteSpace(lastRecordParam) || !lastRecordParam.StartsWith(currentMonthTag))
             {
