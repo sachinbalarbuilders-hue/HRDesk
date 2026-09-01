@@ -18,6 +18,7 @@ const Attendance = lazy(() => import('./pages/Attendance').then(m => ({ default:
 const Shifts = lazy(() => import('./pages/Shifts').then(m => ({ default: m.Shifts })));
 const Regularizations = lazy(() => import('./pages/Regularizations').then(m => ({ default: m.Regularizations })));
 const Leaves = lazy(() => import('./pages/Leaves').then(m => ({ default: m.Leaves })));
+const CompOff = lazy(() => import('./pages/CompOff').then(m => ({ default: m.CompOff })));
 const Holidays = lazy(() => import('./pages/Holidays').then(m => ({ default: m.Holidays })));
 const Announcements = lazy(() => import('./pages/Announcements').then(m => ({ default: m.AnnouncementsPage })));
 const Loans = lazy(() => import('./pages/Loans').then(m => ({ default: m.Loans })));
@@ -196,6 +197,14 @@ export const App: React.FC = () => {
                     element={
                       <ProtectedRoute permission="Leaves.View">
                         <Leaves />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="compoff"
+                    element={
+                      <ProtectedRoute permission="CompOff.View">
+                        <CompOff />
                       </ProtectedRoute>
                     }
                   />

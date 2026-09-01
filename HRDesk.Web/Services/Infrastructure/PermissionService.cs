@@ -143,6 +143,7 @@ public sealed class PermissionService : IPermissionService
         if (!empId.HasValue) return null;
 
         return await _context.Employees
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Include(e => e.Department)
             .Include(e => e.Designation)
@@ -168,37 +169,43 @@ public sealed class PermissionService : IPermissionService
         }
 
         // Fast-path: All scope doesn't need a linked employee record
-        if (scope == AppPermissions.Scopes.All)
+        if (scope == AppPermissions.Scopes.All || scope.Equals("All", StringComparison.OrdinalIgnoreCase))
             return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
-        if (!currentEmpId.HasValue)
-            return query.Where(_ => false);
-
         var currentEmp = await GetCurrentEmployeeAsync(user);
+        var s = (scope ?? "").Trim();
 
-        if (scope == AppPermissions.Scopes.Own)
+        if (s.Equals(AppPermissions.Scopes.Own, StringComparison.OrdinalIgnoreCase) || s.Equals("Own", StringComparison.OrdinalIgnoreCase))
         {
+            if (!currentEmpId.HasValue) return query.Where(_ => false);
             return query.Where(e => e.EmployeeId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Reporting || scope == "Reporting")
+        if (s.Equals(AppPermissions.Scopes.Reporting, StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting", StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting To", StringComparison.OrdinalIgnoreCase))
         {
+            if (!currentEmpId.HasValue) return query.Where(_ => false);
             return query.Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Department)
+        if (s.Equals(AppPermissions.Scopes.Department, StringComparison.OrdinalIgnoreCase) || s.Equals("Department", StringComparison.OrdinalIgnoreCase))
         {
             if (currentEmp?.DepartmentId == null)
-                return query.Where(e => e.EmployeeId == currentEmpId.Value);
+            {
+                if (currentEmpId.HasValue)
+                    return query.Where(e => e.EmployeeId == currentEmpId.Value);
+                return query.Where(_ => false);
+            }
 
-            return query.Where(e => e.EmployeeId == currentEmpId.Value || e.DepartmentId == currentEmp.DepartmentId);
+            return query.Where(e => (currentEmpId.HasValue && e.EmployeeId == currentEmpId.Value) || e.DepartmentId == currentEmp.DepartmentId);
         }
 
-        if (scope == AppPermissions.Scopes.OwnBranch)
+        if (s.Equals(AppPermissions.Scopes.OwnBranch, StringComparison.OrdinalIgnoreCase) || s.Equals("Own Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("OwnBranch", StringComparison.OrdinalIgnoreCase))
         {
             if (currentEmp?.BranchId != null)
                 return query.Where(e => e.BranchId == currentEmp.BranchId);
+            if (_tenantProvider.BranchId.HasValue && _tenantProvider.BranchId.Value > 0)
+                return query.Where(e => e.BranchId == _tenantProvider.BranchId.Value);
         }
 
         return query;
@@ -231,12 +238,14 @@ public sealed class PermissionService : IPermissionService
 
         var currentEmp = await GetCurrentEmployeeAsync(user);
 
-        if (scope == AppPermissions.Scopes.Own)
+        var s = (scope ?? "").Trim();
+
+        if (s.Equals(AppPermissions.Scopes.Own, StringComparison.OrdinalIgnoreCase) || s.Equals("Own", StringComparison.OrdinalIgnoreCase))
         {
             return query.Where(a => a.EmployeeId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Reporting || scope == "Reporting")
+        if (s.Equals(AppPermissions.Scopes.Reporting, StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting", StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting To", StringComparison.OrdinalIgnoreCase))
         {
             var reporteeIds = await _context.Employees
                 .Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value)
@@ -246,7 +255,7 @@ public sealed class PermissionService : IPermissionService
             return query.Where(a => reporteeIds.Contains(a.EmployeeId));
         }
 
-        if (scope == AppPermissions.Scopes.Department)
+        if (s.Equals(AppPermissions.Scopes.Department, StringComparison.OrdinalIgnoreCase) || s.Equals("Department", StringComparison.OrdinalIgnoreCase))
         {
             if (currentEmp?.DepartmentId == null)
                 return query.Where(a => a.EmployeeId == currentEmpId.Value);
@@ -259,7 +268,7 @@ public sealed class PermissionService : IPermissionService
             return query.Where(a => deptEmpIds.Contains(a.EmployeeId));
         }
 
-        if (scope == AppPermissions.Scopes.OwnBranch)
+        if (s.Equals(AppPermissions.Scopes.OwnBranch, StringComparison.OrdinalIgnoreCase) || s.Equals("Own Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("OwnBranch", StringComparison.OrdinalIgnoreCase))
         {
             if (currentEmp?.BranchId != null)
             {
@@ -272,7 +281,7 @@ public sealed class PermissionService : IPermissionService
             }
         }
 
-        if (scope == AppPermissions.Scopes.All)
+        if (s.Equals(AppPermissions.Scopes.All, StringComparison.OrdinalIgnoreCase) || s.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
             return query;
         }
@@ -298,7 +307,7 @@ public sealed class PermissionService : IPermissionService
         }
 
         // Fast-path: All scope doesn't need a linked employee record
-        if (scope == AppPermissions.Scopes.All)
+        if (scope == AppPermissions.Scopes.All || scope.Equals("All", StringComparison.OrdinalIgnoreCase))
             return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
@@ -306,13 +315,14 @@ public sealed class PermissionService : IPermissionService
             return query.Where(_ => false);
 
         var currentEmp = await GetCurrentEmployeeAsync(user);
+        var s = (scope ?? "").Trim();
 
-        if (scope == AppPermissions.Scopes.Own)
+        if (s.Equals(AppPermissions.Scopes.Own, StringComparison.OrdinalIgnoreCase) || s.Equals("Own", StringComparison.OrdinalIgnoreCase))
         {
             return query.Where(l => l.EmployeeId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Reporting || scope == "Reporting")
+        if (s.Equals(AppPermissions.Scopes.Reporting, StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting", StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting To", StringComparison.OrdinalIgnoreCase))
         {
             var reporteeIds = await _context.Employees
                 .Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value)
@@ -322,7 +332,7 @@ public sealed class PermissionService : IPermissionService
             return query.Where(l => reporteeIds.Contains(l.EmployeeId));
         }
 
-        if (scope == AppPermissions.Scopes.Department)
+        if (s.Equals(AppPermissions.Scopes.Department, StringComparison.OrdinalIgnoreCase) || s.Equals("Department", StringComparison.OrdinalIgnoreCase))
         {
             if (currentEmp?.DepartmentId == null)
                 return query.Where(l => l.EmployeeId == currentEmpId.Value);
@@ -335,7 +345,7 @@ public sealed class PermissionService : IPermissionService
             return query.Where(l => deptEmpIds.Contains(l.EmployeeId));
         }
 
-        if (scope == AppPermissions.Scopes.OwnBranch)
+        if (s.Equals(AppPermissions.Scopes.OwnBranch, StringComparison.OrdinalIgnoreCase) || s.Equals("Own Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("OwnBranch", StringComparison.OrdinalIgnoreCase))
         {
             if (currentEmp?.BranchId != null)
             {
@@ -348,7 +358,7 @@ public sealed class PermissionService : IPermissionService
             }
         }
 
-        if (scope == AppPermissions.Scopes.All)
+        if (s.Equals(AppPermissions.Scopes.All, StringComparison.OrdinalIgnoreCase) || s.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
             return query;
         }
@@ -374,7 +384,7 @@ public sealed class PermissionService : IPermissionService
         }
 
         // Fast-path: All scope doesn't need a linked employee record
-        if (scope == AppPermissions.Scopes.All)
+        if (scope == AppPermissions.Scopes.All || scope.Equals("All", StringComparison.OrdinalIgnoreCase))
             return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
@@ -382,13 +392,14 @@ public sealed class PermissionService : IPermissionService
             return query.Where(_ => false);
 
         var currentEmp = await GetCurrentEmployeeAsync(user);
+        var s = (scope ?? "").Trim();
 
-        if (scope == AppPermissions.Scopes.Own)
+        if (s.Equals(AppPermissions.Scopes.Own, StringComparison.OrdinalIgnoreCase) || s.Equals("Own", StringComparison.OrdinalIgnoreCase))
         {
             return query.Where(r => r.EmployeeId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Reporting || scope == "Reporting")
+        if (s.Equals(AppPermissions.Scopes.Reporting, StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting", StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting To", StringComparison.OrdinalIgnoreCase))
         {
             var reporteeIds = await _context.Employees
                 .Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value)
@@ -398,7 +409,7 @@ public sealed class PermissionService : IPermissionService
             return query.Where(r => reporteeIds.Contains(r.EmployeeId));
         }
 
-        if (scope == AppPermissions.Scopes.Department)
+        if (s.Equals(AppPermissions.Scopes.Department, StringComparison.OrdinalIgnoreCase) || s.Equals("Department", StringComparison.OrdinalIgnoreCase))
         {
             if (currentEmp?.DepartmentId == null)
                 return query.Where(r => r.EmployeeId == currentEmpId.Value);
@@ -411,7 +422,7 @@ public sealed class PermissionService : IPermissionService
             return query.Where(r => deptEmpIds.Contains(r.EmployeeId));
         }
 
-        if (scope == AppPermissions.Scopes.OwnBranch)
+        if (s.Equals(AppPermissions.Scopes.OwnBranch, StringComparison.OrdinalIgnoreCase) || s.Equals("Own Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("OwnBranch", StringComparison.OrdinalIgnoreCase))
         {
             if (currentEmp?.BranchId != null)
             {
@@ -424,7 +435,7 @@ public sealed class PermissionService : IPermissionService
             }
         }
 
-        if (scope == AppPermissions.Scopes.All)
+        if (s.Equals(AppPermissions.Scopes.All, StringComparison.OrdinalIgnoreCase) || s.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
             return query;
         }
@@ -450,7 +461,7 @@ public sealed class PermissionService : IPermissionService
         }
 
         // Fast-path: All scope doesn't need a linked employee record
-        if (scope == AppPermissions.Scopes.All)
+        if (scope == AppPermissions.Scopes.All || scope.Equals("All", StringComparison.OrdinalIgnoreCase))
             return query;
 
         var currentEmpId = await GetCurrentEmployeeIdAsync(user);
@@ -458,13 +469,14 @@ public sealed class PermissionService : IPermissionService
             return query.Where(_ => false);
 
         var currentEmp = await GetCurrentEmployeeAsync(user);
+        var s = (scope ?? "").Trim();
 
-        if (scope == AppPermissions.Scopes.Own)
+        if (s.Equals(AppPermissions.Scopes.Own, StringComparison.OrdinalIgnoreCase) || s.Equals("Own", StringComparison.OrdinalIgnoreCase))
         {
             return query.Where(c => c.EmployeeId == currentEmpId.Value);
         }
 
-        if (scope == AppPermissions.Scopes.Reporting || scope == "Reporting")
+        if (s.Equals(AppPermissions.Scopes.Reporting, StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting", StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting To", StringComparison.OrdinalIgnoreCase))
         {
             var reporteeIds = await _context.Employees
                 .Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value)
@@ -474,7 +486,7 @@ public sealed class PermissionService : IPermissionService
             return query.Where(c => reporteeIds.Contains(c.EmployeeId));
         }
 
-        if (scope == AppPermissions.Scopes.Department)
+        if (s.Equals(AppPermissions.Scopes.Department, StringComparison.OrdinalIgnoreCase) || s.Equals("Department", StringComparison.OrdinalIgnoreCase))
         {
             if (currentEmp?.DepartmentId == null)
                 return query.Where(c => c.EmployeeId == currentEmpId.Value);
@@ -487,7 +499,7 @@ public sealed class PermissionService : IPermissionService
             return query.Where(c => deptEmpIds.Contains(c.EmployeeId));
         }
 
-        if (scope == AppPermissions.Scopes.OwnBranch)
+        if (s.Equals(AppPermissions.Scopes.OwnBranch, StringComparison.OrdinalIgnoreCase) || s.Equals("Own Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("OwnBranch", StringComparison.OrdinalIgnoreCase))
         {
             if (currentEmp?.BranchId != null)
             {
@@ -500,7 +512,7 @@ public sealed class PermissionService : IPermissionService
             }
         }
 
-        if (scope == AppPermissions.Scopes.All)
+        if (s.Equals(AppPermissions.Scopes.All, StringComparison.OrdinalIgnoreCase) || s.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
             return query;
         }
@@ -523,11 +535,22 @@ public sealed class PermissionService : IPermissionService
         var dbUser = await _context.Users
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Include(u => u.CustomRole)
-                .ThenInclude(r => r!.Permissions)
             .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
 
-        if (dbUser?.CustomRole == null)
+        if (dbUser?.RoleId != null && dbUser.RoleId > 0)
+        {
+            var perms = await _context.RolePermissions
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(p => p.RoleId == dbUser.RoleId.Value)
+                .ToListAsync();
+
+            if (perms.Any())
+            {
+                _cache.Set(cacheKey, perms, TimeSpan.FromMinutes(5));
+                return perms;
+            }
+        }
         {
             // Default fallback based on legacy Role string
             var fallbackPermissions = new List<RolePermission>();
@@ -565,6 +588,8 @@ public sealed class PermissionService : IPermissionService
                     AppPermissions.Keys.AttendanceRegularize,
                     AppPermissions.Keys.LeavesView,
                     AppPermissions.Keys.LeavesApply,
+                    AppPermissions.Keys.CompOffView,
+                    AppPermissions.Keys.CompOffApply,
                     AppPermissions.Keys.PayrollView,
                     AppPermissions.Keys.AttendanceRoster
                 };
@@ -580,9 +605,5 @@ public sealed class PermissionService : IPermissionService
             _cache.Set(cacheKey, fallbackPermissions, TimeSpan.FromMinutes(5));
             return fallbackPermissions;
         }
-
-        var list = dbUser.CustomRole.Permissions.ToList();
-        _cache.Set(cacheKey, list, TimeSpan.FromMinutes(5));
-        return list;
     }
 }

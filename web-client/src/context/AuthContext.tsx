@@ -73,6 +73,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     verifySession();
+
+    const handlePermissionsChanged = () => {
+      verifySession();
+    };
+
+    window.addEventListener('hrdesk:permissions_changed', handlePermissionsChanged);
+    return () => {
+      window.removeEventListener('hrdesk:permissions_changed', handlePermissionsChanged);
+    };
   }, [token]);
 
   const login = async (username: string, password: string) => {

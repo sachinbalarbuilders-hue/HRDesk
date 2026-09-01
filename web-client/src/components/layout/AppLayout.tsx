@@ -35,6 +35,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Megaphone,
+  Gift,
 } from 'lucide-react';
 
 export const AppLayout: React.FC = () => {
@@ -72,6 +73,7 @@ export const AppLayout: React.FC = () => {
         { name: 'Regularization', href: '/regularizations', icon: Clock, show: isAdmin || hasPermission('Regularizations.View') || hasPermission('Attendance.Regularize') || hasPermission('Regularizations.Approve') },
         { name: 'Shifts', href: '/shifts', icon: Layers, show: isAdmin || hasPermission('Shifts.Manage') || hasPermission('Attendance.Roster') },
         { name: 'Leaves', href: '/leaves', icon: CalendarOff, show: isAdmin || hasPermission('Leaves.View') },
+        { name: 'Comp-Off', href: '/compoff', icon: Gift, show: isAdmin || hasPermission('CompOff.View') || hasPermission('CompOff.Apply') || hasPermission('CompOff.Approve') },
         { name: 'Holidays', href: '/holidays', icon: Sparkles, show: true },
       ],
     },

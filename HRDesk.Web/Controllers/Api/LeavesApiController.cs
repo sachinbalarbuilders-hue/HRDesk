@@ -283,20 +283,26 @@ public class LeavesController : ControllerBase
     [HttpGet("employees")]
     public async Task<IActionResult> GetEligibleEmployees([FromQuery] int? branchId = null)
     {
-        var activeBranch = branchId ?? _tenantProvider.BranchId;
-
         var query = _db.Employees
             .AsNoTracking()
             .Include(e => e.Department)
-            .Where(e => e.Status == "Active" || e.Status == "Onboarding")
+            .Where(e => e.Status == "Active" || e.Status == "active" || e.Status == "Onboarding" || e.Status == "onboarding")
             .AsQueryable();
 
-        if (activeBranch.HasValue && activeBranch.Value > 0)
-        {
-            query = query.Where(e => e.BranchId == activeBranch.Value);
-        }
+        var scope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.LeavesApply);
 
-        query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.LeavesApply);
+        if (scope == AppPermissions.Scopes.All)
+        {
+            var activeBranch = branchId ?? _tenantProvider.BranchId;
+            if (activeBranch.HasValue && activeBranch.Value > 0)
+            {
+                query = query.Where(e => e.BranchId == activeBranch.Value);
+            }
+        }
+        else
+        {
+            query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.LeavesApply);
+        }
 
         var list = await query
             .OrderBy(e => e.EmployeeName)

@@ -136,6 +136,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
       setSavedSuccessKey(permKey);
       setTimeout(() => setSavedSuccessKey(null), 1500);
       showSuccess('Saved', `Scope set to "${newScope}"`);
+      window.dispatchEvent(new Event('hrdesk:permissions_changed'));
     } catch (err: any) {
       showError('Save Failed', err.response?.data?.message || 'Could not update scope');
     } finally {
@@ -177,6 +178,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
       setSavedSuccessKey(permKey);
       setTimeout(() => setSavedSuccessKey(null), 1500);
       showSuccess('Saved', `Updated sub-restrictions for ${subName}`);
+      window.dispatchEvent(new Event('hrdesk:permissions_changed'));
     } catch (err: any) {
       showError('Save Failed', err.response?.data?.message || 'Could not update restriction');
     } finally {
@@ -215,6 +217,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
       setSavedSuccessKey(permKey);
       setTimeout(() => setSavedSuccessKey(null), 1500);
       showSuccess('Saved', `${newGranted ? 'Enabled' : 'Disabled'} ${permKey}`);
+      window.dispatchEvent(new Event('hrdesk:permissions_changed'));
     } catch (err: any) {
       showError('Save Failed', err.response?.data?.message || 'Could not update permission');
     } finally {
