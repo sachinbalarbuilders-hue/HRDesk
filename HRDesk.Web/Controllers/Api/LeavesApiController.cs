@@ -498,6 +498,30 @@ public class LeavesController : ControllerBase
             CreatedAt = DateTime.UtcNow
         });
 
+        // Consume active Comp-Off credits via FIFO if this is a CO (Comp Off) leave
+        if (dto.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            var lt = await _db.LeaveTypes.AsNoTracking().FirstOrDefaultAsync(t => t.Id == leave.LeaveTypeId);
+            if (lt != null && lt.Code == "CO")
+            {
+                var today = DateOnly.FromDateTime(DateTime.Today);
+                var activeCompOffs = await _db.CompOffRequests
+                    .Where(c => c.EmployeeId == leave.EmployeeId && c.Status == "Approved" && (c.ExpiryDate == null || c.ExpiryDate >= today) && c.AvailedDays < (c.CompOffDays ?? 1.0m))
+                    .OrderBy(c => c.WorkedDate)
+                    .ToListAsync();
+
+                decimal daysToConsume = leave.TotalDays;
+                foreach (var co in activeCompOffs)
+                {
+                    if (daysToConsume <= 0) break;
+                    var remaining = (co.CompOffDays ?? 1.0m) - co.AvailedDays;
+                    var consume = Math.Min(remaining, daysToConsume);
+                    co.AvailedDays += consume;
+                    daysToConsume -= consume;
+                }
+            }
+        }
+
         await _db.SaveChangesAsync();
 
         // Reprocess attendance in background for that date range

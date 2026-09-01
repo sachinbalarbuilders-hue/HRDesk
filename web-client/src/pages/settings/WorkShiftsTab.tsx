@@ -9,6 +9,7 @@ import { BulkImportModal } from '../../components/ui/BulkImportModal';
 import { ArchiveToggle, type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
+import { useAuth } from '../../context/AuthContext';
 import {
   Layers,
   Plus,
@@ -73,6 +74,7 @@ function CyclePreviewStrip({ slots, cycleLengthDays }: { slots: CycleSlot[]; cyc
 export const WorkShiftsTab: React.FC = () => {
   const { currentBranch } = useOrganization();
   const { showSuccess, showError } = useToast();
+  const { hasPermission, isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
@@ -363,9 +365,13 @@ export const WorkShiftsTab: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (item) => (
-        <RowActionMenu actions={[
-          {
+      render: (item) => {
+        const canEdit = isAdmin || hasPermission('Shifts.Edit');
+        const canDelete = isAdmin || hasPermission('Shifts.Delete');
+        const actions: RowAction[] = [];
+
+        if (canEdit) {
+          actions.push({
             label: 'Edit',
             icon: <Edit2 size={14} />,
             onClick: () => {
@@ -385,14 +391,23 @@ export const WorkShiftsTab: React.FC = () => {
               });
               setShiftModalOpen(true);
             }
-          },
-          ...shiftArchive.rowActions({
-            id: item.id,
-            name: item.name,
-            isArchived: isRowArchived(item),
-          }),
-        ] as RowAction[]} />
-      ),
+          });
+        }
+
+        if (canDelete) {
+          actions.push(
+            ...shiftArchive.rowActions({
+              id: item.id,
+              name: item.name,
+              isArchived: isRowArchived(item),
+            })
+          );
+        }
+
+        if (actions.length === 0) return null;
+
+        return <RowActionMenu actions={actions} />;
+      },
     },
   ];
 
@@ -449,14 +464,23 @@ export const WorkShiftsTab: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (cycle) => (
-        <RowActionMenu
-          actions={[
-            { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => openEditCycle(cycle) },
-            ...cycleArchive.rowActions({ id: cycle.id, name: cycle.name, isArchived: isRowArchived(cycle) }),
-          ] as RowAction[]}
-        />
-      ),
+      render: (cycle) => {
+        const canEdit = isAdmin || hasPermission('Shifts.Edit');
+        const canDelete = isAdmin || hasPermission('Shifts.Delete');
+        const actions: RowAction[] = [];
+
+        if (canEdit) {
+          actions.push({ label: 'Edit', icon: <Edit2 size={14} />, onClick: () => openEditCycle(cycle) });
+        }
+
+        if (canDelete) {
+          actions.push(...cycleArchive.rowActions({ id: cycle.id, name: cycle.name, isArchived: isRowArchived(cycle) }));
+        }
+
+        if (actions.length === 0) return null;
+
+        return <RowActionMenu actions={actions} />;
+      },
     },
   ];
 
@@ -508,21 +532,25 @@ export const WorkShiftsTab: React.FC = () => {
             searchPlaceholder="Search shifts by name or code..."
             onExport={handleExport}
             exportLabel="Export CSV"
-            onImport={() => setBulkImportModalOpen(true)}
+            onImport={(isAdmin || hasPermission('Shifts.Create')) ? () => setBulkImportModalOpen(true) : undefined}
             importLabel="Import CSV"
             archiveFilter={{
               value: archiveFilter,
               onChange: (v) => { setArchiveFilter(v); setPage(1); },
             }}
-            primaryAction={{
-              label: 'Add Work Shift',
-              icon: <Plus size={14} />,
-              onClick: () => {
-                setEditingShiftId(null);
-                setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
-                setShiftModalOpen(true);
-              },
-            }}
+            primaryAction={
+              (isAdmin || hasPermission('Shifts.Create'))
+                ? {
+                    label: 'Add Work Shift',
+                    icon: <Plus size={14} />,
+                    onClick: () => {
+                      setEditingShiftId(null);
+                      setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
+                      setShiftModalOpen(true);
+                    },
+                  }
+                : undefined
+            }
           />
 
           <DataTable
@@ -530,11 +558,15 @@ export const WorkShiftsTab: React.FC = () => {
             data={paginatedShifts}
             loading={loading}
             keyExtractor={(item) => item.id}
-            selection={{
-              selectedRowKeys: selectedShiftIds,
-              onChange: (keys) => setSelectedShiftIds(keys),
-              bulkActions: shiftArchive.bulkActions(archiveFilter === 'archived'),
-            }}
+            selection={
+              (isAdmin || hasPermission('Shifts.Delete'))
+                ? {
+                    selectedRowKeys: selectedShiftIds,
+                    onChange: (keys) => setSelectedShiftIds(keys),
+                    bulkActions: shiftArchive.bulkActions(archiveFilter === 'archived'),
+                  }
+                : undefined
+            }
             emptyMessage="No work shifts defined."
             pagination={{
               page,
@@ -554,16 +586,20 @@ export const WorkShiftsTab: React.FC = () => {
           <DataToolbar
             searchValue={cycleSearch}
             onSearchChange={(v) => { setCycleSearch(v); setCyclePage(1); }}
-            searchPlaceholder="Search rotation cycles..."
+            searchPlaceholder="Search cycles by name or description..."
             archiveFilter={{
               value: cycleArchiveFilter,
               onChange: (v) => { setCycleArchiveFilter(v); setCyclePage(1); },
             }}
-            primaryAction={{
-              label: 'New Cycle',
-              icon: <Plus size={13} />,
-              onClick: openCreateCycle,
-            }}
+            primaryAction={
+              (isAdmin || hasPermission('Shifts.Create'))
+                ? {
+                    label: 'New Cycle',
+                    icon: <Plus size={13} />,
+                    onClick: openCreateCycle,
+                  }
+                : undefined
+            }
           />
 
           <DataTable
@@ -571,11 +607,15 @@ export const WorkShiftsTab: React.FC = () => {
             data={paginatedCycles}
             loading={cyclesLoading}
             keyExtractor={(c) => c.id}
-            selection={{
-              selectedRowKeys: selectedCycleIds,
-              onChange: (keys) => setSelectedCycleIds(keys),
-              bulkActions: cycleArchive.bulkActions(cycleArchiveFilter === 'archived'),
-            }}
+            selection={
+              (isAdmin || hasPermission('Shifts.Delete'))
+                ? {
+                    selectedRowKeys: selectedCycleIds,
+                    onChange: (keys) => setSelectedCycleIds(keys),
+                    bulkActions: cycleArchive.bulkActions(cycleArchiveFilter === 'archived'),
+                  }
+                : undefined
+            }
             emptyMessage="No shift rotation cycles defined yet."
             pagination={{
               page: cyclePage,

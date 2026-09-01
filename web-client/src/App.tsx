@@ -6,6 +6,7 @@ import { ToastProvider } from './context/ToastContext';
 import { OrganizationProvider } from './context/CompanyContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { PageSkeleton } from './components/ui/PageSkeleton';
+import { AccessRestricted } from './components/layout/AccessRestricted';
 
 // Route-Level Lazy Loading (Code Splitting)
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -48,7 +49,7 @@ const EmployeeOnboarding = lazy(() => import('./pages/public/EmployeeOnboarding'
 const RegisterTenant = lazy(() => import('./pages/RegisterTenant').then(m => ({ default: m.RegisterTenant })));
 const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
 
-const RootRoute: React.FC = () => {
+const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
   if (isLoading) {
     return (
@@ -57,15 +58,21 @@ const RootRoute: React.FC = () => {
       </div>
     );
   }
-  if (!user) {
-    return <LandingPage />;
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
   }
-  return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
 };
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string; superAdminOnly?: boolean }> = ({
+const ProtectedRoute: React.FC<{
+  children: React.ReactNode;
+  permission?: string;
+  anyPermission?: string[];
+  superAdminOnly?: boolean;
+}> = ({
   children,
   permission,
+  anyPermission,
   superAdminOnly,
 }) => {
   const { user, isLoading, hasPermission, isAdmin } = useAuth();
@@ -83,11 +90,23 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string;
   }
 
   if (superAdminOnly && !user.isPlatformUser) {
-    return <Navigate to="/" replace />;
+    return (
+      <AccessRestricted
+        title="Platform SuperAdmin Required"
+        description="This section is restricted strictly to platform super-administrators."
+      />
+    );
   }
 
   if (permission && !isAdmin && !hasPermission(permission)) {
-    return <Navigate to="/dashboard" replace />;
+    return <AccessRestricted />;
+  }
+
+  if (anyPermission && anyPermission.length > 0 && !isAdmin) {
+    const hasAny = anyPermission.some((p) => hasPermission(p));
+    if (!hasAny) {
+      return <AccessRestricted />;
+    }
   }
 
   return <>{children}</>;
@@ -258,26 +277,94 @@ export const App: React.FC = () => {
                   <Route
                     path="settings"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        anyPermission={[
+                          'Masters.Organizations.View',
+                          'Masters.Departments.View',
+                          'Masters.Designations.View',
+                          'Leaves.Types.View',
+                          'Shifts.View',
+                          'System.Settings.View',
+                          'System.Roles.View',
+                          'System.Logs.View',
+                        ]}
+                      >
                         <Settings />
                       </ProtectedRoute>
                     }
                   >
                     <Route index element={<Navigate to="organizations" replace />} />
-                    <Route path="organizations" element={<OrganizationsTab />} />
-                    <Route path="subscription" element={<SubscriptionTab />} />
-                    <Route path="audit-logs" element={<AuditLogsTab />} />
+                    <Route
+                      path="organizations"
+                      element={
+                        <ProtectedRoute permission="Masters.Organizations.View">
+                          <OrganizationsTab />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="departments"
+                      element={
+                        <ProtectedRoute permission="Masters.Departments.View">
+                          <DepartmentsTab />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="designations"
+                      element={
+                        <ProtectedRoute permission="Masters.Designations.View">
+                          <DesignationsTab />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="leave-types"
+                      element={
+                        <ProtectedRoute permission="Leaves.Types.View">
+                          <LeaveTypesTab />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="leaves" element={<Navigate to="/settings/leave-types" replace />} />
+                    <Route
+                      path="shifts"
+                      element={
+                        <ProtectedRoute permission="Shifts.View">
+                          <WorkShiftsTab />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="subscription"
+                      element={
+                        <ProtectedRoute permission="System.Settings.View">
+                          <SubscriptionTab />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="audit-logs"
+                      element={
+                        <ProtectedRoute permission="System.Logs.View">
+                          <AuditLogsTab />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="email"
+                      element={
+                        <ProtectedRoute permission="System.Settings.View">
+                          <EmailSettingsTab />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route path="change-password" element={<ChangePasswordTab />} />
-                    <Route path="email" element={<EmailSettingsTab />} />
-                    <Route path="departments" element={<DepartmentsTab />} />
-                    <Route path="designations" element={<DesignationsTab />} />
-                    <Route path="leaves" element={<LeaveTypesTab />} />
-                    <Route path="shifts" element={<WorkShiftsTab />} />
                   </Route>
                   <Route
                     path="settings/organizations/:id"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute permission="Masters.Organizations.View">
                         <OrganizationShell />
                       </ProtectedRoute>
                     }
@@ -289,7 +376,7 @@ export const App: React.FC = () => {
                   <Route
                     path="settings/organizations/:orgId/branches/:branchId"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute permission="Masters.Organizations.View">
                         <BranchDetails />
                       </ProtectedRoute>
                     }
@@ -297,7 +384,7 @@ export const App: React.FC = () => {
                   <Route
                     path="settings/organizations/:orgId/branches/:branchId/permissions"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute permission="System.Roles.Edit">
                         <BranchPermissions />
                       </ProtectedRoute>
                     }

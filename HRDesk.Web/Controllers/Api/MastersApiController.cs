@@ -58,7 +58,9 @@ public class MastersController : ControllerBase
         int AdvanceNoticeDays = 2,
         int MaxConsecutiveLeaves = 14,
         bool SandwichRuleEnabled = true,
-        int DefaultProbationDays = 90);
+        int DefaultProbationDays = 90,
+        int CompOffValidityDays = 60,
+        int CompOffClaimDays = 60);
     public record CompanyDto(
         string LegalName,
         string? TradeName,
@@ -200,6 +202,29 @@ public class MastersController : ControllerBase
         var leaveTypes = await leaveQuery.ToListAsync();
         var shifts = await shiftQuery.ToListAsync();
 
+        var targetOrgId = userOrgId > 0 ? userOrgId : (orgs.FirstOrDefault()?.Id ?? 1);
+        if (!leaveTypes.Any(l => l.Code == "CO") && targetOrgId > 0)
+        {
+            var co = new LeaveType
+            {
+                Name = "Comp Off",
+                Code = "CO",
+                DefaultYearlyQuota = 0,
+                IsPaid = true,
+                Status = "Active",
+                OrganizationId = targetOrgId,
+                BranchId = null,
+                TextColor = "#c2410c",
+                BackgroundColor = "#ffedd5",
+                GenderApplicability = "All",
+                MaritalStatusApplicability = "All",
+                CreatedAt = DateTime.Now
+            };
+            _db.LeaveTypes.Add(co);
+            await _db.SaveChangesAsync();
+            leaveTypes.Add(co);
+        }
+
         return Ok(new
         {
             organizations = orgs.Select(o => new
@@ -305,6 +330,7 @@ public class MastersController : ControllerBase
     [HttpPost("departments")]
     public async Task<IActionResult> CreateDepartment([FromBody] DepartmentDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersDepartmentsCreate)) return Forbid();
         if (string.IsNullOrWhiteSpace(dto.DepartmentName)) return BadRequest(new { message = "Department name is required." });
 
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
@@ -328,6 +354,7 @@ public class MastersController : ControllerBase
     [HttpPut("departments/{id}")]
     public async Task<IActionResult> UpdateDepartment(int id, [FromBody] DepartmentDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersDepartmentsEdit)) return Forbid();
         var dept = await _db.Departments.FindAsync(id);
         if (dept == null) return NotFound(new { message = "Department not found." });
 
@@ -370,6 +397,7 @@ public class MastersController : ControllerBase
     [HttpPost("designations")]
     public async Task<IActionResult> CreateDesignation([FromBody] DesignationDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersDesignationsCreate)) return Forbid();
         if (string.IsNullOrWhiteSpace(dto.DesignationName)) return BadRequest(new { message = "Designation name is required." });
 
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
@@ -393,6 +421,7 @@ public class MastersController : ControllerBase
     [HttpPut("designations/{id}")]
     public async Task<IActionResult> UpdateDesignation(int id, [FromBody] DesignationDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersDesignationsEdit)) return Forbid();
         var desig = await _db.Designations.FindAsync(id);
         if (desig == null) return NotFound(new { message = "Designation not found." });
 
@@ -431,6 +460,7 @@ public class MastersController : ControllerBase
     [HttpPost("leave-types")]
     public async Task<IActionResult> CreateLeaveType([FromBody] LeaveTypeDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesTypesCreate)) return Forbid();
         if (string.IsNullOrWhiteSpace(dto.Name)) return BadRequest(new { message = "Leave type name is required." });
 
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
@@ -465,6 +495,7 @@ public class MastersController : ControllerBase
     [HttpPut("leave-types/{id}")]
     public async Task<IActionResult> UpdateLeaveType(int id, [FromBody] LeaveTypeDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.LeavesTypesEdit)) return Forbid();
         var leaveType = await _db.LeaveTypes.FindAsync(id);
         if (leaveType == null) return NotFound(new { message = "Leave type not found." });
 
@@ -512,6 +543,7 @@ public class MastersController : ControllerBase
     [HttpPost("shifts")]
     public async Task<IActionResult> CreateShift([FromBody] ShiftDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsCreate)) return Forbid();
         try
         {
             if (string.IsNullOrWhiteSpace(dto.Name)) return BadRequest(new { message = "Shift name is required." });
@@ -566,6 +598,7 @@ public class MastersController : ControllerBase
     [HttpPut("shifts/{id}")]
     public async Task<IActionResult> UpdateShift(int id, [FromBody] ShiftDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsEdit)) return Forbid();
         var shift = await _db.Shifts.FindAsync(id);
         if (shift == null) return NotFound(new { message = "Shift not found." });
 
@@ -725,6 +758,8 @@ public class MastersController : ControllerBase
         int maxConsecutive = 14;
         bool sandwichRule = true;
         int probationDays = 90;
+        int compOffValidity = 60;
+        int compOffClaim = 60;
 
         foreach (var s in settings)
         {
@@ -734,6 +769,8 @@ public class MastersController : ControllerBase
             if (s.SettingKey == "MaxConsecutiveLeaves" && int.TryParse(s.SettingValue, out var mc)) maxConsecutive = mc;
             if (s.SettingKey == "SandwichRuleEnabled" && bool.TryParse(s.SettingValue, out var sr)) sandwichRule = sr;
             if (s.SettingKey == "DefaultProbationDays" && int.TryParse(s.SettingValue, out var pd)) probationDays = pd;
+            if (s.SettingKey == "CompOffValidityDays" && int.TryParse(s.SettingValue, out var cv)) compOffValidity = cv;
+            if (s.SettingKey == "CompOffClaimDays" && int.TryParse(s.SettingValue, out var cc)) compOffClaim = cc;
         }
 
         yearEnd = yearStart == 1 ? 12 : yearStart - 1;
@@ -746,7 +783,9 @@ public class MastersController : ControllerBase
             advanceNoticeDays = advanceNotice,
             maxConsecutiveLeaves = maxConsecutive,
             sandwichRuleEnabled = sandwichRule,
-            defaultProbationDays = probationDays
+            defaultProbationDays = probationDays,
+            compOffValidityDays = compOffValidity,
+            compOffClaimDays = compOffClaim
         });
     }
 
@@ -799,6 +838,8 @@ public class MastersController : ControllerBase
         await UpsertOrgSetting("MaxConsecutiveLeaves", dto.MaxConsecutiveLeaves.ToString(), "Maximum consecutive leave days allowed");
         await UpsertOrgSetting("SandwichRuleEnabled", dto.SandwichRuleEnabled.ToString(), "Whether sandwich leave rule is enforced");
         await UpsertOrgSetting("DefaultProbationDays", dto.DefaultProbationDays.ToString(), "Default probation period in days for new hires");
+        await UpsertOrgSetting("CompOffValidityDays", (dto.CompOffValidityDays > 0 ? dto.CompOffValidityDays : 60).ToString(), "Comp-Off validity duration in days from worked date");
+        await UpsertOrgSetting("CompOffClaimDays", (dto.CompOffClaimDays > 0 ? dto.CompOffClaimDays : 60).ToString(), "Maximum past days allowed for Comp-Off claim");
 
         await _db.SaveChangesAsync();
         return Ok(new
@@ -857,7 +898,7 @@ public class MastersController : ControllerBase
     [HttpPost("organizations")]
     public async Task<IActionResult> CreateOrganization([FromBody] OrganizationDto dto)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizationsCreate))
         {
             return Forbid();
         }
@@ -886,19 +927,19 @@ public class MastersController : ControllerBase
         _db.Organizations.Add(org);
         await _db.SaveChangesAsync();
 
-        return Ok(new { message = "Branch created successfully.", id = org.Id, publicId = org.PublicId });
+        return Ok(new { message = "Organization created successfully.", id = org.Id, publicId = org.PublicId });
     }
 
     [HttpPut("organizations/{publicId:guid}")]
     public async Task<IActionResult> UpdateOrganization(Guid publicId, [FromBody] OrganizationDto dto)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizationsEdit))
         {
             return Forbid();
         }
 
         var org = await _db.Organizations.FirstOrDefaultAsync(o => o.PublicId == publicId);
-        if (org == null) return NotFound(new { message = "Branch not found." });
+        if (org == null) return NotFound(new { message = "Organization not found." });
 
         bool isAdminOrSuper = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin");
         if (!isAdminOrSuper && org.Id != _tenantProvider.TenantId)
@@ -925,7 +966,7 @@ public class MastersController : ControllerBase
     [HttpDelete("organizations/{publicId:guid}")]
     public async Task<IActionResult> DeleteOrganization(Guid publicId, [FromQuery] bool permanent = false)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizationsDelete))
             return Forbid();
 
         var org = await _db.Organizations.IgnoreQueryFilters().FirstOrDefaultAsync(o => o.PublicId == publicId);
@@ -954,7 +995,7 @@ public class MastersController : ControllerBase
     [HttpPost("organizations/{publicId:guid}/restore")]
     public async Task<IActionResult> RestoreOrganization(Guid publicId)
     {
-        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizations))
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersOrganizationsDelete))
             return Forbid();
 
         var org = await _db.Organizations.IgnoreQueryFilters().FirstOrDefaultAsync(o => o.PublicId == publicId);

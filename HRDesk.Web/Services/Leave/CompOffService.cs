@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using HRDesk.Web.Data;
@@ -171,13 +171,29 @@ public class CompOffService : ICompOffService
             _db.LeaveAllocations.Add(allocation);
         }
 
+        // Get organization setting for CompOff validity
+        var employee = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == request.EmployeeId);
+        int validityDays = 60;
+        if (employee != null)
+        {
+            var valSetting = await _db.SystemSettings
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.OrganizationId == employee.OrganizationId && s.SettingKey == "CompOffValidityDays" && s.BranchId == null);
+            if (valSetting != null && int.TryParse(valSetting.SettingValue, out var vd) && vd > 0)
+            {
+                validityDays = vd;
+            }
+        }
+
         // Add comp off days to balance
         allocation.TotalAllocated += request.CompOffDays.Value;
 
-        // Update request status
+        // Update request status and set ExpiryDate from WorkedDate
         request.Status = "Approved";
         request.ApprovedBy = approvedBy;
         request.ApprovedDate = DateTime.Now;
+        request.ExpiryDate = request.WorkedDate.AddDays(validityDays);
         request.UpdatedAt = DateTime.Now;
 
         await _db.SaveChangesAsync();
@@ -211,7 +227,7 @@ public class CompOffService : ICompOffService
         _db.CompOffRequests.Add(request);
         await _db.SaveChangesAsync();
 
-        // 3. Approve it using the existing logic (handles balance update)
+        // 3. Approve it using the existing logic (handles balance update & ExpiryDate)
         await ApproveRequestAsync(request.Id, approvedBy);
     }
 
@@ -231,18 +247,37 @@ public class CompOffService : ICompOffService
             .Include(a => a.LeaveType)
             .Where(a => a.EmployeeId == employeeId && a.LeaveType!.Code == "CO")
             .SumAsync(a => (decimal?)a.OpeningBalance) ?? 0;
+
+        // 3. Get organization setting for default validity days fallback
+        var employee = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+        int defaultValidityDays = 60;
+        if (employee != null)
+        {
+            var valSetting = await _db.SystemSettings
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.OrganizationId == employee.OrganizationId && s.SettingKey == "CompOffValidityDays" && s.BranchId == null);
+            if (valSetting != null && int.TryParse(valSetting.SettingValue, out var vd) && vd > 0)
+            {
+                defaultValidityDays = vd;
+            }
+        }
             
-        // 3. Get all approved comp offs to calculate balance using FIFO
+        // 4. Get all approved comp offs to calculate balance using FIFO
         var allApproved = await _db.CompOffRequests
             .Where(r => r.EmployeeId == employeeId && r.Status == "Approved")
             .OrderBy(r => r.WorkedDate)
             .ToListAsync();
 
-        // Total credits = sum of approved comp-off days + opening balance
+        // 5. Total valid non-expired credits
         decimal totalCredits = openingBalance;
         foreach (var req in allApproved)
         {
-            totalCredits += req.CompOffDays ?? 0;
+            var expiry = req.ExpiryDate ?? req.WorkedDate.AddDays(defaultValidityDays);
+            if (expiry >= onDate)
+            {
+                totalCredits += req.CompOffDays ?? 0;
+            }
         }
 
         // Available = total credits - total used

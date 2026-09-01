@@ -48,6 +48,17 @@ public sealed class PermissionService : IPermissionService
     {
         return string.Equals(user.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
     }
+    private static readonly Dictionary<string, string[]> LegacyToGranularMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Masters.Organizations", new[] { "Masters.Organizations.View", "Masters.Organizations.Create", "Masters.Organizations.Edit", "Masters.Organizations.Delete" } },
+        { "Masters.Departments", new[] { "Masters.Departments.View", "Masters.Departments.Create", "Masters.Departments.Edit", "Masters.Departments.Delete" } },
+        { "Masters.Designations", new[] { "Masters.Designations.View", "Masters.Designations.Create", "Masters.Designations.Edit", "Masters.Designations.Delete" } },
+        { "Leaves.ManageTypes", new[] { "Leaves.Types.View", "Leaves.Types.Create", "Leaves.Types.Edit", "Leaves.Types.Delete" } },
+        { "Shifts.Manage", new[] { "Shifts.View", "Shifts.Create", "Shifts.Edit", "Shifts.Delete" } },
+        { "System.Settings", new[] { "System.Settings.View", "System.Settings.Edit" } },
+        { "System.Roles", new[] { "System.Roles.View", "System.Roles.Edit" } },
+        { "System.Logs", new[] { "System.Logs.View" } },
+    };
 
     public async Task<bool> HasPermissionAsync(ClaimsPrincipal user, string permissionKey)
     {
@@ -59,7 +70,27 @@ public sealed class PermissionService : IPermissionService
             return true;
 
         var permissions = await GetUserPermissionEntriesAsync(user);
-        return permissions.Any(p => p.PermissionKey == permissionKey);
+        var userKeys = new HashSet<string>(permissions.Select(p => p.PermissionKey), StringComparer.OrdinalIgnoreCase);
+
+        // 1. Direct match (e.g. user has Masters.Departments.View and we asked for Masters.Departments.View)
+        if (userKeys.Contains(permissionKey))
+            return true;
+
+        // 2. Legacy parent key check (e.g. user has legacy Masters.Departments which grants Masters.Departments.View)
+        // ONLY applies if the role does not have any granular keys configured for that module
+        foreach (var (legacyKey, granularChildren) in LegacyToGranularMap)
+        {
+            if (userKeys.Contains(legacyKey) && granularChildren.Contains(permissionKey, StringComparer.OrdinalIgnoreCase))
+            {
+                bool hasGranularConfigured = granularChildren.Any(gc => userKeys.Contains(gc));
+                if (!hasGranularConfigured)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public async Task<string?> GetPermissionScopeAsync(ClaimsPrincipal user, string permissionKey)
@@ -71,8 +102,22 @@ public sealed class PermissionService : IPermissionService
             return AppPermissions.Scopes.All;
 
         var permissions = await GetUserPermissionEntriesAsync(user);
-        var match = permissions.FirstOrDefault(p => p.PermissionKey == permissionKey);
-        return match?.Scope;
+        
+        // 1. Direct match
+        var directMatch = permissions.FirstOrDefault(p => string.Equals(p.PermissionKey, permissionKey, StringComparison.OrdinalIgnoreCase));
+        if (directMatch != null) return directMatch.Scope;
+
+        // 2. Legacy parent key check
+        foreach (var (legacyKey, granularChildren) in LegacyToGranularMap)
+        {
+            if (granularChildren.Contains(permissionKey, StringComparer.OrdinalIgnoreCase))
+            {
+                var legacyMatch = permissions.FirstOrDefault(p => string.Equals(p.PermissionKey, legacyKey, StringComparison.OrdinalIgnoreCase));
+                if (legacyMatch != null) return legacyMatch.Scope;
+            }
+        }
+
+        return null;
     }
 
     public async Task<IReadOnlyList<string>> GetUserPermissionsAsync(ClaimsPrincipal user)
@@ -81,10 +126,34 @@ public sealed class PermissionService : IPermissionService
             return Array.Empty<string>();
 
         if (IsPlatformSuperAdmin(user))
-            return AppPermissions.All.Select(p => p.Key).ToList();
+            return AppPermissions.All.Select(p => p.Key).Distinct().ToList();
 
         var permissions = await GetUserPermissionEntriesAsync(user);
-        return permissions.Select(p => p.PermissionKey).Distinct().ToList();
+        var keys = new HashSet<string>(permissions.Select(p => p.PermissionKey), StringComparer.OrdinalIgnoreCase);
+
+        // If user has a legacy umbrella key, ONLY expand it if the role has NO granular keys for that module
+        var expandedKeys = new HashSet<string>(keys, StringComparer.OrdinalIgnoreCase);
+        foreach (var (legacyKey, granularChildren) in LegacyToGranularMap)
+        {
+            if (keys.Contains(legacyKey))
+            {
+                bool hasGranularConfigured = granularChildren.Any(gc => keys.Contains(gc));
+                if (!hasGranularConfigured)
+                {
+                    foreach (var child in granularChildren)
+                    {
+                        expandedKeys.Add(child);
+                    }
+                }
+                else
+                {
+                    // Clean up the obsolete legacy key from the returned active permission list
+                    expandedKeys.Remove(legacyKey);
+                }
+            }
+        }
+
+        return expandedKeys.ToList();
     }
 
     public async Task<Dictionary<string, string>> GetUserPermissionScopesAsync(ClaimsPrincipal user)

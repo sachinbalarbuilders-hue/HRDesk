@@ -10,6 +10,7 @@ import { MultiSelectDropdown } from '../../components/ui/MultiSelectDropdown';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
+import { useAuth } from '../../context/AuthContext';
 import {
   CalendarCheck,
   Plus,
@@ -20,6 +21,7 @@ import {
 export const LeaveTypesTab: React.FC = () => {
   const { currentBranch } = useOrganization();
   const { showSuccess, showError } = useToast();
+  const { hasPermission, isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
@@ -200,7 +202,14 @@ export const LeaveTypesTab: React.FC = () => {
       header: 'Annual Quota',
       align: 'center',
       className: 'font-data font-bold text-xs text-[var(--ink)]',
-      render: (item) => `${item.quota} Days`,
+      render: (item) =>
+        item.code === 'CO' ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" title="Quota is earned dynamically through approved off-day duty claims">
+            Earned via Comp-Off
+          </span>
+        ) : (
+          `${item.quota} Days`
+        ),
     },
     {
       key: 'isPaid',
@@ -234,16 +243,50 @@ export const LeaveTypesTab: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (item) => (
-        <RowActionMenu actions={[
-          { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingLeaveTypeId(item.id); setNewLeaveType({ name: item.name, code: item.code || '', quota: item.quota || 12, isPaid: item.isPaid !== false, applicableAfterProbation: item.applicableAfterProbation !== false, allowCarryForward: item.allowCarryForward === true, genderApplicability: item.genderApplicability || 'All', maritalStatusApplicability: item.maritalStatusApplicability || 'All', departmentIds: item.departmentIds || [], designationIds: item.designationIds || [], roleIds: item.roleIds || [] }); setLeaveFormStep(1); setLeaveModalOpen(true); } },
-          ...archiveActions.rowActions({
-            id: item.id,
-            name: item.name,
-            isArchived: isRowArchived(item),
-          }),
-        ] as RowAction[]} />
-      ),
+      render: (item) => {
+        const canEdit = isAdmin || hasPermission('Leaves.Types.Edit');
+        const canDelete = isAdmin || hasPermission('Leaves.Types.Delete');
+        const actions: RowAction[] = [];
+
+        if (canEdit) {
+          actions.push({
+            label: 'Edit',
+            icon: <Edit2 size={14} />,
+            onClick: () => {
+              setEditingLeaveTypeId(item.id);
+              setNewLeaveType({
+                name: item.name,
+                code: item.code || '',
+                quota: item.quota || 12,
+                isPaid: item.isPaid !== false,
+                applicableAfterProbation: item.applicableAfterProbation !== false,
+                allowCarryForward: item.allowCarryForward === true,
+                genderApplicability: item.genderApplicability || 'All',
+                maritalStatusApplicability: item.maritalStatusApplicability || 'All',
+                departmentIds: item.departmentIds || [],
+                designationIds: item.designationIds || [],
+                roleIds: item.roleIds || [],
+              });
+              setLeaveFormStep(1);
+              setLeaveModalOpen(true);
+            },
+          });
+        }
+
+        if (canDelete) {
+          actions.push(
+            ...archiveActions.rowActions({
+              id: item.id,
+              name: item.name,
+              isArchived: isRowArchived(item),
+            })
+          );
+        }
+
+        if (actions.length === 0) return null;
+
+        return <RowActionMenu actions={actions} />;
+      },
     },
   ];
 
@@ -274,17 +317,21 @@ export const LeaveTypesTab: React.FC = () => {
         ]}
         onExport={handleExport}
         exportLabel="Export CSV"
-        onImport={() => setBulkImportModalOpen(true)}
+        onImport={(isAdmin || hasPermission('Leaves.Types.Create')) ? () => setBulkImportModalOpen(true) : undefined}
         importLabel="Import CSV"
-        primaryAction={{
-          label: 'Add Leave Category',
-          icon: <Plus size={14} />,
-          onClick: () => {
-            setNewLeaveType({ name: '', code: '', quota: 12, isPaid: true, applicableAfterProbation: true, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
-            setLeaveFormStep(1);
-            setLeaveModalOpen(true);
-          },
-        }}
+        primaryAction={
+          (isAdmin || hasPermission('Leaves.Types.Create'))
+            ? {
+                label: 'Add Leave Category',
+                icon: <Plus size={14} />,
+                onClick: () => {
+                  setNewLeaveType({ name: '', code: '', quota: 12, isPaid: true, applicableAfterProbation: true, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
+                  setLeaveFormStep(1);
+                  setLeaveModalOpen(true);
+                },
+              }
+            : undefined
+        }
       />
 
       <DataTable
@@ -292,11 +339,15 @@ export const LeaveTypesTab: React.FC = () => {
         data={paginatedLeaves}
         loading={loading}
         keyExtractor={(l) => l.id}
-        selection={{
-          selectedRowKeys: selectedIds,
-          onChange: (keys) => setSelectedIds(keys),
-          bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
-        }}
+        selection={
+          (isAdmin || hasPermission('Leaves.Types.Delete'))
+            ? {
+                selectedRowKeys: selectedIds,
+                onChange: (keys) => setSelectedIds(keys),
+                bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
+              }
+            : undefined
+        }
         emptyMessage="No leave categories configured."
         pagination={{
           page,

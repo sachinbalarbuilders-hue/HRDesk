@@ -9,6 +9,7 @@ import { BulkImportModal } from '../../components/ui/BulkImportModal';
 import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
+import { useAuth } from '../../context/AuthContext';
 import {
   Award,
   Plus,
@@ -19,6 +20,7 @@ import {
 export const DesignationsTab: React.FC = () => {
   const { currentBranch } = useOrganization();
   const { showSuccess, showError } = useToast();
+  const { hasPermission, isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
@@ -189,17 +191,35 @@ export const DesignationsTab: React.FC = () => {
       header: 'Actions',
       align: 'right',
       render: (item) => {
-        const isArchived = item.status?.toLowerCase() === 'inactive' || item.status?.toLowerCase() === 'archived';
-        return (
-          <RowActionMenu actions={[
-            { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingDesigId(item.id); setNewDesignation({ title: item.title || item.name || '', code: item.code || '', department: item.department || '', level: item.level || '' }); setDesigModalOpen(true); } },
+        const canEdit = isAdmin || hasPermission('Masters.Designations.Edit');
+        const canDelete = isAdmin || hasPermission('Masters.Designations.Delete');
+        const actions: RowAction[] = [];
+
+        if (canEdit) {
+          actions.push({
+            label: 'Edit',
+            icon: <Edit2 size={14} />,
+            onClick: () => {
+              setEditingDesigId(item.id);
+              setNewDesignation({ title: item.title || item.name || '', code: item.code || '', department: item.department || '', level: item.level || '' });
+              setDesigModalOpen(true);
+            },
+          });
+        }
+
+        if (canDelete) {
+          actions.push(
             ...archiveActions.rowActions({
               id: item.id,
               name: item.title,
               isArchived: isRowArchived(item),
-            }),
-          ] as RowAction[]} />
-        );
+            })
+          );
+        }
+
+        if (actions.length === 0) return null;
+
+        return <RowActionMenu actions={actions} />;
       },
     },
   ];
@@ -230,13 +250,17 @@ export const DesignationsTab: React.FC = () => {
         ]}
         onExport={handleExport}
         exportLabel="Export CSV"
-        onImport={() => setBulkImportModalOpen(true)}
+        onImport={(isAdmin || hasPermission('Masters.Designations.Create')) ? () => setBulkImportModalOpen(true) : undefined}
         importLabel="Import CSV"
-        primaryAction={{
-          label: 'Add Designation',
-          icon: <Plus size={14} />,
-          onClick: () => setDesigModalOpen(true),
-        }}
+        primaryAction={
+          (isAdmin || hasPermission('Masters.Designations.Create'))
+            ? {
+                label: 'Add Designation',
+                icon: <Plus size={14} />,
+                onClick: () => setDesigModalOpen(true),
+              }
+            : undefined
+        }
       />
 
       <DataTable
@@ -244,11 +268,15 @@ export const DesignationsTab: React.FC = () => {
         data={paginatedDesigs}
         loading={loading}
         keyExtractor={(d) => d.id}
-        selection={{
-          selectedRowKeys: selectedIds,
-          onChange: (keys) => setSelectedIds(keys),
-          bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
-        }}
+        selection={
+          (isAdmin || hasPermission('Masters.Designations.Delete'))
+            ? {
+                selectedRowKeys: selectedIds,
+                onChange: (keys) => setSelectedIds(keys),
+                bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
+              }
+            : undefined
+        }
         emptyMessage="No designations found matching your search."
         pagination={{
           page,

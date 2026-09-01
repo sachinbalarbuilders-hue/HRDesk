@@ -254,6 +254,32 @@ using (var scope = app.Services.CreateScope())
     try
     {
         db.Database.ExecuteSqlRaw(@"
+            IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'comp_off_requests' AND COLUMN_NAME = 'expiry_date')
+            BEGIN
+                ALTER TABLE comp_off_requests ADD expiry_date DATE NULL;
+            END;
+            IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'comp_off_requests' AND COLUMN_NAME = 'availed_days')
+            BEGIN
+                ALTER TABLE comp_off_requests ADD availed_days DECIMAL(3,1) NOT NULL DEFAULT 0.0;
+            END;
+
+            -- Ensure every organization has a default Comp Off (CO) leave type
+            INSERT INTO leave_types (name, code, default_yearly_quota, is_paid, status, organization_id, created_at, text_color, background_color, gender_applicability, marital_status_applicability)
+            SELECT 'Comp Off', 'CO', 0, 1, 'Active', o.id, GETDATE(), '#c2410c', '#ffedd5', 'All', 'All'
+            FROM organizations o
+            WHERE NOT EXISTS (
+                SELECT 1 FROM leave_types lt WHERE lt.code = 'CO' AND lt.organization_id = o.id
+            );
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] CompOff schema & default leave type sync: {ex.Message}");
+    }
+
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
             IF EXISTS (SELECT 1 FROM employees WHERE employee_id = 0)
             BEGIN
                 UPDATE users SET employee_id = 1 WHERE employee_id = 0;
@@ -388,30 +414,10 @@ using (var scope = app.Services.CreateScope())
                     ALTER TABLE attendance_logs ADD IsIpValid BIT NULL;
                 END;
             ");
-            db.BypassTenantId = true;
-
-            if (!db.Companies.Any())
-            {
-                db.Companies.Add(new HRDesk.Web.Models.Company
-                {
-                    LegalName = "Sachin Balar Builders Pvt. Ltd.",
-                    TradeName = "Hue Builders",
-                    Code = "SBB",
-                    Gstin = "24AAAAA0000A1Z5",
-                    Cin = "U45200GJ2015PTC085123",
-                    Pan = "AAAAA0000A",
-                    Email = "contact@sachinbalar.com",
-                    Phone = "+91 98765 43210",
-                    HeadquartersAddress = "Surat, Gujarat, India",
-                    IsActive = true,
-                    CreatedAt = DateTime.Now
-                });
-                db.SaveChanges();
-            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Startup] Company DB migration warning: {ex.Message}");
+            Console.WriteLine($"[Startup] Attendance logs schema sync warning: {ex.Message}");
         }
 
         db.BypassTenantId = true;

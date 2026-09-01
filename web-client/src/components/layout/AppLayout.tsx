@@ -87,7 +87,24 @@ export const AppLayout: React.FC = () => {
     {
       group: 'Settings',
       items: [
-        { name: 'Settings', href: '/settings', icon: SettingsIcon, show: isAdmin || hasPermission('System.Settings') || hasPermission('System.Roles') || hasPermission('System.Devices') },
+        {
+          name: 'Settings',
+          href: '/settings',
+          icon: SettingsIcon,
+          show:
+            isAdmin ||
+            hasPermission('Masters.Organizations.View') ||
+            hasPermission('Masters.Departments.View') ||
+            hasPermission('Masters.Designations.View') ||
+            hasPermission('Leaves.Types.View') ||
+            hasPermission('Shifts.View') ||
+            hasPermission('System.Settings.View') ||
+            hasPermission('System.Roles.View') ||
+            hasPermission('System.Logs.View') ||
+            hasPermission('System.Settings') ||
+            hasPermission('System.Roles') ||
+            hasPermission('System.Devices'),
+        },
         { name: 'Scanner', href: '/scanner', icon: Camera, show: true },
       ],
     },

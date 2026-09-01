@@ -56,8 +56,13 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
   const [busy, setBusy] = useState(false);
 
   const fail = useCallback(
-    (err: any, fallback: string) =>
-      showError(fallback, err?.response?.data?.message || 'Server error'),
+    (err: any, fallback: string) => {
+      if (err?.response?.status === 403) {
+        showError('Access Restricted', 'You do not have permission to delete or archive this record.');
+        return;
+      }
+      showError(fallback, err?.response?.data?.message || 'Server error');
+    },
     [showError]
   );
 

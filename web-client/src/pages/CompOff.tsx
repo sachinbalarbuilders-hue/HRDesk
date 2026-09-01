@@ -17,15 +17,254 @@ import {
   XCircle,
   Pencil,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
   Ban,
   Gift,
   Clock,
   Calendar,
   Sparkles,
   CheckCircle2,
+  AlertCircle,
+  CalendarCheck,
+  Info,
 } from 'lucide-react';
 import { RowActionMenu } from '../components/ui/RowActionMenu';
+import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
+
+interface OffDayDatePickerProps {
+  value: string; // "YYYY-MM-DD"
+  eligibleDays: any[];
+  onChange: (dateStr: string) => void;
+  disabled?: boolean;
+}
+
+const OffDayDatePicker: React.FC<OffDayDatePickerProps> = ({
+  value,
+  eligibleDays,
+  onChange,
+  disabled = false,
+}) => {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [viewDate, setViewDate] = useState(() => {
+    if (value) return new Date(value);
+    if (eligibleDays.length > 0) return new Date(eligibleDays[0].date);
+    return new Date();
+  });
+
+  useEffect(() => {
+    if (value) {
+      setViewDate(new Date(value));
+    }
+  }, [value]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
+  const eligibleMap = useMemo(() => {
+    const map = new Map<string, any>();
+    eligibleDays.forEach((d) => map.set(d.date, d));
+    return map;
+  }, [eligibleDays]);
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+
+  const prevMonth = () => {
+    setViewDate(new Date(year, month - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setViewDate(new Date(year, month + 1, 1));
+  };
+
+  const calendarDays = useMemo(() => {
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const days: ({ dayNum: number; dateStr: string; isCurrentMonth: boolean; eligibleInfo?: any })[] = [];
+
+    for (let i = 0; i < firstDayIndex; i++) {
+      days.push({ dayNum: 0, dateStr: '', isCurrentMonth: false });
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const monthStr = String(month + 1).padStart(2, '0');
+      const dayStr = String(day).padStart(2, '0');
+      const dateStr = `${year}-${monthStr}-${dayStr}`;
+      const eligibleInfo = eligibleMap.get(dateStr);
+      days.push({ dayNum: day, dateStr, isCurrentMonth: true, eligibleInfo });
+    }
+
+    return days;
+  }, [year, month, eligibleMap]);
+
+  const selectedInfo = eligibleMap.get(value);
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  return (
+    <div className="relative font-ui" ref={dropdownRef}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(!open)}
+        className={`w-full h-9 px-3 rounded-md border border-[var(--rule)] bg-[var(--paper)] text-xs text-[var(--ink)] flex items-center justify-between transition-colors outline-hidden cursor-pointer hover:border-[var(--gold-500)] ${
+          open ? 'border-[var(--gold-500)] ring-1 ring-[var(--gold-500)]/30' : ''
+        } ${disabled ? 'opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-900' : ''}`}
+      >
+        <div className="flex items-center gap-2 truncate">
+          <Calendar size={14} className="text-[var(--gold-500)] shrink-0" />
+          {value ? (
+            <span className="font-mono text-xs text-[var(--ink)] truncate">
+              {selectedInfo ? (
+                <>
+                  <strong className="font-semibold">{selectedInfo.formattedDate}</strong> ({selectedInfo.dayName}) — {selectedInfo.offType}
+                </>
+              ) : (
+                value
+              )}
+            </span>
+          ) : (
+            <span className="text-[var(--ink-muted)]">Select an off-day (Week-Off or Holiday)...</span>
+          )}
+        </div>
+        <ChevronDown size={14} className={`text-[var(--ink-muted)] transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Calendar Popover */}
+      {open && (
+        <div className="absolute left-0 top-full mt-1 w-[320px] bg-[var(--surface)] border border-[var(--rule)] rounded-lg shadow-2xl z-50 p-3 animate-in fade-in zoom-in-95 duration-100">
+          {/* Calendar Header */}
+          <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-[var(--rule)]">
+            <button
+              type="button"
+              onClick={prevMonth}
+              className="p-1 rounded-md hover:bg-[var(--surface-secondary)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-xs font-semibold text-[var(--ink)] font-sans">
+              {monthNames[month]} {year}
+            </span>
+            <button
+              type="button"
+              onClick={nextMonth}
+              className="p-1 rounded-md hover:bg-[var(--surface-secondary)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          {/* Days of Week Header */}
+          <div className="grid grid-cols-7 gap-1 mb-1 text-center">
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d, idx) => (
+              <span key={d} className={`text-[10px] font-semibold ${idx === 0 || idx === 6 ? 'text-amber-600 dark:text-amber-400' : 'text-[var(--ink-muted)]'}`}>
+                {d}
+              </span>
+            ))}
+          </div>
+
+          {/* Days Grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((cell, idx) => {
+              if (!cell.isCurrentMonth) {
+                return <div key={`pad-${idx}`} className="h-8" />;
+              }
+
+              const isEligible = !!cell.eligibleInfo;
+              const isSelected = cell.dateStr === value;
+              const hasPunches = cell.eligibleInfo?.hasAttendanceRecord;
+              const isHoliday = cell.eligibleInfo?.isHoliday;
+
+              if (!isEligible) {
+                return (
+                  <div
+                    key={cell.dateStr}
+                    title="Regular working day (Only declared Week-Offs & Holidays are eligible)"
+                    className="h-8 flex items-center justify-center text-[11px] font-mono text-gray-300 dark:text-gray-700 select-none cursor-not-allowed rounded"
+                  >
+                    {cell.dayNum}
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={cell.dateStr}
+                  type="button"
+                  onClick={() => {
+                    onChange(cell.dateStr);
+                    setOpen(false);
+                  }}
+                  title={`${cell.eligibleInfo.offType} ${hasPunches ? `• In: ${cell.eligibleInfo.inTime} | Out: ${cell.eligibleInfo.outTime}` : '• Off-Day'}`}
+                  className={`h-8 flex flex-col items-center justify-center text-[11px] font-mono rounded relative transition-all cursor-pointer font-medium ${
+                    isSelected
+                      ? 'bg-[var(--gold-500)] text-white font-bold shadow-xs'
+                      : isHoliday
+                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-300 hover:bg-amber-500/20 border border-amber-500/30'
+                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30'
+                  }`}
+                >
+                  <span>{cell.dayNum}</span>
+                  {/* Indicator Dot */}
+                  <span
+                    className={`w-1 h-1 rounded-full ${
+                      isSelected
+                        ? 'bg-white'
+                        : hasPunches
+                        ? 'bg-emerald-500'
+                        : isHoliday
+                        ? 'bg-amber-500'
+                        : 'bg-blue-500'
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="mt-3 pt-2 border-t border-[var(--rule)] grid grid-cols-2 gap-1 text-[10px] text-[var(--ink-muted)]">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>With Attendance</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>Public Holiday</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span>Weekly Off</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+              <span>Regular Work Day</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface StatusApprovalDropdownProps {
   row: any;
@@ -61,48 +300,50 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
     };
   }, [open]);
 
-  if (row.status === 'Approved') {
+  const isArchived = isRowArchived(row);
+  if (isArchived) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-        <span>Approved</span>
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+        <Ban size={12} />
+        {row.status || 'Archived'}
       </span>
     );
   }
 
-  if (row.status === 'Rejected') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-        <span className="w-2 h-2 rounded-full bg-rose-500" />
-        <span>Rejected</span>
-      </span>
-    );
-  }
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Approved':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60';
+      case 'Rejected':
+        return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60';
+      case 'Cancelled':
+        return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
+      default:
+        return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60';
+    }
+  };
 
-  if (row.status === 'Cancelled') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gray-500/10 text-gray-500 dark:text-gray-400 border border-gray-500/20">
-        <span className="w-2 h-2 rounded-full bg-gray-400" />
-        <span>Cancelled</span>
-      </span>
-    );
-  }
+  const getStatusDot = (status: string) => {
+    switch (status) {
+      case 'Approved':
+        return 'bg-emerald-500';
+      case 'Rejected':
+        return 'bg-rose-500';
+      case 'Cancelled':
+        return 'bg-gray-400';
+      default:
+        return 'bg-amber-500';
+    }
+  };
 
-  if (row.status === 'Archived') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
-        <span className="w-2 h-2 rounded-full bg-slate-400" />
-        <span>Archived</span>
-      </span>
-    );
-  }
+  const status = row.status || 'Pending';
+  const isPending = status === 'Pending' || status === 'Draft';
 
-  // Pending Status
   if (!canApprove && !canCancel) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-        <span className="w-2 h-2 rounded-full bg-amber-500" />
-        <span>Pending</span>
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusBadge(status)}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(status)}`} />
+        {status}
       </span>
     );
   }
@@ -111,19 +352,19 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
     <div className="relative inline-block text-left" ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center justify-between gap-2 px-2.5 py-1 rounded-md text-xs font-medium border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--ink)] shadow-2xs cursor-pointer transition-all hover:border-[var(--gold-500)]"
+        onClick={() => setOpen(!open)}
+        className={`inline-flex items-center justify-between gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors cursor-pointer ${getStatusBadge(
+          status
+        )} hover:opacity-90`}
       >
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-amber-500" />
-          <span className="font-semibold">Pending</span>
-        </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-[var(--ink-muted)] transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+        <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(status)}`} />
+        <span>{status}</span>
+        <ChevronDown size={13} className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute left-0 mt-1 w-32 rounded-lg bg-[var(--paper)] border border-[var(--rule)] shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-100 font-sans">
-          {canApprove && (
+        <div className="absolute right-0 mt-1 w-44 rounded-md bg-[var(--surface)] border border-[var(--rule)] shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-100 font-ui">
+          {isPending && canApprove && (
             <>
               <button
                 type="button"
@@ -131,10 +372,10 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
                   setOpen(false);
                   onApprove(row.id);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-left cursor-pointer transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer font-medium"
               >
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="font-semibold">Approve</span>
+                <Check size={14} />
+                Approve & Credit
               </button>
               <button
                 type="button"
@@ -142,24 +383,25 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
                   setOpen(false);
                   onReject(row.id);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-left cursor-pointer transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer font-medium"
               >
-                <X className="w-3.5 h-3.5 text-rose-500" />
-                <span className="font-semibold">Reject</span>
+                <XCircle size={14} />
+                Reject Request
               </button>
             </>
           )}
-          {canCancel && (
+
+          {canCancel && (status === 'Pending' || status === 'Approved') && (
             <button
               type="button"
               onClick={() => {
                 setOpen(false);
                 onCancel(row.id);
               }}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 text-left cursor-pointer transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer font-medium border-t border-[var(--rule)]"
             >
-              <Ban className="w-3.5 h-3.5 text-gray-500" />
-              <span className="font-semibold">Cancel</span>
+              <Ban size={14} />
+              Cancel Request
             </button>
           )}
         </div>
@@ -169,14 +411,10 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
 };
 
 export const CompOff: React.FC = () => {
-  const { user, hasPermission, isAdmin, getPermissionScope } = useAuth();
+  const { user, isAdmin, hasPermission, getPermissionScope } = useAuth();
   const applyScope = getPermissionScope('CompOff.Apply');
-  const editScope = getPermissionScope('CompOff.Edit');
-  const approveScope = getPermissionScope('CompOff.Approve');
-  const deleteScope = getPermissionScope('CompOff.Delete') || (isAdmin ? 'Bulk Delete' : 'Soft Delete');
-
+  const deleteScope = getPermissionScope('CompOff.Delete');
   const canApply = isAdmin || hasPermission('CompOff.Apply');
-  const canEdit = isAdmin || hasPermission('CompOff.Edit');
   const canApprove = isAdmin || hasPermission('CompOff.Approve');
   const canDelete = isAdmin || hasPermission('CompOff.Delete');
   const canBulkDelete = isAdmin || (canDelete && (deleteScope === 'Bulk Delete' || deleteScope === 'Permanent Delete' || deleteScope === 'All'));
@@ -219,9 +457,14 @@ export const CompOff: React.FC = () => {
   const [cancellingId, setCancellingId] = useState<number | null>(null);
   const [cancellationReason, setCancellationReason] = useState('');
 
+  // Strict Biometric Off-Day Selection State
+  const [eligibleWorkedDays, setEligibleWorkedDays] = useState<any[]>([]);
+  const [loadingEligibleDays, setLoadingEligibleDays] = useState(false);
+  const [selectedWorkedDay, setSelectedWorkedDay] = useState<any | null>(null);
+
   const [form, setForm] = useState({
     employeeId: user?.employeeId ? String(user.employeeId) : '',
-    workedDate: new Date().toISOString().split('T')[0],
+    workedDate: '',
     shiftId: '',
     inTime: '',
     outTime: '',
@@ -288,6 +531,52 @@ export const CompOff: React.FC = () => {
     }
   };
 
+  const fetchEligibleWorkedDays = async (empIdStr: string) => {
+    if (!empIdStr) {
+      setEligibleWorkedDays([]);
+      setSelectedWorkedDay(null);
+      return;
+    }
+    try {
+      setLoadingEligibleDays(true);
+      const res = await apiClient.get('/compoff/eligible-worked-days', {
+        params: { employeeId: empIdStr },
+      });
+      const days = Array.isArray(res.data) ? res.data : [];
+      setEligibleWorkedDays(days);
+
+      if (days.length > 0) {
+        const defaultDay = days[0];
+        setSelectedWorkedDay(defaultDay);
+        setForm((prev) => ({
+          ...prev,
+          employeeId: empIdStr,
+          workedDate: defaultDay.date,
+          inTime: defaultDay.inTime || '',
+          outTime: defaultDay.outTime || '',
+          shiftId: defaultDay.shiftId ? String(defaultDay.shiftId) : '',
+          compOffDays: defaultDay.suggestedCredit || 1.0,
+        }));
+      } else {
+        setSelectedWorkedDay(null);
+        setForm((prev) => ({
+          ...prev,
+          employeeId: empIdStr,
+          workedDate: '',
+          inTime: '',
+          outTime: '',
+          shiftId: '',
+          compOffDays: 1.0,
+        }));
+      }
+    } catch {
+      setEligibleWorkedDays([]);
+      setSelectedWorkedDay(null);
+    } finally {
+      setLoadingEligibleDays(false);
+    }
+  };
+
   const handleEmployeeChange = async (empIdStr: string) => {
     setForm((prev) => ({ ...prev, employeeId: empIdStr }));
     if (empIdStr) {
@@ -295,6 +584,46 @@ export const CompOff: React.FC = () => {
         const balRes = await apiClient.get(`/compoff/balances/${empIdStr}`);
         setBalanceInfo(balRes.data);
       } catch {}
+      await fetchEligibleWorkedDays(empIdStr);
+    } else {
+      setEligibleWorkedDays([]);
+      setSelectedWorkedDay(null);
+    }
+  };
+
+  const handleWorkedDateChange = (dateVal: string) => {
+    const matched = eligibleWorkedDays.find((d) => d.date === dateVal);
+    if (matched) {
+      setSelectedWorkedDay(matched);
+      setForm((prev) => ({
+        ...prev,
+        workedDate: matched.date,
+        inTime: matched.inTime || '',
+        outTime: matched.outTime || '',
+        shiftId: matched.shiftId ? String(matched.shiftId) : '',
+        compOffDays: matched.suggestedCredit || 1.0,
+      }));
+    } else {
+      setSelectedWorkedDay(null);
+      setForm((prev) => ({ ...prev, workedDate: dateVal }));
+    }
+  };
+
+  const handleOpenApply = (empId?: string) => {
+    const targetEmp = empId || form.employeeId || (user?.employeeId ? String(user.employeeId) : (employees[0]?.employeeId ? String(employees[0].employeeId) : ''));
+    setEditingId(null);
+    setForm({
+      employeeId: targetEmp,
+      workedDate: '',
+      shiftId: '',
+      inTime: '',
+      outTime: '',
+      compOffDays: 1.0,
+      reason: '',
+    });
+    setApplyPanelOpen(true);
+    if (targetEmp) {
+      fetchEligibleWorkedDays(targetEmp);
     }
   };
 
@@ -545,14 +874,19 @@ export const CompOff: React.FC = () => {
 
         <div className="p-4 rounded-lg bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
           <div className="flex items-center justify-between text-xs text-[var(--ink-muted)] mb-1">
-            <span>{user?.employeeName ? 'Your Balance' : 'Rejected'}</span>
+            <span>{user?.employeeName ? 'Your Balance' : 'Active Balance'}</span>
             <Sparkles className="w-4 h-4 text-blue-500" />
           </div>
           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono">
             {balanceInfo ? balanceInfo.balance : statistics.rejected || 0}
           </div>
-          <div className="text-[11px] text-[var(--ink-muted)] mt-1">
-            {balanceInfo ? `${balanceInfo.pendingDays || 0} days pending` : 'Rejected requests'}
+          <div className="text-[11px] text-[var(--ink-muted)] mt-1 flex items-center justify-between">
+            <span>{balanceInfo ? `${balanceInfo.pendingDays || 0}d pending` : 'Rejected requests'}</span>
+            {balanceInfo?.expiringSoonDays > 0 && (
+              <span className="text-amber-600 dark:text-amber-400 font-semibold" title="Expiring within 15 days">
+                ⚠️ {balanceInfo.expiringSoonDays}d expiring soon
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -598,19 +932,7 @@ export const CompOff: React.FC = () => {
             ? {
                 label: 'Request Comp-Off',
                 icon: <Plus size={14} />,
-                onClick: () => {
-                  setEditingId(null);
-                  setForm({
-                    employeeId: (applyScope === 'Own' && user?.employeeId) ? String(user.employeeId) : (employees[0]?.employeeId ? String(employees[0].employeeId) : ''),
-                    workedDate: new Date().toISOString().split('T')[0],
-                    shiftId: '',
-                    inTime: '',
-                    outTime: '',
-                    compOffDays: 1.0,
-                    reason: '',
-                  });
-                  setApplyPanelOpen(true);
-                },
+                onClick: () => handleOpenApply(),
               }
             : undefined
         }
@@ -650,20 +972,17 @@ export const CompOff: React.FC = () => {
             header: 'Timing / Shift',
             render: (req) => (
               <div className="text-xs">
-                {req.inTime || req.outTime ? (
-                  <div className="flex items-center gap-1 text-[var(--ink)] font-mono">
-                    <Clock className="w-3 h-3 text-[var(--ink-muted)]" />
-                    <span>{req.inTime || '--:--'} - {req.outTime || '--:--'}</span>
-                    {req.workMinutes ? (
-                      <span className="text-[10px] text-[var(--ink-muted)]">({Math.floor(req.workMinutes / 60)}h {req.workMinutes % 60}m)</span>
-                    ) : null}
+                {req.inTime && req.outTime ? (
+                  <div className="flex items-center gap-1 font-mono text-[var(--ink)]">
+                    <Clock size={12} className="text-emerald-500" />
+                    <span>{req.inTime} - {req.outTime}</span>
                   </div>
                 ) : (
-                  <span className="text-[var(--ink-muted)] text-[11px]">Manual Duty Credit</span>
+                  <span className="text-[var(--ink-muted)] font-mono">--:--</span>
                 )}
-                {req.shiftName && (
-                  <div className="text-[10px] text-[var(--ink-muted)]">{req.shiftName}</div>
-                )}
+                <span className="text-[10px] text-[var(--ink-muted)] block">
+                  {req.shiftName || 'Default Shift'} {req.workMinutes ? `(${Math.floor(req.workMinutes / 60)}h ${req.workMinutes % 60}m)` : ''}
+                </span>
               </div>
             ),
           },
@@ -671,76 +990,84 @@ export const CompOff: React.FC = () => {
             key: 'compOffDays',
             header: 'Credit Days',
             render: (req) => (
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold font-mono ${
-                req.compOffDays >= 1
-                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                  : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-              }`}>
-                +{req.compOffDays} Day{req.compOffDays > 1 ? 's' : ''}
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                +{req.compOffDays} {req.compOffDays === 1 ? 'Day' : 'Days'}
               </span>
             ),
+          },
+          {
+            key: 'expiry',
+            header: 'Validity / Expiry',
+            render: (req) => {
+              if (req.status !== 'Approved') {
+                return <span className="text-[11px] text-[var(--ink-muted)]">—</span>;
+              }
+              if (req.isExpired) {
+                return (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                    Expired ({req.formattedExpiryDate || req.expiryDate})
+                  </span>
+                );
+              }
+              if (req.daysToExpiry <= 15 && req.daysToExpiry >= 0) {
+                return (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" title={`Expires on ${req.formattedExpiryDate}`}>
+                    Expiring in {req.daysToExpiry}d
+                  </span>
+                );
+              }
+              return (
+                <span className="text-[11px] font-mono text-[var(--ink-muted)]">
+                  Till {req.formattedExpiryDate || req.expiryDate}
+                </span>
+              );
+            },
           },
           {
             key: 'reason',
             header: 'Reason / Remarks',
             render: (req) => (
-              <span className="text-xs text-[var(--ink-muted)] max-w-xs truncate block" title={req.reason || ''}>
-                {req.reason || '-'}
-              </span>
+              <div className="max-w-[220px] truncate text-xs text-[var(--ink)]" title={req.reason}>
+                {req.reason || '—'}
+              </div>
             ),
           },
           {
             key: 'status',
             header: 'Status',
-            render: (req) => {
-              const isArchived = req.status === 'Archived' || req.status === 'Cancelled';
-              const isPending = req.status === 'Pending' || req.status === 'Draft';
-              const canApproveThis = canApprove && isPending && !isArchived && (approveScope !== 'Own' || req.employeeId === user?.employeeId);
-              const canEditThis = canEdit && isPending && !isArchived && (editScope !== 'Own' || req.employeeId === user?.employeeId);
-              const canCancelThis = isPending && !isArchived && (canApproveThis || canEditThis || req.employeeId === user?.employeeId);
-
-              return (
-                <StatusApprovalDropdown
-                  row={req}
-                  canApprove={canApproveThis}
-                  canCancel={canCancelThis}
-                  onApprove={handleApprove}
-                  onReject={handleOpenReject}
-                  onCancel={handleOpenCancel}
-                />
-              );
-            },
+            render: (req) => (
+              <StatusApprovalDropdown
+                row={req}
+                canApprove={canApprove}
+                canCancel={canApply}
+                onApprove={handleApprove}
+                onReject={handleOpenReject}
+                onCancel={handleOpenCancel}
+              />
+            ),
           },
           {
             key: 'actions',
             header: 'Actions',
             align: 'right',
-            render: (req) => {
-              const isArchived = req.status === 'Archived' || req.status === 'Cancelled';
-              const isPending = req.status === 'Pending' || req.status === 'Draft';
-              const canEditThis = canEdit && isPending && !isArchived && (editScope !== 'Own' || req.employeeId === user?.employeeId);
-
-              return canDelete || canEditThis ? (
+            render: (req) => (
+              <div className="flex items-center justify-end">
                 <RowActionMenu
                   actions={[
-                    ...(canEditThis
-                      ? [{ label: 'Edit', icon: <Pencil size={14} />, onClick: () => handleOpenEdit(req) }]
+                    ...(!isRowArchived(req) && (req.status === 'Pending' || req.status === 'Draft')
+                      ? [
+                          {
+                            label: 'Edit Request',
+                            icon: <Pencil size={14} />,
+                            onClick: () => handleOpenEdit(req),
+                          },
+                        ]
                       : []),
-                    ...(canDelete
-                      ? compOffArchive.rowActions({
-                          id: req.id,
-                          name: `Comp-Off Request #${req.id} (${req.employeeName})`,
-                          isArchived: isArchived || isRowArchived(req),
-                        })
-                      : []),
+                    ...compOffArchive.rowActions(req),
                   ]}
                 />
-              ) : (
-                <span className="font-data text-xs text-[var(--ink-muted)]">
-                  {req.approvedBy ? `by ${req.approvedBy}` : '—'}
-                </span>
-              );
-            },
+              </div>
+            ),
           },
         ]}
         selection={
@@ -752,29 +1079,33 @@ export const CompOff: React.FC = () => {
               }
             : undefined
         }
-        pagination={{
-          page,
-          pageSize,
-          totalCount,
-          totalPages,
-          onPageChange: setPage,
-          onPageSizeChange: setPageSize,
-        }}
       />
 
-      {/* Archive Dialog from Hook */}
-      {compOffArchive.dialog}
+      {/* Pagination Toolbar */}
+      <div className="mt-4">
+        <PaginationToolbar
+          page={page}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize: number) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+        />
+      </div>
 
       {/* ═══════════════════════════════════════════
-          REQUEST / EDIT COMP-OFF SLIDE-IN PANEL (480px)
+          REQUEST / EDIT COMP-OFF SLIDE-IN PANEL (500px)
           ═══════════════════════════════════════════ */}
       {applyPanelOpen && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[1px]">
-          <div className="w-full max-w-[480px] bg-[var(--surface)] h-full p-6 shadow-2xl overflow-y-auto space-y-5 border-l border-[var(--rule)]">
+          <div className="w-full max-w-[500px] bg-[var(--surface)] h-full p-6 shadow-2xl overflow-y-auto space-y-5 border-l border-[var(--rule)]">
             <div className="flex items-start justify-between pb-3 border-b border-[var(--rule)]">
               <div>
                 <span className="text-[10px] uppercase font-semibold text-[var(--gold-500)] font-data">
-                  {editingId ? 'Edit Credit' : 'New Grant Request'}
+                  {editingId ? 'Edit Credit' : 'Off-Day Duty Claim'}
                 </span>
                 <h3 className="font-display font-semibold text-lg text-[var(--ink)]">
                   {editingId ? 'Modify Comp-Off Request' : 'Compensatory Off Request'}
@@ -818,10 +1149,21 @@ export const CompOff: React.FC = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Worked Date */}
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Worked Date *</label>
+              {/* Strict Worked Off-Day Selection */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-[var(--ink)]">
+                    Worked Off-Day (Week-Off or Holiday) *
+                  </label>
+                  {loadingEligibleDays && (
+                    <span className="text-[11px] text-amber-600 dark:text-amber-400 font-mono animate-pulse">
+                      Loading off-days...
+                    </span>
+                  )}
+                </div>
+
+                {editingId ? (
+                  /* Edit Mode: Fixed date input */
                   <input
                     type="date"
                     value={form.workedDate}
@@ -829,68 +1171,95 @@ export const CompOff: React.FC = () => {
                     className="w-full h-9 px-3 rounded-md border border-[var(--rule)] bg-[var(--paper)] text-xs text-[var(--ink)] focus:border-[var(--gold-500)] outline-hidden font-mono"
                     required
                   />
-                </div>
-
-                {/* Comp-Off Days */}
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Credit Amount *</label>
-                  <select
-                    value={form.compOffDays}
-                    onChange={(e) => setForm((prev) => ({ ...prev, compOffDays: parseFloat(e.target.value) }))}
-                    className="w-full h-9 px-3 rounded-md border border-[var(--rule)] bg-[var(--paper)] text-xs text-[var(--ink)] focus:border-[var(--gold-500)] outline-hidden"
-                  >
-                    <option value={1.0}>1.0 Full Day Credit</option>
-                    <option value={0.5}>0.5 Half Day Credit</option>
-                  </select>
-                </div>
+                ) : loadingEligibleDays ? (
+                  <div className="h-9 px-3 rounded-md border border-[var(--rule)] bg-gray-50 dark:bg-gray-900 flex items-center text-xs text-[var(--ink-muted)]">
+                    Loading declared off-days and attendance records...
+                  </div>
+                ) : eligibleWorkedDays.length > 0 ? (
+                  <OffDayDatePicker
+                    value={form.workedDate}
+                    eligibleDays={eligibleWorkedDays}
+                    onChange={handleWorkedDateChange}
+                  />
+                ) : (
+                  <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 text-xs space-y-1">
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <AlertCircle size={14} className="text-amber-600 dark:text-amber-400" />
+                      <span>No Uncredited Off-Days Found</span>
+                    </div>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+                      Comp-Off can only be claimed for declared <strong>Week-Offs</strong> or <strong>Public Holidays</strong> within the last 90 days.
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* Timing / Punches (Optional) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">In Time (Optional)</label>
-                  <input
-                    type="time"
-                    value={form.inTime}
-                    onChange={(e) => setForm((prev) => ({ ...prev, inTime: e.target.value }))}
-                    className="w-full h-9 px-3 rounded-md border border-[var(--rule)] bg-[var(--paper)] text-xs text-[var(--ink)] focus:border-[var(--gold-500)] outline-hidden font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Out Time (Optional)</label>
-                  <input
-                    type="time"
-                    value={form.outTime}
-                    onChange={(e) => setForm((prev) => ({ ...prev, outTime: e.target.value }))}
-                    className="w-full h-9 px-3 rounded-md border border-[var(--rule)] bg-[var(--paper)] text-xs text-[var(--ink)] focus:border-[var(--gold-500)] outline-hidden font-mono"
-                  />
-                </div>
-              </div>
+              {/* Verified Attendance Details Card */}
+              {selectedWorkedDay && (
+                <div className="p-3.5 rounded-lg border border-[var(--rule)] bg-[var(--surface-secondary)] space-y-2.5 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between text-xs pb-2 border-b border-[var(--rule)]">
+                    <span className="font-semibold text-[var(--ink)] flex items-center gap-1.5">
+                      <CalendarCheck size={14} className="text-emerald-500" />
+                      {selectedWorkedDay.formattedDate} ({selectedWorkedDay.dayName})
+                    </span>
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                      {selectedWorkedDay.offType}
+                    </span>
+                  </div>
 
-              {/* Shift (Optional) */}
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                    <div className="p-2 rounded bg-[var(--paper)] border border-[var(--rule)]">
+                      <span className="text-[10px] text-[var(--ink-muted)] block font-ui">In-Time</span>
+                      <span className="text-[var(--ink)] font-semibold">{selectedWorkedDay.inTime || '--:--'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-[var(--paper)] border border-[var(--rule)]">
+                      <span className="text-[10px] text-[var(--ink-muted)] block font-ui">Out-Time</span>
+                      <span className="text-[var(--ink)] font-semibold">{selectedWorkedDay.outTime || '--:--'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-[var(--ink-muted)] pt-1">
+                    <span>Shift: <strong className="text-[var(--ink)]">{selectedWorkedDay.shiftName}</strong></span>
+                    <span>Total Worked: <strong className="text-[var(--ink)] font-mono">{selectedWorkedDay.workedHoursText}</strong></span>
+                  </div>
+
+                  <div className="text-[11px] text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20 p-2 rounded border border-blue-200 dark:border-blue-900/40 flex items-center gap-1.5 font-ui">
+                    <Sparkles size={13} className="shrink-0 text-blue-500" />
+                    <span>
+                      {selectedWorkedDay.hasAttendanceRecord
+                        ? <>Auto-calculated credit: <strong>{selectedWorkedDay.suggestedCreditLabel}</strong> (based on shift half-time threshold)</>
+                        : <>Default credit: <strong>{selectedWorkedDay.suggestedCreditLabel}</strong></>}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Credit Amount (Auto-filled + Overridable by Manager/HOD) */}
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Shift (Optional)</label>
+                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                  Credit Amount * <span className="font-normal text-[var(--ink-muted)]">(Pre-calculated, overridable)</span>
+                </label>
                 <select
-                  value={form.shiftId}
-                  onChange={(e) => setForm((prev) => ({ ...prev, shiftId: e.target.value }))}
-                  className="w-full h-9 px-3 rounded-md border border-[var(--rule)] bg-[var(--paper)] text-xs text-[var(--ink)] focus:border-[var(--gold-500)] outline-hidden"
+                  value={form.compOffDays}
+                  onChange={(e) => setForm((prev) => ({ ...prev, compOffDays: parseFloat(e.target.value) }))}
+                  className="w-full h-9 px-3 rounded-md border border-[var(--rule)] bg-[var(--paper)] text-xs text-[var(--ink)] focus:border-[var(--gold-500)] outline-hidden cursor-pointer"
+                  required
                 >
-                  <option value="">Default Shift</option>
-                  {shifts.map((s: any) => (
-                    <option key={s.id} value={s.id}>
-                      {s.shiftName} ({s.startTime} - {s.endTime})
-                    </option>
-                  ))}
+                  <option value={1.0}>1.0 Full Day Credit</option>
+                  <option value={0.5}>0.5 Half Day Credit</option>
                 </select>
+                <p className="text-[10px] text-[var(--ink-muted)] mt-1">
+                  Suggested from shift half-time calculation. HOD / Admin can adjust the credit value before approval.
+                </p>
               </div>
 
-              {/* Reason / Remarks */}
+              {/* Duty Reason / Remarks */}
               <div>
                 <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Duty Reason / Project Remarks *</label>
                 <textarea
                   value={form.reason}
                   onChange={(e) => setForm((prev) => ({ ...prev, reason: e.target.value }))}
-                  placeholder="Explain why weekend or extra duty was performed..."
+                  placeholder="Explain why weekend or extra holiday duty was performed..."
                   className="w-full h-20 p-2.5 rounded-md border border-[var(--rule)] bg-[var(--paper)] text-xs text-[var(--ink)] focus:border-[var(--gold-500)] outline-hidden resize-none"
                   required
                 />
@@ -907,8 +1276,8 @@ export const CompOff: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={applying}
-                  className="btn-primary text-xs py-1.5 px-4 cursor-pointer disabled:opacity-50"
+                  disabled={applying || (!editingId && eligibleWorkedDays.length === 0)}
+                  className="btn-primary text-xs py-1.5 px-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {applying ? 'Saving...' : editingId ? 'Update Request' : 'Submit Request'}
                 </button>

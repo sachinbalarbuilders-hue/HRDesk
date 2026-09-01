@@ -84,10 +84,36 @@ public static class AppPermissions
         public const string PayrollManageSalary = "Payroll.ManageSalary";
         public const string PayrollManageLoans = "Payroll.ManageLoans";
 
-        // 7. Masters & Structure Module
-        public const string MastersDepartments = "Masters.Departments";
-        public const string MastersDesignations = "Masters.Designations";
-        public const string MastersOrganizations = "Masters.Organizations";
+        // 7. Masters & Structure Module (Standardized View/Create/Edit/Delete)
+        public const string MastersOrganizationsView = "Masters.Organizations.View";
+        public const string MastersOrganizationsCreate = "Masters.Organizations.Create";
+        public const string MastersOrganizationsEdit = "Masters.Organizations.Edit";
+        public const string MastersOrganizationsDelete = "Masters.Organizations.Delete";
+        public const string MastersOrganizations = "Masters.Organizations"; // Legacy alias
+
+        public const string MastersDepartmentsView = "Masters.Departments.View";
+        public const string MastersDepartmentsCreate = "Masters.Departments.Create";
+        public const string MastersDepartmentsEdit = "Masters.Departments.Edit";
+        public const string MastersDepartmentsDelete = "Masters.Departments.Delete";
+        public const string MastersDepartments = "Masters.Departments"; // Legacy alias
+
+        public const string MastersDesignationsView = "Masters.Designations.View";
+        public const string MastersDesignationsCreate = "Masters.Designations.Create";
+        public const string MastersDesignationsEdit = "Masters.Designations.Edit";
+        public const string MastersDesignationsDelete = "Masters.Designations.Delete";
+        public const string MastersDesignations = "Masters.Designations"; // Legacy alias
+
+        // Leave Types Master
+        public const string LeavesTypesView = "Leaves.Types.View";
+        public const string LeavesTypesCreate = "Leaves.Types.Create";
+        public const string LeavesTypesEdit = "Leaves.Types.Edit";
+        public const string LeavesTypesDelete = "Leaves.Types.Delete";
+
+        // Shifts Master
+        public const string ShiftsView = "Shifts.View";
+        public const string ShiftsCreate = "Shifts.Create";
+        public const string ShiftsEdit = "Shifts.Edit";
+        public const string ShiftsDelete = "Shifts.Delete";
 
         // 8. Recruitment Module
         public const string RecruitmentCandidates = "Recruitment.Candidates";
@@ -95,9 +121,14 @@ public static class AppPermissions
 
         // 9. System & Settings Module
         public const string SystemDevices = "System.Devices";
-        public const string SystemRoles = "System.Roles";
-        public const string SystemSettings = "System.Settings";
-        public const string SystemLogs = "System.Logs";
+        public const string SystemRolesView = "System.Roles.View";
+        public const string SystemRolesEdit = "System.Roles.Edit";
+        public const string SystemRoles = "System.Roles"; // Legacy alias
+        public const string SystemSettingsView = "System.Settings.View";
+        public const string SystemSettingsEdit = "System.Settings.Edit";
+        public const string SystemSettings = "System.Settings"; // Legacy alias
+        public const string SystemLogsView = "System.Logs.View";
+        public const string SystemLogs = "System.Logs"; // Legacy alias
     }
 
     public record PermissionDefinition(
@@ -213,7 +244,7 @@ public static class AppPermissions
             ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
             DefaultScope: "Soft Delete"),
 
-        new(Keys.LeavesManageTypes, "Manage Leave Types", Modules.Leaves, "Configure leave quotas and rules"),
+        // Leave Allocations
         new(Keys.LeavesManageAllocations, "Manage Allocations", Modules.Leaves, "Credit and adjust leave balances"),
 
         // 6. Comp-Off
@@ -249,12 +280,12 @@ public static class AppPermissions
             DefaultScope: "Own Branch"),
 
         new(Keys.PayrollProcess, "Process Payroll", Modules.Payroll, "Calculate monthly payroll and generate slips",
-            SupportsScope: true,
+            SupportsScope: true, 
             ScopeOptions: new[] { "Own Branch" },
             DefaultScope: "Own Branch"),
 
         new(Keys.PayrollManageSalary, "Manage Salary Structure", Modules.Payroll, "Configure salary components and formulas",
-            SupportsScope: true,
+            SupportsScope: true, 
             ScopeOptions: new[] { "Own Branch" },
             DefaultScope: "Own Branch"),
 
@@ -263,12 +294,35 @@ public static class AppPermissions
             ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        // 7. Masters & Structure
-        new(Keys.MastersDepartments, "Manage Departments", Modules.Masters, "Create, edit, and delete departments"),
-        new(Keys.MastersDesignations, "Manage Designations", Modules.Masters, "Create, edit, and delete designations"),
-        new(Keys.MastersOrganizations, "Manage Organizations", Modules.Masters, "Manage company branches and organizations"),
+        // 8. Masters & Structure (Standardized View/Create/Edit/Delete)
+        new(Keys.MastersOrganizationsView, "View Organizations", Modules.Masters, "View company branches and organizations"),
+        new(Keys.MastersOrganizationsCreate, "Create Organization", Modules.Masters, "Add new branches and organizations"),
+        new(Keys.MastersOrganizationsEdit, "Edit Organization", Modules.Masters, "Update company and branch settings"),
+        new(Keys.MastersOrganizationsDelete, "Delete Organization", Modules.Masters, "Archive or delete branches"),
 
-        // 8. Recruitment
+        new(Keys.MastersDepartmentsView, "View Departments", Modules.Masters, "View department list"),
+        new(Keys.MastersDepartmentsCreate, "Create Department", Modules.Masters, "Add new department"),
+        new(Keys.MastersDepartmentsEdit, "Edit Department", Modules.Masters, "Edit department details"),
+        new(Keys.MastersDepartmentsDelete, "Delete Department", Modules.Masters, "Archive or delete department"),
+
+        new(Keys.MastersDesignationsView, "View Designations", Modules.Masters, "View designation list"),
+        new(Keys.MastersDesignationsCreate, "Create Designation", Modules.Masters, "Add new designation"),
+        new(Keys.MastersDesignationsEdit, "Edit Designation", Modules.Masters, "Edit designation details"),
+        new(Keys.MastersDesignationsDelete, "Delete Designation", Modules.Masters, "Archive or delete designation"),
+
+        // Leave Types Master
+        new(Keys.LeavesTypesView, "View Leave Types", Modules.Masters, "View leave categories and quotas"),
+        new(Keys.LeavesTypesCreate, "Create Leave Type", Modules.Masters, "Add new leave categories"),
+        new(Keys.LeavesTypesEdit, "Edit Leave Type", Modules.Masters, "Update leave quotas and rules"),
+        new(Keys.LeavesTypesDelete, "Delete Leave Type", Modules.Masters, "Archive or delete leave types"),
+
+        // Shifts Master
+        new(Keys.ShiftsView, "View Work Shifts", Modules.Masters, "View work shifts and timings"),
+        new(Keys.ShiftsCreate, "Create Work Shift", Modules.Masters, "Add new work shifts"),
+        new(Keys.ShiftsEdit, "Edit Work Shift", Modules.Masters, "Update shift timings and grace periods"),
+        new(Keys.ShiftsDelete, "Delete Work Shift", Modules.Masters, "Archive or delete work shifts"),
+
+        // 9. Recruitment
         new(Keys.RecruitmentCandidates, "Manage Candidates", Modules.Recruitment, "Candidate pipeline and resumes",
             SupportsScope: true,
             ScopeOptions: new[] { "Department", "Own Branch" },
@@ -279,10 +333,12 @@ public static class AppPermissions
             ScopeOptions: new[] { "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        // 9. System & Settings
+        // 10. System & Settings
         new(Keys.SystemDevices, "Manage Biometric Devices", Modules.System, "Configure LAN/Cloud biometric sync & machines"),
-        new(Keys.SystemRoles, "Manage Roles & Permissions", Modules.System, "Create, edit, and delete custom roles"),
-        new(Keys.SystemSettings, "Manage System Settings", Modules.System, "Configure general company settings"),
-        new(Keys.SystemLogs, "View Service Logs", Modules.System, "Inspect audit trails and background job logs")
+        new(Keys.SystemRolesView, "View Roles", Modules.System, "View roles and permission matrix"),
+        new(Keys.SystemRolesEdit, "Manage Roles", Modules.System, "Create, edit, and delete custom roles"),
+        new(Keys.SystemSettingsView, "View System Settings", Modules.System, "View general system settings and configurations"),
+        new(Keys.SystemSettingsEdit, "Edit System Settings", Modules.System, "Configure general company settings and email"),
+        new(Keys.SystemLogsView, "View Service Logs", Modules.System, "Inspect audit trails and background job logs")
     };
 }

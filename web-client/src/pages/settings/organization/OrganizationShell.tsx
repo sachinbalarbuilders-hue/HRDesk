@@ -21,6 +21,8 @@ export interface PolicyForm {
   maxConsecutiveLeaves: number;
   sandwichRuleEnabled: boolean;
   defaultProbationDays: number;
+  compOffValidityDays: number;
+  compOffClaimDays: number;
 }
 
 export interface Branch {
@@ -83,6 +85,8 @@ export const OrganizationShell: React.FC = () => {
     maxConsecutiveLeaves: 14,
     sandwichRuleEnabled: true,
     defaultProbationDays: 90,
+    compOffValidityDays: 60,
+    compOffClaimDays: 60,
   });
 
   const fetchOrg = useCallback(async () => {
@@ -129,6 +133,8 @@ export const OrganizationShell: React.FC = () => {
             maxConsecutiveLeaves: p.maxConsecutiveLeaves ?? 14,
             sandwichRuleEnabled: p.sandwichRuleEnabled ?? true,
             defaultProbationDays: p.defaultProbationDays ?? 90,
+            compOffValidityDays: p.compOffValidityDays ?? 60,
+            compOffClaimDays: p.compOffClaimDays ?? 60,
           });
         }
 

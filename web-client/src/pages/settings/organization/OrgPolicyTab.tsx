@@ -54,6 +54,8 @@ export const OrgPolicyTab: React.FC = () => {
         maxConsecutiveLeaves: policyForm.maxConsecutiveLeaves,
         sandwichRuleEnabled: policyForm.sandwichRuleEnabled,
         defaultProbationDays: policyForm.defaultProbationDays,
+        compOffValidityDays: policyForm.compOffValidityDays,
+        compOffClaimDays: policyForm.compOffClaimDays,
       });
       showSuccess('Saved', 'Company policies saved.');
     } catch (err: any) {
@@ -175,6 +177,56 @@ export const OrgPolicyTab: React.FC = () => {
               onChange={(e) => setPolicyForm({ ...policyForm, defaultProbationDays: Number(e.target.value) })}
               className="register-input w-24 text-center font-data"
             />
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
+        <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Compensatory Off (Comp-Off) Policy</h4>
+        <p className="text-[var(--ink-muted)] mb-4">
+          Configure credit validity duration, past claim calendar window, and expiration rules for off-day duties.
+        </p>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-[var(--ink)] block">Credit Validity / Expiry (Days)</span>
+              <span className="text-xs text-[var(--ink-muted)] block">
+                Number of days an approved Comp-Off balance remains active. Stamped from the <strong>Worked Date</strong>.
+              </span>
+            </div>
+            <select
+              value={policyForm.compOffValidityDays}
+              onChange={(e) => setPolicyForm({ ...policyForm, compOffValidityDays: Number(e.target.value) })}
+              className="register-input w-36 text-sm font-data"
+            >
+              <option value={15}>15 Days</option>
+              <option value={30}>30 Days (1 Mo)</option>
+              <option value={60}>60 Days (2 Mo)</option>
+              <option value={90}>90 Days (3 Mo)</option>
+              <option value={180}>180 Days (6 Mo)</option>
+              <option value={365}>365 Days (1 Yr)</option>
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-[var(--ink)] block">Past Claim Window (Days)</span>
+              <span className="text-xs text-[var(--ink-muted)] block">
+                How far back in the calendar employees can look to submit off-day claims.
+              </span>
+            </div>
+            <select
+              value={policyForm.compOffClaimDays}
+              onChange={(e) => setPolicyForm({ ...policyForm, compOffClaimDays: Number(e.target.value) })}
+              className="register-input w-36 text-sm font-data"
+            >
+              <option value={15}>15 Days</option>
+              <option value={30}>30 Days</option>
+              <option value={60}>60 Days</option>
+              <option value={90}>90 Days</option>
+              <option value={180}>180 Days</option>
+            </select>
           </div>
         </div>
       </div>

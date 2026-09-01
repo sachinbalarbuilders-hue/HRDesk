@@ -9,6 +9,7 @@ import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
+import { useAuth } from '../../context/AuthContext';
 import {
   Building2,
   Plus,
@@ -23,6 +24,7 @@ import {
 export const OrganizationsTab: React.FC = () => {
   const { currentBranch } = useOrganization();
   const { showError, showSuccess } = useToast();
+  const { hasPermission, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -265,25 +267,37 @@ export const OrganizationsTab: React.FC = () => {
       header: '',
       width: '48px',
       align: 'right',
-      render: (org) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <RowActionMenu
-            actions={[
-              {
-                label: 'Edit Details & Logo',
-                icon: <Edit2 size={14} />,
-                onClick: () => navigate(`/settings/organizations/${org.publicId}`),
-              },
-              {
-                label: 'Manage Branches',
-                icon: <Eye size={14} />,
-                onClick: () => navigate(`/settings/organizations/${org.publicId}/branches`),
-              },
-              ...orgArchive.rowActions({ id: org.publicId, name: org.name, isArchived: isRowArchived(org) }),
-            ] as RowAction[]}
-          />
-        </div>
-      ),
+      render: (org) => {
+        const canEdit = isAdmin || hasPermission('Masters.Organizations.Edit');
+        const canDelete = isAdmin || hasPermission('Masters.Organizations.Delete');
+        const actions: RowAction[] = [];
+
+        if (canEdit) {
+          actions.push({
+            label: 'Edit Details & Logo',
+            icon: <Edit2 size={14} />,
+            onClick: () => navigate(`/settings/organizations/${org.publicId}`),
+          });
+        }
+
+        actions.push({
+          label: canEdit ? 'Manage Branches' : 'View Branches',
+          icon: <Eye size={14} />,
+          onClick: () => navigate(`/settings/organizations/${org.publicId}/branches`),
+        });
+
+        if (canDelete) {
+          actions.push(...orgArchive.rowActions({ id: org.publicId, name: org.name, isArchived: isRowArchived(org) }));
+        }
+
+        if (actions.length === 0) return null;
+
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <RowActionMenu actions={actions} />
+          </div>
+        );
+      },
     },
   ];
 
@@ -342,11 +356,15 @@ export const OrganizationsTab: React.FC = () => {
         }}
         onExport={handleExport}
         exportLabel="Export CSV"
-        primaryAction={{
-          label: 'Add Organization',
-          icon: <Plus size={14} />,
-          onClick: () => navigate('/settings/organizations/new'),
-        }}
+        primaryAction={
+          (isAdmin || hasPermission('Masters.Organizations.Create'))
+            ? {
+                label: 'Add Organization',
+                icon: <Plus size={14} />,
+                onClick: () => navigate('/settings/organizations/new'),
+              }
+            : undefined
+        }
       />
 
       {/* Structured DataTable */}

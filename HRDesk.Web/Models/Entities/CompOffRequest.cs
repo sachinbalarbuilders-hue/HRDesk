@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -45,6 +45,12 @@ public class CompOffRequest : IMustHaveTenant
 
     [Column("approved_date")]
     public DateTime? ApprovedDate { get; set; }
+
+    [Column("expiry_date")]
+    public DateOnly? ExpiryDate { get; set; }
+
+    [Column("availed_days")]
+    public decimal AvailedDays { get; set; } = 0.0m;
 
     [Column("rejection_reason")]
     [MaxLength(255)]

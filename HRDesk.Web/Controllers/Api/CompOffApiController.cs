@@ -129,6 +129,172 @@ public class CompOffController : ControllerBase
     }
 
     // ==========================================
+    // 0.1 ELIGIBLE WORKED OFF-DAYS (WEEKOFFS & HOLIDAYS)
+    // ==========================================
+    [HttpGet("eligible-worked-days")]
+    public async Task<IActionResult> GetEligibleWorkedDays([FromQuery] int? employeeId = null)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.CompOffApply))
+        {
+            return Forbid();
+        }
+
+        var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+        var targetEmpId = employeeId ?? currentEmpId;
+
+        if (!targetEmpId.HasValue)
+        {
+            return BadRequest(new { message = "Employee ID is required." });
+        }
+
+        var applyScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.CompOffApply);
+        if (applyScope == AppPermissions.Scopes.Own && currentEmpId.HasValue && targetEmpId.Value != currentEmpId.Value)
+        {
+            return Forbid();
+        }
+
+        var employee = await _db.Employees
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.EmployeeId == targetEmpId.Value);
+
+        if (employee == null)
+        {
+            return NotFound(new { message = "Employee not found." });
+        }
+
+        int claimDays = 60;
+        var claimSetting = await _db.SystemSettings
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.OrganizationId == employee.OrganizationId && s.SettingKey == "CompOffClaimDays" && s.BranchId == null);
+        if (claimSetting != null && int.TryParse(claimSetting.SettingValue, out var cd) && cd > 0)
+        {
+            claimDays = cd;
+        }
+
+        var fromDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-claimDays));
+        var toDate = DateOnly.FromDateTime(DateTime.Today);
+
+        // 1. Existing Comp-Off Claims (Pending, Approved, Draft)
+        var existingClaimDates = await _db.CompOffRequests
+            .AsNoTracking()
+            .Where(c => c.EmployeeId == targetEmpId.Value && c.Status != "Cancelled" && c.Status != "Archived" && c.Status != "Rejected")
+            .Select(c => c.WorkedDate)
+            .ToListAsync();
+
+        // 2. Fetch Attendance Records in the claim window
+        var attendanceLogs = await _db.DailyAttendance
+            .AsNoTracking()
+            .Where(d => d.EmployeeId == targetEmpId.Value && d.RecordDate >= fromDate && d.RecordDate <= toDate)
+            .ToListAsync();
+        var attDict = attendanceLogs.ToDictionary(d => d.RecordDate, d => d);
+
+        // 3. Fetch Holidays in this window
+        var holidays = await _db.Holidays
+            .AsNoTracking()
+            .Where(h => (h.BranchId == null || h.BranchId == employee.BranchId) && h.StartDate <= toDate && h.EndDate >= fromDate)
+            .ToListAsync();
+
+        // 4. Determine Employee's Weekoff Day
+        var empWeekoff = string.IsNullOrWhiteSpace(employee.Weekoff) ? "Sunday" : employee.Weekoff.Trim();
+        var shifts = await _db.Shifts.AsNoTracking().ToListAsync();
+        var defaultShift = shifts.FirstOrDefault(s => s.BranchId == employee.BranchId || s.BranchId == null);
+
+        var eligibleDays = new List<object>();
+
+        // Iterate all dates in the claim window (newest to oldest)
+        for (var currDate = toDate; currDate >= fromDate; currDate = currDate.AddDays(-1))
+        {
+            if (existingClaimDates.Contains(currDate))
+                continue;
+
+            var dayOfWeek = currDate.DayOfWeek.ToString();
+            attDict.TryGetValue(currDate, out var att);
+
+            bool isWeekoff = dayOfWeek.Equals(empWeekoff, StringComparison.OrdinalIgnoreCase) ||
+                             (empWeekoff.Contains(",") && empWeekoff.Split(',').Any(w => w.Trim().Equals(dayOfWeek, StringComparison.OrdinalIgnoreCase))) ||
+                             att?.Status == "Weekoff" || att?.Status == "W/O";
+
+            var matchedHoliday = holidays.FirstOrDefault(h => currDate >= h.StartDate && currDate <= h.EndDate);
+            bool isHoliday = matchedHoliday != null || att?.Status == "Holiday";
+            var holidayTitle = matchedHoliday?.HolidayName ?? "Public Holiday";
+
+            // Only allow declared Week-Offs or Public Holidays
+            if (!isWeekoff && !isHoliday)
+                continue;
+
+            var shift = (att?.ShiftId.HasValue == true ? shifts.FirstOrDefault(s => s.Id == att.ShiftId.Value) : null) ?? defaultShift;
+            var inTime = att?.InTime;
+            var outTime = att?.OutTime;
+            bool hasAttendanceRecord = inTime.HasValue;
+
+            int workMinutes = att?.WorkMinutes ?? 0;
+            if (workMinutes == 0 && inTime.HasValue && outTime.HasValue)
+            {
+                var inDt = currDate.ToDateTime(inTime.Value);
+                var outDt = currDate.ToDateTime(outTime.Value);
+                if (outTime.Value < inTime.Value) outDt = outDt.AddDays(1);
+                workMinutes = (int)(outDt - inDt).TotalMinutes;
+            }
+
+            decimal standardHours = shift != null && shift.WorkingHours > 0 ? shift.WorkingHours : 8.0m;
+            decimal suggestedCredit = 1.0m;
+
+            if (hasAttendanceRecord && shift != null && workMinutes > 0)
+            {
+                var halfTime = shift.HalfTime ?? shift.StartTime.Add(TimeSpan.FromHours((double)standardHours / 2.0));
+
+                if (workMinutes >= (standardHours * 60) - 30)
+                {
+                    suggestedCredit = 1.0m;
+                }
+                else if (workMinutes >= ((standardHours / 2m) * 60) - 30 ||
+                         (inTime!.Value <= halfTime && outTime.HasValue && outTime.Value >= halfTime.AddMinutes(-30)) ||
+                         (inTime!.Value >= halfTime.AddMinutes(-30) && outTime.HasValue && outTime.Value >= shift.EndTime.AddMinutes(-30)))
+                {
+                    suggestedCredit = 0.5m;
+                }
+                else
+                {
+                    suggestedCredit = 0.5m;
+                }
+            }
+            else if (hasAttendanceRecord && workMinutes > 0)
+            {
+                suggestedCredit = workMinutes >= 420 ? 1.0m : 0.5m;
+            }
+            else
+            {
+                suggestedCredit = 1.0m;
+            }
+
+            var workedHoursText = workMinutes > 0 ? $"{workMinutes / 60}h {workMinutes % 60}m" : (hasAttendanceRecord ? "Punched In" : "Full Off-Day");
+
+            eligibleDays.Add(new
+            {
+                date = currDate.ToString("yyyy-MM-dd"),
+                formattedDate = currDate.ToString("dd MMM yyyy"),
+                dayName = dayOfWeek,
+                offType = isHoliday ? $"Holiday: {holidayTitle}" : "Weekly Off",
+                isHoliday,
+                isWeekoff,
+                holidayName = isHoliday ? holidayTitle : null,
+                hasAttendanceRecord,
+                inTime = inTime.HasValue ? inTime.Value.ToString("HH:mm") : "",
+                outTime = outTime.HasValue ? outTime.Value.ToString("HH:mm") : "",
+                workMinutes,
+                workedHoursText,
+                shiftId = shift?.Id,
+                shiftName = shift?.ShiftName ?? "Default Shift",
+                suggestedCredit,
+                suggestedCreditLabel = suggestedCredit == 1.0m ? "1.0 Full Day Credit" : "0.5 Half Day Credit"
+            });
+        }
+
+        return Ok(eligibleDays);
+    }
+
+    // ==========================================
     // 1. LIST COMP-OFF REQUESTS
     // ==========================================
     [HttpGet]
@@ -228,7 +394,19 @@ public class CompOffController : ControllerBase
         var totalCount = await query.CountAsync();
         if (pageSize <= 0) pageSize = 30;
 
-        var items = await query
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
+        int defaultValidity = 60;
+        var valSetting = await _db.SystemSettings
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.OrganizationId == orgId && s.SettingKey == "CompOffValidityDays" && s.BranchId == null);
+        if (valSetting != null && int.TryParse(valSetting.SettingValue, out var vd) && vd > 0)
+        {
+            defaultValidity = vd;
+        }
+
+        var rawItems = await query
             .OrderByDescending(c => c.WorkedDate)
             .ThenByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -247,6 +425,8 @@ public class CompOffController : ControllerBase
                 OutTime = c.OutTime.HasValue ? c.OutTime.Value.ToString("HH:mm") : null,
                 c.WorkMinutes,
                 CompOffDays = c.CompOffDays ?? 1.0m,
+                c.AvailedDays,
+                c.ExpiryDate,
                 c.Status,
                 c.ApprovedBy,
                 c.ApprovedDate,
@@ -255,6 +435,40 @@ public class CompOffController : ControllerBase
                 c.UpdatedAt
             })
             .ToListAsync();
+
+        var items = rawItems.Select(c =>
+        {
+            var expiry = c.ExpiryDate ?? c.WorkedDate.AddDays(defaultValidity);
+            var isExpired = c.Status == "Approved" && expiry < today && c.AvailedDays < c.CompOffDays;
+            var daysToExpiry = expiry.DayNumber - today.DayNumber;
+
+            return new
+            {
+                c.Id,
+                c.EmployeeId,
+                c.EmployeeName,
+                c.Department,
+                c.Branch,
+                c.WorkedDate,
+                c.ShiftId,
+                c.ShiftName,
+                c.InTime,
+                c.OutTime,
+                c.WorkMinutes,
+                c.CompOffDays,
+                c.AvailedDays,
+                ExpiryDate = expiry.ToString("yyyy-MM-dd"),
+                FormattedExpiryDate = expiry.ToString("dd MMM yyyy"),
+                IsExpired = isExpired,
+                DaysToExpiry = daysToExpiry,
+                c.Status,
+                c.ApprovedBy,
+                c.ApprovedDate,
+                c.Reason,
+                c.CreatedAt,
+                c.UpdatedAt
+            };
+        }).ToList();
 
         return Ok(new
         {
@@ -294,18 +508,13 @@ public class CompOffController : ControllerBase
             .Select(c => new
             {
                 c.Id,
-                c.EmployeeId,
                 c.WorkedDate,
-                c.ShiftId,
-                ShiftName = c.Shift != null ? c.Shift.ShiftName : null,
-                InTime = c.InTime.HasValue ? c.InTime.Value.ToString("HH:mm") : null,
-                OutTime = c.OutTime.HasValue ? c.OutTime.Value.ToString("HH:mm") : null,
-                c.WorkMinutes,
-                CompOffDays = c.CompOffDays ?? 1.0m,
+                c.CompOffDays,
+                c.AvailedDays,
+                c.ExpiryDate,
                 c.Status,
-                c.ApprovedBy,
                 c.ApprovedDate,
-                Reason = c.RejectionReason,
+                c.RejectionReason,
                 c.CreatedAt
             })
             .ToListAsync();
@@ -314,10 +523,12 @@ public class CompOffController : ControllerBase
     }
 
     // ==========================================
-    // 3. STATISTICS & SUMMARY
+    // 3. STATISTICS / KPI SUMMARY
     // ==========================================
     [HttpGet("statistics")]
-    public async Task<IActionResult> GetCompOffStatistics([FromQuery] int? branchId = null)
+    public async Task<IActionResult> GetCompOffStatistics(
+        [FromQuery] int? branchId = null,
+        [FromQuery] int? employeeId = null)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.CompOffView) &&
             !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.CompOffApply))
@@ -338,6 +549,11 @@ public class CompOffController : ControllerBase
         }
 
         query = await _permissionService.ApplyCompOffScopeAsync(query, User, AppPermissions.Keys.CompOffView);
+
+        if (employeeId.HasValue && employeeId.Value > 0)
+        {
+            query = query.Where(c => c.EmployeeId == employeeId.Value);
+        }
 
         var total = await query.CountAsync();
         var pending = await query.CountAsync(c => c.Status == "Pending" || c.Status == "Draft");
@@ -393,20 +609,57 @@ public class CompOffController : ControllerBase
         var today = DateOnly.FromDateTime(DateTime.Today);
         var balance = await _compOffService.GetValidBalanceAsync(resolvedId, today);
 
+        var employee = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == resolvedId);
+        int validityDays = 60;
+        if (employee != null)
+        {
+            var valSetting = await _db.SystemSettings
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.OrganizationId == employee.OrganizationId && s.SettingKey == "CompOffValidityDays" && s.BranchId == null);
+            if (valSetting != null && int.TryParse(valSetting.SettingValue, out var vd) && vd > 0)
+            {
+                validityDays = vd;
+            }
+        }
+
+        var approvedRequests = await _db.CompOffRequests
+            .Where(c => c.EmployeeId == resolvedId && c.Status == "Approved")
+            .ToListAsync();
+
         var pendingDays = await _db.CompOffRequests
             .Where(c => c.EmployeeId == resolvedId && (c.Status == "Pending" || c.Status == "Draft"))
             .SumAsync(c => c.CompOffDays ?? 0m);
 
-        var approvedDays = await _db.CompOffRequests
-            .Where(c => c.EmployeeId == resolvedId && c.Status == "Approved")
-            .SumAsync(c => c.CompOffDays ?? 0m);
+        decimal approvedDays = 0m;
+        decimal expiredDays = 0m;
+        decimal expiringSoonDays = 0m;
+
+        foreach (var req in approvedRequests)
+        {
+            var expiry = req.ExpiryDate ?? req.WorkedDate.AddDays(validityDays);
+            var remaining = Math.Max(0m, (req.CompOffDays ?? 1.0m) - req.AvailedDays);
+
+            approvedDays += req.CompOffDays ?? 0m;
+
+            if (expiry < today && remaining > 0)
+            {
+                expiredDays += remaining;
+            }
+            else if (expiry >= today && expiry <= today.AddDays(15) && remaining > 0)
+            {
+                expiringSoonDays += remaining;
+            }
+        }
 
         return Ok(new
         {
             employeeId = resolvedId,
             balance,
             pendingDays,
-            approvedDays
+            approvedDays,
+            expiringSoonDays,
+            expiredDays
         });
     }
 
@@ -466,20 +719,41 @@ public class CompOffController : ControllerBase
 
         // Check for existing request on the same date
         var existing = await _db.CompOffRequests
-            .FirstOrDefaultAsync(c => c.EmployeeId == dto.EmployeeId && c.WorkedDate == dto.WorkedDate && c.Status != "Cancelled" && c.Status != "Archived");
+            .FirstOrDefaultAsync(c => c.EmployeeId == dto.EmployeeId && c.WorkedDate == dto.WorkedDate && c.Status != "Cancelled" && c.Status != "Archived" && c.Status != "Rejected");
 
         if (existing != null)
         {
             return BadRequest(new { message = $"A Comp-Off request already exists for this employee on {dto.WorkedDate:dd MMM yyyy} (Status: {existing.Status})." });
         }
 
+        // Check Attendance record for this worked date
+        var att = await _db.DailyAttendance
+            .FirstOrDefaultAsync(d => d.EmployeeId == dto.EmployeeId && d.RecordDate == dto.WorkedDate);
+
+        // Verify that the date is a declared Week-Off or Holiday
+        var empWeekoff = string.IsNullOrWhiteSpace(employee.Weekoff) ? "Sunday" : employee.Weekoff.Trim();
+        var dayOfWeek = dto.WorkedDate.DayOfWeek.ToString();
+        bool isWeekoff = dayOfWeek.Equals(empWeekoff, StringComparison.OrdinalIgnoreCase) ||
+                         (empWeekoff.Contains(",") && empWeekoff.Split(',').Any(w => w.Trim().Equals(dayOfWeek, StringComparison.OrdinalIgnoreCase))) ||
+                         att?.Status == "Weekoff" || att?.Status == "W/O";
+
+        bool isHoliday = att?.Status == "Holiday" || await _db.Holidays.AnyAsync(h => (h.BranchId == null || h.BranchId == employee.BranchId) && h.StartDate <= dto.WorkedDate && h.EndDate >= dto.WorkedDate);
+
+        if (!isWeekoff && !isHoliday)
+        {
+            return BadRequest(new { message = $"Comp-Off can only be claimed for declared Week-Offs or Public Holidays. {dto.WorkedDate:dd MMM yyyy} is a regular working day." });
+        }
+
         TimeOnly? inTime = null;
         TimeOnly? outTime = null;
         if (!string.IsNullOrWhiteSpace(dto.InTime) && TimeOnly.TryParse(dto.InTime, out var parsedIn)) inTime = parsedIn;
-        if (!string.IsNullOrWhiteSpace(dto.OutTime) && TimeOnly.TryParse(dto.OutTime, out var parsedOut)) outTime = parsedOut;
+        else if (att?.InTime != null) inTime = att.InTime.Value;
 
-        int? workMinutes = null;
-        if (inTime.HasValue && outTime.HasValue)
+        if (!string.IsNullOrWhiteSpace(dto.OutTime) && TimeOnly.TryParse(dto.OutTime, out var parsedOut)) outTime = parsedOut;
+        else if (att?.OutTime != null) outTime = att.OutTime.Value;
+
+        int? workMinutes = att?.WorkMinutes;
+        if ((!workMinutes.HasValue || workMinutes.Value == 0) && inTime.HasValue && outTime.HasValue)
         {
             var inDateTime = dto.WorkedDate.ToDateTime(inTime.Value);
             var outDateTime = dto.WorkedDate.ToDateTime(outTime.Value);
@@ -487,6 +761,7 @@ public class CompOffController : ControllerBase
             workMinutes = (int)(outDateTime - inDateTime).TotalMinutes;
         }
 
+        var shiftId = dto.ShiftId ?? att?.ShiftId;
         var compOffDays = dto.CompOffDays > 0 ? dto.CompOffDays : 1.0m;
 
         var request = new CompOffRequest
@@ -496,7 +771,7 @@ public class CompOffController : ControllerBase
             WorkedDate = dto.WorkedDate,
             InTime = inTime,
             OutTime = outTime,
-            ShiftId = dto.ShiftId,
+            ShiftId = shiftId,
             WorkMinutes = workMinutes,
             CompOffDays = compOffDays,
             Status = "Pending",

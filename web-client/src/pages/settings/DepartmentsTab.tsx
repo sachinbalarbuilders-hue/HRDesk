@@ -9,6 +9,7 @@ import { BulkImportModal } from '../../components/ui/BulkImportModal';
 import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
+import { useAuth } from '../../context/AuthContext';
 import {
   FolderTree,
   Plus,
@@ -19,6 +20,7 @@ import {
 export const DepartmentsTab: React.FC = () => {
   const { currentBranch } = useOrganization();
   const { showSuccess, showError } = useToast();
+  const { hasPermission, isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
@@ -165,16 +167,37 @@ export const DepartmentsTab: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: (item) => (
-        <RowActionMenu actions={[
-          { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => { setEditingDeptId(item.id); setNewDept({ name: item.name, code: item.code || '', head: item.head || '' }); setDeptModalOpen(true); } },
-          ...archiveActions.rowActions({
-            id: item.id,
-            name: item.name,
-            isArchived: isRowArchived(item),
-          }),
-        ] as RowAction[]} />
-      ),
+      render: (item) => {
+        const canEdit = isAdmin || hasPermission('Masters.Departments.Edit');
+        const canDelete = isAdmin || hasPermission('Masters.Departments.Delete');
+        const actions: RowAction[] = [];
+
+        if (canEdit) {
+          actions.push({
+            label: 'Edit',
+            icon: <Edit2 size={14} />,
+            onClick: () => {
+              setEditingDeptId(item.id);
+              setNewDept({ name: item.name, code: item.code || '', head: item.head || '' });
+              setDeptModalOpen(true);
+            },
+          });
+        }
+
+        if (canDelete) {
+          actions.push(
+            ...archiveActions.rowActions({
+              id: item.id,
+              name: item.name,
+              isArchived: isRowArchived(item),
+            })
+          );
+        }
+
+        if (actions.length === 0) return null;
+
+        return <RowActionMenu actions={actions} />;
+      },
     },
   ];
 
@@ -192,13 +215,17 @@ export const DepartmentsTab: React.FC = () => {
         }}
         onExport={handleExport}
         exportLabel="Export CSV"
-        onImport={() => setBulkImportModalOpen(true)}
+        onImport={(isAdmin || hasPermission('Masters.Departments.Create')) ? () => setBulkImportModalOpen(true) : undefined}
         importLabel="Import CSV"
-        primaryAction={{
-          label: 'Add Department',
-          icon: <Plus size={14} />,
-          onClick: () => setDeptModalOpen(true),
-        }}
+        primaryAction={
+          (isAdmin || hasPermission('Masters.Departments.Create'))
+            ? {
+                label: 'Add Department',
+                icon: <Plus size={14} />,
+                onClick: () => setDeptModalOpen(true),
+              }
+            : undefined
+        }
       />
 
       <DataTable
@@ -206,11 +233,15 @@ export const DepartmentsTab: React.FC = () => {
         data={paginatedDepts}
         loading={loading}
         keyExtractor={(d) => d.id}
-        selection={{
-          selectedRowKeys: selectedIds,
-          onChange: (keys) => setSelectedIds(keys),
-          bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
-        }}
+        selection={
+          (isAdmin || hasPermission('Masters.Departments.Delete'))
+            ? {
+                selectedRowKeys: selectedIds,
+                onChange: (keys) => setSelectedIds(keys),
+                bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
+              }
+            : undefined
+        }
         emptyMessage="No departments found matching your search."
         pagination={{
           page,
