@@ -427,11 +427,11 @@ using (var scope = app.Services.CreateScope())
             db.SaveChanges();
         }
 
-        var defaultOrg = db.Organizations.FirstOrDefault();
+        var defaultOrg = db.Organizations.IgnoreQueryFilters().FirstOrDefault();
         if (defaultOrg != null)
         {
             // Seed System Roles
-            var superAdminRole = db.Roles.IgnoreQueryFilters().FirstOrDefault(r => r.OrganizationId == defaultOrg.Id && r.Name == "Super Admin" && r.ArchivedAt == null);
+            var superAdminRole = db.Roles.IgnoreQueryFilters().FirstOrDefault(r => r.Name == "Super Admin" || r.Name == "Administrator");
             if (superAdminRole == null)
             {
                 superAdminRole = new HRDesk.Web.Models.Role
@@ -460,7 +460,7 @@ using (var scope = app.Services.CreateScope())
                 db.SaveChanges();
             }
 
-            var managerRole = db.Roles.IgnoreQueryFilters().FirstOrDefault(r => r.OrganizationId == defaultOrg.Id && r.Name == "Department Manager" && r.ArchivedAt == null);
+            var managerRole = db.Roles.IgnoreQueryFilters().FirstOrDefault(r => r.Name == "Department Manager" || r.Name == "Manager");
             if (managerRole == null)
             {
                 managerRole = new HRDesk.Web.Models.Role
@@ -500,7 +500,7 @@ using (var scope = app.Services.CreateScope())
                 db.SaveChanges();
             }
 
-            var employeeRole = db.Roles.IgnoreQueryFilters().FirstOrDefault(r => r.OrganizationId == defaultOrg.Id && r.Name == "Employee" && r.ArchivedAt == null);
+            var employeeRole = db.Roles.IgnoreQueryFilters().FirstOrDefault(r => r.Name == "Employee");
             if (employeeRole == null)
             {
                 employeeRole = new HRDesk.Web.Models.Role
