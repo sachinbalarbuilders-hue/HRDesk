@@ -168,7 +168,7 @@ public class TenantProvisioningService : ITenantProvisioningService
                     RoleId = adminRole.Id,
                     OrganizationId = org.Id,
                     PermissionKey = perm.Key,
-                    Scope = AppPermissions.Scopes.All
+                    Scope = AppPermissions.GetDefaultAdminScope(perm)
                 });
             }
 

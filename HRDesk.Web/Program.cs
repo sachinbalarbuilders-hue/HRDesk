@@ -467,7 +467,7 @@ using (var scope = app.Services.CreateScope())
                     {
                         RoleId = superAdminRole.Id,
                         PermissionKey = perm.Key,
-                        Scope = HRDesk.Web.Constants.AppPermissions.Scopes.All,
+                        Scope = HRDesk.Web.Constants.AppPermissions.GetDefaultAdminScope(perm),
                         OrganizationId = superAdminRole.OrganizationId
                     });
                 }

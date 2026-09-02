@@ -440,4 +440,18 @@ public static class AppPermissions
         new(Keys.SystemSettingsEdit, "Edit System Settings", Modules.System, "Configure general company settings and email"),
         new(Keys.SystemLogsView, "View Service Logs", Modules.System, "Inspect audit trails and background job logs")
     };
+
+    public static string GetDefaultAdminScope(PermissionDefinition perm)
+    {
+        if (perm.Key.EndsWith(".Delete", StringComparison.OrdinalIgnoreCase))
+            return Scopes.DeletePermanent;
+
+        if (perm.Key.Equals(Keys.EmployeesEdit, StringComparison.OrdinalIgnoreCase))
+            return Scopes.EditAllDetails;
+
+        if (perm.Module == Modules.Masters || perm.Module == Modules.System)
+            return Scopes.All;
+
+        return Scopes.OwnBranch;
+    }
 }
