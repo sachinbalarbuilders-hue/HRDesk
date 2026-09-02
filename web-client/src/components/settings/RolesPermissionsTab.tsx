@@ -96,7 +96,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
   const toggleModule = (moduleName: string) => {
     setExpandedModules((prev) => ({
       ...prev,
-      [moduleName]: prev[moduleName] === undefined ? false : !prev[moduleName],
+      [moduleName]: !prev[moduleName],
     }));
   };
 
@@ -419,7 +419,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
           {/* Module Permission Cards */}
           <div className="space-y-4">
             {definitions.map((defGroup) => {
-              const isExpanded = expandedModules[defGroup.module] ?? true;
+              const isExpanded = !!expandedModules[defGroup.module];
               const isSystem = false;
 
               // Separate scoped permissions vs simple boolean toggle permissions
