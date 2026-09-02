@@ -35,7 +35,7 @@ export const LeaveTypesTab: React.FC = () => {
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
 
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
-  const [newLeaveType, setNewLeaveType] = useState<{name: string, code: string, quota: number, isPaid: boolean, applicableAfterProbation: boolean, allowCarryForward: boolean, genderApplicability: string, maritalStatusApplicability: string, departmentIds: string[], designationIds: string[], roleIds: string[]}>({ name: '', code: '', quota: 12, isPaid: true, applicableAfterProbation: true, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
+  const [newLeaveType, setNewLeaveType] = useState<{name: string, code: string, quota: number, isPaid: boolean, applicableAfterProbation: boolean, allowCarryForward: boolean, genderApplicability: string, maritalStatusApplicability: string, departmentIds: string[], designationIds: string[], roleIds: string[]}>({ name: '', code: '', quota: 0, isPaid: false, applicableAfterProbation: false, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
   const [editingLeaveTypeId, setEditingLeaveTypeId] = useState<number | null>(null);
   const [leaveFormStep, setLeaveFormStep] = useState<1 | 2>(1);
 
@@ -141,7 +141,7 @@ export const LeaveTypesTab: React.FC = () => {
         });
         showSuccess('Leave Category Added', `${newLeaveType.name} configured.`);
       }
-      setNewLeaveType({ name: '', code: '', quota: 12, isPaid: true, applicableAfterProbation: true, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
+      setNewLeaveType({ name: '', code: '', quota: 0, isPaid: false, applicableAfterProbation: false, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
       setEditingLeaveTypeId(null);
       setLeaveModalOpen(false);
       fetchData();
@@ -326,7 +326,7 @@ export const LeaveTypesTab: React.FC = () => {
                 label: 'Add Leave Category',
                 icon: <Plus size={14} />,
                 onClick: () => {
-                  setNewLeaveType({ name: '', code: '', quota: 12, isPaid: true, applicableAfterProbation: true, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
+                  setNewLeaveType({ name: '', code: '', quota: 0, isPaid: false, applicableAfterProbation: false, allowCarryForward: false, genderApplicability: 'All', maritalStatusApplicability: 'All', departmentIds: [], designationIds: [], roleIds: [] });
                   setLeaveFormStep(1);
                   setLeaveModalOpen(true);
                 },
@@ -406,8 +406,10 @@ export const LeaveTypesTab: React.FC = () => {
                       <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Annual Quota (Days)</label>
                       <input
                         type="number"
-                        value={newLeaveType.quota}
-                        onChange={(e) => setNewLeaveType({ ...newLeaveType, quota: Number(e.target.value) })}
+                        min="0"
+                        value={newLeaveType.quota === 0 ? '' : newLeaveType.quota}
+                        placeholder="0"
+                        onChange={(e) => setNewLeaveType({ ...newLeaveType, quota: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)) })}
                         className="register-input w-full font-data"
                       />
                     </div>
