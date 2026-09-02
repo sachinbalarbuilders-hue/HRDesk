@@ -94,6 +94,13 @@ public sealed class PermissionService : IPermissionService
             }
         }
 
+        // 3. Child match (e.g. controller asked for umbrella "System.Roles" and user has granular "System.Roles.View" or "System.Roles.Edit")
+        if (LegacyToGranularMap.TryGetValue(permissionKey, out var matchingChildren))
+        {
+            if (matchingChildren.Any(c => userKeys.Contains(c)))
+                return true;
+        }
+
         return false;
     }
 
@@ -119,6 +126,13 @@ public sealed class PermissionService : IPermissionService
                 var legacyMatch = permissions.FirstOrDefault(p => string.Equals(p.PermissionKey, legacyKey, StringComparison.OrdinalIgnoreCase));
                 if (legacyMatch != null) return legacyMatch.Scope;
             }
+        }
+
+        // 3. Child match (e.g. controller asked for umbrella "System.Roles" and user has granular "System.Roles.View")
+        if (LegacyToGranularMap.TryGetValue(permissionKey, out var granChildren))
+        {
+            var childMatch = permissions.FirstOrDefault(p => granChildren.Contains(p.PermissionKey, StringComparer.OrdinalIgnoreCase));
+            if (childMatch != null) return childMatch.Scope;
         }
 
         return null;

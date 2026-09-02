@@ -113,7 +113,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
   };
 
   const handleScopeChange = async (permKey: string, newScope: string, currentSubs?: string[]) => {
-    if (!selectedRolePublicId || roleDetail?.isSystemRole) return;
+    if (!selectedRolePublicId) return;
 
     try {
       setSavingKey(permKey);
@@ -148,7 +148,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
   };
 
   const handleToggleSubRestriction = async (permKey: string, subName: string) => {
-    if (!selectedRolePublicId || roleDetail?.isSystemRole) return;
+    if (!selectedRolePublicId) return;
 
     const currentSubs: string[] = roleDetail?.subRestrictions?.[permKey] || [];
     const newSubs = currentSubs.includes(subName)
@@ -194,7 +194,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
     currentGranted: boolean,
     defaultScope: string
   ) => {
-    if (!selectedRolePublicId || roleDetail?.isSystemRole) return;
+    if (!selectedRolePublicId) return;
 
     const newGranted = !currentGranted;
     const currentScope = roleDetail?.scopes?.[permKey] || defaultScope;
@@ -384,8 +384,8 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                 </h2>
                 {roleDetail?.isSystemRole ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--gold-100)] text-[var(--gold-500)] text-[10px] font-data font-bold border border-[var(--gold-500)]/40">
-                    <Lock size={10} />
-                    System Protected
+                    <Shield size={10} />
+                    System Role (Non-deletable)
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-data font-bold border border-emerald-200 dark:border-emerald-900/60">
@@ -420,7 +420,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
           <div className="space-y-4">
             {definitions.map((defGroup) => {
               const isExpanded = expandedModules[defGroup.module] ?? true;
-              const isSystem = roleDetail?.isSystemRole;
+              const isSystem = false;
 
               // Separate scoped permissions vs simple boolean toggle permissions
               const scopedPerms = defGroup.permissions.filter((p: any) => p.supportsScope);

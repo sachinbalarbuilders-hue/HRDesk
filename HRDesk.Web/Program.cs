@@ -437,6 +437,7 @@ using (var scope = app.Services.CreateScope())
         if (defaultOrg != null)
         {
             // Seed System Roles
+            // 1. Sync Super Admin / Administrator Role & Permissions
             var superAdminRole = db.Roles.IgnoreQueryFilters().FirstOrDefault(r => r.Name == "Super Admin" || r.Name == "Administrator");
             if (superAdminRole == null)
             {
@@ -451,21 +452,29 @@ using (var scope = app.Services.CreateScope())
                 };
                 db.Roles.Add(superAdminRole);
                 db.SaveChanges();
+            }
 
-                // Grant all permissions with scope = All
-                foreach (var perm in HRDesk.Web.Constants.AppPermissions.All)
+            var existingSuperPerms = db.RolePermissions.IgnoreQueryFilters()
+                .Where(p => p.RoleId == superAdminRole.Id)
+                .Select(p => p.PermissionKey)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var perm in HRDesk.Web.Constants.AppPermissions.All)
+            {
+                if (!existingSuperPerms.Contains(perm.Key))
                 {
                     db.RolePermissions.Add(new HRDesk.Web.Models.RolePermission
                     {
                         RoleId = superAdminRole.Id,
                         PermissionKey = perm.Key,
                         Scope = HRDesk.Web.Constants.AppPermissions.Scopes.All,
-                        OrganizationId = defaultOrg.Id
+                        OrganizationId = superAdminRole.OrganizationId
                     });
                 }
-                db.SaveChanges();
             }
+            db.SaveChanges();
 
+            // 2. Sync Department Manager Role & Permissions
             var managerRole = db.Roles.IgnoreQueryFilters().FirstOrDefault(r => r.Name == "Department Manager" || r.Name == "Manager");
             if (managerRole == null)
             {
@@ -480,32 +489,48 @@ using (var scope = app.Services.CreateScope())
                 };
                 db.Roles.Add(managerRole);
                 db.SaveChanges();
+            }
 
+            var existingManagerPerms = db.RolePermissions.IgnoreQueryFilters()
+                .Where(p => p.RoleId == managerRole.Id)
+                .Select(p => p.PermissionKey)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!existingManagerPerms.Any())
+            {
                 var managerPerms = new (string Key, string Scope)[]
                 {
                     (HRDesk.Web.Constants.AppPermissions.Keys.EmployeesView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
                     (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
                     (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRoster, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
                     (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRegularize, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.ShiftsRequestsView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.ShiftsRequestsApprove, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
                     (HRDesk.Web.Constants.AppPermissions.Keys.LeavesView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.LeavesApply, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
                     (HRDesk.Web.Constants.AppPermissions.Keys.LeavesApprove, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.CompOffView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.CompOffApply, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
                     (HRDesk.Web.Constants.AppPermissions.Keys.CompOffApprove, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.PayrollView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting)
+                    (HRDesk.Web.Constants.AppPermissions.Keys.PayrollView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.HolidaysView, HRDesk.Web.Constants.AppPermissions.Scopes.All),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.AnnouncementsView, HRDesk.Web.Constants.AppPermissions.Scopes.All),
                 };
 
-                foreach (var (permKey, permScope) in managerPerms)
+                foreach (var (mKey, mScope) in managerPerms)
                 {
                     db.RolePermissions.Add(new HRDesk.Web.Models.RolePermission
                     {
                         RoleId = managerRole.Id,
-                        PermissionKey = permKey,
-                        Scope = permScope,
-                        OrganizationId = defaultOrg.Id
+                        PermissionKey = mKey,
+                        Scope = mScope,
+                        OrganizationId = managerRole.OrganizationId
                     });
                 }
                 db.SaveChanges();
             }
 
+            // 3. Sync Employee Role & Permissions
             var employeeRole = db.Roles.IgnoreQueryFilters().FirstOrDefault(r => r.Name == "Employee");
             if (employeeRole == null)
             {
@@ -520,26 +545,40 @@ using (var scope = app.Services.CreateScope())
                 };
                 db.Roles.Add(employeeRole);
                 db.SaveChanges();
+            }
 
-                var defaultEmpKeys = new[]
+            var existingEmpPerms = db.RolePermissions.IgnoreQueryFilters()
+                .Where(p => p.RoleId == employeeRole.Id)
+                .Select(p => p.PermissionKey)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!existingEmpPerms.Any())
+            {
+                var defaultEmpPerms = new (string Key, string Scope)[]
                 {
-                    HRDesk.Web.Constants.AppPermissions.Keys.EmployeesView,
-                    HRDesk.Web.Constants.AppPermissions.Keys.AttendanceView,
-                    HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRegularize,
-                    HRDesk.Web.Constants.AppPermissions.Keys.LeavesView,
-                    HRDesk.Web.Constants.AppPermissions.Keys.LeavesApply,
-                    HRDesk.Web.Constants.AppPermissions.Keys.PayrollView,
-                    HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRoster
+                    (HRDesk.Web.Constants.AppPermissions.Keys.EmployeesView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRegularize, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.ShiftsRequestsView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.ShiftsRequestsApply, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.LeavesView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.LeavesApply, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.CompOffView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.CompOffApply, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.PayrollView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRoster, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.HolidaysView, HRDesk.Web.Constants.AppPermissions.Scopes.All),
+                    (HRDesk.Web.Constants.AppPermissions.Keys.AnnouncementsView, HRDesk.Web.Constants.AppPermissions.Scopes.All)
                 };
 
-                foreach (var key in defaultEmpKeys)
+                foreach (var (eKey, eScope) in defaultEmpPerms)
                 {
                     db.RolePermissions.Add(new HRDesk.Web.Models.RolePermission
                     {
                         RoleId = employeeRole.Id,
-                        PermissionKey = key,
-                        Scope = HRDesk.Web.Constants.AppPermissions.Scopes.Own,
-                        OrganizationId = defaultOrg.Id
+                        PermissionKey = eKey,
+                        Scope = eScope,
+                        OrganizationId = employeeRole.OrganizationId
                     });
                 }
                 db.SaveChanges();
