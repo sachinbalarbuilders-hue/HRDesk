@@ -41,7 +41,7 @@ public static class ArchivableRegistry
         Register("pt-slabs",           typeof(ProfessionalTaxSlab),      AppPermissions.Keys.PayrollManageSalary,  "PT slab");
         Register("loan-types",         typeof(LoanType),                 AppPermissions.Keys.PayrollManageLoans,   "Loan type");
         Register("loans",              typeof(EmployeeLoan),             AppPermissions.Keys.PayrollManageLoans,   "Loan");
-        Register("announcements",      typeof(Announcement),             AppPermissions.Keys.SystemSettings,       "Announcement");
+        Register("announcements",      typeof(Announcement),             AppPermissions.Keys.AnnouncementsDelete,  "Announcement");
         Register("employees",          typeof(Employee),                 AppPermissions.Keys.EmployeesDelete,      "Employee");
         Register("employee-documents", typeof(EmployeeDocument),         AppPermissions.Keys.EmployeesEdit,        "Document");
         Register("documents",          typeof(EmployeeDocument),         AppPermissions.Keys.EmployeesEdit,        "Document");

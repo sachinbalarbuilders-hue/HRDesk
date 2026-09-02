@@ -124,6 +124,7 @@ export const DesignationsTab: React.FC = () => {
   const archiveActions = useArchiveActions({
     endpoint: '/masters/designations',
     label: 'Designation',
+    permissionKey: 'Masters.Designations.Delete',
     onDone: fetchData,
   });
 
@@ -268,15 +269,11 @@ export const DesignationsTab: React.FC = () => {
         data={paginatedDesigs}
         loading={loading}
         keyExtractor={(d) => d.id}
-        selection={
-          (isAdmin || hasPermission('Masters.Designations.Delete'))
-            ? {
-                selectedRowKeys: selectedIds,
-                onChange: (keys) => setSelectedIds(keys),
-                bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
-              }
-            : undefined
-        }
+        selection={archiveActions.getSelectionConfig(
+          selectedIds,
+          setSelectedIds,
+          archiveFilter === 'archived'
+        )}
         emptyMessage="No designations found matching your search."
         pagination={{
           page,

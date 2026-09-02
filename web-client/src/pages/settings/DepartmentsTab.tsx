@@ -152,39 +152,43 @@ export const DepartmentsTab: React.FC = () => {
     {
       key: 'status',
       header: 'Status',
-      render: (item) =>
-        item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived' ? (
-          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-            Active
+      render: (item) => {
+        const isAct = item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived';
+        return (
+          <span className={`px-2 py-0.5 rounded-[2px] text-[10px] font-semibold uppercase tracking-wider ${
+            isAct
+              ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+              : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+          }`}>
+            {isAct ? 'Active' : 'Archived'}
           </span>
-        ) : (
-          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
-            Archived
-          </span>
-        ),
+        );
+      },
     },
     {
       key: 'actions',
       header: 'Actions',
       align: 'right',
       render: (item) => {
-        const canEdit = isAdmin || hasPermission('Masters.Departments.Edit');
-        const canDelete = isAdmin || hasPermission('Masters.Departments.Delete');
         const actions: RowAction[] = [];
 
-        if (canEdit) {
+        if (isAdmin || hasPermission('Masters.Departments.Edit')) {
           actions.push({
             label: 'Edit',
             icon: <Edit2 size={14} />,
             onClick: () => {
               setEditingDeptId(item.id);
-              setNewDept({ name: item.name, code: item.code || '', head: item.head || '' });
+              setNewDept({
+                name: item.name,
+                code: item.code || '',
+                head: item.head || '',
+              });
               setDeptModalOpen(true);
             },
           });
         }
 
-        if (canDelete) {
+        if (archiveActions.canDelete) {
           actions.push(
             ...archiveActions.rowActions({
               id: item.id,
@@ -205,24 +209,28 @@ export const DepartmentsTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {archiveActions.dialog}
+
       <DataToolbar
+        searchPlaceholder="Search departments by name or code..."
         searchValue={search}
         onSearchChange={(v) => { setSearch(v); setPage(1); }}
-        searchPlaceholder="Search departments by name or code..."
         archiveFilter={{
           value: archiveFilter,
           onChange: (v) => { setArchiveFilter(v); setPage(1); },
         }}
         onExport={handleExport}
         exportLabel="Export CSV"
-        onImport={(isAdmin || hasPermission('Masters.Departments.Create')) ? () => setBulkImportModalOpen(true) : undefined}
-        importLabel="Import CSV"
         primaryAction={
           (isAdmin || hasPermission('Masters.Departments.Create'))
             ? {
                 label: 'Add Department',
                 icon: <Plus size={14} />,
-                onClick: () => setDeptModalOpen(true),
+                onClick: () => {
+                  setEditingDeptId(null);
+                  setNewDept({ name: '', code: '', head: '' });
+                  setDeptModalOpen(true);
+                }
               }
             : undefined
         }
@@ -233,15 +241,11 @@ export const DepartmentsTab: React.FC = () => {
         data={paginatedDepts}
         loading={loading}
         keyExtractor={(d) => d.id}
-        selection={
-          (isAdmin || hasPermission('Masters.Departments.Delete'))
-            ? {
-                selectedRowKeys: selectedIds,
-                onChange: (keys) => setSelectedIds(keys),
-                bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
-              }
-            : undefined
-        }
+        selection={archiveActions.getSelectionConfig(
+          selectedIds,
+          setSelectedIds,
+          archiveFilter === 'archived'
+        )}
         emptyMessage="No departments found matching your search."
         pagination={{
           page,

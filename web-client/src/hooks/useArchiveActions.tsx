@@ -2,20 +2,14 @@ import React, { useCallback, useState } from 'react';
 import { Trash2, RotateCcw } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import type { RowAction } from '../components/ui/RowActionMenu';
-import type { BulkAction } from '../components/ui/DataTable';
+import type { BulkAction, TableSelection } from '../components/ui/DataTable';
 
 export interface UseArchiveActionsOptions {
   /**
    * Base REST path for the resource, no trailing slash. e.g. '/masters/departments' or '/recruitment/candidates'.
-   * Conventions the backend implements for every archivable resource:
-   *   DELETE {endpoint}/{id}                 → archive
-   *   DELETE {endpoint}/{id}?permanent=true  → permanent delete
-   *   POST   {endpoint}/{id}/restore         → restore
-   *   POST   {endpoint}/bulk-archive         → bulk archive
-   *   POST   {endpoint}/bulk-restore         → bulk restore
-   *   POST   {endpoint}/bulk-delete          → bulk permanent delete
    */
   endpoint: string;
 
@@ -25,10 +19,13 @@ export interface UseArchiveActionsOptions {
   /** Singular noun used in toasts, e.g. "Department". Defaults to "Record". */
   label?: string;
 
-  /** Whether the row can be permanently deleted. Defaults to true. */
+  /** Permission key to evaluate scopes for, e.g. "Shifts.Delete", "Masters.Departments.Delete", etc. */
+  permissionKey?: string;
+
+  /** Whether the row can be permanently deleted. Defaults to true (subject to RBAC). */
   canPermanentDelete?: boolean;
 
-  /** Whether bulk archive/delete operations are enabled. Defaults to true. */
+  /** Whether bulk archive/delete operations are enabled. Defaults to true (subject to RBAC). */
   canBulkDelete?: boolean;
 }
 
@@ -48,12 +45,46 @@ function getArchiveSlug(endpoint: string): string {
   return segments[segments.length - 1] || clean;
 }
 
-export function useArchiveActions({ endpoint, onDone, label = 'Record', canPermanentDelete = true, canBulkDelete = true }: UseArchiveActionsOptions) {
+export function useArchiveActions({
+  endpoint,
+  onDone,
+  label = 'Record',
+  permissionKey,
+  canPermanentDelete: optCanPermanent = true,
+  canBulkDelete: optCanBulk = true,
+}: UseArchiveActionsOptions) {
   const { showSuccess, showError } = useToast();
+  const { isAdmin, hasPermission, getPermissionScope } = useAuth();
+
   const [pending, setPending] = useState<ArchiveRowTarget | null>(null);
   const [pendingBulkIds, setPendingBulkIds] = useState<(string | number)[] | null>(null);
   const [clearSelectionCallback, setClearSelectionCallback] = useState<(() => void) | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // ── RBAC Scope Resolution ──────────────────────────────────────────────────
+  // Scopes:
+  // - "Soft Delete"     : can only archive individual records. No permanent delete, no bulk delete.
+  // - "Permanent Delete": can archive and permanently delete individual records. No bulk delete.
+  // - "Bulk Delete"     : can archive, permanently delete, and multi-select / bulk delete.
+  // - "All" / SuperAdmin: full access.
+  const hasDeletePerm = permissionKey ? (isAdmin || hasPermission(permissionKey)) : true;
+  const deleteScope = permissionKey ? getPermissionScope(permissionKey) : undefined;
+
+  const allowsPermanent =
+    !permissionKey ||
+    isAdmin ||
+    deleteScope === 'All' ||
+    deleteScope === 'Permanent Delete' ||
+    deleteScope === 'Bulk Delete';
+
+  const allowsBulk =
+    !permissionKey ||
+    isAdmin ||
+    deleteScope === 'All' ||
+    deleteScope === 'Bulk Delete';
+
+  const canPermanentDelete = optCanPermanent && hasDeletePerm && allowsPermanent;
+  const canBulkDelete = optCanBulk && hasDeletePerm && allowsBulk;
 
   const fail = useCallback(
     (err: any, fallback: string) => {
@@ -69,6 +100,10 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
   /** "Delete" in the active list. Reversible, so no confirmation. */
   const archive = useCallback(
     async (target: ArchiveRowTarget) => {
+      if (!hasDeletePerm) {
+        showError('Access Restricted', 'You do not have permission to delete records.');
+        return;
+      }
       try {
         await apiClient.delete(`${endpoint}/${target.id}`);
         showSuccess(`${label} Deleted`, `${target.name ?? label} moved to archive.`);
@@ -77,11 +112,15 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
         fail(err, 'Delete Failed');
       }
     },
-    [endpoint, label, onDone, showSuccess, fail]
+    [endpoint, label, onDone, showSuccess, fail, hasDeletePerm, showError]
   );
 
   const restore = useCallback(
     async (target: ArchiveRowTarget) => {
+      if (!hasDeletePerm) {
+        showError('Access Restricted', 'You do not have permission to restore records.');
+        return;
+      }
       try {
         await apiClient.post(`${endpoint}/${target.id}/restore`);
         showSuccess(`${label} Restored`, `${target.name ?? label} is active again.`);
@@ -90,15 +129,28 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
         fail(err, 'Restore Failed');
       }
     },
-    [endpoint, label, onDone, showSuccess, fail]
+    [endpoint, label, onDone, showSuccess, fail, hasDeletePerm, showError]
   );
 
   /** "Delete" inside the archive view. Irreversible, so it opens the confirm modal first. */
-  const confirmPermanentDelete = useCallback((target: ArchiveRowTarget) => setPending(target), []);
+  const confirmPermanentDelete = useCallback(
+    (target: ArchiveRowTarget) => {
+      if (!canPermanentDelete) {
+        showError('Access Restricted', 'You do not have permission to permanently delete records.');
+        return;
+      }
+      setPending(target);
+    },
+    [canPermanentDelete, showError]
+  );
 
   /** Bulk soft-delete / archive */
   const bulkArchive = useCallback(
     async (ids: (string | number)[], clearSelection?: () => void) => {
+      if (!canBulkDelete) {
+        showError('Access Restricted', 'You do not have permission to perform bulk delete operations.');
+        return;
+      }
       if (ids.length === 0) return;
       try {
         const slug = getArchiveSlug(endpoint);
@@ -118,12 +170,16 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
         fail(err, 'Bulk Delete Failed');
       }
     },
-    [endpoint, label, onDone, showSuccess, fail]
+    [endpoint, label, onDone, showSuccess, fail, canBulkDelete, showError]
   );
 
   /** Bulk restore */
   const bulkRestore = useCallback(
     async (ids: (string | number)[], clearSelection?: () => void) => {
+      if (!canBulkDelete) {
+        showError('Access Restricted', 'You do not have permission to perform bulk restore operations.');
+        return;
+      }
       if (ids.length === 0) return;
       try {
         const slug = getArchiveSlug(endpoint);
@@ -143,17 +199,28 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
         fail(err, 'Bulk Restore Failed');
       }
     },
-    [endpoint, label, onDone, showSuccess, fail]
+    [endpoint, label, onDone, showSuccess, fail, canBulkDelete, showError]
   );
 
   /** Confirm bulk permanent delete */
-  const confirmBulkPermanentDelete = useCallback((ids: (string | number)[], clearSelection?: () => void) => {
-    setPendingBulkIds(ids);
-    setClearSelectionCallback(() => clearSelection || null);
-  }, []);
+  const confirmBulkPermanentDelete = useCallback(
+    (ids: (string | number)[], clearSelection?: () => void) => {
+      if (!canPermanentDelete || !canBulkDelete) {
+        showError('Access Restricted', 'You do not have permission to perform bulk permanent delete.');
+        return;
+      }
+      setPendingBulkIds(ids);
+      setClearSelectionCallback(() => clearSelection || null);
+    },
+    [canPermanentDelete, canBulkDelete, showError]
+  );
 
   const runPermanentDelete = useCallback(async () => {
     if (pendingBulkIds && pendingBulkIds.length > 0) {
+      if (!canPermanentDelete || !canBulkDelete) {
+        showError('Access Restricted', 'You do not have permission to permanently delete records.');
+        return;
+      }
       setBusy(true);
       try {
         const slug = getArchiveSlug(endpoint);
@@ -180,6 +247,10 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
     }
 
     if (!pending) return;
+    if (!canPermanentDelete) {
+      showError('Access Restricted', 'You do not have permission to permanently delete records.');
+      return;
+    }
     setBusy(true);
     try {
       await apiClient.delete(`${endpoint}/${pending.id}`, { params: { permanent: true } });
@@ -191,13 +262,14 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
     } finally {
       setBusy(false);
     }
-  }, [pending, pendingBulkIds, clearSelectionCallback, endpoint, label, onDone, showSuccess, fail]);
+  }, [pending, pendingBulkIds, clearSelectionCallback, endpoint, label, onDone, showSuccess, fail, canPermanentDelete, canBulkDelete, showError]);
 
   /**
    * Builds the action list for RowActionMenu.
    */
   const rowActions = useCallback(
     (target: ArchiveRowTarget): RowAction[] => {
+      if (!hasDeletePerm) return [];
       const actions: RowAction[] = [];
 
       if (target.isArchived) {
@@ -233,7 +305,7 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
 
       return actions;
     },
-    [archive, restore, confirmPermanentDelete, canPermanentDelete]
+    [archive, restore, confirmPermanentDelete, canPermanentDelete, hasDeletePerm]
   );
 
   /**
@@ -277,6 +349,25 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
     [bulkArchive, bulkRestore, confirmBulkPermanentDelete, canPermanentDelete, canBulkDelete]
   );
 
+  /**
+   * Helper to construct DataTable selection object. Returns undefined if user cannot bulk delete.
+   */
+  const getSelectionConfig = useCallback(
+    <T = any>(
+      selectedRowKeys: (string | number)[],
+      onChange: (keys: (string | number)[], selectedRows?: T[]) => void,
+      isArchivedView: boolean = false
+    ): TableSelection<T> | undefined => {
+      if (!canBulkDelete) return undefined;
+      return {
+        selectedRowKeys,
+        onChange: (keys: (string | number)[], selectedRows: T[]) => onChange(keys, selectedRows),
+        bulkActions: bulkActions(isArchivedView),
+      };
+    },
+    [canBulkDelete, bulkActions]
+  );
+
   /** Render this once per page so the confirm modal has a mount point. */
   const dialog = (
     <ConfirmDialog
@@ -294,6 +385,9 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
   );
 
   return {
+    canDelete: hasDeletePerm,
+    canPermanentDelete,
+    canBulkDelete,
     rowActions,
     dialog,
     archive,
@@ -303,6 +397,7 @@ export function useArchiveActions({ endpoint, onDone, label = 'Record', canPerma
     bulkRestore,
     confirmBulkPermanentDelete,
     bulkActions,
+    getSelectionConfig,
   };
 }
 

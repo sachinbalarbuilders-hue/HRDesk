@@ -29,6 +29,8 @@ public static class AppPermissions
         public const string Attendance = "Attendance";
         public const string Regularizations = "Regularizations";
         public const string ShiftsAndRoster = "Shifts & Roster";
+        public const string Holidays = "Holidays";
+        public const string Announcements = "Announcements";
         public const string Leaves = "Leaves";
         public const string CompOff = "Comp-Off";
         public const string Payroll = "Payroll & Loans";
@@ -60,7 +62,18 @@ public static class AppPermissions
         // 4. Shifts & Roster Module
         public const string ShiftsManage = "Shifts.Manage";
         public const string AttendanceRoster = "Attendance.Roster";
+        public const string HolidaysView = "Holidays.View";
+        public const string HolidaysCreate = "Holidays.Create";
+        public const string HolidaysEdit = "Holidays.Edit";
+        public const string HolidaysDelete = "Holidays.Delete";
         public const string HolidaysManage = "Holidays.Manage";
+
+        // Announcements Module
+        public const string AnnouncementsView = "Announcements.View";
+        public const string AnnouncementsCreate = "Announcements.Create";
+        public const string AnnouncementsEdit = "Announcements.Edit";
+        public const string AnnouncementsDelete = "Announcements.Delete";
+        public const string AnnouncementsManage = "Announcements.Manage";
 
         // 5. Leaves Module
         public const string LeavesView = "Leaves.View";
@@ -213,10 +226,46 @@ public static class AppPermissions
             ScopeOptions: new[] { "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        new(Keys.HolidaysManage, "Manage Holidays", Modules.ShiftsAndRoster, "Configure annual holiday calendars",
+        new(Keys.HolidaysView, "View Scope", Modules.Holidays, "View company and branch holiday schedules",
             SupportsScope: true,
-            ScopeOptions: new[] { "Own Branch" },
+            ScopeOptions: new[] { "Own Branch", "Department", "All" },
             DefaultScope: "Own Branch"),
+
+        new(Keys.HolidaysCreate, "Create Scope", Modules.Holidays, "Register new holiday events in the calendar",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own Branch", "Department", "All" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.HolidaysEdit, "Edit Scope", Modules.Holidays, "Update holiday dates, names, or applicability",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own Branch", "Department", "All" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.HolidaysDelete, "Delete Scope", Modules.Holidays, "Archive or delete holiday calendar entries",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
+
+        // Announcements
+        new(Keys.AnnouncementsView, "View Scope", Modules.Announcements, "View published company notices and bulletins",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own Branch", "All" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AnnouncementsCreate, "Create Scope", Modules.Announcements, "Post new company notices and announcements",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own Branch", "All" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AnnouncementsEdit, "Edit Scope", Modules.Announcements, "Edit, pin, or upload media for announcements",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own Branch", "All" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AnnouncementsDelete, "Delete Scope", Modules.Announcements, "Archive or permanently delete announcements",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
 
         // 5. Leaves
         new(Keys.LeavesView, "View Scope", Modules.Leaves, "View submitted leave applications", 
@@ -298,29 +347,44 @@ public static class AppPermissions
         new(Keys.MastersOrganizationsView, "View Organizations", Modules.Masters, "View company branches and organizations"),
         new(Keys.MastersOrganizationsCreate, "Create Organization", Modules.Masters, "Add new branches and organizations"),
         new(Keys.MastersOrganizationsEdit, "Edit Organization", Modules.Masters, "Update company and branch settings"),
-        new(Keys.MastersOrganizationsDelete, "Delete Organization", Modules.Masters, "Archive or delete branches"),
+        new(Keys.MastersOrganizationsDelete, "Delete Organizations", Modules.Masters, "Archive or delete branches",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
 
         new(Keys.MastersDepartmentsView, "View Departments", Modules.Masters, "View department list"),
         new(Keys.MastersDepartmentsCreate, "Create Department", Modules.Masters, "Add new department"),
         new(Keys.MastersDepartmentsEdit, "Edit Department", Modules.Masters, "Edit department details"),
-        new(Keys.MastersDepartmentsDelete, "Delete Department", Modules.Masters, "Archive or delete department"),
+        new(Keys.MastersDepartmentsDelete, "Delete Departments", Modules.Masters, "Archive or delete department",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
 
         new(Keys.MastersDesignationsView, "View Designations", Modules.Masters, "View designation list"),
         new(Keys.MastersDesignationsCreate, "Create Designation", Modules.Masters, "Add new designation"),
         new(Keys.MastersDesignationsEdit, "Edit Designation", Modules.Masters, "Edit designation details"),
-        new(Keys.MastersDesignationsDelete, "Delete Designation", Modules.Masters, "Archive or delete designation"),
+        new(Keys.MastersDesignationsDelete, "Delete Designations", Modules.Masters, "Archive or delete designation",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
 
         // Leave Types Master
         new(Keys.LeavesTypesView, "View Leave Types", Modules.Masters, "View leave categories and quotas"),
         new(Keys.LeavesTypesCreate, "Create Leave Type", Modules.Masters, "Add new leave categories"),
         new(Keys.LeavesTypesEdit, "Edit Leave Type", Modules.Masters, "Update leave quotas and rules"),
-        new(Keys.LeavesTypesDelete, "Delete Leave Type", Modules.Masters, "Archive or delete leave types"),
+        new(Keys.LeavesTypesDelete, "Delete Leave Types", Modules.Masters, "Archive or delete leave types",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
 
         // Shifts Master
         new(Keys.ShiftsView, "View Work Shifts", Modules.Masters, "View work shifts and timings"),
         new(Keys.ShiftsCreate, "Create Work Shift", Modules.Masters, "Add new work shifts"),
         new(Keys.ShiftsEdit, "Edit Work Shift", Modules.Masters, "Update shift timings and grace periods"),
-        new(Keys.ShiftsDelete, "Delete Work Shift", Modules.Masters, "Archive or delete work shifts"),
+        new(Keys.ShiftsDelete, "Delete Work Shifts", Modules.Masters, "Archive or delete work shifts",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
 
         // 9. Recruitment
         new(Keys.RecruitmentCandidates, "Manage Candidates", Modules.Recruitment, "Candidate pipeline and resumes",

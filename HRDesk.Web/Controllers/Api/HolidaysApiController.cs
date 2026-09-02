@@ -52,6 +52,10 @@ public class HolidaysController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetHolidays([FromQuery] int? year = null, [FromQuery] string? search = null, [FromQuery] int? branchId = null, [FromQuery] int? departmentId = null, [FromQuery] string status = "active")
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.HolidaysView) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.HolidaysManage))
+            return Forbid();
+
         if (status.Equals("archived", StringComparison.OrdinalIgnoreCase) || status.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
             _db.BypassArchiveFilter = true;
@@ -169,6 +173,10 @@ public class HolidaysController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateHoliday([FromBody] HolidayDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.HolidaysCreate) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.HolidaysManage))
+            return Forbid();
+
         if (string.IsNullOrWhiteSpace(dto.Name))
         {
             return BadRequest(new { message = "Holiday name is required." });
@@ -208,6 +216,10 @@ public class HolidaysController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateHoliday(int id, [FromBody] HolidayDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.HolidaysEdit) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.HolidaysManage))
+            return Forbid();
+
         var holiday = await _db.Holidays.FindAsync(id);
         if (holiday == null) return NotFound(new { message = "Holiday not found." });
 
@@ -244,6 +256,10 @@ public class HolidaysController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteHoliday(int id, [FromQuery] bool permanent = false)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.HolidaysDelete) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.HolidaysManage))
+            return Forbid();
+
         if (!permanent)
             return FromArchive(await _archive.ArchiveAsync<Holiday>(id));
 
@@ -257,5 +273,11 @@ public class HolidaysController : ControllerBase
 
     [HttpPost("{id}/restore")]
     public async Task<IActionResult> RestoreHoliday(int id)
-        => FromArchive(await _archive.RestoreAsync<Holiday>(id));
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.HolidaysDelete) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.HolidaysManage))
+            return Forbid();
+
+        return FromArchive(await _archive.RestoreAsync<Holiday>(id));
+    }
 }

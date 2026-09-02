@@ -164,6 +164,7 @@ export const LeaveTypesTab: React.FC = () => {
   const archiveActions = useArchiveActions({
     endpoint: '/masters/leave-types',
     label: 'Leave Category',
+    permissionKey: 'Leaves.Types.Delete',
     onDone: fetchData,
   });
 
@@ -339,15 +340,11 @@ export const LeaveTypesTab: React.FC = () => {
         data={paginatedLeaves}
         loading={loading}
         keyExtractor={(l) => l.id}
-        selection={
-          (isAdmin || hasPermission('Leaves.Types.Delete'))
-            ? {
-                selectedRowKeys: selectedIds,
-                onChange: (keys) => setSelectedIds(keys),
-                bulkActions: archiveActions.bulkActions(archiveFilter === 'archived'),
-              }
-            : undefined
-        }
+        selection={archiveActions.getSelectionConfig(
+          selectedIds,
+          setSelectedIds,
+          archiveFilter === 'archived'
+        )}
         emptyMessage="No leave categories configured."
         pagination={{
           page,
@@ -362,7 +359,7 @@ export const LeaveTypesTab: React.FC = () => {
       {/* Leave Type 2-Step Wizard Modal */}
       {leaveModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xl)] shadow-[var(--shadow-xl)] max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden animate-scale-in">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xl)] shadow-[var(--shadow-xl)] max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4 shrink-0">
               <h3 className="text-base font-semibold text-[var(--text-primary)]">
                 {editingLeaveTypeId ? 'Edit Leave Category' : 'Configure Leave Category'}
@@ -448,7 +445,7 @@ export const LeaveTypesTab: React.FC = () => {
                   </h4>
                   <p className="text-[11px] text-[var(--text-muted)] -mt-2">Leave empty to apply to all. Select specific values to restrict.</p>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <MultiSelectDropdown
                       label="Gender Applicability"
                       placeholder="All Genders (Select to limit)"
@@ -479,7 +476,8 @@ export const LeaveTypesTab: React.FC = () => {
                       searchable={false}
                     />
                   </div>
-                  <div className="grid grid-cols-1 gap-3 mb-2">
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <MultiSelectDropdown
                       label="Limit to Departments"
                       placeholder="All Departments (Select to limit)"
@@ -494,6 +492,9 @@ export const LeaveTypesTab: React.FC = () => {
                       selectedValues={newLeaveType.designationIds}
                       onChange={(vals) => setNewLeaveType({ ...newLeaveType, designationIds: vals as string[] })}
                     />
+                  </div>
+
+                  <div>
                     <MultiSelectDropdown
                       label="Limit to User Roles"
                       placeholder="All Roles (Select to limit)"

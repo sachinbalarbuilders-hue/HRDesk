@@ -58,6 +58,10 @@ public class AnnouncementsController : ControllerBase
         [FromQuery] bool? activeOnly = null,
         [FromQuery] string? archiveStatus = "active")
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsView) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsManage))
+            return Forbid();
+
         var activeBranch = branchId ?? _tenantProvider.BranchId;
         
         IQueryable<Announcement> query;
@@ -135,6 +139,10 @@ public class AnnouncementsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetAnnouncement(int id)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsView) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsManage))
+            return Forbid();
+
         var item = await _db.Announcements
             .IgnoreQueryFilters()
             .AsNoTracking()
@@ -168,6 +176,10 @@ public class AnnouncementsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateAnnouncement([FromBody] AnnouncementDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsCreate) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsManage))
+            return Forbid();
+
         if (string.IsNullOrWhiteSpace(dto.Title))
             return BadRequest(new { message = "Title is required." });
 
@@ -200,6 +212,10 @@ public class AnnouncementsController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateAnnouncement(int id, [FromBody] AnnouncementDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsEdit) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsManage))
+            return Forbid();
+
         var item = await _db.Announcements.FindAsync(id);
         if (item == null) return NotFound(new { message = "Announcement not found." });
 
@@ -224,6 +240,10 @@ public class AnnouncementsController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteAnnouncement(int id, [FromQuery] bool permanent = false)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsDelete) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsManage))
+            return Forbid();
+
         var result = permanent
             ? await _archive.PermanentDeleteAsync<Announcement>(id)
             : await _archive.ArchiveAsync<Announcement>(id);
@@ -233,11 +253,21 @@ public class AnnouncementsController : ControllerBase
 
     [HttpPost("{id:int}/restore")]
     public async Task<IActionResult> RestoreAnnouncement(int id)
-        => FromArchive(await _archive.RestoreAsync<Announcement>(id));
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsDelete) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsManage))
+            return Forbid();
+
+        return FromArchive(await _archive.RestoreAsync<Announcement>(id));
+    }
 
     [HttpPatch("{id:int}/pin")]
     public async Task<IActionResult> TogglePin(int id)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsEdit) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsManage))
+            return Forbid();
+
         var item = await _db.Announcements.FindAsync(id);
         if (item == null) return NotFound(new { message = "Announcement not found." });
 
@@ -258,6 +288,10 @@ public class AnnouncementsController : ControllerBase
     [RequestSizeLimit(60 * 1024 * 1024)] // 60 MB overall limit
     public async Task<IActionResult> UploadMedia(int id, IFormFile file)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsEdit) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsManage))
+            return Forbid();
+
         var item = await _db.Announcements.FindAsync(id);
         if (item == null) return NotFound(new { message = "Announcement not found." });
 
@@ -323,6 +357,10 @@ public class AnnouncementsController : ControllerBase
     [HttpDelete("{id:int}/media/{type}")]
     public async Task<IActionResult> DeleteMedia(int id, string type)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsEdit) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AnnouncementsManage))
+            return Forbid();
+
         var item = await _db.Announcements.FindAsync(id);
         if (item == null) return NotFound(new { message = "Announcement not found." });
 

@@ -56,7 +56,7 @@ export const AppLayout: React.FC = () => {
       group: 'Overview',
       items: [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, show: true },
-        { name: 'Announcements', href: '/announcements', icon: Megaphone, show: true },
+        { name: 'Announcements', href: '/announcements', icon: Megaphone, show: isAdmin || hasPermission('Announcements.View') || hasPermission('Announcements.Manage') },
         { name: 'Employees', href: '/employees', icon: Users, show: isAdmin || hasPermission('Employees.View') },
       ],
     },
@@ -74,7 +74,7 @@ export const AppLayout: React.FC = () => {
         { name: 'Shifts', href: '/shifts', icon: Layers, show: isAdmin || hasPermission('Shifts.Manage') || hasPermission('Attendance.Roster') },
         { name: 'Leaves', href: '/leaves', icon: CalendarOff, show: isAdmin || hasPermission('Leaves.View') },
         { name: 'Comp-Off', href: '/compoff', icon: Gift, show: isAdmin || hasPermission('CompOff.View') || hasPermission('CompOff.Apply') || hasPermission('CompOff.Approve') },
-        { name: 'Holidays', href: '/holidays', icon: Sparkles, show: true },
+        { name: 'Holidays', href: '/holidays', icon: Sparkles, show: isAdmin || hasPermission('Holidays.View') || hasPermission('Holidays.Manage') },
       ],
     },
     {

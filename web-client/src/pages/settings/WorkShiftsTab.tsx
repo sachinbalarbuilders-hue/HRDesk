@@ -17,6 +17,8 @@ import {
   X,
   Edit2,
   RefreshCw,
+  Clock,
+  RotateCcw,
 } from 'lucide-react';
 
 // ─── Shift Cycles ─────────────────────────────────────────────────────────────
@@ -86,7 +88,22 @@ export const WorkShiftsTab: React.FC = () => {
   const [shifts, setShifts] = useState<any[]>([]);
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const [editingShiftId, setEditingShiftId] = useState<number | null>(null);
-  const [newShift, setNewShift] = useState({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
+  const [newShift, setNewShift] = useState({
+    name: '',
+    code: '',
+    startTime: '',
+    endTime: '',
+    lunchStart: '',
+    lunchEnd: '',
+    breakMinutes: '' as number | '',
+    lateGrace: '' as number | '',
+    lateAllowedMonth: '' as number | '',
+    lateHalfDayOnExceed: true,
+    earlyLeaveGrace: '' as number | '',
+    earlyAllowedMonth: '' as number | '',
+    colorCode: '#4e73df',
+    halfTime: ''
+  });
 
   const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
 
@@ -122,11 +139,14 @@ export const WorkShiftsTab: React.FC = () => {
           code: s.code || 'SHF',
           startTime: s.startTime,
           endTime: s.endTime,
-          lunchStart: s.lunchStart || '13:00',
-          lunchEnd: s.lunchEnd || '14:00',
-          breakMinutes: s.breakMinutes || 60,
-          lateGrace: s.lateGrace || 15,
-          earlyLeaveGrace: s.earlyLeaveGrace || 15,
+          lunchStart: s.lunchStart || '',
+          lunchEnd: s.lunchEnd || '',
+          breakMinutes: s.breakMinutes ?? '',
+          lateGrace: s.lateGrace ?? '',
+          lateAllowedMonth: s.lateComingAllowedCountPerMonth ?? '',
+          lateHalfDayOnExceed: s.lateComingHalfDayOnExceed ?? true,
+          earlyLeaveGrace: s.earlyLeaveGrace ?? '',
+          earlyAllowedMonth: s.earlyGoFrequencyPerMonth ?? '',
           colorCode: s.colorCode || '#4e73df',
           halfTime: s.halfTime || '',
           status: s.status || (s.archivedAt ? 'Archived' : 'Active'),
@@ -183,9 +203,12 @@ export const WorkShiftsTab: React.FC = () => {
         endTime: newShift.endTime,
         lunchBreakStart: newShift.lunchStart,
         lunchBreakEnd: newShift.lunchEnd,
-        breakMinutes: newShift.breakMinutes,
-        lateComingGraceMinutes: newShift.lateGrace,
-        earlyLeaveGraceMinutes: newShift.earlyLeaveGrace,
+        breakMinutes: newShift.breakMinutes === '' ? null : Number(newShift.breakMinutes),
+        lateComingGraceMinutes: newShift.lateGrace === '' ? null : Number(newShift.lateGrace),
+        lateComingAllowedCountPerMonth: newShift.lateAllowedMonth === '' ? null : Number(newShift.lateAllowedMonth),
+        lateComingHalfDayOnExceed: newShift.lateHalfDayOnExceed,
+        earlyLeaveGraceMinutes: newShift.earlyLeaveGrace === '' ? null : Number(newShift.earlyLeaveGrace),
+        earlyGoFrequencyPerMonth: newShift.earlyAllowedMonth === '' ? null : Number(newShift.earlyAllowedMonth),
         halfTime: newShift.halfTime || null,
         colorCode: newShift.colorCode,
         branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
@@ -200,7 +223,7 @@ export const WorkShiftsTab: React.FC = () => {
       }
 
       setEditingShiftId(null);
-      setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
+      setNewShift({ name: '', code: '', startTime: '', endTime: '', lunchStart: '', lunchEnd: '', breakMinutes: '', lateGrace: '', lateAllowedMonth: '', lateHalfDayOnExceed: true, earlyLeaveGrace: '', earlyAllowedMonth: '', colorCode: '#4e73df', halfTime: '' });
       setShiftModalOpen(false);
       fetchData();
     } catch (err: any) {
@@ -279,12 +302,14 @@ export const WorkShiftsTab: React.FC = () => {
   const shiftArchive = useArchiveActions({
     endpoint: '/masters/shifts',
     label: 'Work Shift',
+    permissionKey: 'Shifts.Delete',
     onDone: fetchData,
   });
 
   const cycleArchive = useArchiveActions({
     endpoint: '/shifts/cycles',
     label: 'Shift Cycle',
+    permissionKey: 'Shifts.Delete',
     onDone: fetchCycles,
   });
 
@@ -345,7 +370,7 @@ export const WorkShiftsTab: React.FC = () => {
       header: 'Break Duration',
       align: 'center',
       className: 'font-data text-xs text-[var(--ink-muted)]',
-      render: (item) => `${item.breakMinutes || 60} mins`,
+      render: (item) => item.breakMinutes ? `${item.breakMinutes} mins` : '—',
     },
     {
       key: 'status',
@@ -381,11 +406,14 @@ export const WorkShiftsTab: React.FC = () => {
                 code: item.code,
                 startTime: item.startTime,
                 endTime: item.endTime,
-                lunchStart: item.lunchStart || '13:00',
-                lunchEnd: item.lunchEnd || '14:00',
-                breakMinutes: item.breakMinutes || 60,
-                lateGrace: item.lateGrace || 15,
-                earlyLeaveGrace: item.earlyLeaveGrace || 15,
+                lunchStart: item.lunchStart || '',
+                lunchEnd: item.lunchEnd || '',
+                breakMinutes: item.breakMinutes ?? '',
+                lateGrace: item.lateGrace ?? '',
+                lateAllowedMonth: item.lateAllowedMonth ?? '',
+                lateHalfDayOnExceed: item.lateHalfDayOnExceed ?? true,
+                earlyLeaveGrace: item.earlyLeaveGrace ?? '',
+                earlyAllowedMonth: item.earlyAllowedMonth ?? '',
                 colorCode: item.colorCode || '#4e73df',
                 halfTime: item.halfTime || ''
               });
@@ -486,54 +514,41 @@ export const WorkShiftsTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* ── Sub Tab Navigation ────────────────────────────────────────────── */}
+      {/* ── Sub-tabs Header ────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-        <div className="flex items-center gap-1.5 bg-[var(--surface-sunken)] p-1 rounded-[var(--radius-md)] border border-[var(--rule)]">
+        <div className="flex items-center gap-2">
           <button
-            type="button"
             onClick={() => setActiveSubTab('shifts')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-[4px] transition-colors cursor-pointer flex items-center gap-1.5 ${
               activeSubTab === 'shifts'
-                ? 'bg-[var(--surface)] text-[var(--ink)] shadow-2xs border border-[var(--rule)] font-bold'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                ? 'bg-[var(--gold-500)]/15 text-[var(--gold-500)] border border-[var(--gold-500)]/30 font-semibold'
+                : 'text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)]'
             }`}
           >
-            <Layers size={14} className={activeSubTab === 'shifts' ? 'text-[var(--gold-500)]' : 'opacity-60'} />
-            <span>Work Shifts (Masters)</span>
-            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink-muted)] font-data font-bold">
-              {shifts.length}
-            </span>
+            <Clock size={13} />
+            <span>Work Shifts ({filteredShifts.length})</span>
           </button>
-
           <button
-            type="button"
             onClick={() => setActiveSubTab('cycles')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-[4px] transition-colors cursor-pointer flex items-center gap-1.5 ${
               activeSubTab === 'cycles'
-                ? 'bg-[var(--surface)] text-[var(--ink)] shadow-2xs border border-[var(--rule)] font-bold'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                ? 'bg-[var(--gold-500)]/15 text-[var(--gold-500)] border border-[var(--gold-500)]/30 font-semibold'
+                : 'text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)]'
             }`}
           >
-            <RefreshCw size={14} className={activeSubTab === 'cycles' ? 'text-[var(--gold-500)]' : 'opacity-60'} />
-            <span>Rotation Cycles</span>
-            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink-muted)] font-data font-bold">
-              {cycles.length}
-            </span>
+            <RotateCcw size={13} />
+            <span>Shift Cycles / Patterns ({filteredCycles.length})</span>
           </button>
         </div>
       </div>
 
-      {/* ── View: Shift Masters ───────────────────────────────────────────── */}
+      {/* ── SUB-TAB 1: WORK SHIFTS ─────────────────────────────────────────── */}
       {activeSubTab === 'shifts' && (
         <section className="space-y-4">
           <DataToolbar
+            searchPlaceholder="Search shifts by name or code..."
             searchValue={search}
             onSearchChange={(v) => { setSearch(v); setPage(1); }}
-            searchPlaceholder="Search shifts by name or code..."
-            onExport={handleExport}
-            exportLabel="Export CSV"
-            onImport={(isAdmin || hasPermission('Shifts.Create')) ? () => setBulkImportModalOpen(true) : undefined}
-            importLabel="Import CSV"
             archiveFilter={{
               value: archiveFilter,
               onChange: (v) => { setArchiveFilter(v); setPage(1); },
@@ -545,7 +560,7 @@ export const WorkShiftsTab: React.FC = () => {
                     icon: <Plus size={14} />,
                     onClick: () => {
                       setEditingShiftId(null);
-                      setNewShift({ name: '', code: '', startTime: '09:00', endTime: '18:00', lunchStart: '13:00', lunchEnd: '14:00', breakMinutes: 60, lateGrace: 15, earlyLeaveGrace: 15, colorCode: '#4e73df', halfTime: '' });
+                      setNewShift({ name: '', code: '', startTime: '', endTime: '', lunchStart: '', lunchEnd: '', breakMinutes: '', lateGrace: '', lateAllowedMonth: '', lateHalfDayOnExceed: true, earlyLeaveGrace: '', earlyAllowedMonth: '', colorCode: '#4e73df', halfTime: '' });
                       setShiftModalOpen(true);
                     },
                   }
@@ -558,16 +573,11 @@ export const WorkShiftsTab: React.FC = () => {
             data={paginatedShifts}
             loading={loading}
             keyExtractor={(item) => item.id}
-            selection={
-              (isAdmin || hasPermission('Shifts.Delete'))
-                ? {
-                    selectedRowKeys: selectedShiftIds,
-                    onChange: (keys) => setSelectedShiftIds(keys),
-                    bulkActions: shiftArchive.bulkActions(archiveFilter === 'archived'),
-                  }
-                : undefined
-            }
-            emptyMessage="No work shifts defined."
+            selection={shiftArchive.getSelectionConfig(
+              selectedShiftIds,
+              setSelectedShiftIds,
+              archiveFilter === 'archived'
+            )}
             pagination={{
               page,
               pageSize,
@@ -580,13 +590,13 @@ export const WorkShiftsTab: React.FC = () => {
         </section>
       )}
 
-      {/* ── View: Shift Cycles ────────────────────────────────────────────── */}
+      {/* ── Sub-Tab 2: Shift Cycles ────────────────────────────────────────── */}
       {activeSubTab === 'cycles' && (
         <section className="space-y-4">
           <DataToolbar
+            searchPlaceholder="Search cycles..."
             searchValue={cycleSearch}
             onSearchChange={(v) => { setCycleSearch(v); setCyclePage(1); }}
-            searchPlaceholder="Search cycles by name or description..."
             archiveFilter={{
               value: cycleArchiveFilter,
               onChange: (v) => { setCycleArchiveFilter(v); setCyclePage(1); },
@@ -594,8 +604,8 @@ export const WorkShiftsTab: React.FC = () => {
             primaryAction={
               (isAdmin || hasPermission('Shifts.Create'))
                 ? {
-                    label: 'New Cycle',
-                    icon: <Plus size={13} />,
+                    label: 'Create Shift Cycle',
+                    icon: <Plus size={14} />,
                     onClick: openCreateCycle,
                   }
                 : undefined
@@ -606,17 +616,12 @@ export const WorkShiftsTab: React.FC = () => {
             columns={cycleColumns}
             data={paginatedCycles}
             loading={cyclesLoading}
-            keyExtractor={(c) => c.id}
-            selection={
-              (isAdmin || hasPermission('Shifts.Delete'))
-                ? {
-                    selectedRowKeys: selectedCycleIds,
-                    onChange: (keys) => setSelectedCycleIds(keys),
-                    bulkActions: cycleArchive.bulkActions(cycleArchiveFilter === 'archived'),
-                  }
-                : undefined
-            }
-            emptyMessage="No shift rotation cycles defined yet."
+            keyExtractor={(item) => item.id}
+            selection={cycleArchive.getSelectionConfig(
+              selectedCycleIds,
+              setSelectedCycleIds,
+              cycleArchiveFilter === 'archived'
+            )}
             pagination={{
               page: cyclePage,
               pageSize: cyclePageSize,
@@ -632,7 +637,7 @@ export const WorkShiftsTab: React.FC = () => {
       {/* ── Add / Edit Shift Modal ─────────────────────────────────────────── */}
       {shiftModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
+          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-2xl w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
               <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
                 <Layers size={16} className="text-[var(--gold-500)]" />
@@ -643,73 +648,100 @@ export const WorkShiftsTab: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveShift} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+            <form onSubmit={handleSaveShift} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
                   <label className="block font-medium text-[var(--ink)] mb-1">Shift Name *</label>
-                  <input type="text" value={newShift.name} onChange={(e) => setNewShift({ ...newShift, name: e.target.value })} placeholder="e.g. Night Shift" className="register-input w-full" required />
+                  <input type="text" value={newShift.name} onChange={(e) => setNewShift({ ...newShift, name: e.target.value })} placeholder="e.g. Regular Day Shift, Night Shift" className="register-input w-full" required />
                 </div>
                 <div>
                   <label className="block font-medium text-[var(--ink)] mb-1">Shift Code</label>
-                  <input type="text" value={newShift.code} onChange={(e) => setNewShift({ ...newShift, code: e.target.value.toUpperCase() })} placeholder="e.g. NS, GEN" className="register-input w-full font-data uppercase" />
+                  <input type="text" value={newShift.code} onChange={(e) => setNewShift({ ...newShift, code: e.target.value.toUpperCase() })} placeholder="e.g. GEN, NS" className="register-input w-full font-data uppercase" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Start Time</label>
-                  <input type="time" value={newShift.startTime} onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })} className="register-input w-full font-data" />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">End Time</label>
-                  <input type="time" value={newShift.endTime} onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })} className="register-input w-full font-data" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Lunch Start</label>
-                  <input type="time" value={newShift.lunchStart} onChange={(e) => setNewShift({ ...newShift, lunchStart: e.target.value })} className="register-input w-full font-data" />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Lunch End</label>
-                  <input type="time" value={newShift.lunchEnd} onChange={(e) => setNewShift({ ...newShift, lunchEnd: e.target.value })} className="register-input w-full font-data" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Break (mins)</label>
-                  <input type="number" value={newShift.breakMinutes} onChange={(e) => setNewShift({ ...newShift, breakMinutes: Number(e.target.value) })} className="register-input w-full font-data" min={0} max={120} />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Late Grace (mins)</label>
-                  <input type="number" value={newShift.lateGrace} onChange={(e) => setNewShift({ ...newShift, lateGrace: Number(e.target.value) })} className="register-input w-full font-data" min={0} max={60} />
-                </div>
-                <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Early Leave Grace (mins)</label>
-                  <input type="number" value={newShift.earlyLeaveGrace} onChange={(e) => setNewShift({ ...newShift, earlyLeaveGrace: Number(e.target.value) })} className="register-input w-full font-data" min={0} max={60} />
+              {/* Timings */}
+              <div className="bg-[var(--paper)]/50 border border-[var(--rule)] rounded-[4px] p-3 space-y-2">
+                <span className="text-[10px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Shift & Lunch Timings</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1">Start Time</label>
+                    <input type="time" value={newShift.startTime} onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })} className="register-input w-full font-data" />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1">End Time</label>
+                    <input type="time" value={newShift.endTime} onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })} className="register-input w-full font-data" />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1">Lunch Start</label>
+                    <input type="time" value={newShift.lunchStart} onChange={(e) => setNewShift({ ...newShift, lunchStart: e.target.value })} className="register-input w-full font-data" />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1">Lunch End</label>
+                    <input type="time" value={newShift.lunchEnd} onChange={(e) => setNewShift({ ...newShift, lunchEnd: e.target.value })} className="register-input w-full font-data" />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Half Day Cutoff Time</label>
-                <input type="time" value={newShift.halfTime || ''} onChange={(e) => setNewShift({ ...newShift, halfTime: e.target.value })} className="register-input w-full font-data" />
-                <p className="text-[10px] text-[var(--ink-muted)] mt-1">If not set, it is calculated automatically as the exact midpoint of the shift.</p>
+              {/* Monthly Late & Early Exit Rules */}
+              <div className="bg-[var(--paper)]/50 border border-[var(--rule)] rounded-[4px] p-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Late & Early Exit Policy</span>
+                  <label className="flex items-center gap-2 cursor-pointer text-[11px] text-[var(--ink)]">
+                    <span>Deduct Half Day on Exceed</span>
+                    <input
+                      type="checkbox"
+                      checked={newShift.lateHalfDayOnExceed}
+                      onChange={(e) => setNewShift({ ...newShift, lateHalfDayOnExceed: e.target.checked })}
+                      className="rounded text-[var(--gold-500)] focus:ring-[var(--gold-500)] cursor-pointer"
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1">Daily Late Grace (mins)</label>
+                    <input type="number" value={newShift.lateGrace} onChange={(e) => setNewShift({ ...newShift, lateGrace: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full font-data" min={0} max={120} />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1">Max Lates / Month</label>
+                    <input type="number" value={newShift.lateAllowedMonth} onChange={(e) => setNewShift({ ...newShift, lateAllowedMonth: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full font-data" min={0} max={31} />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1">Daily Early Grace (mins)</label>
+                    <input type="number" value={newShift.earlyLeaveGrace} onChange={(e) => setNewShift({ ...newShift, earlyLeaveGrace: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full font-data" min={0} max={120} />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-[var(--ink)] mb-1">Max Early Exits / Month</label>
+                    <input type="number" value={newShift.earlyAllowedMonth} onChange={(e) => setNewShift({ ...newShift, earlyAllowedMonth: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full font-data" min={0} max={31} />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Color Code</label>
-                <div className="flex items-center gap-2">
-                  <input type="color" value={newShift.colorCode} onChange={(e) => setNewShift({ ...newShift, colorCode: e.target.value })} className="w-8 h-8 rounded-[4px] border border-[var(--rule)] cursor-pointer" />
-                  <span className="font-data text-[var(--ink-muted)]">{newShift.colorCode}</span>
+              {/* Break, Cutoff & Color */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Break Duration (mins)</label>
+                  <input type="number" value={newShift.breakMinutes} onChange={(e) => setNewShift({ ...newShift, breakMinutes: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full font-data" min={0} max={120} />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Half Day Cutoff Time</label>
+                  <input type="time" value={newShift.halfTime || ''} onChange={(e) => setNewShift({ ...newShift, halfTime: e.target.value })} className="register-input w-full font-data" />
+                  <p className="text-[10px] text-[var(--ink-muted)] mt-0.5">Midpoint if empty.</p>
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--ink)] mb-1">Shift Color Badge</label>
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <input type="color" value={newShift.colorCode} onChange={(e) => setNewShift({ ...newShift, colorCode: e.target.value })} className="w-8 h-8 rounded-[4px] border border-[var(--rule)] cursor-pointer" />
+                    <span className="font-data text-xs text-[var(--ink-muted)]">{newShift.colorCode}</span>
+                  </div>
                 </div>
               </div>
 
               <div className="p-2.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between">
-                <span className="text-[var(--ink-muted)]">Working Hours:</span>
+                <span className="text-[var(--ink-muted)]">Calculated Working Hours:</span>
                 <span className="font-data font-bold text-[var(--gold-500)]">
                   {(() => {
+                    if (!newShift.startTime || !newShift.endTime) return '—';
                     const [sh, sm] = newShift.startTime.split(':').map(Number);
                     const [eh, em] = newShift.endTime.split(':').map(Number);
                     let spanMins = (eh * 60 + em) - (sh * 60 + sm);

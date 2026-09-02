@@ -55,6 +55,8 @@ public sealed class PermissionService : IPermissionService
         { "Masters.Designations", new[] { "Masters.Designations.View", "Masters.Designations.Create", "Masters.Designations.Edit", "Masters.Designations.Delete" } },
         { "Leaves.ManageTypes", new[] { "Leaves.Types.View", "Leaves.Types.Create", "Leaves.Types.Edit", "Leaves.Types.Delete" } },
         { "Shifts.Manage", new[] { "Shifts.View", "Shifts.Create", "Shifts.Edit", "Shifts.Delete" } },
+        { "Holidays.Manage", new[] { "Holidays.View", "Holidays.Create", "Holidays.Edit", "Holidays.Delete" } },
+        { "Announcements.Manage", new[] { "Announcements.View", "Announcements.Create", "Announcements.Edit", "Announcements.Delete" } },
         { "System.Settings", new[] { "System.Settings.View", "System.Settings.Edit" } },
         { "System.Roles", new[] { "System.Roles.View", "System.Roles.Edit" } },
         { "System.Logs", new[] { "System.Logs.View" } },

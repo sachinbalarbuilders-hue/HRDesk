@@ -48,8 +48,23 @@ public class MastersController : ControllerBase
     public record DepartmentDto(string DepartmentName, string? Status, int? BranchId = null);
     public record DesignationDto(string DesignationName, string? Status, int? BranchId = null);
     public record OrganizationDto(string Name, string? Code, string? Address, string? WhatsAppGroupId, double? Latitude, double? Longitude, double? RadiusMeters, bool IsActive, string? LogoUrl = null, string? PrimaryColor = null, string? CustomDomain = null);
-    public record LeaveTypeDto(string Name, string Code, decimal DefaultYearlyQuota, bool IsPaid, bool ApplicableAfterProbation, bool AllowCarryForward, string GenderApplicability, string MaritalStatusApplicability, string DepartmentIds, string DesignationIds, string RoleIds, string Status, int? BranchId = null);
-    public record ShiftDto(string Name, string? Code, string StartTime, string EndTime, string? LunchBreakStart, string? LunchBreakEnd, int? BreakMinutes, int? LateComingGraceMinutes, int? EarlyLeaveGraceMinutes, string? ColorCode, string? HalfTime = null, int? BranchId = null);
+    public record LeaveTypeDto(string Name, string Code, decimal DefaultYearlyQuota, bool IsPaid, bool ApplicableAfterProbation, bool AllowCarryForward, string GenderApplicability, string MaritalStatusApplicability, string? DepartmentIds, string? DesignationIds, string? RoleIds, string? Status = null, int? BranchId = null);
+    public record ShiftDto(
+        string Name,
+        string? Code,
+        string StartTime,
+        string EndTime,
+        string? LunchBreakStart,
+        string? LunchBreakEnd,
+        int? BreakMinutes,
+        int? LateComingGraceMinutes,
+        int? EarlyLeaveGraceMinutes,
+        string? ColorCode,
+        string? HalfTime = null,
+        int? BranchId = null,
+        int? LateComingAllowedCountPerMonth = null,
+        bool? LateComingHalfDayOnExceed = null,
+        int? EarlyGoFrequencyPerMonth = null);
     public record AttendancePolicyDto(int GracePeriodMinutes, decimal HalfDayThresholdHours, decimal FullDayThresholdHours, int AutoSyncIntervalMinutes, string DefaultWeekoff, bool SandwichRuleEnabled = true, int? BranchId = null);
     public record CompanyPolicyDto(
         int OrganizationId,
@@ -313,6 +328,9 @@ public class MastersController : ControllerBase
                 breakMinutes = s.LunchBreakDuration,
                 lateGrace = s.LateComingGraceMinutes ?? 15,
                 earlyLeaveGrace = s.EarlyLeaveGraceMinutes ?? 15,
+                lateComingAllowedCountPerMonth = s.LateComingAllowedCountPerMonth ?? 3,
+                lateComingHalfDayOnExceed = s.LateComingHalfDayOnExceed ?? true,
+                earlyGoFrequencyPerMonth = s.EarlyGoFrequencyPerMonth ?? 2,
                 halfTime = s.HalfTime.HasValue ? s.HalfTime.Value.ToString("HH:mm") : null,
                 workingHours = s.WorkingHours,
                 colorCode = s.ColorCode,
@@ -339,7 +357,7 @@ public class MastersController : ControllerBase
         var dept = new Department
         {
             DepartmentName = dto.DepartmentName.Trim(),
-            Status = dto.Status ?? "active",
+            Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status.Trim(),
             OrganizationId = orgId,
             BranchId = targetBranch
         };
@@ -398,41 +416,41 @@ public class MastersController : ControllerBase
     public async Task<IActionResult> CreateDesignation([FromBody] DesignationDto dto)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersDesignationsCreate)) return Forbid();
-        if (string.IsNullOrWhiteSpace(dto.DesignationName)) return BadRequest(new { message = "Designation name is required." });
+        if (string.IsNullOrWhiteSpace(dto.DesignationName)) return BadRequest(new { message = "Designation title is required." });
 
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var targetBranch = dto.BranchId ?? _tenantProvider.BranchId;
 
-        var desig = new Designation
+        var desg = new Designation
         {
             DesignationName = dto.DesignationName.Trim(),
-            Status = dto.Status ?? "active",
+            Status = string.IsNullOrWhiteSpace(dto.Status) ? "Active" : dto.Status.Trim(),
             OrganizationId = orgId,
             BranchId = targetBranch
         };
 
-        _db.Designations.Add(desig);
+        _db.Designations.Add(desg);
         await _db.SaveChangesAsync();
         _cacheService.EvictDesignationsCache();
 
-        return Ok(new { message = "Designation created successfully.", id = desig.Id });
+        return Ok(new { message = "Designation created successfully.", id = desg.Id });
     }
 
     [HttpPut("designations/{id}")]
     public async Task<IActionResult> UpdateDesignation(int id, [FromBody] DesignationDto dto)
     {
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.MastersDesignationsEdit)) return Forbid();
-        var desig = await _db.Designations.FindAsync(id);
-        if (desig == null) return NotFound(new { message = "Designation not found." });
+        var desg = await _db.Designations.FindAsync(id);
+        if (desg == null) return NotFound(new { message = "Designation not found." });
 
-        if (!string.IsNullOrWhiteSpace(dto.DesignationName)) desig.DesignationName = dto.DesignationName.Trim();
-        if (!string.IsNullOrWhiteSpace(dto.Status)) desig.Status = dto.Status.Trim();
-        if (dto.BranchId.HasValue) desig.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
+        if (!string.IsNullOrWhiteSpace(dto.DesignationName)) desg.DesignationName = dto.DesignationName.Trim();
+        if (!string.IsNullOrWhiteSpace(dto.Status)) desg.Status = dto.Status.Trim();
+        if (dto.BranchId.HasValue) desg.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
 
         await _db.SaveChangesAsync();
         _cacheService.EvictDesignationsCache();
         
-        return Ok(new { message = "Designation updated successfully.", id = desig.Id });
+        return Ok(new { message = "Designation updated successfully.", id = desg.Id });
     }
 
     [HttpDelete("designations/{id}")]
@@ -577,7 +595,10 @@ public class MastersController : ControllerBase
                     ? hTimeCustom
                     : TimeOnly.FromTimeSpan(halfTimeSpan),
                 LateComingGraceMinutes = dto.LateComingGraceMinutes ?? 15,
+                LateComingAllowedCountPerMonth = dto.LateComingAllowedCountPerMonth ?? 3,
+                LateComingHalfDayOnExceed = dto.LateComingHalfDayOnExceed ?? true,
                 EarlyLeaveGraceMinutes = dto.EarlyLeaveGraceMinutes ?? 15,
+                EarlyGoFrequencyPerMonth = dto.EarlyGoFrequencyPerMonth ?? 2,
                 ColorCode = dto.ColorCode ?? "#4e73df",
                 Status = "Active",
                 OrganizationId = orgId,
@@ -610,7 +631,10 @@ public class MastersController : ControllerBase
         if (TimeOnly.TryParse(dto.LunchBreakEnd, out var lbEnd)) shift.LunchBreakEnd = lbEnd;
         if (dto.BreakMinutes.HasValue) shift.LunchBreakDuration = dto.BreakMinutes.Value;
         if (dto.LateComingGraceMinutes.HasValue) shift.LateComingGraceMinutes = dto.LateComingGraceMinutes.Value;
+        if (dto.LateComingAllowedCountPerMonth.HasValue) shift.LateComingAllowedCountPerMonth = dto.LateComingAllowedCountPerMonth.Value;
+        if (dto.LateComingHalfDayOnExceed.HasValue) shift.LateComingHalfDayOnExceed = dto.LateComingHalfDayOnExceed.Value;
         if (dto.EarlyLeaveGraceMinutes.HasValue) shift.EarlyLeaveGraceMinutes = dto.EarlyLeaveGraceMinutes.Value;
+        if (dto.EarlyGoFrequencyPerMonth.HasValue) shift.EarlyGoFrequencyPerMonth = dto.EarlyGoFrequencyPerMonth.Value;
         if (!string.IsNullOrWhiteSpace(dto.ColorCode)) shift.ColorCode = dto.ColorCode;
         if (dto.BranchId.HasValue) shift.BranchId = dto.BranchId.Value > 0 ? dto.BranchId.Value : null;
 

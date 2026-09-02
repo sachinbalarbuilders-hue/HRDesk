@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useOrganization } from '../context/CompanyContext';
+import { useAuth } from '../context/AuthContext';
 import { exportToCSV } from '../utils/csvHelper';
 import { DataToolbar } from '../components/ui/DataToolbar';
 import { DataTable, type ColumnDef } from '../components/ui/DataTable';
@@ -18,6 +19,7 @@ import {
   Building2,
   Loader2,
   Search as SearchIcon,
+  Lock,
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
@@ -45,6 +47,13 @@ interface Holiday {
 export const Holidays: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const { currentOrganization, currentBranch } = useOrganization();
+  const { isAdmin, hasPermission } = useAuth();
+
+  const canView = isAdmin || hasPermission('Holidays.View') || hasPermission('Holidays.Manage');
+  const canCreate = isAdmin || hasPermission('Holidays.Create') || hasPermission('Holidays.Manage');
+  const canEdit = isAdmin || hasPermission('Holidays.Edit') || hasPermission('Holidays.Manage');
+  const canDelete = isAdmin || hasPermission('Holidays.Delete') || hasPermission('Holidays.Manage');
+
   const [search, setSearch] = useState('');
   const [yearFilter, setYearFilter] = useState(new Date().getFullYear().toString());
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
@@ -187,6 +196,7 @@ export const Holidays: React.FC = () => {
   const holidayArchive = useArchiveActions({
     endpoint: '/holidays',
     label: 'Holiday',
+    permissionKey: 'Holidays.Delete',
     onDone: fetchHolidays,
   });
 
@@ -332,24 +342,50 @@ export const Holidays: React.FC = () => {
         </span>
       ),
     },
-    {
-      key: 'actions',
-      header: 'Actions',
-      align: 'right',
-      render: (h) => (
-        <RowActionMenu
-          actions={[
-            { label: 'Edit', icon: <Edit2 className="w-3.5 h-3.5" />, onClick: () => handleOpenEdit(h) },
-            ...holidayArchive.rowActions({
-              id: h.id,
-              name: h.name,
-              isArchived: isRowArchived(h),
-            }),
-          ] as RowAction[]}
-        />
-      ),
-    },
+    ...(canEdit || canDelete
+      ? [
+          {
+            key: 'actions' as const,
+            header: 'Actions',
+            align: 'right' as const,
+            render: (h: Holiday) => {
+              const actions: RowAction[] = [];
+              if (canEdit && !isRowArchived(h)) {
+                actions.push({ label: 'Edit', icon: <Edit2 className="w-3.5 h-3.5" />, onClick: () => handleOpenEdit(h) });
+              }
+              if (canDelete) {
+                actions.push(
+                  ...holidayArchive.rowActions({
+                    id: h.id,
+                    name: h.name,
+                    isArchived: isRowArchived(h),
+                  })
+                );
+              }
+              if (actions.length === 0) return null;
+              return <RowActionMenu actions={actions} />;
+            },
+          },
+        ]
+      : []),
   ];
+
+  if (!canView) {
+    return (
+      <PageContainer>
+        <PageHeader title="Holidays" description="Organization holiday calendar" />
+        <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-12 text-center max-w-md mx-auto my-12 shadow-xs space-y-3">
+          <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+            <Lock size={22} />
+          </div>
+          <h3 className="font-display font-semibold text-base text-[var(--ink)]">Access Restricted</h3>
+          <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+            You do not have permission to view the organization holiday calendar. Please contact your administrator if you require access.
+          </p>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -388,12 +424,16 @@ export const Holidays: React.FC = () => {
           },
         ]}
         onExport={handleExport}
-        onImport={() => setImportModalOpen(true)}
-        primaryAction={{
-          label: 'Add Holiday',
-          icon: <Plus className="w-3.5 h-3.5" />,
-          onClick: handleOpenAdd,
-        }}
+        onImport={canCreate ? () => setImportModalOpen(true) : undefined}
+        primaryAction={
+          canCreate
+            ? {
+                label: 'Add Holiday',
+                icon: <Plus className="w-3.5 h-3.5" />,
+                onClick: handleOpenAdd,
+              }
+            : undefined
+        }
       />
 
       {/* 3. Holidays DataTable with Selection & Bulk Actions */}
@@ -402,12 +442,12 @@ export const Holidays: React.FC = () => {
         data={paginatedHolidays}
         loading={loading}
         keyExtractor={(h) => h.id}
-        selection={{
-          selectedRowKeys: selectedIds,
-          onChange: (keys) => setSelectedIds(keys),
-          bulkActions: holidayArchive.bulkActions(archiveFilter === 'archived'),
-        }}
-        emptyMessage={`No official holidays registered for year ${yearFilter}. Click "Add Holiday" to register one.`}
+        selection={holidayArchive.getSelectionConfig(
+          selectedIds,
+          setSelectedIds,
+          archiveFilter === 'archived'
+        )}
+        emptyMessage={`No official holidays registered for year ${yearFilter}. ${canCreate ? 'Click "Add Holiday" to register one.' : ''}`}
         pagination={{
           page,
           pageSize,

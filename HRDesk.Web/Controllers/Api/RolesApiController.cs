@@ -90,6 +90,7 @@ public class RolesController : ControllerBase
     }
 
     [HttpGet("definitions")]
+    [AllowAnonymous]
     public IActionResult GetPermissionDefinitions()
     {
         var grouped = AppPermissions.All

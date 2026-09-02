@@ -413,12 +413,8 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
 export const CompOff: React.FC = () => {
   const { user, isAdmin, hasPermission, getPermissionScope } = useAuth();
   const applyScope = getPermissionScope('CompOff.Apply');
-  const deleteScope = getPermissionScope('CompOff.Delete');
   const canApply = isAdmin || hasPermission('CompOff.Apply');
   const canApprove = isAdmin || hasPermission('CompOff.Approve');
-  const canDelete = isAdmin || hasPermission('CompOff.Delete');
-  const canBulkDelete = isAdmin || (canDelete && (deleteScope === 'Bulk Delete' || deleteScope === 'Permanent Delete' || deleteScope === 'All'));
-  const canPermanentDelete = isAdmin || (canDelete && (deleteScope === 'Permanent Delete' || deleteScope === 'All'));
 
   const { showSuccess, showError } = useToast();
   const { currentOrganization, currentBranch } = useOrganization();
@@ -774,9 +770,8 @@ export const CompOff: React.FC = () => {
   const compOffArchive = useArchiveActions({
     endpoint: '/compoff/requests',
     label: 'Comp-Off Request',
+    permissionKey: 'CompOff.Delete',
     onDone: fetchCompOffData,
-    canPermanentDelete,
-    canBulkDelete,
   });
 
   const customBulkActions = useMemo(() => {
@@ -1071,7 +1066,7 @@ export const CompOff: React.FC = () => {
           },
         ]}
         selection={
-          canApprove || canBulkDelete
+          (canApprove || compOffArchive.canBulkDelete) && customBulkActions.length > 0
             ? {
                 selectedRowKeys: selectedIds,
                 onChange: (keys) => setSelectedIds(keys),

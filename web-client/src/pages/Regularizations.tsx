@@ -478,16 +478,15 @@ export const Regularizations: React.FC = () => {
 
   const deleteScope = getPermissionScope('Regularizations.Delete') || (isAdmin ? 'Bulk Delete' : 'Soft Delete');
   const canDelete = isAdmin || hasPermission('Regularizations.Delete');
-  const canBulkDelete = isAdmin || (canDelete && (deleteScope === 'Bulk Delete' || deleteScope === 'Permanent Delete' || deleteScope === 'All'));
-  const canPermanentDelete = isAdmin || (canDelete && (deleteScope === 'Permanent Delete' || deleteScope === 'All'));
+  const canBulkDelete = isAdmin || (canDelete && (deleteScope === 'Bulk Delete' || deleteScope === 'All'));
+  const canPermanentDelete = isAdmin || (canDelete && (deleteScope === 'Permanent Delete' || deleteScope === 'Bulk Delete' || deleteScope === 'All'));
 
   // One shared "Delete" behaviour: archive from the active list, permanent from the archive view.
   const regularizationArchive = useArchiveActions({
     endpoint: '/regularizations',
     label: 'Regularization Request',
+    permissionKey: 'Regularizations.Delete',
     onDone: fetchData,
-    canPermanentDelete,
-    canBulkDelete,
   });
 
   const handleExport = () => {

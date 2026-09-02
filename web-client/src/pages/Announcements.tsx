@@ -13,6 +13,7 @@ import {
   Building,
   CheckCircle2,
   Search,
+  Lock,
 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -47,7 +48,13 @@ const CATEGORIES = ['All', 'General', 'Notice', 'Holiday', 'Event', 'Policy', 'U
 const PRIORITIES = ['Low', 'Normal', 'High', 'Urgent'];
 
 export const AnnouncementsPage: React.FC = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, hasPermission } = useAuth();
+
+  const canView = isAdmin || hasPermission('Announcements.View') || hasPermission('Announcements.Manage');
+  const canCreate = isAdmin || hasPermission('Announcements.Create') || hasPermission('Announcements.Manage');
+  const canEdit = isAdmin || hasPermission('Announcements.Edit') || hasPermission('Announcements.Manage');
+  const canDelete = isAdmin || hasPermission('Announcements.Delete') || hasPermission('Announcements.Manage');
+
   const { currentOrganization, currentBranch, branches } = useOrganization();
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -213,6 +220,7 @@ export const AnnouncementsPage: React.FC = () => {
   const announcementArchive = useArchiveActions({
     endpoint: '/announcements',
     label: 'Announcement',
+    permissionKey: 'Announcements.Delete',
     onDone: fetchAnnouncements,
   });
 
@@ -240,20 +248,42 @@ export const AnnouncementsPage: React.FC = () => {
     }
   };
 
+  if (!canView) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Company Bulletin & Announcements"
+          description="Broadcast notices, holiday calendars, policy changes, and events to staff across offices."
+        />
+        <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-12 text-center max-w-md mx-auto my-12 shadow-xs space-y-3">
+          <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+            <Lock size={22} />
+          </div>
+          <h3 className="font-display font-semibold text-base text-[var(--ink)]">Access Restricted</h3>
+          <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+            You do not have permission to view company announcements and bulletins. Please contact your administrator if you require access.
+          </p>
+        </div>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer>
       <PageHeader
         title="Company Bulletin & Announcements"
         description="Broadcast notices, holiday calendars, policy changes, and events to staff across offices."
         actions={
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="btn-primary flex items-center gap-2 text-sm px-4 py-2 cursor-pointer shadow-sm"
-          >
-            <Plus size={16} />
-            <span>Post Announcement</span>
-          </button>
+          canCreate ? (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="btn-primary flex items-center gap-2 text-sm px-4 py-2 cursor-pointer shadow-sm"
+            >
+              <Plus size={16} />
+              <span>Post Announcement</span>
+            </button>
+          ) : undefined
         }
       />
 
@@ -297,17 +327,31 @@ export const AnnouncementsPage: React.FC = () => {
       ) : announcements.length === 0 ? (
         <EmptyState
           title="No announcements found"
-          description="Click the button below to publish company notices, events, and holiday reminders."
+          description={canCreate ? "Click the button below to publish company notices, events, and holiday reminders." : "No published announcements currently available."}
           icon={<Megaphone size={36} className="text-[var(--text-muted)]" />}
-          action={{
-            label: 'Post Announcement',
-            onClick: openCreateModal,
-            icon: <Plus size={14} />,
-          }}
+          action={
+            canCreate
+              ? {
+                  label: 'Post Announcement',
+                  onClick: openCreateModal,
+                  icon: <Plus size={14} />,
+                }
+              : undefined
+          }
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {announcements.map((item) => {
+            const rowActions: RowAction[] = [];
+            if (canEdit && !isRowArchived(item)) {
+              rowActions.push({ label: 'Edit', icon: <Edit2 size={14} />, onClick: () => openEditModal(item) });
+            }
+            if (canDelete) {
+              rowActions.push(
+                ...announcementArchive.rowActions({ id: item.id, name: item.title, isArchived: isRowArchived(item) })
+              );
+            }
+
             return (
               <Card
                 key={item.id}
@@ -331,20 +375,19 @@ export const AnnouncementsPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-1 -mt-1 -mr-2">
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePin(item.id)}
-                        title={item.isPinned ? 'Unpin' : 'Pin to top'}
-                        className={`p-1.5 rounded-[var(--radius-sm)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors ${
-                          item.isPinned ? 'text-amber-500' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                        }`}
-                      >
-                        <Pin size={14} className={item.isPinned ? 'fill-amber-500' : ''} />
-                      </button>
-                      <RowActionMenu actions={[
-                        { label: 'Edit', icon: <Edit2 size={14} />, onClick: () => openEditModal(item) },
-                        ...announcementArchive.rowActions({ id: item.id, name: item.title, isArchived: isRowArchived(item) }),
-                      ] as RowAction[]} />
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePin(item.id)}
+                          title={item.isPinned ? 'Unpin' : 'Pin to top'}
+                          className={`p-1.5 rounded-[var(--radius-sm)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors ${
+                            item.isPinned ? 'text-amber-500' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          <Pin size={14} className={item.isPinned ? 'fill-amber-500' : ''} />
+                        </button>
+                      )}
+                      {rowActions.length > 0 && <RowActionMenu actions={rowActions} />}
                     </div>
                   </div>
 

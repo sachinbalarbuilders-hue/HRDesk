@@ -104,7 +104,12 @@ export const OrganizationsTab: React.FC = () => {
   const activeCount = organizations.filter((o) => o.isActive).length;
   const archivedCount = organizations.filter((o) => !o.isActive).length;
 
-  const orgArchive = useArchiveActions({ endpoint: '/masters/organizations', onDone: fetchData, label: 'Organization' });
+  const orgArchive = useArchiveActions({
+    endpoint: '/masters/organizations',
+    permissionKey: 'Masters.Organizations.Delete',
+    onDone: fetchData,
+    label: 'Organization',
+  });
 
   // Filtered dataset
   const filteredOrgs = useMemo(() => {

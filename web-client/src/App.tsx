@@ -145,7 +145,14 @@ export const App: React.FC = () => {
                   }
                 >
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/announcements" element={<Announcements />} />
+                  <Route
+                    path="/announcements"
+                    element={
+                      <ProtectedRoute anyPermission={['Announcements.View', 'Announcements.Manage']}>
+                        <Announcements />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route
                     path="/employees"
                     element={
@@ -230,7 +237,7 @@ export const App: React.FC = () => {
                   <Route
                     path="holidays"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute anyPermission={['Holidays.View', 'Holidays.Manage']}>
                         <Holidays />
                       </ProtectedRoute>
                     }

@@ -15,6 +15,7 @@ export const OrgBranchesTab: React.FC = () => {
   const branchArchive = useArchiveActions({
     endpoint: '/masters/branches',
     label: 'Branch',
+    permissionKey: 'Masters.Organizations.Delete',
     onDone: refetch,
   });
 
