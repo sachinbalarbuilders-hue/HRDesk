@@ -24,6 +24,8 @@ export const DesignationsTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [designations, setDesignations] = useState<any[]>([]);
   const [desigModalOpen, setDesigModalOpen] = useState(false);
   const [newDesignation, setNewDesignation] = useState({ title: '' });
