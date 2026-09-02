@@ -29,7 +29,7 @@ export const DepartmentsTab: React.FC = () => {
 
   const [departments, setDepartments] = useState<any[]>([]);
   const [deptModalOpen, setDeptModalOpen] = useState(false);
-  const [newDept, setNewDept] = useState({ name: '', code: '', head: '' });
+  const [newDept, setNewDept] = useState({ name: '' });
   const [editingDeptId, setEditingDeptId] = useState<number | null>(null);
 
   const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
@@ -44,8 +44,6 @@ export const DepartmentsTab: React.FC = () => {
         setDepartments(res.data.departments.map((d: any) => ({
           id: d.id,
           name: d.name,
-          code: `DEP-${d.id}`,
-          head: 'HOD',
           status: d.status || (d.archivedAt ? 'Archived' : 'Active'),
           archivedAt: d.archivedAt,
           branchId: d.branchId,
@@ -78,18 +76,18 @@ export const DepartmentsTab: React.FC = () => {
     try {
       if (editingDeptId) {
         await apiClient.put(`/masters/departments/${editingDeptId}`, {
-          departmentName: newDept.name,
+          departmentName: newDept.name.trim(),
           branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
         });
         showSuccess('Department Updated', `${newDept.name} updated.`);
       } else {
         await apiClient.post('/masters/departments', {
-          departmentName: newDept.name,
+          departmentName: newDept.name.trim(),
           branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
         });
         showSuccess('Department Added', `${newDept.name} registered.`);
       }
-      setNewDept({ name: '', code: '', head: '' });
+      setNewDept({ name: '' });
       setEditingDeptId(null);
       setDeptModalOpen(false);
       fetchData();
@@ -101,8 +99,7 @@ export const DepartmentsTab: React.FC = () => {
   const handleExport = () => {
     exportToCSV('HRDesk_Departments', departments, [
       { key: 'name', label: 'Department Name' },
-      { key: 'code', label: 'Department Code' },
-      { key: 'head', label: 'Primary Officer' },
+      { key: 'status', label: 'Status' },
     ]);
     showSuccess('Exported', 'Departments exported to CSV.');
   };
@@ -117,7 +114,7 @@ export const DepartmentsTab: React.FC = () => {
 
   const s = search.trim().toLowerCase();
   const filteredDepts = departments.filter(d => {
-    const matchesSearch = !s || (d.name?.toLowerCase().includes(s)) || (d.code?.toLowerCase().includes(s));
+    const matchesSearch = !s || (d.name?.toLowerCase().includes(s));
     const isAct = d.status?.toLowerCase() !== 'inactive' && d.status?.toLowerCase() !== 'archived';
     const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
     return matchesSearch && matchesArchive;
@@ -134,21 +131,6 @@ export const DepartmentsTab: React.FC = () => {
           <span className="font-semibold text-xs text-[var(--ink)]">{item.name}</span>
         </div>
       ),
-    },
-    {
-      key: 'code',
-      header: 'Code',
-      render: (item) => (
-        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] font-data text-[10px] font-bold text-[var(--ink)]">
-          {item.code}
-        </span>
-      ),
-    },
-    {
-      key: 'head',
-      header: 'Primary Officer / HOD',
-      className: 'text-xs text-[var(--ink-muted)]',
-      render: (item) => item.head || 'HOD',
     },
     {
       key: 'status',
@@ -181,8 +163,6 @@ export const DepartmentsTab: React.FC = () => {
               setEditingDeptId(item.id);
               setNewDept({
                 name: item.name,
-                code: item.code || '',
-                head: item.head || '',
               });
               setDeptModalOpen(true);
             },
@@ -213,7 +193,7 @@ export const DepartmentsTab: React.FC = () => {
       {archiveActions.dialog}
 
       <DataToolbar
-        searchPlaceholder="Search departments by name or code..."
+        searchPlaceholder="Search departments by name..."
         searchValue={search}
         onSearchChange={(v) => { setSearch(v); setPage(1); }}
         archiveFilter={{
@@ -229,7 +209,7 @@ export const DepartmentsTab: React.FC = () => {
                 icon: <Plus size={14} />,
                 onClick: () => {
                   setEditingDeptId(null);
-                  setNewDept({ name: '', code: '', head: '' });
+                  setNewDept({ name: '' });
                   setDeptModalOpen(true);
                 }
               }
@@ -278,10 +258,11 @@ export const DepartmentsTab: React.FC = () => {
                 <input
                   type="text"
                   value={newDept.name}
-                  onChange={(e) => setNewDept({ ...newDept, name: e.target.value })}
+                  onChange={(e) => setNewDept({ name: e.target.value })}
                   placeholder="e.g. Civil Engineering"
                   className="register-input w-full"
                   required
+                  autoFocus
                 />
               </div>
 
@@ -304,8 +285,8 @@ export const DepartmentsTab: React.FC = () => {
         onClose={() => setBulkImportModalOpen(false)}
         title="Import Departments"
         templateFilename="HRDesk_Departments_Template"
-        templateHeaders={['Name', 'Code', 'Head']}
-        templateSampleRow={['Quality Assurance', 'QA', 'QA Lead']}
+        templateHeaders={['Name']}
+        templateSampleRow={['Quality Assurance']}
         onImportComplete={() => {
           showSuccess('Import Complete', 'Records imported successfully.');
           fetchData();

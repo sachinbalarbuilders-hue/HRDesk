@@ -24,14 +24,9 @@ export const DesignationsTab: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
-  const [deptFilter, setDeptFilter] = useState('');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  const [departments, setDepartments] = useState<any[]>([]);
   const [designations, setDesignations] = useState<any[]>([]);
   const [desigModalOpen, setDesigModalOpen] = useState(false);
-  const [newDesignation, setNewDesignation] = useState({ title: '', code: '', department: 'Engineering & Technology', level: 'L2 (Mid)' });
+  const [newDesignation, setNewDesignation] = useState({ title: '' });
   const [editingDesigId, setEditingDesigId] = useState<number | null>(null);
 
   const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
@@ -42,26 +37,14 @@ export const DesignationsTab: React.FC = () => {
       const res = await apiClient.get('/masters/overview', {
         params: { branchId: currentBranch?.id || undefined }
       });
-      if (res?.data) {
-        if (res.data.departments) {
-          setDepartments(res.data.departments.map((d: any) => ({
-            id: d.id,
-            name: d.name,
-            status: d.status || 'Active',
-          })));
-        }
-        if (res.data.designations) {
-          setDesignations(res.data.designations.map((d: any) => ({
-            id: d.id,
-            title: d.name,
-            code: `DSG-${d.id}`,
-            department: 'General',
-            level: 'L2 (Mid)',
-            status: d.status || (d.archivedAt ? 'Archived' : 'Active'),
-            archivedAt: d.archivedAt,
-            branchId: d.branchId,
-          })));
-        }
+      if (res?.data?.designations) {
+        setDesignations(res.data.designations.map((d: any) => ({
+          id: d.id,
+          title: d.name,
+          status: d.status || (d.archivedAt ? 'Archived' : 'Active'),
+          archivedAt: d.archivedAt,
+          branchId: d.branchId,
+        })));
       }
     } catch (e) {
       console.error('Failed to load designations', e);
@@ -90,18 +73,18 @@ export const DesignationsTab: React.FC = () => {
     try {
       if (editingDesigId) {
         await apiClient.put(`/masters/designations/${editingDesigId}`, {
-          designationName: newDesignation.title,
+          designationName: newDesignation.title.trim(),
           branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
         });
         showSuccess('Designation Updated', `${newDesignation.title} updated.`);
       } else {
         await apiClient.post('/masters/designations', {
-          designationName: newDesignation.title,
+          designationName: newDesignation.title.trim(),
           branchId: currentBranch?.id ? parseInt(currentBranch.id) : null
         });
         showSuccess('Designation Added', `${newDesignation.title} registered.`);
       }
-      setNewDesignation({ title: '', code: '', department: 'Engineering & Technology', level: 'L2 (Mid)' });
+      setNewDesignation({ title: '' });
       setEditingDesigId(null);
       setDesigModalOpen(false);
       fetchData();
@@ -113,9 +96,7 @@ export const DesignationsTab: React.FC = () => {
   const handleExport = () => {
     exportToCSV('HRDesk_Designations', designations, [
       { key: 'title', label: 'Designation Title' },
-      { key: 'code', label: 'Code' },
-      { key: 'department', label: 'Department' },
-      { key: 'level', label: 'Job Grade' },
+      { key: 'status', label: 'Status' },
     ]);
     showSuccess('Exported', 'Designations exported to CSV.');
   };
@@ -130,11 +111,10 @@ export const DesignationsTab: React.FC = () => {
 
   const s = search.trim().toLowerCase();
   const filteredDesigs = designations.filter(d => {
-    const matchesSearch = !s || (d.title?.toLowerCase().includes(s)) || (d.code?.toLowerCase().includes(s));
-    const matchesDept = !deptFilter || d.department === deptFilter;
+    const matchesSearch = !s || (d.title?.toLowerCase().includes(s));
     const isAct = d.status?.toLowerCase() !== 'inactive' && d.status?.toLowerCase() !== 'archived';
     const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
-    return matchesSearch && matchesDept && matchesArchive;
+    return matchesSearch && matchesArchive;
   });
   const paginatedDesigs = filteredDesigs.slice((page - 1) * pageSize, page * pageSize);
 
@@ -147,30 +127,6 @@ export const DesignationsTab: React.FC = () => {
           <Award size={14} className="text-[var(--gold-500)]" />
           <span className="font-semibold text-xs text-[var(--ink)]">{item.title}</span>
         </div>
-      ),
-    },
-    {
-      key: 'code',
-      header: 'Code',
-      render: (item) => (
-        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] font-data text-[10px] font-bold text-[var(--ink)]">
-          {item.code}
-        </span>
-      ),
-    },
-    {
-      key: 'department',
-      header: 'Department',
-      className: 'text-xs text-[var(--ink-muted)]',
-      render: (item) => item.department || 'General',
-    },
-    {
-      key: 'level',
-      header: 'Job Grade',
-      render: (item) => (
-        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-          {item.level || 'L2 (Mid)'}
-        </span>
       ),
     },
     {
@@ -202,7 +158,7 @@ export const DesignationsTab: React.FC = () => {
             icon: <Edit2 size={14} />,
             onClick: () => {
               setEditingDesigId(item.id);
-              setNewDesignation({ title: item.title || item.name || '', code: item.code || '', department: item.department || '', level: item.level || '' });
+              setNewDesignation({ title: item.title || item.name || '' });
               setDesigModalOpen(true);
             },
           });
@@ -232,23 +188,11 @@ export const DesignationsTab: React.FC = () => {
       <DataToolbar
         searchValue={search}
         onSearchChange={(v) => { setSearch(v); setPage(1); }}
-        searchPlaceholder="Search designations by title or code..."
+        searchPlaceholder="Search designations by title..."
         archiveFilter={{
           value: archiveFilter,
           onChange: (v) => { setArchiveFilter(v); setPage(1); },
         }}
-        filters={[
-          {
-            id: 'department',
-            ariaLabel: 'Department Filter',
-            value: deptFilter,
-            onChange: (v) => { setDeptFilter(v); setPage(1); },
-            options: [
-              { value: '', label: 'All Departments' },
-              ...departments.map(d => ({ value: d.name, label: d.name })),
-            ],
-          },
-        ]}
         onExport={handleExport}
         exportLabel="Export CSV"
         onImport={(isAdmin || hasPermission('Masters.Designations.Create')) ? () => setBulkImportModalOpen(true) : undefined}
@@ -258,7 +202,11 @@ export const DesignationsTab: React.FC = () => {
             ? {
                 label: 'Add Designation',
                 icon: <Plus size={14} />,
-                onClick: () => setDesigModalOpen(true),
+                onClick: () => {
+                  setEditingDesigId(null);
+                  setNewDesignation({ title: '' });
+                  setDesigModalOpen(true);
+                },
               }
             : undefined
         }
@@ -305,27 +253,12 @@ export const DesignationsTab: React.FC = () => {
                 <input
                   type="text"
                   value={newDesignation.title}
-                  onChange={(e) => setNewDesignation({ ...newDesignation, title: e.target.value })}
+                  onChange={(e) => setNewDesignation({ title: e.target.value })}
                   placeholder="e.g. Senior Project Manager"
                   className="register-input w-full"
                   required
+                  autoFocus
                 />
-              </div>
-
-              <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Department</label>
-                <select
-                  value={newDesignation.department}
-                  onChange={(e) => setNewDesignation({ ...newDesignation, department: e.target.value })}
-                  className="register-input w-full text-xs"
-                >
-                  <option value="General">General / All Departments</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.name}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div className="pt-3 border-t border-[var(--rule)] flex justify-end gap-2">
@@ -347,8 +280,8 @@ export const DesignationsTab: React.FC = () => {
         onClose={() => setBulkImportModalOpen(false)}
         title="Import Designations"
         templateFilename="HRDesk_Designations_Template"
-        templateHeaders={['Title', 'Code', 'Department', 'Level']}
-        templateSampleRow={['DevOps Specialist', 'DEVOPS', 'Engineering & Technology', 'L3 (Senior)']}
+        templateHeaders={['Title']}
+        templateSampleRow={['DevOps Specialist']}
         onImportComplete={() => {
           showSuccess('Import Complete', 'Records imported successfully.');
           fetchData();
