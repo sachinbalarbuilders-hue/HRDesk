@@ -498,26 +498,7 @@ using (var scope = app.Services.CreateScope())
 
             if (!existingManagerPerms.Any())
             {
-                var managerPerms = new (string Key, string Scope)[]
-                {
-                    (HRDesk.Web.Constants.AppPermissions.Keys.EmployeesView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRoster, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRegularize, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.ShiftsRequestsView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.ShiftsRequestsApprove, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.LeavesView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.LeavesApply, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.LeavesApprove, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.CompOffView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.CompOffApply, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.CompOffApprove, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.PayrollView, HRDesk.Web.Constants.AppPermissions.Scopes.Reporting),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.HolidaysView, HRDesk.Web.Constants.AppPermissions.Scopes.All),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.AnnouncementsView, HRDesk.Web.Constants.AppPermissions.Scopes.All),
-                };
-
-                foreach (var (mKey, mScope) in managerPerms)
+                foreach (var (mKey, mScope) in HRDesk.Web.Constants.AppPermissions.DefaultManagerPermissions)
                 {
                     db.RolePermissions.Add(new HRDesk.Web.Models.RolePermission
                     {

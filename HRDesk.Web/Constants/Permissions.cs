@@ -473,4 +473,31 @@ public static class AppPermissions
         (Keys.HolidaysView, Scopes.OwnBranch),
         (Keys.AnnouncementsView, Scopes.OwnBranch),
     };
+
+    public static readonly (string Key, string Scope)[] DefaultManagerPermissions = new (string Key, string Scope)[]
+    {
+        (Keys.DashboardView, Scopes.Reporting),
+        (Keys.EmployeesView, Scopes.Reporting),
+        (Keys.AttendanceView, Scopes.Reporting),
+        (Keys.AttendanceRegularize, Scopes.Own),
+        (Keys.RegularizationsView, Scopes.Reporting),
+        (Keys.RegularizationsApprove, Scopes.Reporting),
+        (Keys.RegularizationsDelete, Scopes.DeleteSoft),
+        (Keys.ShiftsRosterView, Scopes.Reporting),
+        (Keys.ShiftsRosterAssign, Scopes.Reporting),
+        (Keys.ShiftsRequestsView, Scopes.Reporting),
+        (Keys.ShiftsRequestsApply, Scopes.Own),
+        (Keys.ShiftsRequestsApprove, Scopes.Reporting),
+        (Keys.ShiftsRequestsDelete, Scopes.DeleteSoft),
+        (Keys.LeavesView, Scopes.Reporting),
+        (Keys.LeavesApply, Scopes.Own),
+        (Keys.LeavesApprove, Scopes.Reporting),
+        (Keys.LeavesDelete, Scopes.DeleteSoft),
+        (Keys.CompOffView, Scopes.Reporting),
+        (Keys.CompOffApply, Scopes.Own),
+        (Keys.CompOffApprove, Scopes.Reporting),
+        (Keys.CompOffDelete, Scopes.DeleteSoft),
+        (Keys.HolidaysView, Scopes.OwnBranch),
+        (Keys.AnnouncementsView, Scopes.OwnBranch),
+    };
 }
