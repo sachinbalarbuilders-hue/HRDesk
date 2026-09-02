@@ -25,6 +25,7 @@ public static class AppPermissions
     // Modules matching actual system sections
     public static class Modules
     {
+        public const string Dashboard = "Dashboard";
         public const string Employees = "Employees";
         public const string Attendance = "Attendance";
         public const string Regularizations = "Regularizations";
@@ -42,6 +43,9 @@ public static class AppPermissions
     // Permission Keys
     public static class Keys
     {
+        // 0. Dashboard Module
+        public const string DashboardView = "Dashboard.View";
+
         // 1. Employees Module
         public const string EmployeesView = "Employees.View";
         public const string EmployeesCreate = "Employees.Create";
@@ -60,8 +64,19 @@ public static class AppPermissions
         public const string RegularizationsDelete = "Regularizations.Delete";
 
         // 4. Shifts & Roster Module
+        public const string ShiftsView = "Shifts.View";
+        public const string ShiftsCreate = "Shifts.Create";
+        public const string ShiftsEdit = "Shifts.Edit";
+        public const string ShiftsDelete = "Shifts.Delete";
         public const string ShiftsManage = "Shifts.Manage";
-        public const string AttendanceRoster = "Attendance.Roster";
+        public const string ShiftsRosterView = "Shifts.Roster.View";
+        public const string ShiftsRosterAssign = "Shifts.Roster.Assign";
+        public const string AttendanceRoster = "Attendance.Roster"; // Legacy alias
+        public const string ShiftsRequestsView = "Shifts.Requests.View";
+        public const string ShiftsRequestsApply = "Shifts.Requests.Apply";
+        public const string ShiftsRequestsApprove = "Shifts.Requests.Approve";
+        public const string ShiftsRequestsDelete = "Shifts.Requests.Delete";
+        public const string ShiftsRequestsManage = "Shifts.Requests.Manage";
         public const string HolidaysView = "Holidays.View";
         public const string HolidaysCreate = "Holidays.Create";
         public const string HolidaysEdit = "Holidays.Edit";
@@ -122,12 +137,6 @@ public static class AppPermissions
         public const string LeavesTypesEdit = "Leaves.Types.Edit";
         public const string LeavesTypesDelete = "Leaves.Types.Delete";
 
-        // Shifts Master
-        public const string ShiftsView = "Shifts.View";
-        public const string ShiftsCreate = "Shifts.Create";
-        public const string ShiftsEdit = "Shifts.Edit";
-        public const string ShiftsDelete = "Shifts.Delete";
-
         // 8. Recruitment Module
         public const string RecruitmentCandidates = "Recruitment.Candidates";
         public const string RecruitmentInterviews = "Recruitment.Interviews";
@@ -156,6 +165,12 @@ public static class AppPermissions
 
     public static readonly List<PermissionDefinition> All = new()
     {
+        // 0. Dashboard
+        new(Keys.DashboardView, "View Scope", Modules.Dashboard, "View team & organization metrics, statistics, and pending action queues", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch", "All" },
+            DefaultScope: "Own"),
+
         // 1. Employees
         new(Keys.EmployeesView, "View Scope", Modules.Employees, "View employee profiles and directories", 
             SupportsScope: true, 
@@ -216,29 +231,49 @@ public static class AppPermissions
             DefaultScope: "Soft Delete"),
 
         // 4. Shifts & Roster
-        new(Keys.ShiftsManage, "Manage Shifts", Modules.ShiftsAndRoster, "Create and edit shift timings and grace periods",
+        new(Keys.ShiftsRosterView, "View Shift Roster", Modules.ShiftsAndRoster, "View employee weekly shift schedule matrix", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.ShiftsRosterAssign, "Assign Shift Roster", Modules.ShiftsAndRoster, "Assign duty shifts, generate cycle rosters, and import roster CSV", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.ShiftsRequestsView, "View Shift Requests", Modules.ShiftsAndRoster, "View employee shift change requests",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.ShiftsRequestsApply, "Apply Shift Request", Modules.ShiftsAndRoster, "Submit shift change and swap requests",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own"),
+
+        new(Keys.ShiftsRequestsApprove, "Approve Shift Request", Modules.ShiftsAndRoster, "Approve or reject employee shift change requests",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Reporting To"),
+
+        new(Keys.ShiftsRequestsDelete, "Delete Shift Requests", Modules.ShiftsAndRoster, "Archive or permanently delete shift change requests",
+            SupportsScope: true,
+            ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
+            DefaultScope: "Soft Delete"),
+
+        new(Keys.HolidaysView, "View Scope", Modules.Holidays, "View company and branch holiday schedules",
             SupportsScope: true,
             ScopeOptions: new[] { "Own Branch" },
             DefaultScope: "Own Branch"),
 
-        new(Keys.AttendanceRoster, "Roster Scope", Modules.ShiftsAndRoster, "Assign and manage shift rosters", 
-            SupportsScope: true, 
-            ScopeOptions: new[] { "Department", "Own Branch" },
-            DefaultScope: "Own Branch"),
-
-        new(Keys.HolidaysView, "View Scope", Modules.Holidays, "View company and branch holiday schedules",
-            SupportsScope: true,
-            ScopeOptions: new[] { "Own Branch", "Department", "All" },
-            DefaultScope: "Own Branch"),
-
         new(Keys.HolidaysCreate, "Create Scope", Modules.Holidays, "Register new holiday events in the calendar",
             SupportsScope: true,
-            ScopeOptions: new[] { "Own Branch", "Department", "All" },
+            ScopeOptions: new[] { "Own Branch" },
             DefaultScope: "Own Branch"),
 
         new(Keys.HolidaysEdit, "Edit Scope", Modules.Holidays, "Update holiday dates, names, or applicability",
             SupportsScope: true,
-            ScopeOptions: new[] { "Own Branch", "Department", "All" },
+            ScopeOptions: new[] { "Own Branch" },
             DefaultScope: "Own Branch"),
 
         new(Keys.HolidaysDelete, "Delete Scope", Modules.Holidays, "Archive or delete holiday calendar entries",
@@ -249,17 +284,17 @@ public static class AppPermissions
         // Announcements
         new(Keys.AnnouncementsView, "View Scope", Modules.Announcements, "View published company notices and bulletins",
             SupportsScope: true,
-            ScopeOptions: new[] { "Own Branch", "All" },
+            ScopeOptions: new[] { "Own Branch" },
             DefaultScope: "Own Branch"),
 
         new(Keys.AnnouncementsCreate, "Create Scope", Modules.Announcements, "Post new company notices and announcements",
             SupportsScope: true,
-            ScopeOptions: new[] { "Own Branch", "All" },
+            ScopeOptions: new[] { "Own Branch" },
             DefaultScope: "Own Branch"),
 
         new(Keys.AnnouncementsEdit, "Edit Scope", Modules.Announcements, "Edit, pin, or upload media for announcements",
             SupportsScope: true,
-            ScopeOptions: new[] { "Own Branch", "All" },
+            ScopeOptions: new[] { "Own Branch" },
             DefaultScope: "Own Branch"),
 
         new(Keys.AnnouncementsDelete, "Delete Scope", Modules.Announcements, "Archive or permanently delete announcements",
@@ -377,7 +412,7 @@ public static class AppPermissions
             ScopeOptions: new[] { "Soft Delete", "Permanent Delete", "Bulk Delete" },
             DefaultScope: "Soft Delete"),
 
-        // Shifts Master
+        // Work Shifts Master
         new(Keys.ShiftsView, "View Work Shifts", Modules.Masters, "View work shifts and timings"),
         new(Keys.ShiftsCreate, "Create Work Shift", Modules.Masters, "Add new work shifts"),
         new(Keys.ShiftsEdit, "Edit Work Shift", Modules.Masters, "Update shift timings and grace periods"),

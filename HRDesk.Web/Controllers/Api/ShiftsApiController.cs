@@ -90,6 +90,14 @@ public class ShiftsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetShifts([FromQuery] int? branchId = null)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsView) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRoster) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceView))
+        {
+            return Forbid();
+        }
+
         var activeBranch = branchId ?? _tenantProvider.BranchId;
         var query = _db.Shifts.AsNoTracking().AsQueryable();
 
@@ -122,6 +130,12 @@ public class ShiftsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateShift([FromBody] ShiftDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsCreate) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         if (string.IsNullOrWhiteSpace(dto.ShiftName)) return BadRequest(new { message = "Shift name is required." });
         if (!TimeOnly.TryParse(dto.StartTime, out var sTime)) return BadRequest(new { message = "Invalid start time." });
         if (!TimeOnly.TryParse(dto.EndTime, out var eTime)) return BadRequest(new { message = "Invalid end time." });
@@ -157,6 +171,12 @@ public class ShiftsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateShift(int id, [FromBody] ShiftDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsEdit) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         var shift = await _db.Shifts.FindAsync(id);
         if (shift == null) return NotFound(new { message = "Shift not found." });
 
@@ -179,6 +199,25 @@ public class ShiftsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteShift(int id, [FromQuery] bool permanent = false)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsDelete) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
+        if (permanent)
+        {
+            var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
+            if (!isSuperAdmin)
+            {
+                var deleteScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.ShiftsDelete);
+                if (deleteScope != "Permanent Delete" && deleteScope != "Bulk Delete" && deleteScope != "All")
+                {
+                    return StatusCode(403, new { message = "You do not have permission to permanently delete records." });
+                }
+            }
+        }
+
         var result = permanent
             ? await _archive.PermanentDeleteAsync<Shift>(id)
             : await _archive.ArchiveAsync<Shift>(id);
@@ -188,7 +227,15 @@ public class ShiftsController : ControllerBase
 
     [HttpPost("{id}/restore")]
     public async Task<IActionResult> RestoreShift(int id)
-        => FromArchive(await _archive.RestoreAsync<Shift>(id));
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsDelete) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
+        return FromArchive(await _archive.RestoreAsync<Shift>(id));
+    }
 
     // ==========================================
     // ROSTER MANAGEMENT
@@ -203,6 +250,14 @@ public class ShiftsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRosterView) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRoster) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsView) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         if (!DateOnly.TryParse(startDate, out var parsedStart))
         {
             parsedStart = DateOnly.FromDateTime(DateTime.Today);
@@ -217,6 +272,8 @@ public class ShiftsController : ControllerBase
             .Include(e => e.Designation)
             .Where(e => e.Status == "active")
             .AsQueryable();
+
+        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.ShiftsRosterView);
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
             empQuery = empQuery.Where(e => e.BranchId == activeBranch.Value);
@@ -290,6 +347,13 @@ public class ShiftsController : ControllerBase
     [HttpPost("roster/assign")]
     public async Task<IActionResult> AssignRoster([FromBody] AssignRosterDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRosterAssign) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRoster) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         if (dto.EmployeeIds == null || dto.EmployeeIds.Count == 0)
             return BadRequest(new { message = "At least one employee must be selected." });
 
@@ -396,6 +460,13 @@ public class ShiftsController : ControllerBase
     [HttpGet("cycles")]
     public async Task<IActionResult> GetShiftCycles([FromQuery] int? branchId = null, [FromQuery] string? archiveStatus = "active")
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsView) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRoster))
+        {
+            return Forbid();
+        }
+
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 
@@ -450,6 +521,12 @@ public class ShiftsController : ControllerBase
     [HttpPost("cycles")]
     public async Task<IActionResult> CreateShiftCycle([FromBody] CreateShiftCycleDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsCreate) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         if (string.IsNullOrWhiteSpace(dto.Name))
             return BadRequest(new { message = "Cycle name is required." });
         if (dto.CycleLengthDays < 1 || dto.CycleLengthDays > 365)
@@ -488,6 +565,12 @@ public class ShiftsController : ControllerBase
     [HttpPut("cycles/{id}")]
     public async Task<IActionResult> UpdateShiftCycle(int id, [FromBody] CreateShiftCycleDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsEdit) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var cycle = await _db.ShiftCycles.Include(c => c.Slots)
             .FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == orgId);
@@ -524,6 +607,25 @@ public class ShiftsController : ControllerBase
     [HttpDelete("cycles/{id}")]
     public async Task<IActionResult> DeleteShiftCycle(int id, [FromQuery] bool permanent = false)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsDelete) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
+        if (permanent)
+        {
+            var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
+            if (!isSuperAdmin)
+            {
+                var deleteScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.ShiftsDelete);
+                if (deleteScope != "Permanent Delete" && deleteScope != "Bulk Delete" && deleteScope != "All")
+                {
+                    return StatusCode(403, new { message = "You do not have permission to permanently delete records." });
+                }
+            }
+        }
+
         if (!permanent)
             return FromArchive(await _archive.ArchiveAsync<ShiftCycle>(id));
 
@@ -536,7 +638,15 @@ public class ShiftsController : ControllerBase
 
     [HttpPost("cycles/{id}/restore")]
     public async Task<IActionResult> RestoreShiftCycle(int id)
-        => FromArchive(await _archive.RestoreAsync<ShiftCycle>(id));
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsDelete) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
+        return FromArchive(await _archive.RestoreAsync<ShiftCycle>(id));
+    }
 
     // ==========================================
     // ROSTER GENERATION FROM CYCLE
@@ -545,6 +655,13 @@ public class ShiftsController : ControllerBase
     [HttpPost("roster/generate-from-cycle")]
     public async Task<IActionResult> GenerateRosterFromCycle([FromBody] GenerateFromCycleDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRosterAssign) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRoster) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         if (dto.EmployeeIds == null || dto.EmployeeIds.Count == 0)
             return BadRequest(new { message = "At least one employee must be selected." });
         if (dto.GenerateUntil < dto.CycleStartDate)
@@ -690,6 +807,14 @@ public class ShiftsController : ControllerBase
     [HttpGet("roster/lookup-for-date")]
     public async Task<IActionResult> LookupShiftForDate([FromQuery] int employeeId, [FromQuery] DateOnly date)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRequestsView) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRequestsApply) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceRoster) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var emp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == employeeId && e.OrganizationId == orgId);
         if (emp == null) return NotFound(new { message = "Employee not found." });
@@ -727,17 +852,36 @@ public class ShiftsController : ControllerBase
     public async Task<IActionResult> GetShiftChangeRequests(
         [FromQuery] string? status = null,
         [FromQuery] int? employeeId = null,
-        [FromQuery] int? branchId = null)
+        [FromQuery] int? branchId = null,
+        [FromQuery] bool archived = false)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRequestsView) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 
+        if (archived)
+        {
+            _db.BypassArchiveFilter = true;
+        }
+
         var query = _db.ShiftChangeRequests
             .AsNoTracking()
-            .Include(r => r.Employee)
+            .Include(r => r.Employee).ThenInclude(e => e.Department)
             .Include(r => r.CurrentShift)
             .Include(r => r.RequestedShift)
             .Where(r => r.OrganizationId == orgId);
+
+        if (archived)
+        {
+            query = query.Where(r => r.ArchivedAt != null);
+        }
+
+        query = await _permissionService.ApplyShiftChangeRequestScopeAsync(query, User, AppPermissions.Keys.ShiftsRequestsView);
 
         if (activeBranch.HasValue && activeBranch.Value > 0)
             query = query.Where(r => r.BranchId == activeBranch.Value);
@@ -771,7 +915,9 @@ public class ShiftsController : ControllerBase
                 reviewedBy = r.ReviewedBy,
                 reviewedAt = r.ReviewedAt,
                 rejectionReason = r.RejectionReason,
-                createdAt = r.CreatedAt
+                createdAt = r.CreatedAt,
+                archivedAt = r.ArchivedAt,
+                archivedBy = r.ArchivedBy
             })
             .ToListAsync();
 
@@ -781,8 +927,28 @@ public class ShiftsController : ControllerBase
     [HttpPost("requests")]
     public async Task<IActionResult> CreateShiftChangeRequest([FromBody] CreateShiftChangeRequestDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRequestsApply) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         if (dto.EmployeeId <= 0)
             return BadRequest(new { message = "Employee ID is required." });
+
+        var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
+        if (!isSuperAdmin)
+        {
+            var applyScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.ShiftsRequestsApply);
+            if (applyScope == AppPermissions.Scopes.Own)
+            {
+                var myEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
+                if (!myEmpId.HasValue || myEmpId.Value != dto.EmployeeId)
+                {
+                    return StatusCode(403, new { message = "You only have permission to submit shift change requests for yourself." });
+                }
+            }
+        }
 
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var emp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.EmployeeId == dto.EmployeeId && e.OrganizationId == orgId);
@@ -833,6 +999,12 @@ public class ShiftsController : ControllerBase
     [HttpPost("requests/{id}/approve")]
     public async Task<IActionResult> ApproveShiftChangeRequest(int id)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRequestsApprove) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var request = await _db.ShiftChangeRequests.Include(r => r.Employee)
             .FirstOrDefaultAsync(r => r.Id == id && r.OrganizationId == orgId);
@@ -889,6 +1061,12 @@ public class ShiftsController : ControllerBase
     [HttpPost("requests/{id}/reject")]
     public async Task<IActionResult> RejectShiftChangeRequest(int id, [FromBody] ReviewShiftChangeRequestDto dto)
     {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRequestsApprove) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
         var request = await _db.ShiftChangeRequests.FirstOrDefaultAsync(r => r.Id == id && r.OrganizationId == orgId);
 
@@ -904,6 +1082,50 @@ public class ShiftsController : ControllerBase
         await _db.SaveChangesAsync();
 
         return Ok(new { message = "Shift change request rejected." });
+    }
+
+    /// <summary>
+    /// "Delete" from the main list → archive. "Delete" from the Archive view → ?permanent=true.
+    /// </summary>
+    [HttpDelete("requests/{id}")]
+    public async Task<IActionResult> DeleteShiftChangeRequest(int id, [FromQuery] bool permanent = false)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRequestsDelete) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
+        if (permanent)
+        {
+            var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
+            if (!isSuperAdmin)
+            {
+                var deleteScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.ShiftsRequestsDelete);
+                if (deleteScope != "Permanent Delete" && deleteScope != "Bulk Delete" && deleteScope != "All")
+                {
+                    return StatusCode(403, new { message = "You do not have permission to permanently delete records." });
+                }
+            }
+        }
+
+        var result = permanent
+            ? await _archive.PermanentDeleteAsync<ShiftChangeRequest>(id)
+            : await _archive.ArchiveAsync<ShiftChangeRequest>(id);
+
+        return FromArchive(result);
+    }
+
+    [HttpPost("requests/{id}/restore")]
+    public async Task<IActionResult> RestoreShiftChangeRequest(int id)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsRequestsDelete) &&
+            !await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.ShiftsManage))
+        {
+            return Forbid();
+        }
+
+        return FromArchive(await _archive.RestoreAsync<ShiftChangeRequest>(id));
     }
 }
 

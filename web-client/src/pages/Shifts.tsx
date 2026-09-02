@@ -10,6 +10,9 @@ import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 import { EmployeeMultiSelect } from '../components/ui/EmployeeMultiSelect';
+import { useAuth } from '../context/AuthContext';
+import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
+import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import {
   ChevronLeft,
   ChevronRight,
@@ -25,6 +28,8 @@ import {
   User,
   Check,
   Layers,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 
 interface EmployeeShift {
@@ -50,6 +55,16 @@ interface ShiftMaster {
 export const Shifts: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const { currentOrganization, currentBranch } = useOrganization();
+  const { user, isAdmin, hasPermission, getPermissionScope } = useAuth();
+
+  const canViewRoster = isAdmin || hasPermission('Shifts.Roster.View') || hasPermission('Attendance.Roster') || hasPermission('Shifts.View') || hasPermission('Shifts.Manage');
+  const canAssignRoster = isAdmin || hasPermission('Shifts.Roster.Assign') || hasPermission('Attendance.Roster') || hasPermission('Shifts.Manage');
+  const canViewRequests = isAdmin || hasPermission('Shifts.Requests.View') || hasPermission('Shifts.Manage');
+  const canApplyRequest = isAdmin || hasPermission('Shifts.Requests.Apply') || hasPermission('Shifts.Manage');
+  const canApproveRequest = isAdmin || hasPermission('Shifts.Requests.Approve') || hasPermission('Shifts.Manage');
+  const applyScope = getPermissionScope('Shifts.Requests.Apply');
+  const isOwnOnlyApply = !isAdmin && (applyScope === 'Own' || (!applyScope && !hasPermission('Shifts.Manage')));
+
   const [shifts, setShifts] = useState<ShiftMaster[]>([]);
   const [cycles, setCycles] = useState<any[]>([]);
   const [useCycle, setUseCycle] = useState(false);
@@ -98,6 +113,16 @@ export const Shifts: React.FC = () => {
 
   // Shift Change Requests State
   const [activeMainTab, setActiveMainTab] = useState<'roster' | 'requests'>('roster');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
+  const canDeleteRequest = isAdmin || hasPermission('Shifts.Requests.Delete') || hasPermission('Shifts.Manage');
+
+  const requestsArchive = useArchiveActions({
+    endpoint: '/shifts/requests',
+    label: 'Shift Change Request',
+    permissionKey: 'Shifts.Requests.Delete',
+    onDone: () => fetchRequests(),
+  });
+
   const [requests, setRequests] = useState<any[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestStatusFilter, setRequestStatusFilter] = useState('all');
@@ -133,6 +158,7 @@ export const Shifts: React.FC = () => {
         params: {
           branchId: currentBranch?.id || undefined,
           status: requestStatusFilter !== 'all' ? requestStatusFilter : undefined,
+          archived: archiveFilter === 'archived',
         }
       });
       setRequests(res.data || []);
@@ -142,6 +168,12 @@ export const Shifts: React.FC = () => {
       setRequestsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (activeMainTab === 'requests') {
+      fetchRequests();
+    }
+  }, [activeMainTab, requestStatusFilter, archiveFilter, currentBranch?.id]);
 
   const lookupDateShift = async (empId: number, date: string) => {
     if (!empId || !date) return;
@@ -156,19 +188,22 @@ export const Shifts: React.FC = () => {
   };
 
   const handleOpenChangeRequestModal = () => {
-    const firstEmp = employees.length > 0 ? employees[0].employeeId : 0;
+    let targetEmp = employees.length > 0 ? employees[0].employeeId : 0;
+    if (isOwnOnlyApply && user?.employeeId) {
+      targetEmp = Number(user.employeeId);
+    }
     const todayStr = new Date().toISOString().split('T')[0];
     const firstShift = shifts.length > 0 ? shifts[0].id : 1;
     setChangeRequestForm({
-      employeeId: firstEmp,
+      employeeId: targetEmp,
       requestDate: todayStr,
       currentShiftInfo: null,
       requestedShiftId: firstShift,
       isRequestedWeekOff: false,
       reason: '',
     });
-    if (firstEmp > 0) {
-      lookupDateShift(firstEmp, todayStr);
+    if (targetEmp > 0) {
+      lookupDateShift(targetEmp, todayStr);
     }
     setChangeRequestModalOpen(true);
   };
@@ -238,17 +273,30 @@ export const Shifts: React.FC = () => {
   const fetchLookups = async () => {
     try {
       const [deptRes, empRes, shiftsRes, cyclesRes] = await Promise.all([
-        apiClient.get('/employees/lookups', { params: { branchId: currentBranch?.id || undefined } }),
-        apiClient.get('/employees?pageSize=200', { params: { branchId: currentBranch?.id || undefined } }),
+        apiClient.get('/masters', { params: { branchId: currentBranch?.id || undefined } }).catch(() => apiClient.get('/employees/lookups')),
+        apiClient.get('/employees?pageSize=300', { params: { branchId: currentBranch?.id || undefined } }),
         apiClient.get('/shifts', { params: { branchId: currentBranch?.id || undefined } }),
         apiClient.get('/shifts/cycles', { params: { branchId: currentBranch?.id || undefined } }),
       ]);
-      setDepartments(deptRes.data?.departments || []);
-      const emps = (empRes.data.items || []).map((e: any) => ({
-        employeeId: e.employeeId || e.id,
-        employeeName: e.employeeName || e.name,
+      const rawDepts = deptRes.data?.departments || deptRes.data?.items || (Array.isArray(deptRes.data) ? deptRes.data : []);
+      const normalizedDepts = rawDepts
+        .filter((d: any) => !d.archivedAt && d.status !== 'Archived')
+        .map((d: any) => ({
+          id: d.departmentId ?? d.id ?? d.DepartmentId,
+          name: d.departmentName ?? d.name ?? d.DepartmentName,
+          branchId: d.branchId ?? d.BranchId ?? null,
+        }));
+      setDepartments(normalizedDepts);
+
+      const rawEmps = empRes.data?.items || (Array.isArray(empRes.data) ? empRes.data : []);
+      const emps = rawEmps.map((e: any) => ({
+        employeeId: e.employeeId ?? e.id ?? e.EmployeeId,
+        employeeName: e.employeeName ?? e.name ?? e.EmployeeName ?? `Employee #${e.employeeId || e.id}`,
+        departmentId: e.departmentId ?? e.department?.id ?? e.deptId ?? e.DepartmentId,
+        departmentName: e.departmentName ?? e.department?.departmentName ?? e.department?.name ?? e.DepartmentName,
       }));
       setEmployees(emps);
+
       const sList = shiftsRes.data || [];
       setShifts(sList);
       if (sList.length > 0) {
@@ -436,50 +484,44 @@ export const Shifts: React.FC = () => {
       {/* 1. Main Sub Tabs */}
       <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3 mb-6">
         <div className="flex items-center gap-1.5 bg-[var(--surface-sunken)] p-1 rounded-[var(--radius-md)] border border-[var(--rule)]">
-          <button
-            type="button"
-            onClick={() => setActiveMainTab('roster')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all cursor-pointer ${
-              activeMainTab === 'roster'
-                ? 'bg-[var(--surface)] text-[var(--ink)] shadow-2xs border border-[var(--rule)] font-bold'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-            }`}
-          >
-            <Layers size={14} className={activeMainTab === 'roster' ? 'text-[var(--gold-500)]' : 'opacity-60'} />
-            <span>Shift Roster Matrix</span>
-          </button>
+          {canViewRoster && (
+            <button
+              type="button"
+              onClick={() => setActiveMainTab('roster')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all cursor-pointer ${
+                activeMainTab === 'roster'
+                  ? 'bg-[var(--surface)] text-[var(--ink)] shadow-2xs border border-[var(--rule)] font-bold'
+                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              }`}
+            >
+              <Layers size={14} className={activeMainTab === 'roster' ? 'text-[var(--gold-500)]' : 'opacity-60'} />
+              <span>Shift Roster Matrix</span>
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() => {
-              setActiveMainTab('requests');
-              fetchRequests();
-            }}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all cursor-pointer ${
-              activeMainTab === 'requests'
-                ? 'bg-[var(--surface)] text-[var(--ink)] shadow-2xs border border-[var(--rule)] font-bold'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
-            }`}
-          >
-            <Clock size={14} className={activeMainTab === 'requests' ? 'text-[var(--gold-500)]' : 'opacity-60'} />
-            <span>Shift Change Requests</span>
-            {requests.filter(r => r.status?.toLowerCase() === 'pending').length > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-data font-bold animate-pulse">
-                {requests.filter(r => r.status?.toLowerCase() === 'pending').length}
-              </span>
-            )}
-          </button>
+          {canViewRequests && (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveMainTab('requests');
+                fetchRequests();
+              }}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all cursor-pointer ${
+                activeMainTab === 'requests'
+                  ? 'bg-[var(--surface)] text-[var(--ink)] shadow-2xs border border-[var(--rule)] font-bold'
+                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              }`}
+            >
+              <Clock size={14} className={activeMainTab === 'requests' ? 'text-[var(--gold-500)]' : 'opacity-60'} />
+              <span>Shift Change Requests</span>
+              {requests.filter(r => r.status?.toLowerCase() === 'pending').length > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-data font-bold animate-pulse">
+                  {requests.filter(r => r.status?.toLowerCase() === 'pending').length}
+                </span>
+              )}
+            </button>
+          )}
         </div>
-
-        {/* Global Quick Action */}
-        <button
-          type="button"
-          onClick={handleOpenChangeRequestModal}
-          className="btn-outline flex items-center gap-1.5 text-xs cursor-pointer hover:border-[var(--gold-500)] hover:text-[var(--gold-500)] transition-all"
-        >
-          <Clock size={13} className="text-[var(--gold-500)]" />
-          <span>+ Request Shift Change</span>
-        </button>
       </div>
 
       {activeMainTab === 'roster' ? (
@@ -497,22 +539,28 @@ export const Shifts: React.FC = () => {
                 onChange: (v) => { setDepartmentFilter(v); setPage(1); },
                 options: [
                   { value: '', label: 'All Departments' },
-                  ...departments.filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id)).map((d: any) => ({ value: String(d.departmentId || d.id), label: d.departmentName })),
+                  ...departments
+                    .filter((d: any) => !currentBranch?.id || d.branchId == null || String(d.branchId) === String(currentBranch.id))
+                    .map((d: any) => ({ value: String(d.id), label: d.name })),
                 ],
               },
             ]}
             onExport={handleExport}
-            onImport={() => setImportModalOpen(true)}
-            primaryAction={{
-              label: 'Assign Shifts / Week-Off',
-              icon: <Plus className="w-3.5 h-3.5" />,
-              onClick: () => {
-                setAssignDeptFilter('');
-                setSelectedEmployeesState([]);
-                setAssignForm(prev => ({ ...prev, employeeIds: [] }));
-                setAssignModalOpen(true);
-              },
-            }}
+            onImport={canAssignRoster ? () => setImportModalOpen(true) : undefined}
+            primaryAction={
+              canAssignRoster
+                ? {
+                    label: 'Assign Shifts / Week-Off',
+                    icon: <Plus className="w-3.5 h-3.5" />,
+                    onClick: () => {
+                      setAssignDeptFilter('');
+                      setSelectedEmployeesState([]);
+                      setAssignForm(prev => ({ ...prev, employeeIds: [] }));
+                      setAssignModalOpen(true);
+                    },
+                  }
+                : undefined
+            }
           >
             <div className="flex items-center gap-1.5 bg-[var(--paper)] border border-[var(--rule)] rounded-lg p-1">
               <button
@@ -665,11 +713,19 @@ export const Shifts: React.FC = () => {
                 ],
               },
             ]}
-            primaryAction={{
-              label: 'Submit Shift Request',
-              icon: <Clock className="w-3.5 h-3.5" />,
-              onClick: handleOpenChangeRequestModal,
+            archiveFilter={{
+              value: archiveFilter,
+              onChange: setArchiveFilter,
             }}
+            primaryAction={
+              canApplyRequest && archiveFilter === 'active'
+                ? {
+                    label: 'Submit Shift Request',
+                    icon: <Clock className="w-3.5 h-3.5" />,
+                    onClick: handleOpenChangeRequestModal,
+                  }
+                : undefined
+            }
           />
 
           <div className="card overflow-hidden">
@@ -680,8 +736,14 @@ export const Shifts: React.FC = () => {
             ) : filteredRequests.length === 0 ? (
               <div className="p-12 text-center text-xs text-[var(--ink-muted)]">
                 <Clock className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
-                <div className="font-semibold text-sm text-[var(--ink)]">No Shift Requests Found</div>
-                <p className="mt-1">There are no shift change or swap requests matching your filter.</p>
+                <div className="font-semibold text-sm text-[var(--ink)]">
+                  {archiveFilter === 'archived' ? 'No Archived Shift Requests' : 'No Shift Requests Found'}
+                </div>
+                <p className="mt-1">
+                  {archiveFilter === 'archived'
+                    ? 'There are no archived shift change requests.'
+                    : 'There are no shift change or swap requests matching your filter.'}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -784,33 +846,74 @@ export const Shifts: React.FC = () => {
                           </td>
 
                           <td className="p-3.5 text-right whitespace-nowrap">
-                            {isPending ? (
+                            {archiveFilter === 'archived' ? (
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => handleApproveRequest(req.id)}
-                                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
-                                  title="Approve shift change and update roster"
+                                  onClick={() => requestsArchive.restore({ id: req.id, name: `${req.employeeName}'s Shift Request`, isArchived: true })}
+                                  className="px-2.5 py-1 rounded bg-emerald-600/10 text-emerald-600 hover:bg-emerald-600/20 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="Restore request"
                                 >
-                                  <Check size={13} strokeWidth={2.5} />
-                                  <span>Approve</span>
+                                  <RotateCcw size={12} />
+                                  <span>Restore</span>
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedRequestIdToReject(req.id);
-                                    setRejectionReasonText('');
-                                    setRejectModalOpen(true);
-                                  }}
-                                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
-                                  title="Reject request"
-                                >
-                                  <X size={13} strokeWidth={2.5} />
-                                  <span>Reject</span>
-                                </button>
+                                {requestsArchive.canPermanentDelete && (
+                                  <button
+                                    type="button"
+                                    onClick={() => requestsArchive.confirmPermanentDelete({ id: req.id, name: `${req.employeeName}'s Shift Request`, isArchived: true })}
+                                    className="px-2.5 py-1 rounded bg-rose-600/10 text-rose-600 hover:bg-rose-600/20 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                                    title="Permanently delete request"
+                                  >
+                                    <Trash2 size={12} />
+                                    <span>Delete Permanently</span>
+                                  </button>
+                                )}
                               </div>
                             ) : (
-                              <span className="text-[11px] text-[var(--ink-muted)] italic">Completed</span>
+                              <div className="flex items-center justify-end gap-2">
+                                {isPending && canApproveRequest && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveRequest(req.id)}
+                                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                                      title="Approve shift change and update roster"
+                                    >
+                                      <Check size={13} strokeWidth={2.5} />
+                                      <span>Approve</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedRequestIdToReject(req.id);
+                                        setRejectionReasonText('');
+                                        setRejectModalOpen(true);
+                                      }}
+                                      className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                                      title="Reject request"
+                                    >
+                                      <X size={13} strokeWidth={2.5} />
+                                      <span>Reject</span>
+                                    </button>
+                                  </>
+                                )}
+                                {isPending && !canApproveRequest && (
+                                  <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Pending Review</span>
+                                )}
+                                {!isPending && (
+                                  <span className="text-[11px] text-[var(--ink-muted)] italic mr-1">Completed</span>
+                                )}
+                                {canDeleteRequest && (
+                                  <button
+                                    type="button"
+                                    onClick={() => requestsArchive.archive({ id: req.id, name: `${req.employeeName}'s Shift Request`, isArchived: false })}
+                                    className="p-1.5 rounded-md hover:bg-rose-500/10 text-[var(--ink-muted)] hover:text-rose-600 transition-colors cursor-pointer"
+                                    title="Archive shift request"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -879,10 +982,10 @@ export const Shifts: React.FC = () => {
                   >
                     <option value="">— All Departments —</option>
                     {departments
-                      .filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
+                      .filter((d: any) => !currentBranch?.id || d.branchId == null || String(d.branchId) === String(currentBranch.id))
                       .map((d: any) => (
-                        <option key={d.departmentId || d.id} value={String(d.departmentId || d.id)}>
-                          {d.departmentName}
+                        <option key={d.id} value={String(d.id)}>
+                          {d.name}
                         </option>
                       ))}
                   </select>
@@ -891,8 +994,8 @@ export const Shifts: React.FC = () => {
                       type="button"
                       onClick={() => {
                         const deptEmps = employees.filter((e: any) => {
-                          const empDeptId = e.departmentId || e.deptId;
-                          return empDeptId && String(empDeptId) === String(assignDeptFilter);
+                          const empDeptId = e.departmentId;
+                          return empDeptId != null && String(empDeptId) === String(assignDeptFilter);
                         });
                         const deptEmpIds = deptEmps.map((e: any) => e.employeeId);
                         const mergedIds = Array.from(new Set([...assignForm.employeeIds, ...deptEmpIds]));
@@ -1100,23 +1203,29 @@ export const Shifts: React.FC = () => {
               {/* Employee Selection */}
               <div>
                 <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Employee *</label>
-                <select
-                  value={changeRequestForm.employeeId}
-                  onChange={(e) => {
-                    const empId = parseInt(e.target.value) || 0;
-                    setChangeRequestForm(prev => ({ ...prev, employeeId: empId }));
-                    lookupDateShift(empId, changeRequestForm.requestDate);
-                  }}
-                  className="register-input"
-                  required
-                >
-                  <option value={0}>— Select Employee —</option>
-                  {employees.map((e) => (
-                    <option key={e.employeeId} value={e.employeeId}>
-                      {e.employeeName}
-                    </option>
-                  ))}
-                </select>
+                {isOwnOnlyApply && user?.employeeId ? (
+                  <div className="p-2.5 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)] font-semibold text-xs text-[var(--ink)]">
+                    {user?.employeeName || user?.fullName || user?.username || `Employee #${user.employeeId}`}
+                  </div>
+                ) : (
+                  <select
+                    value={changeRequestForm.employeeId}
+                    onChange={(e) => {
+                      const empId = parseInt(e.target.value) || 0;
+                      setChangeRequestForm(prev => ({ ...prev, employeeId: empId }));
+                      lookupDateShift(empId, changeRequestForm.requestDate);
+                    }}
+                    className="register-input"
+                    required
+                  >
+                    <option value={0}>— Select Employee —</option>
+                    {employees.map((e) => (
+                      <option key={e.employeeId} value={e.employeeId}>
+                        {e.employeeName}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Target Date */}
@@ -1283,6 +1392,9 @@ export const Shifts: React.FC = () => {
           fetchRoster();
         }}
       />
+
+      {/* Confirm Permanent Delete Dialog */}
+      {requestsArchive.dialog}
     </PageContainer>
   );
 };

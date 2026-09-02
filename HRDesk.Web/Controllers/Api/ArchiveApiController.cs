@@ -1,3 +1,4 @@
+using HRDesk.Web.Constants;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
@@ -78,7 +79,8 @@ public class ArchiveController : ControllerBase
         if (!ArchivableRegistry.TryResolve(entity, out var reg))
             return NotFound(new { message = $"Unknown archivable entity '{entity}'." });
 
-        if (!await _permissionService.HasPermissionAsync(User, reg.Permission))
+        if (!await _permissionService.HasPermissionAsync(User, reg.ViewPermission) &&
+            !await _permissionService.HasPermissionAsync(User, reg.DeletePermission))
             return Forbid();
 
         var task = (Task)typeof(IArchiveService)
@@ -100,7 +102,8 @@ public class ArchiveController : ControllerBase
         if (!ArchivableRegistry.TryResolve(entity, out var reg))
             return NotFound(new { message = $"Unknown archivable entity '{entity}'." });
 
-        if (!await _permissionService.HasPermissionAsync(User, reg.Permission))
+        if (!await _permissionService.HasPermissionAsync(User, reg.ViewPermission) &&
+            !await _permissionService.HasPermissionAsync(User, reg.DeletePermission))
             return Forbid();
 
         var task = (Task)typeof(IArchiveService)
@@ -131,16 +134,20 @@ public class ArchiveController : ControllerBase
         if (!ArchivableRegistry.TryResolve(entity, out var reg))
             return NotFound(new { message = $"Unknown archivable entity '{entity}'." });
 
-        if (!await _permissionService.HasPermissionAsync(User, reg.Permission))
+        if (!await _permissionService.HasPermissionAsync(User, reg.DeletePermission))
             return Forbid();
 
         var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
-        if (!isSuperAdmin && methodName == nameof(IArchiveService.PermanentDeleteAsync))
+        if (!isSuperAdmin)
         {
-            var deleteScope = await _permissionService.GetPermissionScopeAsync(User, reg.Permission);
-            if (deleteScope != "Permanent Delete" && deleteScope != "All")
+            var def = AppPermissions.All.FirstOrDefault(d => d.Key == reg.DeletePermission);
+            if (def != null && def.SupportsScope && methodName == nameof(IArchiveService.PermanentDeleteAsync))
             {
-                return StatusCode(403, new { message = "You do not have permission to permanently delete records." });
+                var deleteScope = await _permissionService.GetPermissionScopeAsync(User, reg.DeletePermission);
+                if (deleteScope != "Permanent Delete" && deleteScope != "Bulk Delete" && deleteScope != "All")
+                {
+                    return StatusCode(403, new { message = "You do not have permission to permanently delete records." });
+                }
             }
         }
 
@@ -181,25 +188,29 @@ public class ArchiveController : ControllerBase
         if (!ArchivableRegistry.TryResolve(entity, out var reg))
             return NotFound(new { message = $"Unknown archivable entity '{entity}'." });
 
-        if (!await _permissionService.HasPermissionAsync(User, reg.Permission))
+        if (!await _permissionService.HasPermissionAsync(User, reg.DeletePermission))
             return Forbid();
 
         var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("SuperAdmin");
         if (!isSuperAdmin)
         {
-            var deleteScope = await _permissionService.GetPermissionScopeAsync(User, reg.Permission);
-            if (methodName == nameof(IArchiveService.BulkPermanentDeleteAsync))
+            var def = AppPermissions.All.FirstOrDefault(d => d.Key == reg.DeletePermission);
+            if (def != null && def.SupportsScope)
             {
-                if (deleteScope != "Permanent Delete" && deleteScope != "All")
+                var deleteScope = await _permissionService.GetPermissionScopeAsync(User, reg.DeletePermission);
+                if (methodName == nameof(IArchiveService.BulkPermanentDeleteAsync))
                 {
-                    return StatusCode(403, new { message = "You do not have permission to permanently delete records in bulk." });
+                    if (deleteScope != "Bulk Delete" && deleteScope != "Permanent Delete" && deleteScope != "All")
+                    {
+                        return StatusCode(403, new { message = "You do not have permission to permanently delete records in bulk." });
+                    }
                 }
-            }
-            else if (methodName == nameof(IArchiveService.BulkArchiveAsync) || methodName == nameof(IArchiveService.BulkRestoreAsync))
-            {
-                if (deleteScope != "Bulk Delete" && deleteScope != "Permanent Delete" && deleteScope != "All")
+                else if (methodName == nameof(IArchiveService.BulkArchiveAsync) || methodName == nameof(IArchiveService.BulkRestoreAsync))
                 {
-                    return StatusCode(403, new { message = "You do not have permission to perform bulk delete/restore operations." });
+                    if (deleteScope != "Bulk Delete" && deleteScope != "Permanent Delete" && deleteScope != "All")
+                    {
+                        return StatusCode(403, new { message = "You do not have permission to perform bulk delete/restore operations." });
+                    }
                 }
             }
         }

@@ -81,6 +81,7 @@ export function useArchiveActions({
     !permissionKey ||
     isAdmin ||
     deleteScope === 'All' ||
+    deleteScope === 'Permanent Delete' ||
     deleteScope === 'Bulk Delete';
 
   const canPermanentDelete = optCanPermanent && hasDeletePerm && allowsPermanent;

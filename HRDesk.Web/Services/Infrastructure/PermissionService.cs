@@ -54,7 +54,9 @@ public sealed class PermissionService : IPermissionService
         { "Masters.Departments", new[] { "Masters.Departments.View", "Masters.Departments.Create", "Masters.Departments.Edit", "Masters.Departments.Delete" } },
         { "Masters.Designations", new[] { "Masters.Designations.View", "Masters.Designations.Create", "Masters.Designations.Edit", "Masters.Designations.Delete" } },
         { "Leaves.ManageTypes", new[] { "Leaves.Types.View", "Leaves.Types.Create", "Leaves.Types.Edit", "Leaves.Types.Delete" } },
-        { "Shifts.Manage", new[] { "Shifts.View", "Shifts.Create", "Shifts.Edit", "Shifts.Delete" } },
+        { "Attendance.Roster", new[] { "Shifts.Roster.View", "Shifts.Roster.Assign" } },
+        { "Shifts.Manage", new[] { "Shifts.View", "Shifts.Create", "Shifts.Edit", "Shifts.Delete", "Shifts.Roster.View", "Shifts.Roster.Assign", "Attendance.Roster", "Shifts.Requests.View", "Shifts.Requests.Apply", "Shifts.Requests.Approve", "Shifts.Requests.Delete" } },
+        { "Shifts.Requests.Manage", new[] { "Shifts.Requests.View", "Shifts.Requests.Apply", "Shifts.Requests.Approve", "Shifts.Requests.Delete" } },
         { "Holidays.Manage", new[] { "Holidays.View", "Holidays.Create", "Holidays.Edit", "Holidays.Delete" } },
         { "Announcements.Manage", new[] { "Announcements.View", "Announcements.Create", "Announcements.Edit", "Announcements.Delete" } },
         { "System.Settings", new[] { "System.Settings.View", "System.Settings.Edit" } },
@@ -580,6 +582,81 @@ public sealed class PermissionService : IPermissionService
                     .ToListAsync();
 
                 return query.Where(c => branchEmpIds.Contains(c.EmployeeId));
+            }
+        }
+
+        if (s.Equals(AppPermissions.Scopes.All, StringComparison.OrdinalIgnoreCase) || s.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            return query;
+        }
+
+        return query;
+    }
+
+    public async Task<IQueryable<ShiftChangeRequest>> ApplyShiftChangeRequestScopeAsync(
+        IQueryable<ShiftChangeRequest> query, 
+        ClaimsPrincipal user, 
+        string permissionKey = AppPermissions.Keys.ShiftsRequestsView)
+    {
+        if (IsPlatformSuperAdmin(user))
+            return query;
+
+        var currentEmpId = await GetCurrentEmployeeIdAsync(user);
+        if (!currentEmpId.HasValue || currentEmpId.Value <= 0)
+        {
+            if (user.IsInRole("SuperAdmin")) return query;
+            return query.Where(r => false);
+        }
+
+        var scope = await GetPermissionScopeAsync(user, permissionKey);
+        if (string.IsNullOrEmpty(scope))
+        {
+            var fallbackHas = await HasPermissionAsync(user, permissionKey);
+            if (fallbackHas) return query;
+            return query.Where(r => r.EmployeeId == currentEmpId.Value);
+        }
+
+        var s = scope.Trim();
+        if (s.Equals(AppPermissions.Scopes.Own, StringComparison.OrdinalIgnoreCase) || s.Equals("Own", StringComparison.OrdinalIgnoreCase))
+        {
+            return query.Where(r => r.EmployeeId == currentEmpId.Value);
+        }
+
+        var currentEmp = await GetCurrentEmployeeAsync(user);
+
+        if (s.Equals(AppPermissions.Scopes.Reporting, StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting", StringComparison.OrdinalIgnoreCase) || s.Equals("Reporting To", StringComparison.OrdinalIgnoreCase))
+        {
+            var reporteeIds = await _context.Employees
+                .Where(e => e.EmployeeId == currentEmpId.Value || e.ReportingManagerId == currentEmpId.Value)
+                .Select(e => e.EmployeeId)
+                .ToListAsync();
+
+            return query.Where(r => reporteeIds.Contains(r.EmployeeId));
+        }
+
+        if (s.Equals(AppPermissions.Scopes.Department, StringComparison.OrdinalIgnoreCase) || s.Equals("Department", StringComparison.OrdinalIgnoreCase))
+        {
+            if (currentEmp?.DepartmentId == null)
+                return query.Where(r => r.EmployeeId == currentEmpId.Value);
+
+            var deptEmpIds = await _context.Employees
+                .Where(e => e.EmployeeId == currentEmpId.Value || e.DepartmentId == currentEmp.DepartmentId)
+                .Select(e => e.EmployeeId)
+                .ToListAsync();
+
+            return query.Where(r => deptEmpIds.Contains(r.EmployeeId));
+        }
+
+        if (s.Equals(AppPermissions.Scopes.OwnBranch, StringComparison.OrdinalIgnoreCase) || s.Equals("Own Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("Branch", StringComparison.OrdinalIgnoreCase) || s.Equals("OwnBranch", StringComparison.OrdinalIgnoreCase))
+        {
+            if (currentEmp?.BranchId != null)
+            {
+                var branchEmpIds = await _context.Employees
+                    .Where(e => e.BranchId == currentEmp.BranchId)
+                    .Select(e => e.EmployeeId)
+                    .ToListAsync();
+
+                return query.Where(r => branchEmpIds.Contains(r.EmployeeId));
             }
         }
 

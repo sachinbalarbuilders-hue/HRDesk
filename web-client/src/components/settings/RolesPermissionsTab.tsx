@@ -25,6 +25,7 @@ import {
   CalendarCheck,
   Sparkles,
   Megaphone,
+  LayoutDashboard,
 } from 'lucide-react';
 
 interface RolesPermissionsTabProps {
@@ -257,6 +258,8 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
 
   const getModuleIcon = (moduleName: string) => {
     switch (moduleName) {
+      case 'Dashboard':
+        return <LayoutDashboard size={16} className="text-violet-600 dark:text-violet-400" />;
       case 'Employees':
         return <Users size={16} className="text-indigo-600 dark:text-indigo-400" />;
       case 'Attendance':

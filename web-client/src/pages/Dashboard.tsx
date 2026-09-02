@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../context/CompanyContext';
+import { useToast } from '../context/ToastContext';
 import { Link } from 'react-router-dom';
 import {
   Users,
@@ -27,6 +28,9 @@ import {
   Banknote,
   UserPlus,
   Building2,
+  LogIn,
+  LogOut,
+  Loader2,
 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -37,6 +41,139 @@ import { Avatar } from '../components/ui/Avatar';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
 import { Modal } from '../components/ui/Modal';
+
+// ─── Web Clock / Quick Punch Widget ─────────────────────────────
+const WebClockWidget: React.FC<{
+  todayAttendance?: any;
+  onPunchSuccess: () => void;
+}> = ({ todayAttendance, onPunchSuccess }) => {
+  const { showSuccess, showError } = useToast();
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [punching, setPunching] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const inTime = todayAttendance?.inTime && todayAttendance.inTime !== '--:--' ? todayAttendance.inTime : null;
+  const outTime = todayAttendance?.outTime && todayAttendance.outTime !== '--:--' ? todayAttendance.outTime : null;
+  const isClockedIn = Boolean(inTime && !outTime);
+  const isClockedOut = Boolean(inTime && outTime);
+  const status = todayAttendance?.status || (isClockedIn ? 'Present' : isClockedOut ? 'Clocked Out' : 'Not Checked In');
+  const shiftName = todayAttendance?.shiftName || 'General Shift';
+
+  const timeString = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  const dateString = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+
+  const handlePunch = async () => {
+    try {
+      setPunching(true);
+      const punchType = isClockedIn ? 'out' : 'in';
+
+      let coords: { latitude?: number; longitude?: number } = {};
+      if (navigator.geolocation) {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
+          });
+          coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+        } catch {
+          // ignore geolocation failures on desktop
+        }
+      }
+
+      const res = await apiClient.post('/attendance/punch', {
+        punchType,
+        source: 'Web',
+        ...coords,
+      });
+
+      showSuccess(
+        isClockedIn ? 'Clocked Out' : 'Clocked In',
+        res.data?.message || (isClockedIn ? 'You have clocked out successfully.' : 'You have clocked in successfully.')
+      );
+      onPunchSuccess();
+    } catch (err: any) {
+      showError('Clock-In Failed', err?.response?.data?.message || 'Failed to record attendance');
+    } finally {
+      setPunching(false);
+    }
+  };
+
+  return (
+    <Card className="relative overflow-hidden border border-[var(--border)] bg-gradient-to-br from-[var(--surface-primary)] to-[var(--surface-secondary)]/50">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Left: Live Time & Status */}
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)] shrink-0 shadow-xs">
+            <Clock size={24} className="animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl font-bold font-data text-[var(--text-primary)] tracking-tight">
+                {timeString}
+              </span>
+              <Badge
+                variant={isClockedIn ? 'success' : isClockedOut ? 'neutral' : 'warning'}
+                dot
+              >
+                {status}
+              </Badge>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+              {dateString} • <span className="font-medium text-[var(--text-primary)]">{shiftName}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Center: Punch In & Out Metrics */}
+        <div className="flex items-center justify-center gap-6 px-4 py-2 rounded-lg bg-[var(--surface-secondary)] border border-[var(--border)] text-center text-xs">
+          <div>
+            <p className="text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider">Punch In</p>
+            <p className="font-bold font-data text-[var(--text-primary)] text-sm">{inTime || '--:--'}</p>
+          </div>
+          <div className="w-px h-6 bg-[var(--border)]" />
+          <div>
+            <p className="text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider">Punch Out</p>
+            <p className="font-bold font-data text-[var(--text-primary)] text-sm">{outTime || '--:--'}</p>
+          </div>
+        </div>
+
+        {/* Right: Clock In / Clock Out Button */}
+        <div>
+          <button
+            type="button"
+            onClick={handlePunch}
+            disabled={punching}
+            className={`w-full md:w-auto px-5 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+              isClockedIn
+                ? 'bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white shadow-rose-500/20'
+                : 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-emerald-500/20'
+            }`}
+          >
+            {punching ? (
+              <>
+                <Loader2 size={15} className="animate-spin" />
+                <span>Recording...</span>
+              </>
+            ) : isClockedIn ? (
+              <>
+                <LogOut size={15} />
+                <span>Clock Out</span>
+              </>
+            ) : (
+              <>
+                <LogIn size={15} />
+                <span>{isClockedOut ? 'Clock In Again' : 'Clock In'}</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+};
 
 // ─── Tab Button ───────────────────────────────────────────────
 const TabButton: React.FC<{ active: boolean; label: string; count?: number; onClick: () => void }> = ({ active, label, count, onClick }) => (
@@ -60,7 +197,7 @@ const TabButton: React.FC<{ active: boolean; label: string; count?: number; onCl
 );
 
 export const Dashboard: React.FC = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, hasPermission, getPermissionScope } = useAuth();
   const { currentOrganization, currentBranch } = useOrganization();
   const [stats, setStats] = useState<any>(null);
   const [overview, setOverview] = useState<any>(null);
@@ -129,8 +266,25 @@ export const Dashboard: React.FC = () => {
 
   if (loading) return <PageSkeleton />;
 
-  const isPersonal = stats?.isPersonal;
+  const dashboardScope = stats?.scope || getPermissionScope('Dashboard.View') || getPermissionScope('Employees.View') || (isAdmin ? 'All' : 'Own');
+  const isPersonal = stats?.isPersonal || (dashboardScope === 'Own' && !isAdmin);
   const metrics = stats?.metrics || {};
+
+  const canViewAttendance = isAdmin || hasPermission('Attendance.View');
+  const canApproveLeaves = isAdmin || hasPermission('Leaves.Approve');
+  const canApproveRegs = isAdmin || hasPermission('Regularizations.Approve');
+  const canManageLoans = isAdmin || hasPermission('Payroll.ManageLoans') || hasPermission('Payroll.View');
+
+  // Dynamic scope label
+  const headcountLabel =
+    dashboardScope === 'Reporting To' ? 'My Team Members' :
+    dashboardScope === 'Department' ? 'Department Staff' :
+    dashboardScope === 'Own Branch' ? 'Branch Staff' : 'Total Employees';
+
+  const headcountSubtitle =
+    dashboardScope === 'Reporting To' ? 'Direct reportees' :
+    dashboardScope === 'Department' ? 'Active in department' :
+    dashboardScope === 'Own Branch' ? 'Branch headcount' : 'Active headcount';
 
   // ─── EMPLOYEE SELF-SERVICE VIEW ─────────────────────────────
   if (isPersonal) {
@@ -141,31 +295,14 @@ export const Dashboard: React.FC = () => {
           description={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
         />
 
-        {/* My Today + Leave Balance */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <CardTitle>My Today</CardTitle>
-              <Badge variant={stats?.todayAttendance?.status === 'Present' ? 'success' : stats?.todayAttendance?.status === 'Not Checked In' ? 'neutral' : 'warning'}>
-                {stats?.todayAttendance?.status || 'Not Checked In'}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-[11px] text-[var(--text-muted)] uppercase">Punch In</p>
-                <p className="text-lg font-bold font-data text-[var(--text-primary)]">{stats?.todayAttendance?.inTime || '--:--'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-[var(--text-muted)] uppercase">Punch Out</p>
-                <p className="text-lg font-bold font-data text-[var(--text-primary)]">{stats?.todayAttendance?.outTime || '--:--'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-[var(--text-muted)] uppercase">Shift</p>
-                <p className="text-sm font-medium text-[var(--text-primary)]">{stats?.todayAttendance?.shiftName || 'General'}</p>
-              </div>
-            </div>
-          </Card>
+        {/* Clock In / Out Widget */}
+        <WebClockWidget
+          todayAttendance={stats?.todayAttendance}
+          onPunchSuccess={fetchDashboardData}
+        />
 
+        {/* Leave Balance + Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardTitle>Leave Balance</CardTitle>
             <div className="grid grid-cols-2 gap-3 mt-4">
@@ -180,31 +317,28 @@ export const Dashboard: React.FC = () => {
               )}
             </div>
           </Card>
-        </div>
 
-        {/* Stats + Notices */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="grid grid-cols-2 gap-4">
             <StatCard label="Present Days" value={metrics.monthPresentDays || 0} icon={<UserCheck size={20} />} variant="success" subtitle="This month" />
             <StatCard label="Pending Leaves" value={metrics.pendingLeaves || 0} icon={<FileText size={20} />} variant="warning" />
           </div>
-
-          {overview?.announcements?.length > 0 && (
-            <Card padding="none">
-              <div className="px-5 py-3.5 border-b border-[var(--border)]">
-                <CardTitle>Notices</CardTitle>
-              </div>
-              <div className="divide-y divide-[var(--border)]">
-                {overview.announcements.slice(0, 3).map((a: any, idx: number) => (
-                  <div key={idx} className="px-5 py-3">
-                    <p className="text-xs font-medium text-[var(--text-primary)]">{a.title}</p>
-                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-1">{a.message}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
         </div>
+
+        {overview?.announcements?.length > 0 && (
+          <Card padding="none">
+            <div className="px-5 py-3.5 border-b border-[var(--border)]">
+              <CardTitle>Notices</CardTitle>
+            </div>
+            <div className="divide-y divide-[var(--border)]">
+              {overview.announcements.slice(0, 3).map((a: any, idx: number) => (
+                <div key={idx} className="px-5 py-3">
+                  <p className="text-xs font-medium text-[var(--text-primary)]">{a.title}</p>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-1">{a.message}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Quick Links */}
         <Card>
@@ -266,9 +400,17 @@ export const Dashboard: React.FC = () => {
         description={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
       />
 
+      {/* ── Web Clock / Quick Punch ── */}
+      {stats?.todayAttendance && (
+        <WebClockWidget
+          todayAttendance={stats.todayAttendance}
+          onPunchSuccess={fetchDashboardData}
+        />
+      )}
+
       {/* ── Row 1: KPI Stats ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Total Employees" value={totalStaff} icon={<Users size={20} />} variant="default" subtitle="Active headcount" />
+        <StatCard label={headcountLabel} value={totalStaff} icon={<Users size={20} />} variant="default" subtitle={headcountSubtitle} />
         <StatCard label="Present Today" value={presentCount} icon={<UserCheck size={20} />} variant="success" trend={{ value: attendanceRate, label: 'rate' }} />
         <StatCard label="On Leave" value={leaveCount} icon={<CalendarOff size={20} />} variant="warning" />
         <StatCard label="Absent" value={absentCount} icon={<UserX size={20} />} variant="danger" />
@@ -277,6 +419,7 @@ export const Dashboard: React.FC = () => {
       {/* ── Row 2: Today's Attendance + Pending Requests ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Today's Attendance — 3/5 */}
+        {canViewAttendance && (
         <Card padding="none" className="lg:col-span-3">
           <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
             <div>
@@ -305,6 +448,7 @@ export const Dashboard: React.FC = () => {
             <EmptyState title="No punches yet" description="Activity will appear as employees clock in." icon={<Clock size={24} className="text-[var(--text-muted)]" />} />
           )}
         </Card>
+        )}
 
         {/* Pending Requests — 2/5 */}
         <Card className="lg:col-span-2">
@@ -483,10 +627,13 @@ export const Dashboard: React.FC = () => {
                         <p className="text-[11px] text-[var(--text-muted)]">{leave.leaveType} · {leave.days}d · {leave.startDate}</p>
                       </div>
                     </div>
+                    {canApproveLeaves && (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button onClick={() => handleLeaveDecision(leave.id, 'Approved')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center hover:opacity-80 cursor-pointer"><Check size={14} /></button>
                       <button onClick={() => handleLeaveDecision(leave.id, 'Rejected')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--danger-light)] text-[var(--danger)] flex items-center justify-center hover:opacity-80 cursor-pointer"><X size={14} /></button>
                     </div>
+                    )}
+                    {!canApproveLeaves && <Link to="/leaves" className="text-xs text-[var(--accent)] hover:underline font-medium">View</Link>}
                   </div>
                 )) : <div className="px-5 py-8 text-center text-xs text-[var(--text-muted)]">No pending leave requests</div>
               )}
@@ -500,10 +647,13 @@ export const Dashboard: React.FC = () => {
                         <p className="text-[11px] text-[var(--text-muted)]">{reg.type} · {reg.requestDate}</p>
                       </div>
                     </div>
+                    {canApproveRegs && (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button onClick={() => handleRegularizationDecision(reg.id, 'Approved')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center hover:opacity-80 cursor-pointer"><Check size={14} /></button>
                       <button onClick={() => handleRegularizationDecision(reg.id, 'Rejected')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--danger-light)] text-[var(--danger)] flex items-center justify-center hover:opacity-80 cursor-pointer"><X size={14} /></button>
                     </div>
+                    )}
+                    {!canApproveRegs && <Link to="/regularizations" className="text-xs text-[var(--accent)] hover:underline font-medium">View</Link>}
                   </div>
                 )) : <div className="px-5 py-8 text-center text-xs text-[var(--text-muted)]">No pending corrections</div>
               )}
@@ -517,7 +667,7 @@ export const Dashboard: React.FC = () => {
                         <p className="text-[11px] text-[var(--text-muted)]">{loan.loanType} · ₹{loan.amount?.toLocaleString()}</p>
                       </div>
                     </div>
-                    <Link to={`/loans/${loan.id}`} className="text-xs text-[var(--accent)] hover:underline font-medium">View</Link>
+                    {canManageLoans && <Link to={`/loans/${loan.id}`} className="text-xs text-[var(--accent)] hover:underline font-medium">View</Link>}
                   </div>
                 )) : <div className="px-5 py-8 text-center text-xs text-[var(--text-muted)]">No pending loan requests</div>
               )}

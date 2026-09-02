@@ -537,14 +537,15 @@ public class AttendanceController : ControllerBase
         byte[]? photoBytes = null;  // decoded punch photo; reused in section 3
 
         var attType = employee.AttendanceType?.ToLowerInvariant() ?? "";
-        if (attType == "biometric")
+        bool isWebPunch = string.Equals(dto.Source, "Web", StringComparison.OrdinalIgnoreCase);
+        if (attType == "biometric" && !isWebPunch)
         {
             return BadRequest(new
             {
                 message = "Mobile clock-in is disabled for your account. Your attendance is tracked exclusively via the office Biometric Machine."
             });
         }
-        bool requiresFace = attType.Contains("face");
+        bool requiresFace = attType.Contains("face") && !isWebPunch;
         byte[]? enrolledPhotoBytes = null;
 
         if (requiresFace)
@@ -818,7 +819,7 @@ public class AttendanceController : ControllerBase
 
         // ── 2. GEO-FENCING & LOCATION TRACKING ──────────────────────────────
         bool isStrictGeofence = attType.Contains("geo-fencing") || attType.Contains("geofence");
-        bool requiresGps = isStrictGeofence || attType.Contains("location");
+        bool requiresGps = (isStrictGeofence || attType.Contains("location")) && !isWebPunch;
         bool? isGeofenceValid = null;
 
         if (requiresGps)

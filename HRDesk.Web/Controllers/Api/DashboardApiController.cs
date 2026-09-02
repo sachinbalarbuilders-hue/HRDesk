@@ -1,6 +1,7 @@
 using HRDesk.Web.Constants;
 using HRDesk.Web.Core;
 using HRDesk.Web.Data;
+using HRDesk.Web.Models;
 using HRDesk.Web.Services;
 using HRDesk.Web.Services.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
@@ -38,9 +39,13 @@ public class DashboardController : ControllerBase
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 
         var currentEmpId = await _permissionService.GetCurrentEmployeeIdAsync(User);
-        var empScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesView);
+        bool isAdminOrSuper = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin");
 
-        bool isPersonalOnly = (empScope == AppPermissions.Scopes.Own) && !string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) && !User.IsInRole("Admin");
+        var dashboardScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.DashboardView)
+            ?? await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.EmployeesView)
+            ?? AppPermissions.Scopes.Own;
+
+        bool isPersonalOnly = (dashboardScope == AppPermissions.Scopes.Own) && !isAdminOrSuper;
 
         if (isPersonalOnly && currentEmpId.HasValue)
         {
@@ -83,6 +88,7 @@ public class DashboardController : ControllerBase
             return Ok(new
             {
                 isPersonal = true,
+                scope = AppPermissions.Scopes.Own,
                 employee = new
                 {
                     employeeId = emp?.EmployeeId,
@@ -109,8 +115,6 @@ public class DashboardController : ControllerBase
         }
 
         // Team / Organization Dashboard (Admin & Managers)
-        bool isAdminOrSuper = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin");
-
         var empQuery = _db.Employees.AsNoTracking().Where(e => e.Status == null || e.Status.ToLower() == "active");
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
@@ -200,6 +204,10 @@ public class DashboardController : ControllerBase
         {
             regQuery = regQuery.Where(r => r.Employee != null && r.Employee.BranchId == activeBranch.Value);
         }
+        if (!isAdminOrSuper)
+        {
+            regQuery = await _permissionService.ApplyRegularizationScopeAsync(regQuery, User, AppPermissions.Keys.AttendanceRegularize);
+        }
         var pendingRegularizations = await regQuery
             .Include(r => r.Employee)
             .OrderByDescending(r => r.RequestDate)
@@ -221,6 +229,28 @@ public class DashboardController : ControllerBase
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
             loanQuery = loanQuery.Where(l => l.BranchId == activeBranch.Value);
+        }
+        if (!isAdminOrSuper)
+        {
+            var loanScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.PayrollManageLoans)
+                ?? await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.PayrollView);
+            if (loanScope == AppPermissions.Scopes.Reporting && currentEmpId.HasValue)
+            {
+                var reporteeIds = await _db.Employees.Where(e => e.ReportingManagerId == currentEmpId.Value).Select(e => e.EmployeeId).ToListAsync();
+                loanQuery = loanQuery.Where(l => reporteeIds.Contains(l.EmployeeId) || l.EmployeeId == currentEmpId.Value);
+            }
+            else if (loanScope == AppPermissions.Scopes.Department)
+            {
+                var userEmp = await _permissionService.GetCurrentEmployeeAsync(User);
+                if (userEmp?.DepartmentId != null)
+                {
+                    loanQuery = loanQuery.Where(l => l.Employee != null && l.Employee.DepartmentId == userEmp.DepartmentId.Value);
+                }
+            }
+            else if (loanScope == AppPermissions.Scopes.Own && currentEmpId.HasValue)
+            {
+                loanQuery = loanQuery.Where(l => l.EmployeeId == currentEmpId.Value);
+            }
         }
         var pendingLoans = await loanQuery
             .Include(l => l.Employee)
@@ -256,9 +286,34 @@ public class DashboardController : ControllerBase
             })
             .ToListAsync();
 
+        DailyAttendance? myTodayLog = null;
+        if (currentEmpId.HasValue)
+        {
+            myTodayLog = await _db.DailyAttendance
+                .AsNoTracking()
+                .Include(a => a.Shift)
+                .FirstOrDefaultAsync(a => a.EmployeeId == currentEmpId.Value && a.RecordDate == today);
+        }
+
         return Ok(new
         {
             isPersonal = false,
+            scope = dashboardScope,
+            todayAttendance = myTodayLog != null ? new
+            {
+                date = today.ToString("yyyy-MM-dd"),
+                inTime = myTodayLog.InTime?.ToString("HH:mm") ?? "--:--",
+                outTime = myTodayLog.OutTime?.ToString("HH:mm") ?? "--:--",
+                status = myTodayLog.Status ?? "Not Checked In",
+                shiftName = myTodayLog.Shift?.ShiftName ?? "General Shift"
+            } : (currentEmpId.HasValue ? new
+            {
+                date = today.ToString("yyyy-MM-dd"),
+                inTime = "--:--",
+                outTime = "--:--",
+                status = "Not Checked In",
+                shiftName = "General Shift"
+            } : null),
             metrics = new
             {
                 totalEmployees = totalActive,
@@ -296,6 +351,12 @@ public class DashboardController : ControllerBase
         if (activeBranch.HasValue && activeBranch.Value > 0)
         {
             empQuery = empQuery.Where(e => e.BranchId == activeBranch.Value);
+        }
+
+        bool isAdminOrSuper = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin");
+        if (!isAdminOrSuper)
+        {
+            empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.EmployeesView);
         }
 
         var employees = await empQuery.Take(30).ToListAsync();

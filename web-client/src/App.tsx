@@ -196,7 +196,19 @@ export const App: React.FC = () => {
                   <Route
                     path="shifts"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        anyPermission={[
+                          'Shifts.Roster.View',
+                          'Shifts.Roster.Assign',
+                          'Shifts.Requests.View',
+                          'Shifts.Requests.Apply',
+                          'Shifts.Requests.Approve',
+                          'Shifts.Requests.Delete',
+                          'Shifts.View',
+                          'Shifts.Manage',
+                          'Attendance.Roster',
+                        ]}
+                      >
                         <Shifts />
                       </ProtectedRoute>
                     }

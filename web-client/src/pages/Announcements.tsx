@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Search,
   Lock,
+  RotateCcw,
 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -61,6 +62,11 @@ export const AnnouncementsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [archiveFilter, selectedCategory, search]);
 
   // Media Lightbox State
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -288,9 +294,9 @@ export const AnnouncementsPage: React.FC = () => {
       />
 
       {/* Filter Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5 mb-6">
         {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        <div className="flex flex-wrap items-center gap-1.5">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
@@ -306,10 +312,31 @@ export const AnnouncementsPage: React.FC = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
+          {announcementArchive.canBulkDelete && announcements.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedIds.length === announcements.length) {
+                  setSelectedIds([]);
+                } else {
+                  setSelectedIds(announcements.map((a) => a.id));
+                }
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-full border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] whitespace-nowrap shrink-0 cursor-pointer transition-all shadow-xs"
+            >
+              <input
+                type="checkbox"
+                checked={selectedIds.length === announcements.length && announcements.length > 0}
+                onChange={() => {}}
+                className="w-3.5 h-3.5 rounded border-[var(--border)] text-[var(--accent)] pointer-events-none cursor-pointer"
+              />
+              <span className="whitespace-nowrap">{selectedIds.length === announcements.length ? 'Deselect All' : 'Select All'}</span>
+            </button>
+          )}
           <ArchiveToggle value={archiveFilter} onChange={setArchiveFilter} />
           {/* Search */}
-          <div className="relative min-w-[240px] flex-1 sm:flex-none">
+          <div className="relative min-w-[200px] flex-1 sm:flex-none">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input
               type="text"
@@ -321,6 +348,60 @@ export const AnnouncementsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Bulk Action Bar */}
+      {announcementArchive.canBulkDelete && selectedIds.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-2.5 mb-6 bg-[var(--surface)] border border-[var(--gold-500)]/40 rounded-[4px] shadow-xs animate-in fade-in slide-in-from-top-1 font-ui">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold font-mono rounded bg-[var(--gold-500)] text-[var(--navy-950)]">
+              {selectedIds.length}
+            </span>
+            <span className="text-xs font-semibold text-[var(--ink)]">
+              announcement{selectedIds.length > 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {archiveFilter === 'archived' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => announcementArchive.bulkRestore(selectedIds, () => setSelectedIds([]))}
+                  className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-[4px] bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-colors"
+                >
+                  <RotateCcw size={13} />
+                  <span>Restore Selected</span>
+                </button>
+                {announcementArchive.canPermanentDelete && (
+                  <button
+                    type="button"
+                    onClick={() => announcementArchive.confirmBulkPermanentDelete(selectedIds, () => setSelectedIds([]))}
+                    className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-[4px] bg-rose-600 hover:bg-rose-700 text-white cursor-pointer transition-colors"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete Forever</span>
+                  </button>
+                )}
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => announcementArchive.bulkArchive(selectedIds, () => setSelectedIds([]))}
+                className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-[4px] bg-rose-600 hover:bg-rose-700 text-white cursor-pointer transition-colors"
+              >
+                <Trash2 size={13} />
+                <span>Delete Selected</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="text-xs text-[var(--ink-muted)] hover:text-[var(--ink)] px-2 py-1 cursor-pointer font-medium"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <PageSkeleton />
@@ -342,6 +423,7 @@ export const AnnouncementsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {announcements.map((item) => {
+            const isSelected = selectedIds.includes(item.id);
             const rowActions: RowAction[] = [];
             if (canEdit && !isRowArchived(item)) {
               rowActions.push({ label: 'Edit', icon: <Edit2 size={14} />, onClick: () => openEditModal(item) });
@@ -357,13 +439,28 @@ export const AnnouncementsPage: React.FC = () => {
                 key={item.id}
                 padding="none"
                 className={`flex flex-col justify-between overflow-hidden transition-all hover:shadow-md bg-[var(--surface)] border-[var(--border)] ${
-                  item.isPinned ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]/30' : ''
-                }`}
+                  isSelected ? 'ring-2 ring-[var(--gold-500)] border-[var(--gold-500)]' : ''
+                } ${item.isPinned ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]/30' : ''}`}
               >
                 <div className="p-5 flex-1 flex flex-col">
-                  {/* Card Header (Badges + Actions) */}
+                  {/* Card Header (Badges + Checkbox + Actions) */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex flex-wrap items-center gap-2">
+                      {announcementArchive.canBulkDelete && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            if (e.target.checked) {
+                              setSelectedIds((prev) => [...prev, item.id]);
+                            } else {
+                              setSelectedIds((prev) => prev.filter((id) => id !== item.id));
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-[var(--rule)] text-[var(--gold-500)] focus:ring-[var(--gold-500)] cursor-pointer mr-0.5"
+                        />
+                      )}
                       <Badge variant={getBadgeVariant(item.category)} size="sm">
                         {item.category}
                       </Badge>

@@ -19,6 +19,7 @@ public interface IPermissionService
     Task<IQueryable<LeaveApplication>> ApplyLeaveScopeAsync(IQueryable<LeaveApplication> query, ClaimsPrincipal user, string permissionKey = AppPermissions.Keys.LeavesView);
     Task<IQueryable<AttendanceRegularization>> ApplyRegularizationScopeAsync(IQueryable<AttendanceRegularization> query, ClaimsPrincipal user, string permissionKey = AppPermissions.Keys.AttendanceRegularize);
     Task<IQueryable<CompOffRequest>> ApplyCompOffScopeAsync(IQueryable<CompOffRequest> query, ClaimsPrincipal user, string permissionKey = AppPermissions.Keys.CompOffApprove);
+    Task<IQueryable<ShiftChangeRequest>> ApplyShiftChangeRequestScopeAsync(IQueryable<ShiftChangeRequest> query, ClaimsPrincipal user, string permissionKey = AppPermissions.Keys.ShiftsRequestsView);
     
     void ClearCache();
 }

@@ -4,11 +4,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HRDesk.Web.Models;
 
 [Table("shift_change_requests")]
-public class ShiftChangeRequest : IMustHaveTenant
+public class ShiftChangeRequest : IMustHaveTenant, IArchivable
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
+
+    [Column("archived_at")]
+    public DateTime? ArchivedAt { get; set; }
+
+    [MaxLength(100)]
+    [Column("archived_by")]
+    public string? ArchivedBy { get; set; }
 
     [Column("organization_id")]
     public int OrganizationId { get; set; }

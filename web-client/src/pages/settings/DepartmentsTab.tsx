@@ -111,6 +111,7 @@ export const DepartmentsTab: React.FC = () => {
   const archiveActions = useArchiveActions({
     endpoint: '/masters/departments',
     label: 'Department',
+    permissionKey: 'Masters.Departments.Delete',
     onDone: fetchData,
   });
 

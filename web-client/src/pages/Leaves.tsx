@@ -181,7 +181,7 @@ export const Leaves: React.FC = () => {
   const canEdit = isAdmin || hasPermission('Leaves.Edit');
   const canApprove = isAdmin || hasPermission('Leaves.Approve');
   const canDelete = isAdmin || hasPermission('Leaves.Delete');
-  const canBulkDelete = isAdmin || (canDelete && (deleteScope === 'Bulk Delete' || deleteScope === 'All'));
+  const canBulkDelete = isAdmin || (canDelete && (deleteScope === 'Bulk Delete' || deleteScope === 'Permanent Delete' || deleteScope === 'All'));
   const canPermanentDelete = isAdmin || (canDelete && (deleteScope === 'Permanent Delete' || deleteScope === 'Bulk Delete' || deleteScope === 'All'));
 
   const { showSuccess, showError } = useToast();

@@ -805,7 +805,7 @@ public class RegularizationsController : ControllerBase
         }
 
         var deleteScope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.RegularizationsDelete);
-        if (permanent && deleteScope != "Permanent Delete" && deleteScope != "All")
+        if (permanent && deleteScope != "Bulk Delete" && deleteScope != "Permanent Delete" && deleteScope != "All")
         {
             return Forbid();
         }
