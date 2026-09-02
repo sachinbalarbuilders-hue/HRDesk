@@ -91,7 +91,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     contractEndDate: '',
     bloodGroup: '',
     gender: '',
-    attendanceType: 'Biometric',
+    attendanceType: '',
     maritalStatus: '',
     nationality: '',
     workEmail: '',
@@ -195,6 +195,10 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.attendanceType) {
+      alert('Attendance Type is required. Please select an attendance type.');
+      return;
+    }
     // Validate account number confirmation if bank details are filled
     if (formData.bankAccountNumber && confirmAccountNumber !== formData.bankAccountNumber) {
       alert('Bank account numbers do not match. Please re-enter.');
@@ -567,13 +571,17 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Attendance Type</label>
+            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+              Attendance Type <span className="text-rose-500">*</span>
+            </label>
             <select 
               disabled={isBasicInfoOnly}
+              required
               value={formData.attendanceType} 
               onChange={(e) => setFormData({ ...formData, attendanceType: e.target.value })} 
-              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+              className={`register-input w-full ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''} ${!formData.attendanceType ? 'border-rose-400' : ''}`}
             >
+              <option value="">-- Select Attendance Type --</option>
               <option value="Biometric">Biometric</option>
               <option value="Web">Web Clock-in</option>
               <option value="Face + Location">Face Recognition + Location</option>
@@ -582,6 +590,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               <option value="Manual">Manual</option>
               <option value="None">None</option>
             </select>
+            {!formData.attendanceType && (
+              <p className="text-[11px] text-rose-500 mt-1">Attendance type is required</p>
+            )}
           </div>
           <div className="col-span-2">
             <label className="block text-xs font-semibold text-[var(--ink)] mb-2">Probation Period?</label>

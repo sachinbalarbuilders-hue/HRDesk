@@ -679,6 +679,12 @@ END;";
             return BadRequest(new { message = errorMsg });
         }
 
+        // Attendance Type Mandatory Check
+        if (string.IsNullOrWhiteSpace(dto.AttendanceType))
+        {
+            return BadRequest(new { message = "Attendance Type is required. Please select an attendance type." });
+        }
+
         // Generate next employee ID safely
         int targetEmpId;
         if (dto.EmployeeId.HasValue && dto.EmployeeId.Value > 0)

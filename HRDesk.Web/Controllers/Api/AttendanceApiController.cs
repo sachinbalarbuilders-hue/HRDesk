@@ -535,8 +535,15 @@ public class AttendanceController : ControllerBase
         //   Identity check (ArcFace cosine similarity) runs in section 3 below.
 
         byte[]? photoBytes = null;  // decoded punch photo; reused in section 3
+        var attType = employee.AttendanceType?.ToLowerInvariant()?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(attType) || attType == "none")
+        {
+            return BadRequest(new
+            {
+                message = "Attendance tracking is not configured for your account (Attendance Type is unset or set to None). Please contact your administrator."
+            });
+        }
 
-        var attType = employee.AttendanceType?.ToLowerInvariant() ?? "";
         bool isWebPunch = string.Equals(dto.Source, "Web", StringComparison.OrdinalIgnoreCase);
         if (attType == "biometric" && !isWebPunch)
         {
