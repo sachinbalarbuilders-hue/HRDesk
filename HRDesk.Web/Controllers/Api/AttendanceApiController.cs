@@ -545,14 +545,37 @@ public class AttendanceController : ControllerBase
         }
 
         bool isWebPunch = string.Equals(dto.Source, "Web", StringComparison.OrdinalIgnoreCase);
-        if (attType == "biometric" && !isWebPunch)
+
+        // 1. Biometric Machine Only
+        if (attType == "biometric")
         {
             return BadRequest(new
             {
-                message = "Mobile clock-in is disabled for your account. Your attendance is tracked exclusively via the office Biometric Machine."
+                message = isWebPunch
+                    ? "Web clock-in is disabled for your profile. Your attendance is tracked exclusively via the office Biometric Machine."
+                    : "Mobile clock-in is disabled for your account. Your attendance is tracked exclusively via the office Biometric Machine."
             });
         }
-        bool requiresFace = attType.Contains("face") && !isWebPunch;
+
+        // 2. Face Recognition + Location (Mobile Only)
+        if (attType.Contains("face") && isWebPunch)
+        {
+            return BadRequest(new
+            {
+                message = "Web clock-in is not permitted for your profile. Your attendance type is set to 'Face Recognition + Location'. Please punch in using the HRDesk Mobile App."
+            });
+        }
+
+        // 3. Manual Entry (HR/Admin only)
+        if (attType == "manual")
+        {
+            return BadRequest(new
+            {
+                message = "Self clock-in is disabled for your account. Your attendance type is set to Manual (managed by HR/Admin)."
+            });
+        }
+
+        bool requiresFace = attType.Contains("face");
         byte[]? enrolledPhotoBytes = null;
 
         if (requiresFace)
@@ -826,7 +849,7 @@ public class AttendanceController : ControllerBase
 
         // ── 2. GEO-FENCING & LOCATION TRACKING ──────────────────────────────
         bool isStrictGeofence = attType.Contains("geo-fencing") || attType.Contains("geofence");
-        bool requiresGps = (isStrictGeofence || attType.Contains("location")) && !isWebPunch;
+        bool requiresGps = isStrictGeofence || attType.Contains("location");
         bool? isGeofenceValid = null;
 
         if (requiresGps)
