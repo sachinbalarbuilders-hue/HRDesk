@@ -454,4 +454,23 @@ public static class AppPermissions
 
         return Scopes.OwnBranch;
     }
+
+    public static readonly (string Key, string Scope)[] DefaultEmployeePermissions = new (string Key, string Scope)[]
+    {
+        (Keys.DashboardView, Scopes.Own),
+        (Keys.EmployeesView, Scopes.Own),
+        (Keys.EmployeesEdit, Scopes.EditBasicInfo),
+        (Keys.AttendanceView, Scopes.Own),
+        (Keys.AttendanceRegularize, Scopes.Own),
+        (Keys.RegularizationsView, Scopes.Own),
+        (Keys.ShiftsRosterView, Scopes.Own),
+        (Keys.ShiftsRequestsView, Scopes.Own),
+        (Keys.ShiftsRequestsApply, Scopes.Own),
+        (Keys.LeavesView, Scopes.Own),
+        (Keys.LeavesApply, Scopes.Own),
+        (Keys.CompOffView, Scopes.Own),
+        (Keys.CompOffApply, Scopes.Own),
+        (Keys.HolidaysView, Scopes.OwnBranch),
+        (Keys.AnnouncementsView, Scopes.OwnBranch),
+    };
 }

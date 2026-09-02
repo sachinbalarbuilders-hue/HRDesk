@@ -554,24 +554,7 @@ using (var scope = app.Services.CreateScope())
 
             if (!existingEmpPerms.Any())
             {
-                var defaultEmpPerms = new (string Key, string Scope)[]
-                {
-                    (HRDesk.Web.Constants.AppPermissions.Keys.EmployeesView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRegularize, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.ShiftsRequestsView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.ShiftsRequestsApply, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.LeavesView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.LeavesApply, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.CompOffView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.CompOffApply, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.PayrollView, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.AttendanceRoster, HRDesk.Web.Constants.AppPermissions.Scopes.Own),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.HolidaysView, HRDesk.Web.Constants.AppPermissions.Scopes.All),
-                    (HRDesk.Web.Constants.AppPermissions.Keys.AnnouncementsView, HRDesk.Web.Constants.AppPermissions.Scopes.All)
-                };
-
-                foreach (var (eKey, eScope) in defaultEmpPerms)
+                foreach (var (eKey, eScope) in HRDesk.Web.Constants.AppPermissions.DefaultEmployeePermissions)
                 {
                     db.RolePermissions.Add(new HRDesk.Web.Models.RolePermission
                     {

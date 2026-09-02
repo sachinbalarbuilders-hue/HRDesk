@@ -226,24 +226,7 @@ public class TenantProvisioningService : ITenantProvisioningService
             _db.Roles.Add(empRole);
             await _db.SaveChangesAsync();
 
-            var empPerms = new (string Key, string Scope)[]
-            {
-                (AppPermissions.Keys.EmployeesView, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.AttendanceView, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.AttendanceRoster, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.AttendanceRegularize, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.ShiftsRequestsView, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.ShiftsRequestsApply, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.LeavesView, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.LeavesApply, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.CompOffView, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.CompOffApply, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.PayrollView, AppPermissions.Scopes.Own),
-                (AppPermissions.Keys.HolidaysView, AppPermissions.Scopes.All),
-                (AppPermissions.Keys.AnnouncementsView, AppPermissions.Scopes.All),
-            };
-
-            foreach (var (key, scope) in empPerms)
+            foreach (var (key, scope) in AppPermissions.DefaultEmployeePermissions)
             {
                 _db.RolePermissions.Add(new RolePermission
                 {
