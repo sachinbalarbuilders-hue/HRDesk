@@ -21,7 +21,22 @@ namespace HRDesk.Web.Services.AI;
 ///   - IMemoryCache is per-process; challenges do not survive server restarts (acceptable
 ///     since TTL is 30 s — any live challenge simply expires naturally on restart)
 /// </summary>
-public sealed class FaceChallengeService : IFaceChallengeService
+public enum ChallengeType
+{
+    TurnLeft,
+    TurnRight,
+}
+
+public sealed record FaceChallenge(
+    string        ChallengeId,
+    ChallengeType ChallengeType,
+    string        Instruction,
+    DateTimeOffset ExpiresAt,
+    int           FrameCount,
+    int           IntervalMs
+);
+
+public sealed class FaceChallengeService
 {
     // Cache key prefix keeps challenge entries isolated from other cache data
     private const string Prefix = "FaceChallenge:";

@@ -18,14 +18,14 @@ public class CompOffController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
-    private readonly ICompOffService _compOffService;
+    private readonly CompOffService _compOffService;
     private readonly IReferenceDataCacheService _cache;
     private readonly ICurrentTenantProvider _tenantProvider;
 
     public CompOffController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        ICompOffService compOffService,
+        CompOffService compOffService,
         IReferenceDataCacheService cache,
         ICurrentTenantProvider tenantProvider)
     {

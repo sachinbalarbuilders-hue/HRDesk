@@ -18,28 +18,28 @@ namespace HRDesk.Web.Controllers.Api;
 public class AttendanceController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
-    private readonly IAttendanceSummaryService _attendanceSummaryService;
+    private readonly AttendanceSummaryService _attendanceSummaryService;
     private readonly IPermissionService _permissionService;
     private readonly IReferenceDataCacheService _cache;
-    private readonly IAttendanceProcessorService _processor;
+    private readonly AttendanceProcessorService _processor;
     private readonly ICurrentTenantProvider _tenantProvider;
-    private readonly IFaceRecognitionService _faceRecognitionService;
-    private readonly IFaceAntiSpoofingService _faceAntiSpoofingService;
-    private readonly IFaceMotionService _faceMotionService;
-    private readonly IFaceChallengeService _faceChallengeService;
+    private readonly FaceRecognitionService _faceRecognitionService;
+    private readonly FaceAntiSpoofingService _faceAntiSpoofingService;
+    private readonly FaceMotionService _faceMotionService;
+    private readonly FaceChallengeService _faceChallengeService;
     private readonly IConfiguration _configuration;
 
     public AttendanceController(
         BiometricAttendanceDbContext db,
-        IAttendanceSummaryService attendanceSummaryService,
+        AttendanceSummaryService attendanceSummaryService,
         IPermissionService permissionService,
         IReferenceDataCacheService cache,
-        IAttendanceProcessorService processor,
+        AttendanceProcessorService processor,
         ICurrentTenantProvider tenantProvider,
-        IFaceRecognitionService faceRecognitionService,
-        IFaceAntiSpoofingService faceAntiSpoofingService,
-        IFaceMotionService faceMotionService,
-        IFaceChallengeService faceChallengeService,
+        FaceRecognitionService faceRecognitionService,
+        FaceAntiSpoofingService faceAntiSpoofingService,
+        FaceMotionService faceMotionService,
+        FaceChallengeService faceChallengeService,
         IConfiguration configuration)
     {
         _db = db;
@@ -142,7 +142,7 @@ public class AttendanceController : ControllerBase
 
         var holidays = await _db.Holidays
             .AsNoTracking()
-            .Where(h => h.StartDate < endDate && h.EndDate >= startDate)
+            .Where(h => h.ArchivedAt == null && h.StartDate < endDate && h.EndDate >= startDate)
             .ToListAsync();
 
         var monthRosters = await _db.ShiftRosters
@@ -184,13 +184,28 @@ public class AttendanceController : ControllerBase
                 var date = new DateOnly(selectedYear, selectedMonth, day);
                 empLogsByDate.TryGetValue(date, out var log);
 
-                bool isDefaultWeekoff = !string.IsNullOrWhiteSpace(emp.Weekoff) &&
-                    emp.Weekoff.Trim().Equals(date.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase) &&
-                    (emp.JoiningDate == null || date >= emp.JoiningDate) &&
+                bool isEmployedOnDate = (emp.JoiningDate == null || date >= emp.JoiningDate) &&
                     (emp.LastWorkingDate == null || date <= emp.LastWorkingDate);
+
+                bool isDefaultWeekoff = isEmployedOnDate && !string.IsNullOrWhiteSpace(emp.Weekoff) &&
+                    emp.Weekoff.Trim().Equals(date.DayOfWeek.ToString(), StringComparison.OrdinalIgnoreCase);
 
                 empRostersByDate.TryGetValue(date, out var rosterOverride);
                 bool isWeekOff = rosterOverride != null ? rosterOverride.IsWeekOff : isDefaultWeekoff;
+
+                // Match Holiday applicable to this employee
+                var activeHoliday = isEmployedOnDate ? holidays.FirstOrDefault(h =>
+                    date >= h.StartDate && date <= h.EndDate &&
+                    (h.OrganizationId == 0 || h.OrganizationId == emp.OrganizationId) &&
+                    (h.IsGlobal ||
+                     (!h.BranchId.HasValue && !h.DepartmentId.HasValue && string.IsNullOrEmpty(h.DepartmentIds)) ||
+                     (h.BranchId.HasValue && h.BranchId.Value == emp.BranchId && !h.DepartmentId.HasValue && string.IsNullOrEmpty(h.DepartmentIds)) ||
+                     (emp.DepartmentId.HasValue && (
+                         (h.DepartmentId.HasValue && h.DepartmentId.Value == emp.DepartmentId.Value) ||
+                         (!string.IsNullOrEmpty(h.DepartmentIds) && ("," + h.DepartmentIds + ",").Contains("," + emp.DepartmentId.Value + ","))
+                     ) && (!h.BranchId.HasValue || h.BranchId == emp.BranchId)))) : null;
+
+                var activeApp = empLeaves.FirstOrDefault(la => date >= la.StartDate && date <= la.EndDate && la.Status == "Approved");
 
                 string statusChar = "-";
                 string inTime = "";
@@ -204,15 +219,19 @@ public class AttendanceController : ControllerBase
                     inTime = log.InTime?.ToString("HH:mm") ?? "";
                     outTime = log.OutTime?.ToString("HH:mm") ?? "";
 
-                    var activeApp = empLeaves.FirstOrDefault(la => date >= la.StartDate && date <= la.EndDate && la.Status == "Approved");
-
-                    if (log.Status == "Holiday")
+                    if (log.Status == "Holiday" || (activeHoliday != null && log.InTime == null && log.OutTime == null))
                     {
                         statusChar = "HLD";
                         textColor = "#7b1fa2";
                         bgColor = "#f3e5f5";
-                        var hol = holidays.FirstOrDefault(h => date >= h.StartDate && date <= h.EndDate);
-                        tooltip = hol?.HolidayName ?? "Holiday";
+                        tooltip = activeHoliday?.HolidayName ?? "Holiday";
+                    }
+                    else if (activeHoliday != null && log.InTime != null)
+                    {
+                        statusChar = "HLD+";
+                        textColor = "#2e7d32";
+                        bgColor = "#e8f5e9";
+                        tooltip = $"Worked on Holiday ({activeHoliday.HolidayName})";
                     }
                     else if (log.Status == "W/O" || log.Status == "Weekoff")
                     {
@@ -270,12 +289,48 @@ public class AttendanceController : ControllerBase
                         else if (statusChar.EndsWith("HF") || statusChar == "1H" || statusChar == "2H") { textColor = "#ef6c00"; bgColor = "#fff3e0"; }
                     }
                 }
-                else if (isWeekOff)
+                else
                 {
-                    statusChar = "WO";
-                    textColor = "#1976d2";
-                    bgColor = "#e3f2fd";
-                    tooltip = "Default Weekoff";
+                    // ── LOG == NULL (Future date or no attendance record generated yet) ──
+                    if (activeHoliday != null)
+                    {
+                        statusChar = "HLD";
+                        textColor = "#7b1fa2";
+                        bgColor = "#f3e5f5";
+                        tooltip = activeHoliday.HolidayName;
+                    }
+                    else if (activeApp?.LeaveType != null)
+                    {
+                        textColor = activeApp.LeaveType.TextColor ?? "#ffffff";
+                        bgColor = activeApp.LeaveType.BackgroundColor ?? "#0288d1";
+                        if (activeApp.DayType == "First Half")
+                        {
+                            statusChar = activeApp.LeaveType.Code + "-1H";
+                            tooltip = $"{activeApp.LeaveType.Name} (First Half Leave) (#{activeApp.Id})";
+                        }
+                        else if (activeApp.DayType == "Second Half")
+                        {
+                            statusChar = activeApp.LeaveType.Code + "-2H";
+                            tooltip = $"{activeApp.LeaveType.Name} (Second Half Leave) (#{activeApp.Id})";
+                        }
+                        else if (activeApp.TotalDays == 0.5m)
+                        {
+                            statusChar = activeApp.LeaveType.Code + "HF";
+                            tooltip = $"{activeApp.LeaveType.Name} (Half Day) (#{activeApp.Id})";
+                        }
+                        else
+                        {
+                            statusChar = activeApp.LeaveType.Code;
+                            tooltip = $"{activeApp.LeaveType.Name} (#{activeApp.Id})";
+                        }
+                    }
+                    else if (isWeekOff)
+                    {
+                        statusChar = "WO";
+                        textColor = "#1976d2";
+                        bgColor = "#e3f2fd";
+                        tooltip = "Default Weekoff";
+                    }
                 }
 
                 var dayKey = day.ToString();

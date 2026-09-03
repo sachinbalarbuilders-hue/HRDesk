@@ -18,15 +18,15 @@ public class RegularizationsController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
-    private readonly IAttendanceProcessorService _processor;
-    private readonly ICompOffService _compOffService;
+    private readonly AttendanceProcessorService _processor;
+    private readonly CompOffService _compOffService;
     private readonly ICurrentTenantProvider _tenantProvider;
 
     public RegularizationsController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        IAttendanceProcessorService processor,
-        ICompOffService compOffService,
+        AttendanceProcessorService processor,
+        CompOffService compOffService,
         ICurrentTenantProvider tenantProvider)
     {
         _db = db;

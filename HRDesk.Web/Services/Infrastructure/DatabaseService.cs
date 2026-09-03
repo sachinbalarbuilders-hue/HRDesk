@@ -5,9 +5,9 @@ namespace HRDesk.Web.Services;
 
 public sealed class DatabaseService
 {
-    private readonly IDeviceCommunicationService _deviceService;
+    private readonly DeviceCommunicationService _deviceService;
 
-    public DatabaseService(IDeviceCommunicationService deviceService)
+    public DatabaseService(DeviceCommunicationService deviceService)
     {
         _deviceService = deviceService;
     }

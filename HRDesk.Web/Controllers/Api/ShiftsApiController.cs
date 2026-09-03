@@ -17,14 +17,14 @@ public class ShiftsController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
-    private readonly IAttendanceProcessorService _processor;
+    private readonly AttendanceProcessorService _processor;
     private readonly IArchiveService _archive;
 
     public ShiftsController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         ICurrentTenantProvider tenantProvider,
-        IAttendanceProcessorService processor,
+        AttendanceProcessorService processor,
         IArchiveService archive)
     {
         _db = db;

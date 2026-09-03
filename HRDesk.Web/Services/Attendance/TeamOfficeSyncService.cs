@@ -17,13 +17,13 @@ using Microsoft.Extensions.Logging;
 
 namespace HRDesk.Web.Services.Attendance;
 
-public class TeamOfficeSyncService : ITeamOfficeSyncService
+public class TeamOfficeSyncService
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _config;
     private readonly ILogger<TeamOfficeSyncService> _logger;
-    private readonly IAttendanceProcessorService _processor;
+    private readonly AttendanceProcessorService _processor;
     private readonly ICurrentTenantProvider _tenantProvider;
 
     public TeamOfficeSyncService(
@@ -31,7 +31,7 @@ public class TeamOfficeSyncService : ITeamOfficeSyncService
         HttpClient httpClient,
         IConfiguration config,
         ILogger<TeamOfficeSyncService> logger,
-        IAttendanceProcessorService processor,
+        AttendanceProcessorService processor,
         ICurrentTenantProvider tenantProvider)
     {
         _db = db;

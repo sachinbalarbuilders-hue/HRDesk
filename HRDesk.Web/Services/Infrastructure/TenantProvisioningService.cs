@@ -10,7 +10,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Services.Infrastructure;
 
-public class TenantProvisioningService : ITenantProvisioningService
+public record TenantRegistrationDto(
+    string CompanyName,
+    string WorkspaceSlug,
+    string AdminFullName,
+    string AdminEmail,
+    string? AdminPhone,
+    string Password,
+    string? HeadOfficeCity,
+    string? EmployeeCountRange,
+    string? PlanCode
+);
+
+public record ProvisioningResult(
+    bool Success,
+    string? ErrorMessage,
+    Organization? Organization,
+    User? AdminUser,
+    Branch? PrimaryBranch
+);
+
+public class TenantProvisioningService
 {
     private readonly BiometricAttendanceDbContext _db;
     private static readonly HashSet<string> ReservedSlugs = new(StringComparer.OrdinalIgnoreCase)

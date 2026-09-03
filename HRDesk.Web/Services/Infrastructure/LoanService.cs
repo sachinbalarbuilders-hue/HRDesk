@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using HRDesk.Web.Data;
@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Services;
 
-public class LoanService : ILoanService
+public class LoanService
 {
     private readonly BiometricAttendanceDbContext _db;
 

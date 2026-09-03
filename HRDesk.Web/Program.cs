@@ -81,7 +81,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<HRDesk.Web.Services.ICurrentTenantProvider, HRDesk.Web.Services.CurrentTenantProvider>();
-builder.Services.AddScoped<HRDesk.Web.Services.IDeviceCommunicationService, HRDesk.Web.Services.DeviceCommunicationService>();
+builder.Services.AddScoped<HRDesk.Web.Services.DeviceCommunicationService>();
 // Configure Authentication: Primary is JWT for SPA & Mobile API + Cookies for backward compatibility
 builder.Services.AddAuthentication(options =>
 {
@@ -131,27 +131,30 @@ builder.Services.AddDbContext<HRDesk.Web.Data.BiometricAttendanceDbContext>(opti
     });
 });
 
-builder.Services.AddScoped<HRDesk.Web.Services.IAttendanceProcessorService, HRDesk.Web.Services.AttendanceProcessorService>();
-builder.Services.AddScoped<HRDesk.Web.Services.ILoanService, HRDesk.Web.Services.LoanService>();
-builder.Services.AddScoped<HRDesk.Web.Services.IAttendanceSummaryService, HRDesk.Web.Services.AttendanceSummaryService>(); // Shared counting logic
-builder.Services.AddScoped<HRDesk.Web.Services.IPayrollService, HRDesk.Web.Services.PayrollService>();
-builder.Services.AddScoped<HRDesk.Web.Services.ICompOffService, HRDesk.Web.Services.CompOffService>();
-builder.Services.AddScoped<HRDesk.Web.Services.ILeaveAdjustmentService, HRDesk.Web.Services.LeaveAdjustmentService>();
-builder.Services.AddScoped<HRDesk.Web.Services.Email.IEmailService, HRDesk.Web.Services.Email.EmailService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Attendance.Processor.SandwichRuleEvaluator>();
+builder.Services.AddScoped<HRDesk.Web.Services.Attendance.Processor.PunchPairingHandler>();
+builder.Services.AddScoped<HRDesk.Web.Services.Attendance.Processor.TimingPenaltyHandler>();
+builder.Services.AddScoped<HRDesk.Web.Services.AttendanceProcessorService>();
+builder.Services.AddScoped<HRDesk.Web.Services.LoanService>();
+builder.Services.AddScoped<HRDesk.Web.Services.AttendanceSummaryService>(); // Shared counting logic
+builder.Services.AddScoped<HRDesk.Web.Services.PayrollService>();
+builder.Services.AddScoped<HRDesk.Web.Services.CompOffService>();
+builder.Services.AddScoped<HRDesk.Web.Services.LeaveAdjustmentService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Email.EmailService>();
 builder.Services.AddSingleton<HRDesk.Web.Services.IReferenceDataCacheService, HRDesk.Web.Services.ReferenceDataCacheService>();
-builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceRecognitionService, HRDesk.Web.Services.AI.FaceRecognitionService>();
-builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceAntiSpoofingService, HRDesk.Web.Services.AI.FaceAntiSpoofingService>();
-builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceMotionService, HRDesk.Web.Services.AI.FaceMotionService>();
-builder.Services.AddSingleton<HRDesk.Web.Services.AI.IFaceChallengeService, HRDesk.Web.Services.AI.FaceChallengeService>();
-builder.Services.AddScoped<HRDesk.Web.Services.IImageGenerationService, HRDesk.Web.Services.ImageGenerationService>();
+builder.Services.AddSingleton<HRDesk.Web.Services.AI.FaceRecognitionService>();
+builder.Services.AddSingleton<HRDesk.Web.Services.AI.FaceAntiSpoofingService>();
+builder.Services.AddSingleton<HRDesk.Web.Services.AI.FaceMotionService>();
+builder.Services.AddSingleton<HRDesk.Web.Services.AI.FaceChallengeService>();
+builder.Services.AddScoped<HRDesk.Web.Services.ImageGenerationService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.CelebrationNotificationService>();
-builder.Services.AddHttpClient<HRDesk.Web.Services.Attendance.ITeamOfficeSyncService, HRDesk.Web.Services.Attendance.TeamOfficeSyncService>();
+builder.Services.AddHttpClient<HRDesk.Web.Services.Attendance.TeamOfficeSyncService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.Attendance.TeamOfficeBackgroundSyncWorker>();
 
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPermissionService, HRDesk.Web.Services.Infrastructure.PermissionService>();
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IArchiveService, HRDesk.Web.Services.Infrastructure.ArchiveService>(); // Shared archive-then-delete lifecycle
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPlanEntitlementService, HRDesk.Web.Services.Infrastructure.PlanEntitlementService>();
-builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.ITenantProvisioningService, HRDesk.Web.Services.Infrastructure.TenantProvisioningService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.TenantProvisioningService>();
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPaymentGatewayService, HRDesk.Web.Services.Infrastructure.RazorpayPaymentService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.Infrastructure.SubscriptionLifecycleBackgroundWorker>();
 
@@ -183,13 +186,13 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // Register WhatsApp Services
-builder.Services.AddHttpClient<HRDesk.Web.Services.Notifications.IWhatsAppProvider, HRDesk.Web.Services.Notifications.NodeJsWhatsAppProvider>(client => 
+builder.Services.AddHttpClient<HRDesk.Web.Services.Notifications.NodeJsWhatsAppProvider>(client => 
 {
     var url = builder.Configuration["WhatsApp:ServiceUrl"] ?? "http://localhost:3000";
     client.BaseAddress = new Uri(url);
 });
 builder.Services.AddScoped<HRDesk.Web.Services.Notifications.WhatsAppNotificationService>();
-builder.Services.AddScoped<HRDesk.Web.Services.Notifications.IInAppNotificationService, HRDesk.Web.Services.Notifications.InAppNotificationService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Notifications.InAppNotificationService>();
 
 var app = builder.Build();
 
@@ -588,7 +591,7 @@ using (var scope = app.Services.CreateScope())
             _ = Task.Run(async () => 
             {
                 using var innerScope = app.Services.CreateScope();
-                var deviceService = innerScope.ServiceProvider.GetRequiredService<HRDesk.Web.Services.IDeviceCommunicationService>();
+                var deviceService = innerScope.ServiceProvider.GetRequiredService<HRDesk.Web.Services.DeviceCommunicationService>();
                 
                 var result = await deviceService.UpdateDeviceConfigAsync(
                     config.IpAddress, config.Port, config.MachineNumber, config.CommKey);

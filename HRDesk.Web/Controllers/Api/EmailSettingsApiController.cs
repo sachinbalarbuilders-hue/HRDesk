@@ -18,13 +18,13 @@ public class EmailSettingsController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
-    private readonly IEmailService _emailService;
+    private readonly HRDesk.Web.Services.Email.EmailService _emailService;
 
     public EmailSettingsController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         ICurrentTenantProvider tenantProvider,
-        IEmailService emailService)
+        HRDesk.Web.Services.Email.EmailService emailService)
     {
         _db = db;
         _permissionService = permissionService;

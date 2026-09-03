@@ -7,18 +7,18 @@ using System.Threading.Tasks;
 
 namespace HRDesk.Web.Services
 {
-    public class LeaveAdjustmentService : ILeaveAdjustmentService
+    public class LeaveAdjustmentService
     {
         private readonly BiometricAttendanceDbContext _db;
-        private readonly HRDesk.Web.Services.IAttendanceProcessorService _processor;
-        private readonly IPayrollService _payrollService;
-        private readonly ICompOffService _compOffService;
+        private readonly HRDesk.Web.Services.AttendanceProcessorService _processor;
+        private readonly PayrollService _payrollService;
+        private readonly CompOffService _compOffService;
 
         public LeaveAdjustmentService(
             BiometricAttendanceDbContext db, 
-            HRDesk.Web.Services.IAttendanceProcessorService processor, 
-            IPayrollService payrollService,
-            ICompOffService compOffService)
+            HRDesk.Web.Services.AttendanceProcessorService processor, 
+            PayrollService payrollService,
+            CompOffService compOffService)
         {
             _db = db;
             _processor = processor;

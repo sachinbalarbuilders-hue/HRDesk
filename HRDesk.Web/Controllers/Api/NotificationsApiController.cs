@@ -14,13 +14,13 @@ namespace HRDesk.Web.Controllers.Api;
 [Authorize]
 public class NotificationsApiController : ControllerBase
 {
-    private readonly IInAppNotificationService _notificationService;
+    private readonly InAppNotificationService _notificationService;
     private readonly ICurrentTenantProvider _tenantProvider;
     private readonly BiometricAttendanceDbContext _db;
     private readonly ILogger<NotificationsApiController> _logger;
 
     public NotificationsApiController(
-        IInAppNotificationService notificationService,
+        InAppNotificationService notificationService,
         ICurrentTenantProvider tenantProvider,
         BiometricAttendanceDbContext db,
         ILogger<NotificationsApiController> logger)

@@ -8,7 +8,7 @@ namespace HRDesk.Web.Services;
 /// Single source of truth for attendance counting logic.
 /// Ensures MonthlyAttendanceSheet and PayrollService always produce identical results.
 /// </summary>
-public class AttendanceSummaryService : IAttendanceSummaryService
+public class AttendanceSummaryService
 {
     private readonly BiometricAttendanceDbContext _db;
 

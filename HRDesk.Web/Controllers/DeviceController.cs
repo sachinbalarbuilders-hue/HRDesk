@@ -11,9 +11,9 @@ namespace HRDesk.Web.Controllers;
 public sealed class DeviceController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
-    private readonly HRDesk.Web.Services.IDeviceCommunicationService _deviceService;
+    private readonly HRDesk.Web.Services.DeviceCommunicationService _deviceService;
 
-    public DeviceController(BiometricAttendanceDbContext db, HRDesk.Web.Services.IDeviceCommunicationService deviceService)
+    public DeviceController(BiometricAttendanceDbContext db, HRDesk.Web.Services.DeviceCommunicationService deviceService)
     {
         _db = db;
         _deviceService = deviceService;

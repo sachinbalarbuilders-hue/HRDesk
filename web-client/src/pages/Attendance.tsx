@@ -108,6 +108,17 @@ export const Attendance: React.FC = () => {
     const dayStr = String(dayNumber);
     const record = row.dailyRecords?.[dayStr];
     const status = row.dailyStatus?.[dayStr] || (typeof record === 'object' ? record?.status : record) || '';
+    const inTime = typeof record === 'object' ? record?.inTime : null;
+    const outTime = typeof record === 'object' ? record?.outTime : null;
+
+    const sUpper = (status || '').trim().toUpperCase();
+    const isWeekOff = sUpper === 'WO' || sUpper === 'W/O' || sUpper === 'WEEKOFF';
+    const isHoliday = sUpper === 'HLD' || sUpper === 'HOLIDAY' || sUpper === 'H';
+
+    // No details/punches exist for standard weekoffs or holidays
+    if ((isWeekOff || isHoliday) && !inTime && !outTime) {
+      return;
+    }
 
     const dDate = new Date(year, month - 1, dayNumber);
     const formattedDate = dDate.toLocaleDateString('en-US', {
@@ -116,9 +127,6 @@ export const Attendance: React.FC = () => {
       day: 'numeric',
       year: 'numeric'
     });
-
-    const inTime = typeof record === 'object' ? record?.inTime : null;
-    const outTime = typeof record === 'object' ? record?.outTime : null;
 
     setSelectedDayInfo({
       employeeId: row.employee.employeeId,
@@ -552,7 +560,6 @@ export const Attendance: React.FC = () => {
               <span
                 className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
                 data-tooltip="Week Off"
-                data-tooltip-hint="Weekly scheduled rest day"
               >
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-blue-600 text-white shadow-2xs">
                   <Calendar size={10} strokeWidth={2.5} />
@@ -671,17 +678,47 @@ export const Attendance: React.FC = () => {
                         const dayStr = String(d);
                         const record = row.dailyRecords?.[dayStr];
                         const status = row.dailyStatus?.[dayStr] || (typeof record === 'object' ? record?.status : record) || '';
+                        const sUpper = (status || '').trim().toUpperCase();
+                        const hasPunches = typeof record === 'object' && (!!record?.inTime || !!record?.outTime || !!record?.totalPunches);
+                        const isWeekOff = sUpper === 'WO' || sUpper === 'W/O' || sUpper === 'WEEKOFF';
+                        const isHoliday = sUpper === 'HLD' || sUpper === 'HOLIDAY' || sUpper === 'H';
+                        const isEmpty = !status || status === '-' || status === '—';
+
                         const recordTooltip = typeof record === 'object' ? (record?.tooltip || (record?.inTime ? `In: ${record.inTime} | Out: ${record.outTime || '—'}` : '')) : '';
                         const statusLabel = getStatusLabel(status);
-                        const tooltipContent = status ? (recordTooltip ? `${statusLabel} (${recordTooltip})` : statusLabel) : `Day ${d}`;
+
+                        // Non-clickable on standard Weekoff or Holiday without biometric punches, or empty slots
+                        const isClickable = !isEmpty && !((isWeekOff || isHoliday) && !hasPunches);
+
+                        let tooltipContent = status ? statusLabel : `Day ${d}`;
+                        let tooltipHint: string | undefined = undefined;
+
+                        if (isWeekOff && !hasPunches) {
+                          tooltipContent = 'Week Off';
+                          tooltipHint = undefined;
+                        } else if (isHoliday && !hasPunches) {
+                          tooltipContent = record?.tooltip && !record?.tooltip.toLowerCase().includes('holiday')
+                            ? record.tooltip
+                            : 'Holiday';
+                          tooltipHint = undefined;
+                        } else if (status) {
+                          if (recordTooltip) {
+                            tooltipContent = `${statusLabel} (${recordTooltip})`;
+                          }
+                          tooltipHint = isClickable ? "Click to inspect punch logs & details" : undefined;
+                        }
 
                         return (
                           <td
                             key={d}
                             data-tooltip={tooltipContent}
-                            data-tooltip-hint="Click to inspect punch logs & details"
-                            onClick={() => handleOpenDayActivity(row, d)}
-                            className="w-9 min-w-[34px] max-w-[36px] text-center p-1 font-data text-xs border-r border-[var(--rule)]/40 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:outline hover:outline-1 hover:outline-[var(--accent)] transition-all select-none"
+                            data-tooltip-hint={tooltipHint}
+                            onClick={isClickable ? () => handleOpenDayActivity(row, d) : undefined}
+                            className={`w-9 min-w-[34px] max-w-[36px] text-center p-1 font-data text-xs border-r border-[var(--rule)]/40 select-none ${
+                              isClickable
+                                ? 'cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:outline hover:outline-1 hover:outline-[var(--accent)] transition-all'
+                                : 'cursor-default'
+                            }`}
                           >
                             {getStatusBadge(status)}
                           </td>

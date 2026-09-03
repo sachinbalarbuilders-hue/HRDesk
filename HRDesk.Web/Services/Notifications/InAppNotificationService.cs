@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Services.Notifications;
 
-public class InAppNotificationService : IInAppNotificationService
+public class InAppNotificationService
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly ILogger<InAppNotificationService> _logger;

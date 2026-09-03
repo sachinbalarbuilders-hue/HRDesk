@@ -21,12 +21,12 @@ namespace HRDesk.Web.Services.AI;
 /// </summary>
 public sealed class AiModelsHealthCheck : IHealthCheck
 {
-    private readonly IFaceAntiSpoofingService _antiSpoofing;
-    private readonly IFaceRecognitionService  _recognition;
+    private readonly FaceAntiSpoofingService _antiSpoofing;
+    private readonly FaceRecognitionService  _recognition;
 
     public AiModelsHealthCheck(
-        IFaceAntiSpoofingService antiSpoofing,
-        IFaceRecognitionService  recognition)
+        FaceAntiSpoofingService antiSpoofing,
+        FaceRecognitionService  recognition)
     {
         _antiSpoofing = antiSpoofing;
         _recognition  = recognition;

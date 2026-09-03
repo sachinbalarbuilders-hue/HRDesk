@@ -94,7 +94,7 @@ namespace HRDesk.Web.Services
             bool allSent = true;
             using var scope = _serviceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<BiometricAttendanceDbContext>();
-            var whatsappProvider = scope.ServiceProvider.GetRequiredService<IWhatsAppProvider>();
+            var whatsappProvider = scope.ServiceProvider.GetRequiredService<HRDesk.Web.Services.Notifications.NodeJsWhatsAppProvider>();
 
             // Get today's logs to prevent duplicates
             var todaysLogs = await db.CelebrationLogs

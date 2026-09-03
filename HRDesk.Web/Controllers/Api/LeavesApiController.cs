@@ -18,16 +18,16 @@ public class LeavesController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly IReferenceDataCacheService _cache;
-    private readonly ICompOffService _compOffService;
-    private readonly IAttendanceProcessorService _processor;
+    private readonly CompOffService _compOffService;
+    private readonly AttendanceProcessorService _processor;
     private readonly ICurrentTenantProvider _tenantProvider;
 
     public LeavesController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         IReferenceDataCacheService cache,
-        ICompOffService compOffService,
-        IAttendanceProcessorService processor,
+        CompOffService compOffService,
+        AttendanceProcessorService processor,
         ICurrentTenantProvider tenantProvider)
     {
         _db = db;

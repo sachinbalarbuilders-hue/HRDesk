@@ -5,11 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Services.Email;
 
+public record EmailResult(bool Success, string? ErrorMessage = null);
+
 /// <summary>
 /// Reads email provider config from SystemSettings (per org) and dispatches via the appropriate provider.
 /// Supported providers: Smtp, SendGrid (via SMTP relay), custom SMTP.
 /// </summary>
-public class EmailService : IEmailService
+public class EmailService
 {
     private readonly BiometricAttendanceDbContext _db;
     private readonly ILogger<EmailService> _logger;

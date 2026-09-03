@@ -29,9 +29,15 @@ namespace HRDesk.Web.Services.AI;
 ///   robust to zoom changes, and requires only the 5 landmarks YuNet already
 ///   detects — no additional model needed.
 /// </summary>
-public sealed class FaceMotionService : IFaceMotionService
+public sealed record MotionVerificationResult(
+    bool    IsVerified,
+    string? FailReason,
+    float[] FrameOffsets
+);
+
+public sealed class FaceMotionService
 {
-    private readonly IFaceRecognitionService _recognition;
+    private readonly FaceRecognitionService _recognition;
     private readonly ILogger<FaceMotionService> _logger;
 
     // Landmark array indices
@@ -47,7 +53,7 @@ public sealed class FaceMotionService : IFaceMotionService
     private const float MinInterEyeDistance = 15f;
 
     public FaceMotionService(
-        IFaceRecognitionService recognition,
+        FaceRecognitionService recognition,
         ILogger<FaceMotionService> logger)
     {
         _recognition = recognition;

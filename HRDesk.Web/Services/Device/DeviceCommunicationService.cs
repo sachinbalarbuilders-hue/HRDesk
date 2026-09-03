@@ -10,7 +10,7 @@ using HRDesk.Web.Models;
 
 namespace HRDesk.Web.Services;
 
-public class DeviceCommunicationService : IDeviceCommunicationService
+public class DeviceCommunicationService
 {
     private readonly IConfiguration _configuration;
     private readonly BiometricAttendanceDbContext _db;

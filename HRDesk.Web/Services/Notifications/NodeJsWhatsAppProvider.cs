@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HRDesk.Web.Services.Notifications
 {
-    public class NodeJsWhatsAppProvider : IWhatsAppProvider
+    public class NodeJsWhatsAppProvider
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<NodeJsWhatsAppProvider> _logger;

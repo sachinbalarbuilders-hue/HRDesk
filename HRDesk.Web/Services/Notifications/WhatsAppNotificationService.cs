@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace HRDesk.Web.Services.Notifications
@@ -9,10 +9,10 @@ namespace HRDesk.Web.Services.Notifications
     /// </summary>
     public class WhatsAppNotificationService
     {
-        private readonly IWhatsAppProvider _whatsAppProvider;
+        private readonly NodeJsWhatsAppProvider _whatsAppProvider;
         private readonly ILogger<WhatsAppNotificationService> _logger;
 
-        public WhatsAppNotificationService(IWhatsAppProvider whatsAppProvider, ILogger<WhatsAppNotificationService> logger)
+        public WhatsAppNotificationService(NodeJsWhatsAppProvider whatsAppProvider, ILogger<WhatsAppNotificationService> logger)
         {
             _whatsAppProvider = whatsAppProvider;
             _logger = logger;

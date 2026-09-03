@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,7 +24,16 @@ namespace HRDesk.Web.Services.AI;
 /// IsAvailable=false and every CheckLivenessAsync call returns IsLive=false,
 /// so the punch controller can decide whether to block or skip the check.
 /// </summary>
-public sealed class FaceAntiSpoofingService : IFaceAntiSpoofingService, IDisposable
+public sealed record AntiSpoofResult(
+    bool    IsSuccess,
+    bool    IsLive,
+    float   LiveScore,       // Fused score: (V2 + V1SE) / 2
+    float   LiveScoreV2,     // MiniFASNetV2 individual live probability (0 when unavailable)
+    float   LiveScoreV1SE,   // MiniFASNetV1SE individual live probability (0 when unavailable)
+    string? Reason
+);
+
+public sealed class FaceAntiSpoofingService : IDisposable
 {
     // Model filenames as copied into App_Data/models/
     private const string ModelV2Name    = "spoof_v2_2.7_80x80.onnx";
@@ -39,7 +48,7 @@ public sealed class FaceAntiSpoofingService : IFaceAntiSpoofingService, IDisposa
 
     private readonly ILogger<FaceAntiSpoofingService> _logger;
     private readonly IHostEnvironment _env;
-    private readonly IFaceRecognitionService _faceRecognition;
+    private readonly FaceRecognitionService _faceRecognition;
 
     private InferenceSession? _sessionV2;
     private InferenceSession? _sessionV1SE;
@@ -49,7 +58,7 @@ public sealed class FaceAntiSpoofingService : IFaceAntiSpoofingService, IDisposa
     public FaceAntiSpoofingService(
         ILogger<FaceAntiSpoofingService> logger,
         IHostEnvironment env,
-        IFaceRecognitionService faceRecognition)
+        FaceRecognitionService faceRecognition)
     {
         _logger          = logger;
         _env             = env;

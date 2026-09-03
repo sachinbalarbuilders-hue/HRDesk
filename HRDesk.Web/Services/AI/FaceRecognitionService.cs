@@ -13,7 +13,14 @@ using SixLabors.ImageSharp.Processing;
 
 namespace HRDesk.Web.Services.AI;
 
-public sealed class FaceRecognitionService : IFaceRecognitionService, IDisposable
+public sealed record FaceMatchResult(
+    bool IsSuccess,
+    bool IsMatch,
+    float SimilarityScore,
+    string? Message
+);
+
+public sealed class FaceRecognitionService : IDisposable
 {
     private readonly ILogger<FaceRecognitionService> _logger;
     private readonly IHostEnvironment _env;

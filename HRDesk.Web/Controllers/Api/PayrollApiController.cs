@@ -15,14 +15,14 @@ namespace HRDesk.Web.Controllers.Api;
 public class PayrollController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;
-    private readonly IPayrollService _payrollService;
+    private readonly HRDesk.Web.Services.PayrollService _payrollService;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
     private readonly IArchiveService _archive;
 
     public PayrollController(
         BiometricAttendanceDbContext db,
-        IPayrollService payrollService,
+        HRDesk.Web.Services.PayrollService payrollService,
         IPermissionService permissionService,
         ICurrentTenantProvider tenantProvider,
         IArchiveService archive)

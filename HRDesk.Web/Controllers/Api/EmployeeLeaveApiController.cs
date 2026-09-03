@@ -16,13 +16,13 @@ public class EmployeeLeaveController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly IReferenceDataCacheService _cache;
-    private readonly ICompOffService _compOffService;
+    private readonly CompOffService _compOffService;
 
     public EmployeeLeaveController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         IReferenceDataCacheService cache,
-        ICompOffService compOffService)
+        CompOffService compOffService)
     {
         _db = db;
         _permissionService = permissionService;

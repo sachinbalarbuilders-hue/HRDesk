@@ -45,7 +45,7 @@ public class TeamOfficeBackgroundSyncWorker : BackgroundService
                     try
                     {
                         using var scope = _serviceProvider.CreateScope();
-                        var syncService = scope.ServiceProvider.GetRequiredService<ITeamOfficeSyncService>();
+                        var syncService = scope.ServiceProvider.GetRequiredService<TeamOfficeSyncService>();
                         var result = await syncService.SyncLatestPunchesAsync(stoppingToken);
                         if (result.success && result.newLogs > 0)
                         {

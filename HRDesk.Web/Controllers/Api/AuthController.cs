@@ -20,15 +20,15 @@ public class AuthController : ControllerBase
     private readonly BiometricAttendanceDbContext _context;
     private readonly IConfiguration _config;
     private readonly IPermissionService _permissionService;
-    private readonly ITenantProvisioningService _provisioningService;
-    private readonly IEmailService _emailService;
+    private readonly TenantProvisioningService _provisioningService;
+    private readonly HRDesk.Web.Services.Email.EmailService _emailService;
 
     public AuthController(
         BiometricAttendanceDbContext context,
         IConfiguration config,
         IPermissionService permissionService,
-        ITenantProvisioningService provisioningService,
-        IEmailService emailService)
+        TenantProvisioningService provisioningService,
+        HRDesk.Web.Services.Email.EmailService emailService)
     {
         _context = context;
         _config = config;

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HRDesk.Web.Services;
 
-public class CompOffService : ICompOffService
+public class CompOffService
 {
     private readonly BiometricAttendanceDbContext _db;
 

@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.Drawing;
 
 namespace HRDesk.Web.Services
 {
-    public class ImageGenerationService : IImageGenerationService
+    public class ImageGenerationService
     {
         private readonly IConfiguration _configuration;
 

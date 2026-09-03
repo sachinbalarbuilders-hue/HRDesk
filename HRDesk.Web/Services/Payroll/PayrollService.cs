@@ -24,11 +24,11 @@ namespace HRDesk.Web.Services;
 /// Payroll locking: refuses to re-process when PayrollMaster.LockedAt is set.
 /// Unlock is done by setting LockedAt = null via the API (admin only).
 /// </summary>
-public class PayrollService : IPayrollService
+public class PayrollService
 {
     private readonly BiometricAttendanceDbContext _db;
-    private readonly ILoanService _loanService;
-    private readonly IAttendanceSummaryService _attendanceSummaryService;
+    private readonly LoanService _loanService;
+    private readonly AttendanceSummaryService _attendanceSummaryService;
     private readonly ILogger<PayrollService> _logger;
 
     // Statutory constants (India 2024-25)
@@ -41,8 +41,8 @@ public class PayrollService : IPayrollService
 
     public PayrollService(
         BiometricAttendanceDbContext db,
-        ILoanService loanService,
-        IAttendanceSummaryService attendanceSummaryService,
+        LoanService loanService,
+        AttendanceSummaryService attendanceSummaryService,
         ILogger<PayrollService> logger)
     {
         _db = db;
