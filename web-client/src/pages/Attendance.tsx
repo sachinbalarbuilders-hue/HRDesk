@@ -16,7 +16,6 @@ import {
   X,
   Calendar,
   Sparkles,
-  Award,
   Umbrella,
 } from 'lucide-react';
 import { DayActivityDrawer } from '../components/attendance/DayActivityDrawer';
@@ -221,27 +220,6 @@ export const Attendance: React.FC = () => {
           </span>
         );
 
-      case 'CO':
-        return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-indigo-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
-            title="Comp Off Full Day"
-          >
-            <Award size={13} strokeWidth={2.5} />
-          </span>
-        );
-
-      case 'COHF':
-      case 'CHF':
-        return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-indigo-500 text-white font-extrabold font-data text-[9px] shadow-xs hover:brightness-110 transition-all select-none"
-            title="Comp Off Half Day"
-          >
-            CO½
-          </span>
-        );
-
       // First Half Leave -> Left-filled Star (Amber solid badge + Left half filled white star)
       case '1H':
       case 'FH':
@@ -251,10 +229,12 @@ export const Attendance: React.FC = () => {
       case 'PL-1H':
       case 'SL-1H':
       case 'CO-1H':
+      case 'COHF':
+      case 'CHF':
         return (
           <span
             className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white shadow-xs hover:brightness-110 transition-all select-none"
-            title={code.includes('PL') ? 'Paid Leave (1st Half - Left Star)' : code.includes('SL') ? 'Sick Leave (1st Half - Left Star)' : code.includes('CO') ? 'Comp Off (1st Half - Left Star)' : 'First Half Leave (Left Star Filled)'}
+            title={code.includes('PL') ? 'Paid Leave (1st Half)' : code.includes('SL') ? 'Sick Leave (1st Half)' : code.includes('CO') || code.includes('CHF') ? 'Comp Off (Half Day)' : 'First Half Leave'}
           >
             <LeftHalfStar size={15} />
           </span>
@@ -272,13 +252,16 @@ export const Attendance: React.FC = () => {
         return (
           <span
             className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white shadow-xs hover:brightness-110 transition-all select-none"
-            title={code.includes('PL') ? 'Paid Leave (2nd Half - Right Star)' : code.includes('SL') ? 'Sick Leave (2nd Half - Right Star)' : code.includes('CO') ? 'Comp Off (2nd Half - Right Star)' : 'Second Half Leave (Right Star Filled)'}
+            title={code.includes('PL') ? 'Paid Leave (2nd Half)' : code.includes('SL') ? 'Sick Leave (2nd Half)' : code.includes('CO') ? 'Comp Off (2nd Half)' : 'Second Half Leave'}
           >
             <RightHalfStar size={15} />
           </span>
         );
 
-      // Full Day Leaves -> Universal Beach Umbrella Icon (bg-teal-500)
+      // Full Day Leaves & Comp-Off -> Universal Beach Umbrella Icon (bg-teal-500)
+      case 'CO':
+      case 'COMP OFF':
+      case 'COMPOFF':
       case 'PL':
       case 'SL':
       case 'CL':
@@ -293,7 +276,7 @@ export const Attendance: React.FC = () => {
         return (
           <span
             className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-teal-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
-            title="Leave"
+            title={code === 'CO' || code === 'COMP OFF' || code === 'COMPOFF' ? 'Comp Off' : 'Leave'}
           >
             <Umbrella size={13} strokeWidth={2.5} />
           </span>
@@ -527,12 +510,6 @@ export const Attendance: React.FC = () => {
                   <Sparkles size={10} strokeWidth={2.5} />
                 </span>
                 <span>Holiday</span>
-              </span>
-              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0">
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-indigo-500 text-white shadow-2xs">
-                  <Award size={10} strokeWidth={2.5} />
-                </span>
-                <span>Comp Off</span>
               </span>
               <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0">
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500 text-white shadow-2xs">
