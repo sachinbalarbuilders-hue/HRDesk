@@ -144,6 +144,81 @@ export const Attendance: React.FC = () => {
     setDayDrawerOpen(true);
   };
 
+  const getStatusLabel = (code: string) => {
+    if (!code || code === '-' || code.trim() === '') return 'No Punch';
+    const c = code.trim().toUpperCase();
+    switch (c) {
+      case 'P':
+      case 'PRESENT':
+        return 'Present';
+      case 'A':
+      case 'ABSENT':
+        return 'Absent (Loss of Pay)';
+      case 'W/O':
+      case 'WO':
+      case 'WEEKOFF':
+        return 'Week Off';
+      case 'W/OP':
+      case 'WOP':
+        return 'Worked on Week Off';
+      case 'W/OHF':
+      case 'WOHF':
+        return 'Worked Half Day on Week Off';
+      case 'HLD':
+      case 'HOLIDAY':
+      case 'H':
+        return 'Public Holiday';
+      case 'CO':
+      case 'COMP OFF':
+      case 'COMPOFF':
+        return 'Comp Off';
+      case '1H':
+      case 'FH':
+      case '1HF':
+      case 'HF-1':
+      case 'FIRST HALF':
+      case 'PL-1H':
+      case 'SL-1H':
+      case 'CO-1H':
+      case 'COHF':
+      case 'CHF':
+        return '1st Half Leave';
+      case '2H':
+      case 'SH':
+      case '2HF':
+      case 'HF-2':
+      case 'SECOND HALF':
+      case 'PL-2H':
+      case 'SL-2H':
+      case 'CO-2H':
+        return '2nd Half Leave';
+      case 'PL':
+      case 'SL':
+      case 'CL':
+      case 'ML':
+      case 'EL':
+      case 'LWP':
+      case 'LEAVE':
+      case 'PAID LEAVE':
+      case 'SICK LEAVE':
+      case 'CASUAL LEAVE':
+      case 'UNPAID LEAVE':
+        return 'Leave';
+      case 'PHF':
+      case 'PL½':
+      case 'PLHF':
+      case 'SHF':
+      case 'SL½':
+      case 'SLHF':
+      case 'HF':
+      case 'HALF DAY':
+      case 'HALFDAY':
+        return 'Half Day';
+      default:
+        return code;
+    }
+  };
+
   const getStatusBadge = (code: string) => {
     if (!code || code === '-' || code.trim() === '') {
       return <span className="text-[var(--ink-muted)] opacity-30 text-xs font-mono select-none">—</span>;
@@ -155,10 +230,7 @@ export const Attendance: React.FC = () => {
       case 'P':
       case 'PRESENT':
         return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
-            title="Present"
-          >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
             <Check size={14} strokeWidth={3.5} />
           </span>
         );
@@ -166,10 +238,7 @@ export const Attendance: React.FC = () => {
       case 'A':
       case 'ABSENT':
         return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-rose-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
-            title="Absent (Loss of Pay)"
-          >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-rose-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
             <X size={14} strokeWidth={3.5} />
           </span>
         );
@@ -178,10 +247,7 @@ export const Attendance: React.FC = () => {
       case 'WO':
       case 'WEEKOFF':
         return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-600 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
-            title="Week Off"
-          >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-600 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
             <Calendar size={13} strokeWidth={2.5} />
           </span>
         );
@@ -189,10 +255,7 @@ export const Attendance: React.FC = () => {
       case 'W/OP':
       case 'WOP':
         return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-500 text-white ring-2 ring-amber-400 font-extrabold text-[9px] shadow-xs hover:brightness-110 transition-all select-none"
-            title="Worked on Week Off (Comp Off Earned)"
-          >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-500 text-white ring-2 ring-amber-400 font-extrabold text-[9px] shadow-xs hover:brightness-110 transition-all select-none">
             WO+
           </span>
         );
@@ -200,10 +263,7 @@ export const Attendance: React.FC = () => {
       case 'W/OHF':
       case 'WOHF':
         return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white ring-2 ring-emerald-400 font-extrabold text-[9px] shadow-xs hover:brightness-110 transition-all select-none"
-            title="Worked Half Day on Week Off"
-          >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white ring-2 ring-emerald-400 font-extrabold text-[9px] shadow-xs hover:brightness-110 transition-all select-none">
             WO½
           </span>
         );
@@ -212,10 +272,7 @@ export const Attendance: React.FC = () => {
       case 'HOLIDAY':
       case 'H':
         return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-purple-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
-            title="Public Holiday"
-          >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-purple-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
             <Sparkles size={13} strokeWidth={2.5} />
           </span>
         );
@@ -232,10 +289,7 @@ export const Attendance: React.FC = () => {
       case 'COHF':
       case 'CHF':
         return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white shadow-xs hover:brightness-110 transition-all select-none"
-            title={code.includes('PL') ? 'Paid Leave (1st Half)' : code.includes('SL') ? 'Sick Leave (1st Half)' : code.includes('CO') || code.includes('CHF') ? 'Comp Off (Half Day)' : 'First Half Leave'}
-          >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white shadow-xs hover:brightness-110 transition-all select-none">
             <LeftHalfStar size={15} />
           </span>
         );
@@ -250,10 +304,7 @@ export const Attendance: React.FC = () => {
       case 'SL-2H':
       case 'CO-2H':
         return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white shadow-xs hover:brightness-110 transition-all select-none"
-            title={code.includes('PL') ? 'Paid Leave (2nd Half)' : code.includes('SL') ? 'Sick Leave (2nd Half)' : code.includes('CO') ? 'Comp Off (2nd Half)' : 'Second Half Leave'}
-          >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white shadow-xs hover:brightness-110 transition-all select-none">
             <RightHalfStar size={15} />
           </span>
         );
@@ -274,10 +325,7 @@ export const Attendance: React.FC = () => {
       case 'CASUAL LEAVE':
       case 'UNPAID LEAVE':
         return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-teal-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
-            title={code === 'CO' || code === 'COMP OFF' || code === 'COMPOFF' ? 'Comp Off' : 'Leave'}
-          >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-teal-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
             <Umbrella size={13} strokeWidth={2.5} />
           </span>
         );
@@ -293,20 +341,14 @@ export const Attendance: React.FC = () => {
       case 'HALF DAY':
       case 'HALFDAY':
         return (
-          <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none"
-            title="Half Day"
-          >
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
             <LeftHalfStar size={15} />
           </span>
         );
 
       default:
         return (
-          <span
-            className="inline-flex items-center justify-center min-w-[24px] h-6 px-1 rounded-md bg-blue-600 text-white font-bold font-mono text-[9px] shadow-xs select-none"
-            title={code}
-          >
+          <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1 rounded-md bg-blue-600 text-white font-bold font-mono text-[9px] shadow-xs select-none">
             {code}
           </span>
         );
@@ -487,43 +529,71 @@ export const Attendance: React.FC = () => {
           <div className="border-b border-[var(--rule)] px-4 py-2 bg-[var(--surface-secondary)]/40 flex items-center justify-between gap-4 text-xs overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-3 shrink-0">
               <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">Legend:</span>
-              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0">
+              <span
+                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                data-tooltip="Present"
+                data-tooltip-hint="Full day present with valid punches"
+              >
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-emerald-500 text-white shadow-2xs">
                   <Check size={11} strokeWidth={3.5} />
                 </span>
                 <span>Present</span>
               </span>
-              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0">
+              <span
+                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                data-tooltip="Absent"
+                data-tooltip-hint="Loss of Pay (LOP)"
+              >
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-rose-500 text-white shadow-2xs">
                   <X size={11} strokeWidth={3.5} />
                 </span>
                 <span>Absent</span>
               </span>
-              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0">
+              <span
+                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                data-tooltip="Week Off"
+                data-tooltip-hint="Weekly scheduled rest day"
+              >
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-blue-600 text-white shadow-2xs">
                   <Calendar size={10} strokeWidth={2.5} />
                 </span>
                 <span>Week Off</span>
               </span>
-              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0">
+              <span
+                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                data-tooltip="Holiday"
+                data-tooltip-hint="Public or company gazetted holiday"
+              >
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-purple-500 text-white shadow-2xs">
                   <Sparkles size={10} strokeWidth={2.5} />
                 </span>
                 <span>Holiday</span>
               </span>
-              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0">
+              <span
+                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                data-tooltip="1st Half Leave"
+                data-tooltip-hint="Half day approved leave (morning session)"
+              >
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500 text-white shadow-2xs">
                   <LeftHalfStar size={11} />
                 </span>
                 <span>1st Half Leave</span>
               </span>
-              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0">
+              <span
+                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                data-tooltip="2nd Half Leave"
+                data-tooltip-hint="Half day approved leave (afternoon session)"
+              >
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500 text-white shadow-2xs">
                   <RightHalfStar size={11} />
                 </span>
                 <span>2nd Half Leave</span>
               </span>
-              <span className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0">
+              <span
+                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                data-tooltip="Leave"
+                data-tooltip-hint="Approved full-day leave / comp-off"
+              >
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-teal-500 text-white shadow-2xs">
                   <Umbrella size={10} strokeWidth={2.5} />
                 </span>
@@ -553,16 +623,32 @@ export const Attendance: React.FC = () => {
                       {d}
                     </th>
                   ))}
-                  <th className="w-14 text-center font-data text-xs border-l-2 border-[var(--rule)] text-[var(--ok-600)]" title="Present Days">
+                  <th
+                    className="w-14 text-center font-data text-xs border-l-2 border-[var(--rule)] text-[var(--ok-600)] cursor-help"
+                    data-tooltip="Present Days"
+                    data-tooltip-hint="Total count of days worked this month"
+                  >
                     P
                   </th>
-                  <th className="w-14 text-center font-data text-xs text-[var(--err-600)]" title="Absent Days">
+                  <th
+                    className="w-14 text-center font-data text-xs text-[var(--err-600)] cursor-help"
+                    data-tooltip="Absent Days"
+                    data-tooltip-hint="Total count of unexcused absences (LOP)"
+                  >
                     A
                   </th>
-                  <th className="w-14 text-center font-data text-xs text-[var(--ink-muted)]" title="Week Off Days">
+                  <th
+                    className="w-14 text-center font-data text-xs text-[var(--ink-muted)] cursor-help"
+                    data-tooltip="Week Off Days"
+                    data-tooltip-hint="Scheduled weekend & compensatory rest days"
+                  >
                     WO
                   </th>
-                  <th className="w-16 text-center font-data text-xs font-bold text-[var(--accent)] bg-[var(--paper-subtle)]" title="Total Payable Days">
+                  <th
+                    className="w-16 text-center font-data text-xs font-bold text-[var(--accent)] bg-[var(--paper-subtle)] cursor-help"
+                    data-tooltip="Total Payable Days"
+                    data-tooltip-hint="Present + Leaves + Holidays + Week Offs"
+                  >
                     Payable
                   </th>
                 </tr>
@@ -585,12 +671,15 @@ export const Attendance: React.FC = () => {
                         const dayStr = String(d);
                         const record = row.dailyRecords?.[dayStr];
                         const status = row.dailyStatus?.[dayStr] || (typeof record === 'object' ? record?.status : record) || '';
-                        const tooltip = typeof record === 'object' ? (record?.tooltip || (record?.inTime ? `In: ${record.inTime} | Out: ${record.outTime || '—'}` : '')) : '';
+                        const recordTooltip = typeof record === 'object' ? (record?.tooltip || (record?.inTime ? `In: ${record.inTime} | Out: ${record.outTime || '—'}` : '')) : '';
+                        const statusLabel = getStatusLabel(status);
+                        const tooltipContent = status ? (recordTooltip ? `${statusLabel} (${recordTooltip})` : statusLabel) : `Day ${d}`;
 
                         return (
                           <td
                             key={d}
-                            title={tooltip ? `${tooltip} • Click to view all punch logs` : `Day ${d} • Click to view all punch logs`}
+                            data-tooltip={tooltipContent}
+                            data-tooltip-hint="Click to inspect punch logs & details"
                             onClick={() => handleOpenDayActivity(row, d)}
                             className="w-9 min-w-[34px] max-w-[36px] text-center p-1 font-data text-xs border-r border-[var(--rule)]/40 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:outline hover:outline-1 hover:outline-[var(--accent)] transition-all select-none"
                           >

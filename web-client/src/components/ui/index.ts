@@ -17,6 +17,7 @@ export { PaginationToolbar } from './PaginationToolbar';
 export { BulkImportModal } from './BulkImportModal';
 export { PageSkeleton, TableSkeleton } from './PageSkeleton';
 export { SearchableSelect } from './SearchableSelect';
+export { Tooltip, TooltipProvider, useTooltip } from './Tooltip';
 
 // Types
 export type { RowAction } from './RowActionMenu';

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { OrganizationProvider } from './context/CompanyContext';
+import { TooltipProvider } from './components/ui/Tooltip';
 import { AppLayout } from './components/layout/AppLayout';
 import { PageSkeleton } from './components/ui/PageSkeleton';
 import { AccessRestricted } from './components/layout/AccessRestricted';
@@ -118,7 +119,8 @@ export const App: React.FC = () => {
       <AuthProvider>
         <OrganizationProvider>
           <ToastProvider>
-            <BrowserRouter>
+            <TooltipProvider>
+              <BrowserRouter>
             <Suspense fallback={<div className="p-8"><PageSkeleton /></div>}>
               <Routes>
                 <Route path="/" element={<LandingPage />} />
@@ -414,7 +416,8 @@ export const App: React.FC = () => {
               </Routes>
             </Suspense>
           </BrowserRouter>
-        </ToastProvider>
+        </TooltipProvider>
+      </ToastProvider>
       </OrganizationProvider>
     </AuthProvider>
   </ThemeProvider>
