@@ -1,8 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using HRDesk.Web.Models;
 
-namespace HRDesk.Web.Areas.Recruitment.Models;
+namespace HRDesk.Web.Models;
 
 public sealed class Candidate : IMustHaveTenant, IArchivable
 {

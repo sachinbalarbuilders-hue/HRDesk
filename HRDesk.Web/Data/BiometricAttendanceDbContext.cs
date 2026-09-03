@@ -1,5 +1,4 @@
 using HRDesk.Web.Models;
-using HRDesk.Web.Areas.Recruitment.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 

@@ -46,8 +46,8 @@ public static class ArchivableRegistry
         Register("employee-documents", typeof(EmployeeDocument),         AppPermissions.Keys.EmployeesEdit,              AppPermissions.Keys.EmployeesView,            "Document");
         Register("documents",          typeof(EmployeeDocument),         AppPermissions.Keys.EmployeesEdit,              AppPermissions.Keys.EmployeesView,            "Document");
         Register("payroll",            typeof(PayrollMaster),            AppPermissions.Keys.PayrollProcess,             AppPermissions.Keys.PayrollView,              "Payroll record");
-        Register("candidates",         typeof(HRDesk.Web.Areas.Recruitment.Models.Candidate),         AppPermissions.Keys.RecruitmentCandidates, AppPermissions.Keys.RecruitmentCandidates, "Candidate");
-        Register("interviews",         typeof(HRDesk.Web.Areas.Recruitment.Models.InterviewSchedule), AppPermissions.Keys.RecruitmentInterviews, AppPermissions.Keys.RecruitmentInterviews, "Interview");
+        Register("candidates",         typeof(Candidate),                 AppPermissions.Keys.RecruitmentCandidates, AppPermissions.Keys.RecruitmentCandidates, "Candidate");
+        Register("interviews",         typeof(InterviewSchedule),         AppPermissions.Keys.RecruitmentInterviews, AppPermissions.Keys.RecruitmentInterviews, "Interview");
         Register("employee-exits",     typeof(EmployeeExit),             AppPermissions.Keys.EmployeesEdit,              AppPermissions.Keys.EmployeesView,            "Employee exit");
         Register("exits",              typeof(EmployeeExit),             AppPermissions.Keys.EmployeesEdit,              AppPermissions.Keys.EmployeesView,            "Employee exit");
         Register("shift-change-requests", typeof(ShiftChangeRequest),    AppPermissions.Keys.ShiftsRequestsDelete,       AppPermissions.Keys.ShiftsRequestsView,       "Shift change request");

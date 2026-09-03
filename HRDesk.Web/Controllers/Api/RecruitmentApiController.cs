@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using HRDesk.Web.Areas.Recruitment.Models;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using HRDesk.Web.Services;
