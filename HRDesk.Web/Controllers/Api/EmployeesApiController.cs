@@ -91,6 +91,7 @@ END;";
         [FromQuery] int? departmentId = null,
         [FromQuery] int? branchId = null,
         [FromQuery] string? status = null,
+        [FromQuery] string? scopeKey = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
@@ -116,7 +117,8 @@ END;";
         }
 
         // Apply Scope (All, Reporting, Department, Own)
-        query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.EmployeesView);
+        var effectiveKey = !string.IsNullOrWhiteSpace(scopeKey) ? scopeKey : AppPermissions.Keys.EmployeesView;
+        query = await _permissionService.ApplyEmployeeScopeAsync(query, User, effectiveKey);
 
         if (departmentId.HasValue && departmentId.Value > 0)
         {

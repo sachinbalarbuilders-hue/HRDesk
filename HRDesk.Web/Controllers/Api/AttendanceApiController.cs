@@ -1778,7 +1778,142 @@ public class AttendanceController : ControllerBase
         var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
         return R * c;
     }
+
+    [HttpGet("eligible-employees")]
+    public async Task<IActionResult> GetEligibleEmployees([FromQuery] int? branchId = null)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceCreate))
+        {
+            return StatusCode(403, new { message = "You do not have permission to add attendance punches." });
+        }
+
+        var query = _db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.Branch)
+            .Where(e => e.Status == "Active" || e.Status == "active" || e.Status == "Onboarding" || e.Status == "onboarding")
+            .AsQueryable();
+
+        var scope = await _permissionService.GetPermissionScopeAsync(User, AppPermissions.Keys.AttendanceCreate);
+
+        if (string.Equals(scope, AppPermissions.Scopes.All, StringComparison.OrdinalIgnoreCase))
+        {
+            var activeBranch = branchId ?? _tenantProvider.BranchId;
+            if (activeBranch.HasValue && activeBranch.Value > 0)
+            {
+                query = query.Where(e => e.BranchId == activeBranch.Value);
+            }
+        }
+        else
+        {
+            query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.AttendanceCreate);
+        }
+
+        var list = await query
+            .OrderBy(e => e.EmployeeName)
+            .Select(e => new
+            {
+                employeeId = e.EmployeeId,
+                employeeName = e.EmployeeName,
+                departmentId = e.DepartmentId,
+                departmentName = e.Department != null ? e.Department.DepartmentName : null,
+                branchId = e.BranchId,
+                branchName = e.Branch != null ? e.Branch.Name : null
+            })
+            .ToListAsync();
+
+        return Ok(list);
+    }
+
+    [HttpPost("manual-punch")]
+    public async Task<IActionResult> AddManualPunch([FromBody] ManualPunchDto dto)
+    {
+        var hasPermission = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceCreate);
+        if (!hasPermission)
+        {
+            return StatusCode(403, new { message = "You do not have permission to add attendance punches." });
+        }
+
+        if (dto.EmployeeId <= 0) return BadRequest(new { message = "Valid Employee ID is required." });
+        if (string.IsNullOrWhiteSpace(dto.PunchDate)) return BadRequest(new { message = "Punch Date is required." });
+        if (string.IsNullOrWhiteSpace(dto.InTime) && string.IsNullOrWhiteSpace(dto.OutTime))
+            return BadRequest(new { message = "At least In Time or Out Time is required." });
+
+        if (!DateOnly.TryParse(dto.PunchDate, out var punchDate))
+            return BadRequest(new { message = $"Invalid date format: {dto.PunchDate}" });
+
+        TimeOnly? inTime = null;
+        TimeOnly? outTime = null;
+
+        if (!string.IsNullOrWhiteSpace(dto.InTime))
+        {
+            if (!TimeOnly.TryParse(dto.InTime, out var parsed))
+                return BadRequest(new { message = $"Invalid In Time format: {dto.InTime}" });
+            inTime = parsed;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.OutTime))
+        {
+            if (!TimeOnly.TryParse(dto.OutTime, out var parsed))
+                return BadRequest(new { message = $"Invalid Out Time format: {dto.OutTime}" });
+            outTime = parsed;
+        }
+
+        var empQuery = _db.Employees.AsQueryable();
+        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceCreate);
+        var employee = await empQuery.FirstOrDefaultAsync(e => e.EmployeeId == dto.EmployeeId);
+        
+        if (employee == null) return NotFound(new { message = "Employee not found or you do not have permission to manage attendance for this employee." });
+
+        // Insert In punch
+        if (inTime.HasValue)
+        {
+            _db.AttendanceLogs.Add(new AttendanceLog
+            {
+                EmployeeId = dto.EmployeeId,
+                PunchTime = punchDate.ToDateTime(inTime.Value),
+                MachineNumber = 0,
+                VerifyMode = 99,
+                VerifyType = "Manual-In",
+                OrganizationId = employee.OrganizationId,
+                CreatedAt = IstDateTime.Now,
+                SyncedAt = IstDateTime.Now,
+            });
+        }
+
+        // Insert Out punch
+        if (outTime.HasValue)
+        {
+            _db.AttendanceLogs.Add(new AttendanceLog
+            {
+                EmployeeId = dto.EmployeeId,
+                PunchTime = punchDate.ToDateTime(outTime.Value),
+                MachineNumber = 0,
+                VerifyMode = 99,
+                VerifyType = "Manual-Out",
+                OrganizationId = employee.OrganizationId,
+                CreatedAt = IstDateTime.Now,
+                SyncedAt = IstDateTime.Now,
+            });
+        }
+
+        await _db.SaveChangesAsync();
+
+        // Trigger processor so DailyAttendance is updated immediately
+        var processor = HttpContext.RequestServices.GetRequiredService<AttendanceProcessorService>();
+        await processor.ProcessDailyAttendanceAsync(punchDate, dto.EmployeeId);
+
+        return Ok(new { message = "Attendance saved successfully." });
+    }
 }
+
+public record ManualPunchDto(
+    int EmployeeId,
+    string PunchDate,   // "yyyy-MM-dd"
+    string? InTime,     // "HH:mm"
+    string? OutTime,    // "HH:mm"
+    string? Reason
+);
 
 public record PunchRequestDto(
     int? EmployeeId,

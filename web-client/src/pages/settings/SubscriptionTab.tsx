@@ -87,7 +87,7 @@ interface PaymentHistoryItem {
 
 export const SubscriptionTab: React.FC = () => {
   const { showSuccess, showError } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user, hasPermission } = useAuth();
   const [loading, setLoading] = useState(true);
   const [quota, setQuota] = useState<QuotaStatus | null>(null);
   const [plans, setPlans] = useState<PlanItem[]>([]);
@@ -139,7 +139,16 @@ export const SubscriptionTab: React.FC = () => {
   }, [currentOrganization?.id]);
 
   const handleInitiateCheckout = async (plan: PlanItem) => {
-    if (!isAdmin) {
+    const canManageBilling = Boolean(
+      isAdmin ||
+      user?.isPlatformUser ||
+      user?.role === 'Admin' ||
+      user?.role === 'SuperAdmin' ||
+      user?.roleName?.toLowerCase().includes('admin') ||
+      hasPermission('Masters.Organizations')
+    );
+
+    if (!canManageBilling) {
       showError('Unauthorized', 'Only organization administrators can purchase or upgrade plans.');
       return;
     }

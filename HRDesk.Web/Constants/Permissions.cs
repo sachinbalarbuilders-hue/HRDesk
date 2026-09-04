@@ -55,6 +55,7 @@ public static class AppPermissions
 
         // 2. Attendance Module
         public const string AttendanceView = "Attendance.View";
+        public const string AttendanceCreate = "Attendance.Create";
 
         // 3. Regularizations Module
         public const string AttendanceRegularize = "Attendance.Regularize";
@@ -202,6 +203,11 @@ public static class AppPermissions
         new(Keys.AttendanceView, "View Scope", Modules.Attendance, "View biometric logs, daily attendance, and monthly registers", 
             SupportsScope: true, 
             ScopeOptions: new[] { "Own", "Reporting To", "Department", "Own Branch" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AttendanceCreate, "Create Scope", Modules.Attendance, "Manually add attendance punches on behalf of employees", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
 
         // 3. Regularizations

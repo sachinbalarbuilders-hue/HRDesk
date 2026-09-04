@@ -462,9 +462,9 @@ using (var scope = app.Services.CreateScope())
                 .Select(p => p.PermissionKey)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var perm in HRDesk.Web.Constants.AppPermissions.All)
+            if (!existingSuperPerms.Any())
             {
-                if (!existingSuperPerms.Contains(perm.Key))
+                foreach (var perm in HRDesk.Web.Constants.AppPermissions.All)
                 {
                     db.RolePermissions.Add(new HRDesk.Web.Models.RolePermission
                     {
@@ -474,8 +474,8 @@ using (var scope = app.Services.CreateScope())
                         OrganizationId = superAdminRole.OrganizationId
                     });
                 }
+                db.SaveChanges();
             }
-            db.SaveChanges();
 
             // 2. Sync Department Manager Role & Permissions
             var managerRole = db.Roles.IgnoreQueryFilters().FirstOrDefault(r => r.Name == "Department Manager" || r.Name == "Manager");

@@ -7,6 +7,7 @@ import { PaginationToolbar } from '../components/ui/PaginationToolbar';
 import { TableSkeleton } from '../components/ui/PageSkeleton';
 import { useToast } from '../context/ToastContext';
 import { useOrganization } from '../context/CompanyContext';
+import { useAuth } from '../context/AuthContext';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageHeader } from '../components/layout/PageHeader';
 import {
@@ -20,8 +21,11 @@ import {
   Clock,
   LogOut,
   LogIn,
+  Search,
+  Plus
 } from 'lucide-react';
 import { DayActivityDrawer } from '../components/attendance/DayActivityDrawer';
+import { ManualPunchModal } from '../components/attendance/ManualPunchModal';
 
 const LeftHalfStar: React.FC<{ size?: number; className?: string }> = ({ size = 14, className = "" }) => (
   <svg
@@ -88,6 +92,8 @@ const RightHalfStar: React.FC<{ size?: number; className?: string }> = ({ size =
 export const Attendance: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const { currentOrganization, currentBranch } = useOrganization();
+  const { user, hasPermission } = useAuth();
+  const canCreate = Boolean(user?.isPlatformUser || hasPermission('Attendance.Create'));
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -99,6 +105,7 @@ export const Attendance: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [manualPunchOpen, setManualPunchOpen] = useState(false);
 
   // Day Activity Timeline Drawer state
   const [dayDrawerOpen, setDayDrawerOpen] = useState(false);
@@ -539,8 +546,17 @@ export const Attendance: React.FC = () => {
         ]}
         onExport={handleExportAttendance}
         exportLabel="Export CSV"
-        onImport={() => setImportModalOpen(true)}
-        importLabel="Import CSV"
+        onImport={canCreate ? () => setImportModalOpen(true) : undefined}
+        importLabel={canCreate ? 'Import CSV' : undefined}
+        primaryAction={
+          canCreate
+            ? {
+                label: 'Add Attendance',
+                icon: <Plus size={14} strokeWidth={2.5} />,
+                onClick: () => setManualPunchOpen(true),
+              }
+            : undefined
+        }
       >
         <div className="flex items-center gap-1.5 bg-[var(--paper)] border border-[var(--rule)] rounded-lg p-1">
           <button
@@ -824,18 +840,30 @@ export const Attendance: React.FC = () => {
       )}
 
       {/* Bulk Import Modal */}
-      <BulkImportModal
-        isOpen={importModalOpen}
-        onClose={() => setImportModalOpen(false)}
-        title="Import Biometric Punch Ledger"
-        templateFilename="HRDesk_Biometric_Punches"
-        templateHeaders={['EmployeeId', 'PunchDate', 'InTime', 'OutTime', 'MachineCode']}
-        templateSampleRow={['1042', '2026-08-15', '09:12:00', '18:05:00', 'DEVICE_01']}
-        onImportComplete={() => {
-          setImportModalOpen(false);
-          fetchAttendanceSheet();
-        }}
-      />
+      {canCreate && (
+        <BulkImportModal
+          isOpen={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          title="Import Biometric Punch Ledger"
+          templateFilename="HRDesk_Biometric_Punches"
+          templateHeaders={['EmployeeId', 'PunchDate', 'InTime', 'OutTime', 'MachineCode']}
+          templateSampleRow={['1042', '2026-08-15', '09:12:00', '18:05:00', 'DEVICE_01']}
+          onImportComplete={() => {
+            setImportModalOpen(false);
+            fetchAttendanceSheet();
+          }}
+        />
+      )}
+
+      {/* Manual Punch Modal */}
+      {canCreate && (
+        <ManualPunchModal
+          isOpen={manualPunchOpen}
+          onClose={() => setManualPunchOpen(false)}
+          onSuccess={() => fetchAttendanceSheet()}
+          branchId={currentBranch?.id}
+        />
+      )}
 
       {/* Day Activity & In/Out Audit Timeline Drawer */}
       <DayActivityDrawer
