@@ -17,6 +17,9 @@ import {
   Calendar,
   Sparkles,
   Umbrella,
+  Clock,
+  LogOut,
+  LogIn,
 } from 'lucide-react';
 import { DayActivityDrawer } from '../components/attendance/DayActivityDrawer';
 
@@ -156,6 +159,18 @@ export const Attendance: React.FC = () => {
     if (!code || code === '-' || code.trim() === '') return 'No Punch';
     const c = code.trim().toUpperCase();
     switch (c) {
+      case 'IP':
+      case 'IN':
+      case 'CLOCKED IN':
+      case 'IN PROGRESS':
+        return 'Clocked In (In Progress)';
+      case 'SP':
+      case 'SINGLE PUNCH':
+      case 'MO':
+      case 'MISSING OUT':
+      case 'MI':
+      case 'MISSING IN':
+        return 'Single Punch';
       case 'P':
       case 'PRESENT':
         return 'Present';
@@ -235,6 +250,28 @@ export const Attendance: React.FC = () => {
     const c = code.trim().toUpperCase();
 
     switch (c) {
+      case 'IP':
+      case 'IN':
+      case 'CLOCKED IN':
+      case 'IN PROGRESS':
+        return (
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-sky-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
+            <Clock size={13} strokeWidth={2.5} />
+          </span>
+        );
+
+      case 'SP':
+      case 'SINGLE PUNCH':
+      case 'MO':
+      case 'MISSING OUT':
+      case 'MI':
+      case 'MISSING IN':
+        return (
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none" data-tooltip="Single Punch">
+            <Clock size={13} strokeWidth={2.5} />
+          </span>
+        );
+
       case 'P':
       case 'PRESENT':
         return (
@@ -549,6 +586,16 @@ export const Attendance: React.FC = () => {
               </span>
               <span
                 className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                data-tooltip="Clocked In"
+                data-tooltip-hint="Punched in today; shift currently in progress"
+              >
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-sky-500 text-white shadow-2xs">
+                  <Clock size={11} strokeWidth={2.5} />
+                </span>
+                <span>Clocked In</span>
+              </span>
+              <span
+                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
                 data-tooltip="Absent"
                 data-tooltip-hint="Loss of Pay (LOP)"
               >
@@ -595,6 +642,16 @@ export const Attendance: React.FC = () => {
                   <RightHalfStar size={11} />
                 </span>
                 <span>2nd Half Leave</span>
+              </span>
+              <span
+                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                data-tooltip="Single Punch"
+                data-tooltip-hint="Only one punch recorded today (requires regularization)"
+              >
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-500 text-white shadow-2xs">
+                  <Clock size={10} strokeWidth={2.5} />
+                </span>
+                <span>Single Punch</span>
               </span>
               <span
                 className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"

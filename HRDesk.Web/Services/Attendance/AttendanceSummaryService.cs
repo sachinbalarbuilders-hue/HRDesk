@@ -163,8 +163,8 @@ public class AttendanceSummaryService
             return;
         }
 
-        // â”€â”€ Half-Day records (COHF, PHF, SHF, HF etc.) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        if (log.IsHalfDay || (log.Status != null && log.Status.EndsWith("HF")))
+        // ── Half-Day records (COHF, PHF, SHF, HF, Single Punch, etc.) ────────
+        if (log.IsHalfDay || (log.Status != null && (log.Status.EndsWith("HF") || log.Status == "Single Punch" || log.Status == "SP")))
         {
             if (activeApp == null) result.HalfDayCount++;
 
@@ -220,8 +220,8 @@ public class AttendanceSummaryService
             }
         }
         // â”€â”€ Present / worked on weekoff â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        else if (log.Status == "Present" || log.Status == "W/OP" ||
-                 log.Status == "Present (W/O)" || log.Status == "Present (WO)" ||
+        else if (log.Status == "Present" || log.Status == "Clocked In" || log.Status == "In Progress" ||
+                 log.Status == "W/OP" || log.Status == "Present (W/O)" || log.Status == "Present (WO)" ||
                  log.Status == "Present (Leave)" || log.Status == "COP")
         {
             result.PresentCount += 1.0m;

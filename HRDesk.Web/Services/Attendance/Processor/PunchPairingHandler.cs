@@ -6,7 +6,7 @@ public class PunchPairingResult
 {
     public bool IsSinglePunch { get; set; }
     public TimeOnly InTime { get; set; }
-    public TimeOnly OutTime { get; set; }
+    public TimeOnly? OutTime { get; set; }
     public int TotalMinutes { get; set; }
     public int BreakMinutes { get; set; }
     public bool IsActualBreak { get; set; }
@@ -30,13 +30,14 @@ public class PunchPairingHandler
 
         var inTime = TimeOnly.FromDateTime(sortedLogs.First().PunchTime);
         var outTime = TimeOnly.FromDateTime(sortedLogs.Last().PunchTime);
+        bool isSinglePunch = dailyLogs.Count == 1 || inTime == outTime;
 
         existingRecord.InTime = inTime;
-        existingRecord.OutTime = outTime;
+        existingRecord.OutTime = isSinglePunch ? null : outTime;
 
         if (existingRecord.Status == null || existingRecord.Status == "Absent")
         {
-            existingRecord.Status = "Present";
+            existingRecord.Status = isSinglePunch ? "Clocked In" : "Present";
         }
 
         // Half-Day Leave Status Override
@@ -124,10 +125,7 @@ public class PunchPairingHandler
                     }
                     else
                     {
-                        if (existingRecord.Status == null || existingRecord.Status == "Absent")
-                        {
-                            existingRecord.Status = "Present";
-                        }
+                        existingRecord.Status = "Clocked In";
                         existingRecord.IsHalfDay = false;
                     }
                 }
@@ -135,7 +133,7 @@ public class PunchPairingHandler
                 {
                     if (existingRecord.Status != null && !existingRecord.Status.EndsWith("HF"))
                     {
-                        existingRecord.Status = "Half Day";
+                        existingRecord.Status = "Single Punch";
                     }
                     existingRecord.IsHalfDay = true;
                 }
@@ -146,18 +144,31 @@ public class PunchPairingHandler
             if (isOutOnly)
             {
                  existingRecord.InTime = null;
+                 existingRecord.OutTime = outTime;
                  existingRecord.LateMinutes = 0;
                  existingRecord.IsLate = false;
-                 baseRemark = "Single Punch (In Missing)";
+                 baseRemark = "Single Punch — Regularization Required";
+            }
+            else if (isCurrentDay)
+            {
+                existingRecord.OutTime = null;
+                baseRemark = existingRecord.LateMinutes > 0
+                    ? $"Clocked in at {inTime:HH\\:mm} (Late {existingRecord.LateMinutes}m) — Shift in progress"
+                    : $"Clocked in at {inTime:HH\\:mm} — Shift in progress";
             }
             else
             {
+                existingRecord.OutTime = null;
                 if (existingRecord.LateMinutes > 0)
                 {
                     context.MonthHistory.TryGetValue(emp.EmployeeId, out var previousRecords);
                     int previousLates = previousRecords?.Count(d => d.LateMinutes > 0) ?? 0;
                     int currentLateCount = previousLates + 1;
-                    baseRemark = $"Late #{currentLateCount}";
+                    baseRemark = $"Late #{currentLateCount} (Out Missing) — Regularization Required";
+                }
+                else
+                {
+                    baseRemark = "Single Punch — Regularization Required";
                 }
             }
 
@@ -165,7 +176,7 @@ public class PunchPairingHandler
             existingRecord.WorkMinutes = 0;
             existingRecord.BreakMinutes = 0;
 
-            if (roster.IsWeekOff && existingRecord.Status == "Half Day")
+            if (roster.IsWeekOff && (existingRecord.Status == "Half Day" || existingRecord.Status == "Single Punch"))
             {
                 existingRecord.Status = "W/OHF";
             }
@@ -174,7 +185,7 @@ public class PunchPairingHandler
             {
                 IsSinglePunch = true,
                 InTime = inTime,
-                OutTime = outTime,
+                OutTime = null,
                 TotalMinutes = totalMinutes,
                 BreakMinutes = 0,
                 IsActualBreak = false

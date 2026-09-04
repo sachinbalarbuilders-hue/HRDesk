@@ -267,26 +267,73 @@ public class AttendanceController : ControllerBase
                     }
                     else
                     {
-                        statusChar = log.Status switch
-                        {
-                            "Present" => "P",
-                            "Absent" => "A",
-                            "COHF" => "COHF",
-                            "CO-1H" or "COHF-1" or "CO-FH" => "CO-1H",
-                            "CO-2H" or "COHF-2" or "CO-SH" => "CO-2H",
-                            "PHF" or "PLHF" => "PLHF",
-                            "SHF" or "SLHF" => "SLHF",
-                            "1H" or "FH" or "1HF" or "HF-1" or "First Half" => "1H",
-                            "2H" or "SH" or "2HF" or "HF-2" or "Second Half" => "2H",
-                            "HF" or "Half Day" or "HalfDay" => "HF",
-                            "CO" => "CO",
-                            _ => log.Status ?? "-"
-                        };
+                        bool isToday = date == DateOnly.FromDateTime(IstDateTime.Now);
+                        bool isClockedInToday = (isToday && log.InTime != null && (log.OutTime == null || log.InTime == log.OutTime)) ||
+                                                log.Status == "Clocked In" || log.Status == "In Progress";
 
-                        if (statusChar == "P") { textColor = "#2e7d32"; bgColor = "#e8f5e9"; }
-                        else if (statusChar == "A") { textColor = "#d32f2f"; bgColor = "#ffebee"; }
-                        else if (statusChar == "WO" || statusChar == "W/O") { textColor = "#1976d2"; bgColor = "#e3f2fd"; }
-                        else if (statusChar.EndsWith("HF") || statusChar == "1H" || statusChar == "2H") { textColor = "#ef6c00"; bgColor = "#fff3e0"; }
+                        if (isClockedInToday)
+                        {
+                            statusChar = "IP";
+                            textColor = "#0284c7";
+                            bgColor = "#e0f2fe";
+                            tooltip = $"Clocked in at {inTime} — Shift in progress";
+                            if (string.IsNullOrEmpty(outTime) || (log.InTime.HasValue && log.OutTime.HasValue && log.InTime == log.OutTime))
+                            {
+                                outTime = "—";
+                            }
+                        }
+                        else if (log.Status == "Single Punch" || log.Status == "SP" || (!isToday && log.InTime != null && log.OutTime == null && log.Status != "Holiday" && log.Status != "Weekoff" && log.Status != "W/O"))
+                        {
+                            statusChar = "SP";
+                            textColor = "#b45309";
+                            bgColor = "#fef3c7";
+                            if (log.InTime != null && log.OutTime == null)
+                            {
+                                tooltip = $"Single Punch (In: {inTime} | Out Missing) — Regularization Required";
+                                outTime = "—";
+                            }
+                            else if (log.InTime == null && log.OutTime != null)
+                            {
+                                tooltip = $"Single Punch (In Missing | Out: {outTime}) — Regularization Required";
+                                inTime = "—";
+                            }
+                            else
+                            {
+                                tooltip = "Single Punch — Regularization Required";
+                            }
+                        }
+                        else
+                        {
+                            statusChar = log.Status switch
+                            {
+                                "Present" => "P",
+                                "Absent" => "A",
+                                "Clocked In" or "In Progress" => "IP",
+                                "Single Punch" or "SP" => "SP",
+                                "COHF" => "COHF",
+                                "CO-1H" or "COHF-1" or "CO-FH" => "CO-1H",
+                                "CO-2H" or "COHF-2" or "CO-SH" => "CO-2H",
+                                "PHF" or "PLHF" => "PLHF",
+                                "SHF" or "SLHF" => "SLHF",
+                                "1H" or "FH" or "1HF" or "HF-1" or "First Half" => "1H",
+                                "2H" or "SH" or "2HF" or "HF-2" or "Second Half" => "2H",
+                                "HF" or "Half Day" or "HalfDay" => "HF",
+                                "CO" => "CO",
+                                _ => log.Status ?? "-"
+                            };
+
+                            if (statusChar == "P") { textColor = "#2e7d32"; bgColor = "#e8f5e9"; }
+                            else if (statusChar == "A") { textColor = "#d32f2f"; bgColor = "#ffebee"; }
+                            else if (statusChar == "IP") { textColor = "#0284c7"; bgColor = "#e0f2fe"; tooltip = $"Clocked in at {inTime} — Shift in progress"; }
+                            else if (statusChar == "SP") { textColor = "#b45309"; bgColor = "#fef3c7"; tooltip = $"Single Punch — Regularization Required"; }
+                            else if (statusChar == "WO" || statusChar == "W/O") { textColor = "#1976d2"; bgColor = "#e3f2fd"; }
+                            else if (statusChar.EndsWith("HF") || statusChar == "1H" || statusChar == "2H") { textColor = "#ef6c00"; bgColor = "#fff3e0"; }
+
+                            if (log.InTime.HasValue && log.OutTime.HasValue && log.InTime == log.OutTime)
+                            {
+                                outTime = "—";
+                            }
+                        }
                     }
                 }
                 else

@@ -477,7 +477,7 @@ public class AttendanceProcessorService
             existingRecord,
             roster,
             punchResult.InTime,
-            punchResult.OutTime,
+            punchResult.OutTime!.Value,
             waiveLate,
             waiveEarly,
             approvedLeave,

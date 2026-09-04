@@ -73,10 +73,21 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'Clocked In':
+      case 'In Progress':
+      case 'IP':
+        return <Badge variant="info" dot>Clocked In (In Progress)</Badge>;
       case 'Present':
         return <Badge variant="success" dot>Present</Badge>;
       case 'Absent':
         return <Badge variant="danger" dot>Absent</Badge>;
+      case 'Single Punch':
+      case 'SP':
+      case 'Missing Out':
+      case 'Missing In':
+      case 'MO':
+      case 'MI':
+        return <Badge variant="warning" dot>Single Punch (Regularization Required)</Badge>;
       case 'Half Day':
       case 'HF':
         return <Badge variant="warning" dot>Half Day</Badge>;
