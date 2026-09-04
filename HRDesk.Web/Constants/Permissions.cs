@@ -56,6 +56,8 @@ public static class AppPermissions
         // 2. Attendance Module
         public const string AttendanceView = "Attendance.View";
         public const string AttendanceCreate = "Attendance.Create";
+        public const string AttendanceEdit = "Attendance.Edit";
+        public const string AttendanceDelete = "Attendance.Delete";
 
         // 3. Regularizations Module
         public const string AttendanceRegularize = "Attendance.Regularize";
@@ -209,6 +211,16 @@ public static class AppPermissions
             SupportsScope: true, 
             ScopeOptions: new[] { "Reporting To", "Department", "Own Branch" },
             DefaultScope: "Own Branch"),
+
+        new(Keys.AttendanceEdit, "Edit Scope", Modules.Attendance, "Edit daily attendance punch times and records", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Own Branch", "Reporting To", "Department" },
+            DefaultScope: "Own Branch"),
+
+        new(Keys.AttendanceDelete, "Delete Scope", Modules.Attendance, "Delete biometric logs or daily attendance records", 
+            SupportsScope: true, 
+            ScopeOptions: new[] { "Permanent Delete" },
+            DefaultScope: "Permanent Delete"),
 
         // 3. Regularizations
         new(Keys.RegularizationsView, "View Scope", Modules.Regularizations, "View attendance regularization requests", 

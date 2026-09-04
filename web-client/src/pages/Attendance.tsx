@@ -872,6 +872,7 @@ export const Attendance: React.FC = () => {
         employeeId={selectedDayInfo?.employeeId}
         date={selectedDayInfo?.date}
         initialData={selectedDayInfo?.initialData}
+        onSuccess={() => fetchAttendanceSheet()}
       />
     </PageContainer>
   );

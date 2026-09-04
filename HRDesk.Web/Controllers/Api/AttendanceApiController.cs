@@ -1900,12 +1900,310 @@ public class AttendanceController : ControllerBase
         await _db.SaveChangesAsync();
 
         // Trigger processor so DailyAttendance is updated immediately
-        var processor = HttpContext.RequestServices.GetRequiredService<AttendanceProcessorService>();
-        await processor.ProcessDailyAttendanceAsync(punchDate, dto.EmployeeId);
+        await _processor.ProcessDailyAttendanceAsync(punchDate, dto.EmployeeId);
 
         return Ok(new { message = "Attendance saved successfully." });
     }
+
+    [HttpDelete("day")]
+    public async Task<IActionResult> DeleteDayAttendance([FromQuery] int employeeId, [FromQuery] string date)
+    {
+        var hasPermission = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceDelete);
+        if (!hasPermission)
+        {
+            return StatusCode(403, new { message = "You do not have permission to delete attendance records." });
+        }
+
+        if (employeeId <= 0) return BadRequest(new { message = "Valid Employee ID is required." });
+        if (string.IsNullOrWhiteSpace(date)) return BadRequest(new { message = "Date is required." });
+
+        if (!DateOnly.TryParse(date, out var recordDate))
+            return BadRequest(new { message = $"Invalid date format: {date}. Expected YYYY-MM-DD." });
+
+        var empQuery = _db.Employees.AsQueryable();
+        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceEdit);
+        var employee = await empQuery.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+
+        if (employee == null)
+        {
+            return StatusCode(403, new { message = "You do not have permission to delete attendance for this employee." });
+        }
+
+        var dayStart = recordDate.ToDateTime(TimeOnly.MinValue);
+        var dayEnd = recordDate.ToDateTime(TimeOnly.MaxValue);
+
+        var logs = await _db.AttendanceLogs
+            .Where(l => l.EmployeeId == employeeId && l.PunchTime >= dayStart && l.PunchTime <= dayEnd)
+            .ToListAsync();
+
+        if (logs.Any())
+        {
+            _db.AttendanceLogs.RemoveRange(logs);
+        }
+
+        var daily = await _db.DailyAttendance
+            .FirstOrDefaultAsync(d => d.EmployeeId == employeeId && d.RecordDate == recordDate);
+
+        if (daily != null)
+        {
+            _db.DailyAttendance.Remove(daily);
+        }
+
+        await _db.SaveChangesAsync();
+
+        // Recalculate daily attendance so roster/leave/holiday/absent status is cleanly re-established
+        await _processor.ProcessDailyAttendanceAsync(recordDate, employeeId);
+
+        return Ok(new { message = "Attendance record deleted and day recalculated successfully." });
+    }
+
+    [HttpDelete("punch/{id:long}")]
+    public async Task<IActionResult> DeletePunch([FromRoute] long id)
+    {
+        var hasPermission = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceDelete);
+        if (!hasPermission)
+        {
+            return StatusCode(403, new { message = "You do not have permission to delete punch records." });
+        }
+
+        var punch = await _db.AttendanceLogs.FirstOrDefaultAsync(l => l.Id == id);
+        if (punch == null)
+        {
+            return NotFound(new { message = "Punch log not found." });
+        }
+
+        var empQuery = _db.Employees.AsQueryable();
+        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceEdit);
+        var employee = await empQuery.FirstOrDefaultAsync(e => e.EmployeeId == punch.EmployeeId);
+
+        if (employee == null)
+        {
+            return StatusCode(403, new { message = "You do not have permission to delete punches for this employee." });
+        }
+
+        var punchDate = DateOnly.FromDateTime(punch.PunchTime);
+        int employeeId = punch.EmployeeId;
+
+        _db.AttendanceLogs.Remove(punch);
+        await _db.SaveChangesAsync();
+
+        // Recalculate daily attendance with remaining punches
+        await _processor.ProcessDailyAttendanceAsync(punchDate, employeeId);
+
+        return Ok(new { message = "Punch log deleted and day recalculated successfully." });
+    }
+
+    [HttpPut("punch/{id:long}")]
+    public async Task<IActionResult> EditPunch([FromRoute] long id, [FromBody] EditSinglePunchDto dto)
+    {
+        var hasPermission = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceEdit);
+        if (!hasPermission)
+        {
+            return StatusCode(403, new { message = "You do not have permission to edit punch records." });
+        }
+
+        var punch = await _db.AttendanceLogs.FirstOrDefaultAsync(l => l.Id == id);
+        if (punch == null)
+        {
+            return NotFound(new { message = "Punch log not found." });
+        }
+
+        var empQuery = _db.Employees.AsQueryable();
+        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceEdit);
+        var employee = await empQuery.FirstOrDefaultAsync(e => e.EmployeeId == punch.EmployeeId);
+
+        if (employee == null)
+        {
+            return StatusCode(403, new { message = "You do not have permission to edit punches for this employee." });
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.Time) || !TimeOnly.TryParse(dto.Time, out var newTime))
+        {
+            return BadRequest(new { message = $"Invalid time: {dto.Time}. Expected format HH:mm." });
+        }
+
+        var punchDate = DateOnly.FromDateTime(punch.PunchTime);
+        punch.PunchTime = punchDate.ToDateTime(newTime);
+        punch.VerifyType = !string.IsNullOrWhiteSpace(dto.Reason) ? $"Manual (Edited: {dto.Reason})" : "Manual (Edited)";
+        punch.SyncedAt = IstDateTime.Now;
+
+        await _db.SaveChangesAsync();
+
+        // Recalculate daily attendance for the punch date
+        await _processor.ProcessDailyAttendanceAsync(punchDate, punch.EmployeeId);
+
+        return Ok(new { message = "Punch updated and day recalculated successfully." });
+    }
+
+    [HttpDelete("pair")]
+    public async Task<IActionResult> DeletePunchPair([FromQuery] long punchId1, [FromQuery] long? punchId2 = null)
+    {
+        var hasPermission = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceDelete);
+        if (!hasPermission)
+        {
+            return StatusCode(403, new { message = "You do not have permission to delete attendance records." });
+        }
+
+        var ids = new List<long> { punchId1 };
+        if (punchId2.HasValue && punchId2.Value > 0)
+        {
+            ids.Add(punchId2.Value);
+        }
+
+        var punches = await _db.AttendanceLogs.Where(l => ids.Contains(l.Id)).ToListAsync();
+        if (!punches.Any())
+        {
+            return NotFound(new { message = "Punch logs not found." });
+        }
+
+        var employeeId = punches.First().EmployeeId;
+        var punchDate = DateOnly.FromDateTime(punches.First().PunchTime);
+
+        var empQuery = _db.Employees.AsQueryable();
+        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceEdit);
+        var employee = await empQuery.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+
+        if (employee == null)
+        {
+            return StatusCode(403, new { message = "You do not have permission to delete punches for this employee." });
+        }
+
+        _db.AttendanceLogs.RemoveRange(punches);
+        await _db.SaveChangesAsync();
+
+        // Recalculate daily attendance with remaining punches
+        await _processor.ProcessDailyAttendanceAsync(punchDate, employeeId);
+
+        return Ok(new { message = "Punch pair deleted and day recalculated successfully." });
+    }
+
+    [HttpPut("edit")]
+    public async Task<IActionResult> EditDayAttendance([FromBody] EditAttendanceDto dto)
+    {
+        var hasPermission = await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.AttendanceEdit);
+        if (!hasPermission)
+        {
+            return StatusCode(403, new { message = "You do not have permission to edit attendance records." });
+        }
+
+        if (dto.EmployeeId <= 0) return BadRequest(new { message = "Valid Employee ID is required." });
+        if (string.IsNullOrWhiteSpace(dto.Date)) return BadRequest(new { message = "Date is required." });
+
+        if (!DateOnly.TryParse(dto.Date, out var recordDate))
+            return BadRequest(new { message = $"Invalid date format: {dto.Date}. Expected YYYY-MM-DD." });
+
+        if (string.IsNullOrWhiteSpace(dto.InTime) && string.IsNullOrWhiteSpace(dto.OutTime))
+            return BadRequest(new { message = "At least In Time or Out Time must be provided." });
+
+        TimeOnly? inTime = null;
+        TimeOnly? outTime = null;
+
+        if (!string.IsNullOrWhiteSpace(dto.InTime))
+        {
+            if (!TimeOnly.TryParse(dto.InTime, out var parsedIn))
+                return BadRequest(new { message = $"Invalid In Time: {dto.InTime}" });
+            inTime = parsedIn;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.OutTime))
+        {
+            if (!TimeOnly.TryParse(dto.OutTime, out var parsedOut))
+                return BadRequest(new { message = $"Invalid Out Time: {dto.OutTime}" });
+            outTime = parsedOut;
+        }
+
+        var empQuery = _db.Employees.AsQueryable();
+        empQuery = await _permissionService.ApplyEmployeeScopeAsync(empQuery, User, AppPermissions.Keys.AttendanceEdit);
+        var employee = await empQuery.FirstOrDefaultAsync(e => e.EmployeeId == dto.EmployeeId);
+
+        if (employee == null)
+        {
+            return StatusCode(403, new { message = "You do not have permission to edit attendance for this employee." });
+        }
+
+        var dayStart = recordDate.ToDateTime(TimeOnly.MinValue);
+        var dayEnd = recordDate.ToDateTime(TimeOnly.MaxValue);
+
+        if ((dto.PunchId1.HasValue && dto.PunchId1.Value > 0) || (dto.PunchId2.HasValue && dto.PunchId2.Value > 0))
+        {
+            var pairIds = new List<long>();
+            if (dto.PunchId1.HasValue && dto.PunchId1.Value > 0) pairIds.Add(dto.PunchId1.Value);
+            if (dto.PunchId2.HasValue && dto.PunchId2.Value > 0) pairIds.Add(dto.PunchId2.Value);
+
+            var existingPairLogs = await _db.AttendanceLogs
+                .Where(l => pairIds.Contains(l.Id))
+                .ToListAsync();
+
+            if (existingPairLogs.Any())
+            {
+                _db.AttendanceLogs.RemoveRange(existingPairLogs);
+            }
+        }
+        else
+        {
+            var existingLogs = await _db.AttendanceLogs
+                .Where(l => l.EmployeeId == dto.EmployeeId && l.PunchTime >= dayStart && l.PunchTime <= dayEnd)
+                .ToListAsync();
+
+            if (existingLogs.Any())
+            {
+                _db.AttendanceLogs.RemoveRange(existingLogs);
+            }
+        }
+
+        if (inTime.HasValue)
+        {
+            _db.AttendanceLogs.Add(new AttendanceLog
+            {
+                EmployeeId = dto.EmployeeId,
+                PunchTime = recordDate.ToDateTime(inTime.Value),
+                MachineNumber = 0,
+                VerifyMode = 1,
+                VerifyType = "Manual-In (Edited)",
+                OrganizationId = employee.OrganizationId,
+                CreatedAt = IstDateTime.Now,
+                SyncedAt = IstDateTime.Now,
+            });
+        }
+
+        if (outTime.HasValue)
+        {
+            _db.AttendanceLogs.Add(new AttendanceLog
+            {
+                EmployeeId = dto.EmployeeId,
+                PunchTime = recordDate.ToDateTime(outTime.Value),
+                MachineNumber = 0,
+                VerifyMode = 2,
+                VerifyType = "Manual-Out (Edited)",
+                OrganizationId = employee.OrganizationId,
+                CreatedAt = IstDateTime.Now,
+                SyncedAt = IstDateTime.Now,
+            });
+        }
+
+        await _db.SaveChangesAsync();
+
+        // Recalculate daily attendance with the new times
+        await _processor.ProcessDailyAttendanceAsync(recordDate, dto.EmployeeId);
+
+        return Ok(new { message = "Attendance record updated successfully." });
+    }
 }
+
+public record EditSinglePunchDto(
+    string Time,        // "HH:mm"
+    string? Reason
+);
+
+public record EditAttendanceDto(
+    int EmployeeId,
+    string Date,        // "yyyy-MM-dd"
+    string? InTime,     // "HH:mm"
+    string? OutTime,    // "HH:mm"
+    string? Reason,
+    long? PunchId1 = null,
+    long? PunchId2 = null
+);
 
 public record ManualPunchDto(
     int EmployeeId,
