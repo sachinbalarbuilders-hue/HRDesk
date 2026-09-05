@@ -1,7 +1,8 @@
 # HRDesk — AI Agent Notes
 
 This file contains critical architectural notes that every AI agent MUST read before
-making any changes to attendance calculation, payroll, or leave logic.
+making any changes to attendance calculation, payroll, leave logic, API controller
+structure, face verification, or deployment.
 
 ---
 
@@ -145,6 +146,11 @@ var summary = _attendanceSummaryService.ComputeSummary(employeeId, year, month, 
 5. **DO NOT reintroduce obsolete status codes** (e.g., `CHF` was migrated to `COHF`).
 6. **DO NOT break mobile/tablet responsiveness**. Always ensure horizontal tables have sticky columns, drawers collapse to full width on mobile, and the viewport root has zero horizontal overflow.
 7. **DO NOT deviate from `HRMS-DESIGN.md`**. Always use the defined Register design system tokens, `Fraunces` / `IBM Plex` typography, and ledger styling.
+8. **DO NOT launch automated browser subagent tests unless explicitly instructed by the user.** (Wait for the user to instruct browser testing; testing backend APIs via PowerShell/curl/unit tests IS allowed and encouraged when needed).
+9. **DO NOT use cheap, washed-out, or tacky pastel colors** (e.g. bright pink/salmon pills for buttons). Keep actions refined, minimal, and administrative (ghost/outline with subtle red hover states for destructive actions).
+10. **DO NOT create `IService` interfaces for single-implementation internal services.** Keep internal services as direct concrete classes to avoid interface bloat.
+11. **DO NOT expose the platform owner panel on public/guessable routes.** The platform owner panel must remain at `/ops_console` with 404 stealth cloaking and IP/key protection.
+12. **DO NOT render daily attendance activity as a right-docked sliding drawer.** It must open as a centered modal dialog (`createPortal`).
 
 ---
 
@@ -169,7 +175,7 @@ right; the notes below are the *proven* contract, verified empirically against r
 |------|------|
 | `HRDesk.Web/Services/AI/FaceRecognitionService.cs` | ⭐ Detection, alignment, embedding, similarity. Touch this first. |
 | `HRDesk.Web/Services/AI/IFaceRecognitionService.cs` | Interface + `FaceMatchResult`. |
-| `HRDesk.Web/Controllers/Api/AttendanceApiController.cs` | `PunchIn` — loads enrolled photo, calls `CompareFacesAsync`, enforces the match. Face block starts at the `// ── 0. FACE ...` comment. |
+| `HRDesk.Web/Controllers/Api/MobilePunchController.cs` | `PunchIn` — loads enrolled photo, calls `CompareFacesAsync`, enforces the match. Face block starts at the `// ── 0. FACE ...` comment. |
 | `HRDesk.Web/App_Data/models/face_recognition.onnx` | ArcFace embedding model (~38 MB, **128-d** output, MobileFaceNet-style). |
 | `HRDesk.Web/App_Data/models/face_detection_yunet.onnx` | YuNet face detector (~227 KB, Apache-2.0). |
 | `hrdesk_mobile/lib/screens/face_punch_screen.dart` | Flutter selfie capture. Sends `photoBase64`, `livenessVerified:true`, `isFaceIdNew:null`. |
@@ -192,7 +198,7 @@ Both `.onnx` files are copied to the build output by the `App_Data\models\**` it
 
 ### Measured similarity (cosine) with the correct recipe
 Same person ≈ **0.92**, different people ≈ **0.09**. Threshold is **0.40** (wide margin both
-ways). It is set in `AttendanceApiController.PunchIn` via `CompareFacesAsync(..., threshold: 0.40f)`.
+ways). It is set in `MobilePunchController.PunchIn` via `CompareFacesAsync(..., threshold: 0.40f)`.
 If you change alignment/preprocessing, re-measure before changing the threshold.
 
 ### Gotchas that already bit us
@@ -202,10 +208,10 @@ If you change alignment/preprocessing, re-measure before changing the threshold.
 - Verification only runs when `employee.AttendanceType` contains `"face"` AND an enrolled photo
   exists (DB `PhotoData`, else `PhotoPath` on disk). No enrolled photo ⇒ punch is rejected with
   an "upload profile photo" message. The very first face punch auto-enrolls (`FaceId="ENROLLED"`).
-- The server ONNX rejection is gated by `!onDeviceVerified`, where `onDeviceVerified =
-  (dto.IsFaceIdNew == false)`. The mobile app currently sends `isFaceIdNew: null`, so the server
-  enforces its own match. If a client ever sends `isFaceIdNew:false`, it would bypass the server
-  check — keep that in mind for security.
+- The `onDeviceVerified` bypass has been **fully removed** (September 2026). The server no
+  longer reads `dto.IsFaceIdNew` for any gate decision. `IsFaceIdNew` is retained in the DTO
+  for wire-compatibility only and is explicitly documented as ignored. Do NOT reintroduce any
+  client-supplied bypass boolean.
 
 ### How to recalibrate / debug safely (offline, no phone round-trips)
 Build a tiny throwaway console referencing `Microsoft.ML.OnnxRuntime 1.19.2` and
@@ -247,4 +253,63 @@ If setting config in the SmarterASP Control Panel (Environment Variables):
 - `ConnectionStrings__AttendanceDb` (use double underscore `__` for nested keys)
 - `Jwt__Key`
 - `ASPNETCORE_ENVIRONMENT` = `Production`
+
+---
+
+## 🏛️ API CONTROLLER ARCHITECTURE: ONE CONTROLLER PER DOMAIN
+
+### The Rule
+**NEVER add endpoints to a controller that already owns a different domain concern.**
+**NEVER let a single controller grow past ~400 lines.**
+Each controller must own **one** cohesive domain.
+
+### Why
+`AttendanceApiController.cs` grew to 2,320 lines spanning three unrelated domains
+(HR reporting, mobile/AI punch, and admin corrections). This caused:
+- Unreadable files and slow code-review
+- Every domain's services injected into one giant constructor
+- Merge conflicts on unrelated changes
+- Impossible to test one domain without pulling in all the others
+
+### The Fix (September 2026)
+The monolith was split into three focused controllers that all share the same
+`[Route("api/attendance")]` prefix — ASP.NET Core routes across multiple controllers
+on the same prefix with **zero config changes**. The frontend/mobile app sees no
+breaking changes whatsoever.
+
+```
+Controllers/Api/
+  AttendanceReportsController.cs      ← GET reporting endpoints (monthly-sheet, daily-logs, summary)
+  MobilePunchController.cs            ← POST punch pipeline (face/AI/liveness/challenge/today-status)
+  AttendanceCorrectionController.cs   ← PUT/DELETE admin corrections (manual-punch, edit, delete)
+  AttendanceApiController.cs          ← Shared DTOs ONLY — no controller class
+```
+
+### Domain → Controller Mapping
+
+| Domain | Controller | Endpoints |
+|--------|------------|-----------|
+| Read-only HR reports | `AttendanceReportsController` | `GET monthly-sheet`, `GET summary/{id}`, `GET daily-logs` |
+| Mobile / Face punch | `MobilePunchController` | `POST punch`, `POST request-challenge`, `GET today-status`, `GET day-details`, `GET my-monthly`, `POST debug-face-scores` |
+| Admin corrections | `AttendanceCorrectionController` | `GET eligible-employees`, `POST manual-punch`, `DELETE day`, `DELETE/PUT punch/{id}`, `DELETE pair`, `PUT edit` |
+| Shared DTOs | `AttendanceApiController.cs` | `PunchRequestDto`, `ManualPunchDto`, `EditAttendanceDto`, etc. |
+
+### Where to put a NEW endpoint
+
+1. **New attendance read / report** → `AttendanceReportsController`
+2. **New mobile / face / AI punch variant** → `MobilePunchController`
+3. **New HR admin write on logs or daily records** → `AttendanceCorrectionController`
+4. **New DTO shared across controllers** → `AttendanceApiController.cs` (the DTO-only file)
+5. **Entirely new domain** (e.g. biometric device sync, roster API) → create a **new** controller; never dump into an existing one
+
+### Forbidden
+- ❌ Do NOT re-merge the three controllers into one file.
+- ❌ Do NOT add a punch endpoint to `AttendanceReportsController`.
+- ❌ Do NOT add a reporting endpoint to `MobilePunchController`.
+- ❌ Do NOT write business logic inside a controller action body — delegate to a Service.
+- ❌ Do NOT duplicate DTOs — always add them to `AttendanceApiController.cs` and reference from there.
+
+### This same principle applies to ALL domains, not just attendance
+If you find any other controller in `Controllers/Api/` growing beyond ~400 lines or
+mixing unrelated concerns, split it the same way before adding more endpoints.
 
