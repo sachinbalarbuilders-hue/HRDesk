@@ -139,7 +139,8 @@ export const TooltipProvider: React.FC<{ children: React.ReactNode }> = ({ child
       {/* Sleek Modern Floating Tooltip Portal */}
       {tooltip.visible && (
         <div
-          className="fixed z-[9999] pointer-events-none transition-all duration-150 ease-out animate-in fade-in zoom-in-95"
+          role="tooltip"
+          className="fixed z-[9999] pointer-events-none duration-100 ease-out animate-in fade-in zoom-in-95"
           style={{
             left: `${tooltip.x}px`,
             top: tooltip.placement === 'top' ? 'auto' : `${tooltip.y}px`,
@@ -161,11 +162,12 @@ export const TooltipProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
             {/* Micro Arrow / Caret */}
             <div
-              className={`w-2 h-2 bg-slate-900/95 dark:bg-slate-950/95 border-slate-700/60 dark:border-slate-800/80 rotate-45 absolute ${
+              className={`size-2 bg-slate-900/95 dark:bg-slate-950/95 border-slate-700/60 dark:border-slate-800/80 rotate-45 absolute ${
                 tooltip.placement === 'top'
                   ? '-bottom-1 border-r border-b'
                   : '-top-1 border-l border-t'
               }`}
+              aria-hidden="true"
             />
           </div>
         </div>

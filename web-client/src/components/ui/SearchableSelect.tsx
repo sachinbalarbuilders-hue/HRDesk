@@ -60,13 +60,15 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
       <button
         type="button"
         disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
         onClick={() => {
           if (!disabled) {
             setIsOpen(!isOpen);
             setSearchQuery('');
           }
         }}
-        className={`w-full min-w-[180px] max-w-[260px] flex items-center justify-between gap-2 px-3 py-1.5 text-xs rounded-md border transition-all duration-150 text-left cursor-pointer ${
+        className={`w-full min-w-[180px] max-w-[260px] flex items-center justify-between gap-2 px-3 py-1.5 text-xs rounded-md border transition-colors duration-150 text-left cursor-pointer ${
           disabled
             ? 'opacity-50 bg-[var(--paper)]/50 text-[var(--ink-muted)] border-[var(--rule)]/60 cursor-not-allowed'
             : isOpen
@@ -77,17 +79,22 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         <span className="truncate font-medium">
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronsUpDown size={14} className="text-[var(--ink-muted)] shrink-0" />
+        <ChevronsUpDown size={14} className="text-[var(--ink-muted)] shrink-0" aria-hidden="true" />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 z-[999] mt-1 min-w-[220px] w-full bg-[var(--card)] text-[var(--ink)] rounded-lg shadow-2xl border border-[var(--rule)] py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 backdrop-blur-sm">
+        <div
+          role="listbox"
+          aria-label={placeholder}
+          className="absolute left-0 z-50 mt-1 min-w-[220px] w-full bg-[var(--card)] text-[var(--ink)] rounded-lg shadow-2xl border border-[var(--rule)] py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 ease-out backdrop-blur-sm"
+        >
           {/* Search Box */}
           <div className="px-2.5 py-1.5 border-b border-[var(--rule)] flex items-center gap-2 bg-[var(--paper)]/40">
-            <Search size={14} className="text-[var(--ink-muted)] shrink-0" />
+            <Search size={14} className="text-[var(--ink-muted)] shrink-0" aria-hidden="true" />
             <input
               ref={searchInputRef}
               type="text"
+              aria-label="Search options"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
@@ -108,6 +115,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   <button
                     key={option.value}
                     type="button"
+                    role="option"
+                    aria-selected={isSelected}
                     onClick={() => {
                       onChange(option.value);
                       setIsOpen(false);
@@ -120,7 +129,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   >
                     <span className="truncate">{option.label}</span>
                     {isSelected && (
-                      <Check size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0 ml-2" />
+                      <Check size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0 ml-2" aria-hidden="true" />
                     )}
                   </button>
                 );

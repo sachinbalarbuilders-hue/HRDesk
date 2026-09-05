@@ -20,6 +20,9 @@ export const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const errorId = `${inputId}-error`;
+  const helperId = `${inputId}-helper`;
+  const describedBy = error ? errorId : helperText ? helperId : undefined;
 
   return (
     <div className="space-y-1.5">
@@ -32,13 +35,15 @@ export const Input: React.FC<InputProps> = ({
 
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true">
             {icon}
           </div>
         )}
 
         <input
           id={inputId}
+          aria-invalid={Boolean(error)}
+          aria-describedby={describedBy}
           className={clsx(
             'register-input',
             icon && 'pl-9',
@@ -50,17 +55,17 @@ export const Input: React.FC<InputProps> = ({
         />
 
         {suffix && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true">
             {suffix}
           </div>
         )}
       </div>
 
       {error && (
-        <p className="text-[11px] text-[var(--danger)]">{error}</p>
+        <p id={errorId} role="alert" className="text-[11px] text-[var(--danger)]">{error}</p>
       )}
       {helperText && !error && (
-        <p className="text-[11px] text-[var(--text-muted)]">{helperText}</p>
+        <p id={helperId} className="text-[11px] text-[var(--text-muted)]">{helperText}</p>
       )}
     </div>
   );
@@ -83,6 +88,9 @@ export const Select: React.FC<SelectProps> = ({
   ...props
 }) => {
   const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const errorId = `${selectId}-error`;
+  const helperId = `${selectId}-helper`;
+  const describedBy = error ? errorId : helperText ? helperId : undefined;
 
   return (
     <div className="space-y-1.5">
@@ -95,6 +103,8 @@ export const Select: React.FC<SelectProps> = ({
 
       <select
         id={selectId}
+        aria-invalid={Boolean(error)}
+        aria-describedby={describedBy}
         className={clsx(
           'register-input',
           error && 'border-[var(--danger)]',
@@ -107,8 +117,8 @@ export const Select: React.FC<SelectProps> = ({
         ))}
       </select>
 
-      {error && <p className="text-[11px] text-[var(--danger)]">{error}</p>}
-      {helperText && !error && <p className="text-[11px] text-[var(--text-muted)]">{helperText}</p>}
+      {error && <p id={errorId} role="alert" className="text-[11px] text-[var(--danger)]">{error}</p>}
+      {helperText && !error && <p id={helperId} className="text-[11px] text-[var(--text-muted)]">{helperText}</p>}
     </div>
   );
 };
@@ -128,6 +138,9 @@ export const Textarea: React.FC<TextareaProps> = ({
   ...props
 }) => {
   const textareaId = id || label?.toLowerCase().replace(/\s+/g, '-');
+  const errorId = `${textareaId}-error`;
+  const helperId = `${textareaId}-helper`;
+  const describedBy = error ? errorId : helperText ? helperId : undefined;
 
   return (
     <div className="space-y-1.5">
@@ -140,6 +153,8 @@ export const Textarea: React.FC<TextareaProps> = ({
 
       <textarea
         id={textareaId}
+        aria-invalid={Boolean(error)}
+        aria-describedby={describedBy}
         className={clsx(
           'register-input min-h-[80px] resize-y',
           error && 'border-[var(--danger)]',
@@ -148,8 +163,8 @@ export const Textarea: React.FC<TextareaProps> = ({
         {...props}
       />
 
-      {error && <p className="text-[11px] text-[var(--danger)]">{error}</p>}
-      {helperText && !error && <p className="text-[11px] text-[var(--text-muted)]">{helperText}</p>}
+      {error && <p id={errorId} role="alert" className="text-[11px] text-[var(--danger)]">{error}</p>}
+      {helperText && !error && <p id={helperId} className="text-[11px] text-[var(--text-muted)]">{helperText}</p>}
     </div>
   );
 };

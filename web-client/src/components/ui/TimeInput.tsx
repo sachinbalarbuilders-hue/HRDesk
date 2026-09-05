@@ -180,24 +180,30 @@ export const TimeInput: React.FC<TimeInputProps> = ({ label, value, onChange, re
       <button
         ref={triggerRef}
         type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={label || 'Select time'}
         onClick={openDropdown}
-        className={`w-full flex items-center h-10 px-3 bg-[var(--paper)] border rounded-md text-sm transition-all ${
+        className={`w-full flex items-center h-10 px-3 bg-[var(--paper)] border rounded-md text-sm transition-colors ${
           open
             ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]'
             : 'border-[var(--rule)] hover:border-[var(--accent)]/50'
         }`}
       >
-        <span className={`flex-1 text-left font-mono tracking-wide ${value ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)]'}`}>
+        <span className={`flex-1 text-left font-mono tabular-nums tracking-wide ${value ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)]'}`}>
           {value ? formatDisplay(value) : '--:-- --'}
         </span>
-        <Clock size={14} className="text-[var(--ink-muted)] shrink-0" />
+        <Clock size={14} className="text-[var(--ink-muted)] shrink-0" aria-hidden="true" />
       </button>
 
       {/* Dropdown — fixed so it escapes modal overflow clipping */}
       {open && (
         <div
           id="time-input-dropdown"
-          className="rounded-xl border border-[var(--rule)] bg-[var(--paper)] shadow-2xl overflow-hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Time picker"
+          className="rounded-xl border border-[var(--rule)] bg-[var(--paper)] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 ease-out"
           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, minWidth: 200, zIndex: 9999 }}
         >
 
@@ -211,7 +217,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({ label, value, onChange, re
               format={v => String(v).padStart(2, '0')}
             />
 
-            <span className="text-[var(--ink-muted)] font-bold text-xl pb-1 select-none px-0.5">:</span>
+            <span className="text-[var(--ink-muted)] font-bold text-xl pb-1 select-none px-0.5" aria-hidden="true">:</span>
 
             {/* Minutes */}
             <ScrollColumn
@@ -228,7 +234,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({ label, value, onChange, re
                   key={p}
                   type="button"
                   onClick={() => togglePeriod(p)}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold tracking-widest transition-all ${
+                  className={`px-3 py-2 rounded-lg text-xs font-bold tracking-widest transition-colors ${
                     period === p
                       ? 'bg-[var(--accent)] text-white shadow-sm'
                       : 'text-[var(--ink-muted)] hover:bg-[var(--paper-subtle)] hover:text-[var(--ink)]'
@@ -242,13 +248,13 @@ export const TimeInput: React.FC<TimeInputProps> = ({ label, value, onChange, re
 
           {/* Footer */}
           <div className="border-t border-[var(--rule)] px-3 py-2 flex justify-between items-center mt-1">
-            <span className="text-xs text-[var(--ink-muted)] font-mono">
+            <span className="text-xs text-[var(--ink-muted)] font-mono tabular-nums">
               {value ? formatDisplay(value) : 'No time set'}
             </span>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="text-xs font-semibold text-[var(--accent)] hover:opacity-80 transition-opacity"
+              className="text-xs font-semibold text-[var(--accent)] hover:opacity-80 transition-opacity cursor-pointer"
             >
               Done
             </button>

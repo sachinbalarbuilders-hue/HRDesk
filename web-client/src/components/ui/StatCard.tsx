@@ -43,24 +43,24 @@ export const StatCard: React.FC<StatCardProps> = ({
           <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">
             {label}
           </p>
-          <p className="text-2xl font-bold text-[var(--text-primary)] mt-1 font-data">
+          <p className="text-2xl font-bold text-[var(--text-primary)] mt-1 font-data tabular-nums">
             {value}
           </p>
           {subtitle && (
-            <p className="text-[11px] text-[var(--text-muted)] mt-1">{subtitle}</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-1 text-pretty">{subtitle}</p>
           )}
           {trend && (
             <div className="flex items-center gap-1 mt-2">
               {trend.value > 0 ? (
-                <TrendingUp size={12} className="text-[var(--success)]" />
+                <TrendingUp size={12} className="text-[var(--success)]" aria-hidden="true" />
               ) : trend.value < 0 ? (
-                <TrendingDown size={12} className="text-[var(--danger)]" />
+                <TrendingDown size={12} className="text-[var(--danger)]" aria-hidden="true" />
               ) : (
-                <Minus size={12} className="text-[var(--text-muted)]" />
+                <Minus size={12} className="text-[var(--text-muted)]" aria-hidden="true" />
               )}
               <span
                 className={clsx(
-                  'text-[11px] font-medium',
+                  'text-[11px] font-medium tabular-nums',
                   trend.value > 0 && 'text-[var(--success)]',
                   trend.value < 0 && 'text-[var(--danger)]',
                   trend.value === 0 && 'text-[var(--text-muted)]'
@@ -78,9 +78,10 @@ export const StatCard: React.FC<StatCardProps> = ({
         {icon && (
           <div
             className={clsx(
-              'w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0',
+              'size-10 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0',
               iconBgColors[variant]
             )}
+            aria-hidden="true"
           >
             {icon}
           </div>

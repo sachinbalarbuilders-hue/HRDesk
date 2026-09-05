@@ -85,18 +85,28 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px] font-ui">
-      <div className="w-full max-w-md rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xl overflow-hidden space-y-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="bulk-import-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[1px] font-ui"
+    >
+      <div className="w-full max-w-md rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xl overflow-hidden space-y-4 animate-scale-in">
         {/* Header */}
         <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between">
           <div>
-            <h3 className="font-display text-lg font-semibold text-[var(--ink)]">
+            <h3 id="bulk-import-title" className="font-display text-lg font-semibold text-[var(--ink)] text-balance">
               {title}
             </h3>
             <p className="text-xs text-[var(--ink-muted)]">Upload CSV ledger entries</p>
           </div>
-          <button onClick={onClose} className="p-1 text-[var(--ink-muted)] hover:text-[var(--ink)]">
-            <X size={16} />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close dialog"
+            className="p-1 text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+          >
+            <X size={16} aria-hidden="true" />
           </button>
         </div>
 
@@ -104,23 +114,24 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
           {/* Download Template Strip */}
           <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FileDown size={16} className="text-[var(--gold-500)]" />
+              <FileDown size={16} className="text-[var(--gold-500)]" aria-hidden="true" />
               <div>
                 <p className="text-xs font-semibold text-[var(--ink)]">Official CSV Template</p>
                 <p className="text-[10px] text-[var(--ink-muted)] font-data">Pre-formatted schema headers</p>
               </div>
             </div>
             <button
+              type="button"
               onClick={downloadTemplate}
-              className="btn-outline py-1 px-2.5 text-[11px] flex items-center gap-1 font-data"
+              className="btn-outline py-1 px-2.5 text-[11px] flex items-center gap-1 font-data cursor-pointer"
             >
-              <FileDown size={12} /> Download
+              <FileDown size={12} aria-hidden="true" /> Download
             </button>
           </div>
 
           {/* Upload Area */}
           <div className="border-2 border-dashed border-[var(--rule)] rounded-[4px] p-6 text-center space-y-2 bg-[var(--paper)]/50">
-            <Upload size={24} className="mx-auto text-[var(--ink-muted)]" />
+            <Upload size={24} className="mx-auto text-[var(--ink-muted)]" aria-hidden="true" />
             <div>
               <label className="text-xs font-semibold text-[var(--ink)] hover:underline cursor-pointer block">
                 <span>Click to select CSV file</span>
@@ -140,23 +151,24 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
           {/* Feedback Summary */}
           {summary && (
             <div className="p-3 bg-[var(--surface)] border border-[var(--ok-600)] rounded-[2px] text-xs font-data flex items-center gap-2 text-[var(--ok-600)]">
-              <CheckCircle2 size={15} />
-              <span>{summary.valid} entries ready to append to register.</span>
+              <CheckCircle2 size={15} aria-hidden="true" />
+              <span><strong className="tabular-nums">{summary.valid}</strong> entries ready to append to register.</span>
             </div>
           )}
         </div>
 
         {/* Footer Actions */}
         <div className="p-3 border-t border-[var(--rule)] flex items-center justify-end gap-2 bg-[var(--surface-header)]">
-          <button onClick={onClose} className="btn-outline">
+          <button type="button" onClick={onClose} className="btn-outline cursor-pointer">
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleProcessImport}
             disabled={!file || uploading}
-            className="btn-primary disabled:opacity-50 flex items-center gap-1.5"
+            className="btn-primary disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
           >
-            <Upload size={13} />
+            <Upload size={13} aria-hidden="true" />
             <span>{uploading ? 'Processing...' : 'Process Import'}</span>
           </button>
         </div>

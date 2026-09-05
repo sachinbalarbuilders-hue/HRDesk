@@ -133,6 +133,7 @@ export function DataTable<T extends Record<string, any>>({
             onChange={handleToggleSelectAll}
             className="rounded border-[var(--rule)] cursor-pointer"
             title="Select / Deselect all"
+            aria-label="Select or deselect all rows"
           />
         ),
         width: '40px',
@@ -149,6 +150,7 @@ export function DataTable<T extends Record<string, any>>({
               disabled={checkboxProps?.disabled}
               onChange={() => handleToggleRow(item, index)}
               className="rounded border-[var(--rule)] cursor-pointer"
+              aria-label={`Select row ${index + 1}`}
             />
           );
         },
@@ -166,7 +168,7 @@ export function DataTable<T extends Record<string, any>>({
         className: 'font-mono text-xs text-[var(--ink-muted)] w-12 text-center',
         render: (_: T, index: number) => {
           const offset = pagination ? (pagination.page - 1) * pagination.pageSize : 0;
-          return <span className="font-mono text-xs text-[var(--ink-muted)]">{offset + index + 1}</span>;
+          return <span className="font-mono text-xs tabular-nums text-[var(--ink-muted)]">{offset + index + 1}</span>;
         },
       };
       cols.push(srCol);
@@ -186,7 +188,7 @@ export function DataTable<T extends Record<string, any>>({
       {selection && selectedKeysSet.size > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 bg-[var(--accent-light)] dark:bg-[var(--accent)]/15 border border-[var(--accent)]/40 rounded-[4px] text-xs animate-in fade-in duration-150">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-[2px] bg-[var(--gold-500)] text-[var(--navy-900)] font-bold text-[11px]">
+            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-[2px] bg-[var(--gold-500)] text-[var(--navy-900)] font-bold text-[11px] tabular-nums">
               {selectedKeysSet.size}
             </span>
             <span className="font-semibold text-[var(--ink)]">
@@ -226,8 +228,9 @@ export function DataTable<T extends Record<string, any>>({
               onClick={clearSelection}
               className="inline-flex items-center gap-1 px-2 py-1 text-xs text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] rounded-[2px] cursor-pointer transition-colors"
               title="Clear selection"
+              aria-label="Clear selection"
             >
-              <X size={13} />
+              <X size={13} aria-hidden="true" />
               <span>Clear</span>
             </button>
           </div>

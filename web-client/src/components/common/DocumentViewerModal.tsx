@@ -14,24 +14,31 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ viewin
   if (!viewingDoc) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-black/90 backdrop-blur-sm">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="doc-viewer-title"
+      className="fixed inset-0 z-[100] flex flex-col bg-black/90 backdrop-blur-sm animate-fade-in"
+    >
       <div className="flex items-center justify-between p-4 bg-black/50 text-white">
-        <h3 className="text-lg font-medium truncate">{viewingDoc.name}</h3>
+        <h3 id="doc-viewer-title" className="text-lg font-medium truncate text-balance">{viewingDoc.name}</h3>
         <div className="flex items-center gap-4">
           <a
             href={viewingDoc.url}
             download={viewingDoc.name}
             className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded transition-colors text-sm"
           >
-            <Download size={16} />
-            Download
+            <Download size={16} aria-hidden="true" />
+            <span>Download</span>
           </a>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
+            aria-label="Close document viewer"
+            className="p-1.5 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
             title="Close Viewer"
           >
-            <X size={24} />
+            <X size={24} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -39,7 +46,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ viewin
         {viewingDoc.type.startsWith('image/') ? (
           <img src={viewingDoc.url} alt={viewingDoc.name} className="max-w-full max-h-full object-contain shadow-2xl rounded" />
         ) : (
-          <iframe src={viewingDoc.url} className="w-full h-full bg-white rounded shadow-2xl" />
+          <iframe title={viewingDoc.name} src={viewingDoc.url} className="w-full h-full bg-white rounded shadow-2xl" />
         )}
       </div>
     </div>

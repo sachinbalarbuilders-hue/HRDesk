@@ -62,6 +62,10 @@ export const SlidePanel: React.FC<SlidePanelProps> = ({
 
       {/* Panel */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? 'slide-panel-title' : undefined}
+        aria-describedby={description ? 'slide-panel-desc' : undefined}
         className={clsx(
           'relative w-full h-full bg-[var(--surface)] shadow-[var(--shadow-xl)] flex flex-col',
           side === 'right' ? 'ml-auto border-l border-[var(--border)] animate-slide-in-right' : 'mr-auto border-r border-[var(--border)]',
@@ -74,17 +78,19 @@ export const SlidePanel: React.FC<SlidePanelProps> = ({
           <div className="flex items-start justify-between p-5 pb-4 border-b border-[var(--border)] flex-shrink-0">
             <div>
               {title && (
-                <h2 className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
+                <h2 id="slide-panel-title" className="text-base font-semibold text-[var(--text-primary)] text-balance">{title}</h2>
               )}
               {description && (
-                <p className="text-xs text-[var(--text-secondary)] mt-1">{description}</p>
+                <p id="slide-panel-desc" className="text-xs text-[var(--text-secondary)] mt-1 text-pretty">{description}</p>
               )}
             </div>
             <button
+              type="button"
               onClick={onClose}
+              aria-label="Close panel"
               className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] cursor-pointer"
             >
-              <X size={16} />
+              <X size={16} aria-hidden="true" />
             </button>
           </div>
         )}

@@ -65,6 +65,10 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Content */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? 'modal-title' : undefined}
+        aria-describedby={description ? 'modal-description' : undefined}
         className={clsx(
           'relative w-full bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xl)] shadow-[var(--shadow-xl)] animate-scale-in overflow-hidden',
           sizeClasses[size],
@@ -76,17 +80,23 @@ export const Modal: React.FC<ModalProps> = ({
           <div className="flex items-start justify-between p-5 pb-4">
             <div>
               {title && (
-                <h2 className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
+                <h2 id="modal-title" className="text-base font-semibold text-[var(--text-primary)] text-balance">
+                  {title}
+                </h2>
               )}
               {description && (
-                <p className="text-xs text-[var(--text-secondary)] mt-1">{description}</p>
+                <p id="modal-description" className="text-xs text-[var(--text-secondary)] mt-1">
+                  {description}
+                </p>
               )}
             </div>
             <button
+              type="button"
               onClick={onClose}
+              aria-label="Close dialog"
               className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] cursor-pointer"
             >
-              <X size={16} />
+              <X size={16} aria-hidden="true" />
             </button>
           </div>
         )}

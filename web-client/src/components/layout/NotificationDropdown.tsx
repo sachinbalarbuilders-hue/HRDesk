@@ -202,14 +202,17 @@ export const NotificationDropdown: React.FC = () => {
       <button
         type="button"
         onClick={handleToggle}
+        aria-label="Notifications"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
         className={`relative p-2 rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors ${
           isOpen ? 'bg-[var(--surface-secondary)] text-[var(--text-primary)]' : ''
         }`}
         title={unreadCount > 0 ? `${unreadCount} Unread Notifications` : 'Notifications & Alerts'}
       >
-        <Bell size={19} className={unreadCount > 0 ? 'text-[var(--gold-500)]' : ''} />
+        <Bell size={19} className={unreadCount > 0 ? 'text-[var(--gold-500)]' : ''} aria-hidden="true" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-extrabold font-mono text-white bg-rose-600 rounded-full ring-2 ring-[var(--surface)] shadow-md animate-pulse pointer-events-none">
+          <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-extrabold font-mono tabular-nums text-white bg-rose-600 rounded-full ring-2 ring-[var(--surface)] shadow-md animate-pulse pointer-events-none">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -217,13 +220,18 @@ export const NotificationDropdown: React.FC = () => {
 
       {/* Popover Dropdown Drawer */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[340px] sm:w-[380px] bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-md)] shadow-2xl z-50 overflow-hidden flex flex-col font-ui animate-fade-in text-xs">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Notifications"
+          className="absolute right-0 mt-2 w-[340px] sm:w-[380px] bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-md)] shadow-2xl z-50 overflow-hidden flex flex-col font-ui animate-in fade-in zoom-in-95 duration-100 ease-out text-xs"
+        >
           {/* Header */}
           <div className="p-3.5 border-b border-[var(--rule)] bg-[var(--surface-sunken)]/60 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h3 className="font-display font-bold text-sm text-[var(--ink)]">Notifications</h3>
+              <h3 className="font-display font-bold text-sm text-[var(--ink)] text-balance">Notifications</h3>
               {unreadCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 font-mono text-[10px] font-bold">
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 font-mono text-[10px] font-bold tabular-nums">
                   {unreadCount} new
                 </span>
               )}
@@ -237,8 +245,9 @@ export const NotificationDropdown: React.FC = () => {
                   disabled={markingAll}
                   className="px-2 py-1 rounded hover:bg-[var(--paper)] text-[11px] font-semibold text-[var(--gold-600)] dark:text-[var(--gold-400)] flex items-center gap-1 cursor-pointer transition-colors"
                   title="Mark all as read"
+                  aria-label="Mark all as read"
                 >
-                  <CheckCheck size={13} />
+                  <CheckCheck size={13} aria-hidden="true" />
                   <span>Mark read</span>
                 </button>
               )}
@@ -246,10 +255,11 @@ export const NotificationDropdown: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fetchNotifications()}
+                aria-label="Refresh notifications"
                 className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
                 title="Refresh"
               >
-                <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+                <RefreshCw size={13} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
               </button>
             </div>
           </div>

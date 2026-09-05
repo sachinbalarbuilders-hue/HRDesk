@@ -78,15 +78,16 @@ export const RowActionMenu: React.FC<RowActionMenuProps> = ({ actions }) => {
         onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
         className="p-1.5 rounded-[4px] hover:bg-[var(--surface-hover)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
         aria-label="Row actions"
+        aria-haspopup="menu"
         aria-expanded={open}
       >
-        <MoreHorizontal size={16} />
+        <MoreHorizontal size={16} aria-hidden="true" />
       </button>
 
       {open && createPortal(
         <div
           ref={menuRef}
-          className="fixed z-[9999] min-w-[170px] bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl py-1"
+          className="fixed z-[9999] min-w-[170px] bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl py-1 animate-in fade-in zoom-in-95 duration-100 ease-out"
           style={{ top: position.top, left: position.left }}
           role="menu"
         >
@@ -112,7 +113,7 @@ export const RowActionMenu: React.FC<RowActionMenuProps> = ({ actions }) => {
                     : 'text-[var(--ink)] hover:bg-[var(--surface-hover)]'
                 }`}
               >
-                {action.icon && <span className="flex-shrink-0">{action.icon}</span>}
+                {action.icon && <span className="flex-shrink-0" aria-hidden="true">{action.icon}</span>}
                 <span className="font-medium">{action.label}</span>
               </button>
             </React.Fragment>

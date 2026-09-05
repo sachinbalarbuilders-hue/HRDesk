@@ -72,8 +72,20 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
       <div className="relative">
         {/* Trigger */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label={label || placeholder}
           className="min-h-[42px] px-3 py-2 border border-[var(--border)] rounded-[var(--radius-md)] bg-[var(--surface)] cursor-pointer flex flex-wrap items-center gap-1.5 hover:border-[var(--accent)]"
           onClick={() => { setOpen(!open); setSearch(''); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setOpen(!open);
+              setSearch('');
+            }
+          }}
         >
           {selectedOptions.length === 0 ? (
             <span className="text-sm text-[var(--text-muted)] flex-1">{placeholder}</span>
@@ -88,32 +100,38 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                   <button
                     type="button"
                     onClick={(e) => removeChip(e, opt.value)}
+                    aria-label={`Remove ${opt.label}`}
                     className="hover:text-[var(--danger)] cursor-pointer"
                   >
-                    <X size={12} />
+                    <X size={12} aria-hidden="true" />
                   </button>
                 </span>
               ))}
               {selectedOptions.length > 3 && (
-                <span className="text-xs text-[var(--text-muted)]">+{selectedOptions.length - 3} more</span>
+                <span className="text-xs text-[var(--text-muted)] tabular-nums">+{selectedOptions.length - 3} more</span>
               )}
             </div>
           )}
-          <ChevronDown size={14} className="ml-auto text-[var(--text-muted)] flex-shrink-0" />
+          <ChevronDown size={14} className="ml-auto text-[var(--text-muted)] flex-shrink-0" aria-hidden="true" />
         </div>
 
         {/* Dropdown */}
         {open && (
-          <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] overflow-hidden animate-slide-down">
+          <div
+            role="listbox"
+            aria-multiselectable="true"
+            className="absolute left-0 right-0 top-full mt-1 z-50 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] overflow-hidden animate-slide-down"
+          >
             {/* Search */}
             {searchable && (
               <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--border)]">
-                <Search size={14} className="text-[var(--text-muted)] flex-shrink-0" />
+                <Search size={14} className="text-[var(--text-muted)] flex-shrink-0" aria-hidden="true" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search..."
+                  aria-label="Search options"
                   className="flex-1 bg-transparent text-sm outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
                   autoFocus
                 />
@@ -139,15 +157,24 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                   return (
                     <div
                       key={opt.value}
+                      role="option"
+                      aria-selected={isSelected}
+                      tabIndex={0}
                       onClick={() => toggleOption(opt.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleOption(opt.value);
+                        }
+                      }}
                       className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-[var(--surface-secondary)] ${isSelected ? 'bg-[var(--accent-light)]' : ''}`}
                     >
-                      <div className={`w-4 h-4 rounded-[4px] border flex items-center justify-center flex-shrink-0 ${
+                      <div className={`size-4 rounded-[4px] border flex items-center justify-center flex-shrink-0 ${
                         isSelected
                           ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
                           : 'border-[var(--border)] bg-[var(--surface)]'
                       }`}>
-                        {isSelected && <Check size={10} strokeWidth={3} />}
+                        {isSelected && <Check size={10} strokeWidth={3} aria-hidden="true" />}
                       </div>
                       <span className="text-sm text-[var(--text-primary)]">{opt.label}</span>
                     </div>

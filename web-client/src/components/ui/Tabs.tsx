@@ -17,12 +17,18 @@ interface TabsProps {
 
 export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange, className }) => {
   return (
-    <div className={clsx('flex items-center gap-1 border-b border-[var(--border)] overflow-x-auto scrollbar-hide', className)}>
+    <div
+      role="tablist"
+      className={clsx('flex items-center gap-1 border-b border-[var(--border)] overflow-x-auto scrollbar-hide', className)}
+    >
       {tabs.map((tab) => {
         const isActive = tab.id === activeTab;
         return (
           <button
             key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
             onClick={() => onChange(tab.id)}
             className={clsx(
               'relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium cursor-pointer rounded-t-[var(--radius-md)] transition-colors whitespace-nowrap flex-shrink-0',
@@ -31,12 +37,12 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange, className
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'
             )}
           >
-            {tab.icon && <span className="flex-shrink-0">{tab.icon}</span>}
+            {tab.icon && <span className="flex-shrink-0" aria-hidden="true">{tab.icon}</span>}
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <span
                 className={clsx(
-                  'px-1.5 py-0.5 text-[10px] font-semibold rounded-[var(--radius-full)]',
+                  'px-1.5 py-0.5 text-[10px] font-semibold rounded-[var(--radius-full)] tabular-nums',
                   isActive
                     ? 'bg-[var(--accent-light)] text-[var(--accent)]'
                     : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'
@@ -47,7 +53,7 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange, className
             )}
             {/* Active indicator line */}
             {isActive && (
-              <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[var(--accent)] rounded-full" />
+              <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[var(--accent)] rounded-full" aria-hidden="true" />
             )}
           </button>
         );

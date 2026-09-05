@@ -17,29 +17,31 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
   className = '',
 }) => {
   let borderAccent = 'border-l-[var(--ok-600)]';
-  let icon = <CheckCircle2 size={16} className="text-[var(--ok-600)] flex-shrink-0 mt-0.5" />;
+  let icon = <CheckCircle2 size={16} className="text-[var(--ok-600)] flex-shrink-0 mt-0.5" aria-hidden="true" />;
   let badgeText = 'SUCCESS';
   let badgeColor = 'text-[var(--ok-600)] bg-[var(--ok-600)]/10';
 
   if (type === 'error') {
     borderAccent = 'border-l-[var(--err-600)]';
-    icon = <XCircle size={16} className="text-[var(--err-600)] flex-shrink-0 mt-0.5" />;
+    icon = <XCircle size={16} className="text-[var(--err-600)] flex-shrink-0 mt-0.5" aria-hidden="true" />;
     badgeText = 'FAILED';
     badgeColor = 'text-[var(--err-600)] bg-[var(--err-600)]/10';
   } else if (type === 'warning') {
     borderAccent = 'border-l-[var(--warn-600)]';
-    icon = <AlertTriangle size={16} className="text-[var(--warn-600)] flex-shrink-0 mt-0.5" />;
+    icon = <AlertTriangle size={16} className="text-[var(--warn-600)] flex-shrink-0 mt-0.5" aria-hidden="true" />;
     badgeText = 'WARNING';
     badgeColor = 'text-[var(--warn-600)] bg-[var(--warn-600)]/10';
   } else if (type === 'info') {
     borderAccent = 'border-l-[var(--gold-500)]';
-    icon = <Info size={16} className="text-[var(--gold-500)] flex-shrink-0 mt-0.5" />;
+    icon = <Info size={16} className="text-[var(--gold-500)] flex-shrink-0 mt-0.5" aria-hidden="true" />;
     badgeText = 'NOTICE';
     badgeColor = 'text-[var(--gold-500)] bg-[var(--gold-500)]/10';
   }
 
   return (
     <div
+      role={type === 'error' ? 'alert' : 'status'}
+      aria-live={type === 'error' ? 'assertive' : 'polite'}
       className={`bg-[var(--surface)] border border-[var(--rule)] border-l-4 ${borderAccent} rounded-[4px] p-3 flex items-start gap-2.5 ${className}`}
     >
       {icon}
@@ -50,22 +52,24 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
             <span className={`px-1 rounded-[2px] text-[9px] font-bold font-data ${badgeColor}`}>
               {badgeText}
             </span>
-            <p className="text-xs font-semibold text-[var(--ink)] font-ui">
+            <p className="text-xs font-semibold text-[var(--ink)] font-ui text-balance">
               {title}
             </p>
           </div>
         )}
-        <p className="text-xs text-[var(--ink-muted)] font-ui leading-snug">
+        <p className="text-xs text-[var(--ink-muted)] font-ui leading-snug text-pretty">
           {message}
         </p>
       </div>
 
       {onDismiss && (
         <button
+          type="button"
           onClick={onDismiss}
+          aria-label="Dismiss alert"
           className="text-[var(--ink-muted)] hover:text-[var(--ink)] p-0.5 rounded cursor-pointer"
         >
-          <X size={14} />
+          <X size={14} aria-hidden="true" />
         </button>
       )}
     </div>
