@@ -29,7 +29,7 @@ export const BillingTab: React.FC = () => {
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/superadmin/payments', { params: { page, pageSize } });
+      const res = await apiClient.get('/ops_console/payments', { params: { page, pageSize } });
       setPayments(res.data.items || []);
       setTotalPages(res.data.totalPages || 1);
       setTotalCount(res.data.totalCount || 0);

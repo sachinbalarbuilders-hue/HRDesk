@@ -126,7 +126,7 @@ export const AppLayout: React.FC = () => {
     {
       group: 'Platform',
       items: [
-        { name: 'Platform Admin', href: '/superadmin', icon: ShieldCheck, show: user?.isPlatformUser === true },
+        { name: 'Platform Admin', href: '/ops_console', icon: ShieldCheck, show: user?.isPlatformUser === true },
       ],
     },
   ];

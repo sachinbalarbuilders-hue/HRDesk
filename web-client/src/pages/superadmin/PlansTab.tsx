@@ -48,7 +48,7 @@ export const PlansTab: React.FC = () => {
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/superadmin/plans');
+      const res = await apiClient.get('/ops_console/plans');
       setPlans(res.data || []);
     } catch {
       showError('Error', 'Failed to load plans.');
@@ -92,10 +92,10 @@ export const PlansTab: React.FC = () => {
     setSaving(true);
     try {
       if (editingPlan) {
-        await apiClient.put(`/superadmin/plans/${editingPlan.id}`, form);
+        await apiClient.put(`/ops_console/plans/${editingPlan.id}`, form);
         showSuccess('Updated', 'Plan updated successfully.');
       } else {
-        await apiClient.post('/superadmin/plans', form);
+        await apiClient.post('/ops_console/plans', form);
         showSuccess('Created', 'Plan created successfully.');
       }
       setModalOpen(false);
@@ -110,7 +110,7 @@ export const PlansTab: React.FC = () => {
   const handleDeactivate = async (plan: PlanItem) => {
     if (!window.confirm(`Deactivate "${plan.name}"? It won't appear for new subscriptions.`)) return;
     try {
-      await apiClient.delete(`/superadmin/plans/${plan.id}`);
+      await apiClient.delete(`/ops_console/plans/${plan.id}`);
       showSuccess('Deactivated', `${plan.name} has been deactivated.`);
       fetchPlans();
     } catch (err: any) {

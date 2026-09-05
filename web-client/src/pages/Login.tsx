@@ -37,7 +37,7 @@ export const Login: React.FC = () => {
       // Platform users go to platform dashboard; org users go to HRMS dashboard
       const savedUser = JSON.parse(localStorage.getItem('hrdesk_user') || '{}');
       if (savedUser.isPlatformUser) {
-        navigate('/superadmin');
+        navigate('/ops_console');
       } else {
         navigate('/dashboard');
       }

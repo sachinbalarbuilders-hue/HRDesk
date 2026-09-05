@@ -137,6 +137,7 @@ builder.Services.AddScoped<HRDesk.Web.Services.Attendance.Processor.TimingPenalt
 builder.Services.AddScoped<HRDesk.Web.Services.AttendanceProcessorService>();
 builder.Services.AddScoped<HRDesk.Web.Services.LoanService>();
 builder.Services.AddScoped<HRDesk.Web.Services.AttendanceSummaryService>(); // Shared counting logic
+builder.Services.AddScoped<HRDesk.Web.Services.Attendance.AttendanceDialService>();
 builder.Services.AddScoped<HRDesk.Web.Services.PayrollService>();
 builder.Services.AddScoped<HRDesk.Web.Services.CompOffService>();
 builder.Services.AddScoped<HRDesk.Web.Services.LeaveAdjustmentService>();
@@ -155,6 +156,7 @@ builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPermissionService
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IArchiveService, HRDesk.Web.Services.Infrastructure.ArchiveService>(); // Shared archive-then-delete lifecycle
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPlanEntitlementService, HRDesk.Web.Services.Infrastructure.PlanEntitlementService>();
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.TenantProvisioningService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.PlatformAdminSecurityService>();
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPaymentGatewayService, HRDesk.Web.Services.Infrastructure.RazorpayPaymentService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.Infrastructure.SubscriptionLifecycleBackgroundWorker>();
 
@@ -609,7 +611,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapControllers();
-app.MapFallbackToFile("index.html").AllowAnonymous();
+app.MapFallbackToFile("{*path:regex(^(?!api).*$)}", "index.html").AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();

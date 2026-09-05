@@ -91,12 +91,8 @@ const ProtectedRoute: React.FC<{
   }
 
   if (superAdminOnly && !user.isPlatformUser) {
-    return (
-      <AccessRestricted
-        title="Platform SuperAdmin Required"
-        description="This section is restricted strictly to platform super-administrators."
-      />
-    );
+    // Stealth Cloaking: Do not confirm the route exists to unauthorized users
+    return <Navigate to="/" replace />;
   }
 
   if (permission && !isAdmin && !hasPermission(permission)) {
@@ -131,13 +127,14 @@ export const App: React.FC = () => {
                 <Route path="/verify/:id" element={<VerifyEmployee />} />
                 <Route path="/onboarding/:token" element={<EmployeeOnboarding />} />
                 <Route
-                  path="/superadmin"
+                  path="/ops_console"
                   element={
                     <ProtectedRoute superAdminOnly>
                       <SuperAdminDashboard />
                     </ProtectedRoute>
                   }
                 />
+                <Route path="/ops-console" element={<Navigate to="/ops_console" replace />} />
 
                 <Route
                   element={

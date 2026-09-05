@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using System.Threading.Tasks;
+using HRDesk.Web.Attributes;
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -10,8 +10,10 @@ using Microsoft.EntityFrameworkCore;
 namespace HRDesk.Web.Controllers.Api;
 
 [ApiController]
-[Route("api/superadmin")]
+[Route("api/ops_console")]
+[Route("api/ops-console")]
 [Authorize]
+[PlatformAdminSecurity]
 public class SuperAdminApiController : ControllerBase
 {
     private readonly BiometricAttendanceDbContext _db;

@@ -22,19 +22,25 @@ public class AuthController : ControllerBase
     private readonly IPermissionService _permissionService;
     private readonly TenantProvisioningService _provisioningService;
     private readonly HRDesk.Web.Services.Email.EmailService _emailService;
+    private readonly HRDesk.Web.Services.Infrastructure.PlatformAdminSecurityService _platformSecurityService;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         BiometricAttendanceDbContext context,
         IConfiguration config,
         IPermissionService permissionService,
         TenantProvisioningService provisioningService,
-        HRDesk.Web.Services.Email.EmailService emailService)
+        HRDesk.Web.Services.Email.EmailService emailService,
+        HRDesk.Web.Services.Infrastructure.PlatformAdminSecurityService platformSecurityService,
+        ILogger<AuthController> logger)
     {
         _context = context;
         _config = config;
         _permissionService = permissionService;
         _provisioningService = provisioningService;
         _emailService = emailService;
+        _platformSecurityService = platformSecurityService;
+        _logger = logger;
     }
 
     public record LoginRequest(string Username, string Password);
@@ -118,6 +124,17 @@ public class AuthController : ControllerBase
         if (user == null || !VerifyPassword(request.Password, user.PasswordHash))
         {
             return Unauthorized(new { message = "Invalid work email or password." });
+        }
+
+        // Platform User Security Gate: Enforces IP allowlists and security key before issuing token
+        if (user.IsPlatformUser)
+        {
+            if (!_platformSecurityService.IsRequestAuthorized(HttpContext, out var failureReason))
+            {
+                _logger.LogWarning("[PlatformAdminSecurity] Rejected login for platform user '{Username}' from IP {Ip}: {Reason}",
+                    user.Username, _platformSecurityService.GetClientIpAddress(HttpContext), failureReason);
+                return Unauthorized(new { message = "Invalid work email or password." });
+            }
         }
 
         // Auto-upgrade plain-text password to BCrypt hash

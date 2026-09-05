@@ -22,6 +22,13 @@ apiClient.interceptors.request.use((config) => {
   
   const activeBranch = localStorage.getItem('hrdesk_active_branch');
   config.headers['X-Branch-Id'] = (activeBranch && activeBranch !== 'all') ? activeBranch : 'all';
+
+  // Attach platform secret key if present (for Platform Owner / ops_console)
+  const platformKey = sessionStorage.getItem('hrdesk_platform_key') || localStorage.getItem('hrdesk_platform_key');
+  if (platformKey) {
+    config.headers['X-Platform-Key'] = platformKey;
+  }
+
   return config;
 }, (error) => {
   return Promise.reject(error);

@@ -100,14 +100,23 @@ export const SuperAdminDashboard: React.FC = () => {
 
   /* ─── Data Fetching ───────────────────────────────────── */
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('key') || params.get('platform_key');
+    if (key) {
+      sessionStorage.setItem('hrdesk_platform_key', key);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   const fetchMetrics = async () => {
     try {
       setLoadingMetrics(true);
-      const res = await apiClient.get('/superadmin/metrics');
+      const res = await apiClient.get('/ops_console/metrics');
       setMetrics(res.data);
     } catch (err: any) {
       console.error('Failed to load metrics', err);
-      showError('Access Denied', 'SuperAdmin privileges are required to view this portal.');
+      showError('Access Denied', 'Platform privileges are required to view this portal.');
     } finally {
       setLoadingMetrics(false);
     }
@@ -116,7 +125,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const fetchTenants = async () => {
     try {
       setLoadingTenants(true);
-      const res = await apiClient.get('/superadmin/tenants', {
+      const res = await apiClient.get('/ops_console/tenants', {
         params: {
           page,
           pageSize: 15,
@@ -135,7 +144,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
   const fetchPlans = async () => {
     try {
-      const res = await apiClient.get('/superadmin/plans');
+      const res = await apiClient.get('/ops_console/plans');
       setPlans(res.data || []);
     } catch (err) {
       console.error('Failed to load plans', err);
@@ -165,7 +174,7 @@ export const SuperAdminDashboard: React.FC = () => {
     if (!extendModalTenant) return;
     try {
       setExtending(true);
-      const res = await apiClient.post(`/superadmin/tenants/${extendModalTenant.id}/extend-trial`, {
+      const res = await apiClient.post(`/ops_console/tenants/${extendModalTenant.id}/extend-trial`, {
         days: extendDays,
       });
       showSuccess('Trial Extended', res.data.message || `Added ${extendDays} days.`);
@@ -182,7 +191,7 @@ export const SuperAdminDashboard: React.FC = () => {
     if (!overrideModalTenant || !overridePlanId) return;
     try {
       setOverriding(true);
-      const res = await apiClient.post(`/superadmin/tenants/${overrideModalTenant.id}/override-plan`, {
+      const res = await apiClient.post(`/ops_console/tenants/${overrideModalTenant.id}/override-plan`, {
         planId: overridePlanId,
       });
       showSuccess('Plan Overridden', res.data.message || 'Updated tenant plan tier.');
@@ -198,7 +207,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
   const handleToggleTenantStatus = async (tenant: TenantItem) => {
     try {
-      const res = await apiClient.post(`/superadmin/tenants/${tenant.id}/toggle-status`);
+      const res = await apiClient.post(`/ops_console/tenants/${tenant.id}/toggle-status`);
       showSuccess('Status Updated', res.data.message);
       await fetchTenants();
     } catch (err: any) {
