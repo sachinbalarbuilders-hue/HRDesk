@@ -271,7 +271,7 @@ export const NotificationDropdown: React.FC = () => {
               onClick={() => setActiveTab('all')}
               className={`px-2.5 py-1 rounded-[3px] font-semibold transition-colors cursor-pointer text-[11px] ${
                 activeTab === 'all'
-                  ? 'bg-[var(--navy-900)] text-[var(--gold-500)] shadow-2xs'
+                  ? 'bg-[var(--accent)] text-white shadow-2xs'
                   : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
             >
@@ -282,7 +282,7 @@ export const NotificationDropdown: React.FC = () => {
               onClick={() => setActiveTab('unread')}
               className={`px-2.5 py-1 rounded-[3px] font-semibold transition-colors cursor-pointer text-[11px] ${
                 activeTab === 'unread'
-                  ? 'bg-[var(--navy-900)] text-[var(--gold-500)] shadow-2xs'
+                  ? 'bg-[var(--accent)] text-white shadow-2xs'
                   : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
             >

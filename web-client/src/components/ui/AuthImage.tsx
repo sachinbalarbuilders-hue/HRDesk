@@ -57,7 +57,7 @@ export const AuthImage: React.FC<AuthImageProps> = ({ src, fallbackInitial, fall
   if (error || !imageSrc) {
     if (fallbackInitial) {
       return (
-        <div className={`bg-[var(--navy-900)] text-[var(--gold-500)] font-bold flex items-center justify-center ${fallbackClassName || className}`}>
+        <div className={`bg-[#312E81] text-white font-bold flex items-center justify-center ${fallbackClassName || className}`}>
           {fallbackInitial}
         </div>
       );

@@ -162,41 +162,41 @@ export const AppLayout: React.FC = () => {
         style={{ transition: 'width 200ms ease, transform 200ms ease' }}
       >
         {/* Brand */}
-        <div className={`flex items-center h-[60px] border-b border-[var(--sidebar-border)] ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
+        <div className={`flex items-center h-[64px] border-b border-[var(--sidebar-border)] ${collapsed ? 'justify-center px-3' : 'justify-between px-5'}`}>
           {collapsed ? (
-            <button onClick={() => setCollapsed(false)} className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent)] text-white flex items-center justify-center cursor-pointer" title="Expand">
-              <Building2 size={18} />
+            <button onClick={() => setCollapsed(false)} className="w-8 h-8 rounded-md bg-[var(--surface-secondary)] text-[var(--text-primary)] flex items-center justify-center cursor-pointer border border-[var(--border)] shadow-xs hover:bg-[var(--surface)] transition-colors" title="Expand">
+              <Layers size={16} className="text-[var(--accent)]" />
             </button>
           ) : (
             <>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent)] text-white flex items-center justify-center flex-shrink-0">
-                  <Building2 size={18} />
+                <div className="w-8 h-8 rounded-md bg-[var(--surface-secondary)] border border-[var(--border)] shadow-xs flex items-center justify-center flex-shrink-0">
+                  <Layers size={16} className="text-[var(--accent)]" />
                 </div>
                 <div>
-                  <span className="font-bold text-[15px] text-white block leading-tight">HRDesk</span>
-                  <span className="text-[10px] text-[var(--sidebar-text)] font-medium">People Platform</span>
+                  <span className="font-display font-bold text-sm text-[var(--text-primary)] tracking-tight block leading-tight">HRDesk</span>
+                  <span className="text-[10px] text-[var(--text-muted)] font-medium">People Platform</span>
                 </div>
               </div>
-              <button onClick={() => setCollapsed(true)} className="hidden lg:flex w-7 h-7 items-center justify-center rounded-[var(--radius-md)] text-[var(--sidebar-text)] hover:text-white hover:bg-[var(--sidebar-hover)] cursor-pointer">
+              <button onClick={() => setCollapsed(true)} className="hidden lg:flex w-6 h-6 items-center justify-center rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] cursor-pointer transition-colors">
                 <ChevronLeft size={14} />
               </button>
             </>
           )}
-          <button onClick={() => setMobileOpen(false)} className="lg:hidden text-[var(--sidebar-text)] hover:text-white p-1 cursor-pointer">
+          <button onClick={() => setMobileOpen(false)} className="lg:hidden text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 cursor-pointer">
             <X size={18} />
           </button>
         </div>
 
         {/* Nav */}
-        <nav className={`flex-1 py-4 space-y-5 overflow-y-auto ${collapsed ? 'px-3' : 'px-3'}`}>
+        <nav className={`flex-1 py-5 space-y-6 overflow-y-auto ${collapsed ? 'px-3' : 'px-4'}`}>
           {navigation.map((group) => {
             const visible = group.items.filter((i) => i.show);
             if (visible.length === 0) return null;
             return (
-              <div key={group.group} className="space-y-0.5">
+              <div key={group.group} className="space-y-1">
                 {!collapsed && (
-                  <p className="px-3 mb-1.5 text-[10px] font-semibold text-[var(--sidebar-text)] uppercase tracking-wider">
+                  <p className="px-2 mb-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-widest">
                     {group.group}
                   </p>
                 )}
@@ -208,16 +208,19 @@ export const AppLayout: React.FC = () => {
                       key={item.href}
                       to={item.href}
                       onClick={() => setMobileOpen(false)}
-                      className={`flex items-center rounded-[var(--radius-md)] text-[13px] font-medium ${
+                      className={`relative flex items-center rounded-md text-[13px] font-medium transition-colors ${
                         collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2'
                       } ${
                         isActive
-                          ? 'bg-[var(--sidebar-active)] text-white'
-                          : 'text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] hover:text-white'
+                          ? 'bg-[var(--sidebar-active)] text-[var(--sidebar-text-active)]'
+                          : 'text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text-active)]'
                       }`}
                       title={collapsed ? item.name : undefined}
                     >
-                      <Icon size={18} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--sidebar-text)]'} />
+                      {isActive && !collapsed && (
+                        <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-md bg-[var(--accent)]" />
+                      )}
+                      <Icon size={16} className={isActive ? 'text-[var(--accent)]' : 'text-[var(--sidebar-text)]'} strokeWidth={isActive ? 2.5 : 2} />
                       {!collapsed && <span>{item.name}</span>}
                     </Link>
                   );
@@ -233,19 +236,19 @@ export const AppLayout: React.FC = () => {
             <Avatar name={user?.fullName || user?.username || 'User'} size="sm" />
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-white truncate">{user?.fullName || user?.username}</p>
-                <p className="text-[10px] text-[var(--sidebar-text)] truncate">{user?.roleName || user?.role}</p>
+                <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{user?.fullName || user?.username}</p>
+                <p className="text-[11px] text-[var(--text-muted)] truncate">{user?.roleName || user?.role}</p>
               </div>
             )}
             {!collapsed && (
-              <button onClick={handleLogout} className="text-[var(--sidebar-text)] hover:text-white p-1.5 rounded-[var(--radius-md)] hover:bg-[var(--sidebar-hover)] cursor-pointer" title="Sign Out">
+              <button onClick={handleLogout} className="text-[var(--text-muted)] hover:text-[var(--danger)] p-1.5 rounded-md hover:bg-[var(--danger-light)] cursor-pointer transition-colors" title="Sign Out">
                 <LogOut size={15} />
               </button>
             )}
           </div>
           {collapsed && (
-            <div className="mt-2 pt-2 border-t border-[var(--sidebar-border)] flex justify-center">
-              <button onClick={() => setCollapsed(false)} className="text-[var(--sidebar-text)] hover:text-white p-1 cursor-pointer" title="Expand">
+            <div className="mt-3 pt-3 border-t border-[var(--sidebar-border)] flex justify-center">
+              <button onClick={() => setCollapsed(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 cursor-pointer transition-colors" title="Expand">
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -258,24 +261,24 @@ export const AppLayout: React.FC = () => {
           ═══════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
-        <header className="h-[60px] flex items-center justify-between px-6 border-b border-[var(--border)] bg-[var(--surface)] z-30 flex-shrink-0 relative">
-          <div className="flex items-center gap-4">
+        <header className="h-[64px] flex items-center justify-between px-8 border-b border-[var(--border)] bg-[var(--surface-header)] z-30 flex-shrink-0 relative">
+          <div className="flex items-center gap-4 flex-1">
             {/* Mobile menu trigger */}
-            <button onClick={() => setMobileOpen(true)} className="lg:hidden p-1.5 rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] cursor-pointer">
+            <button onClick={() => setMobileOpen(true)} className="lg:hidden p-1.5 rounded-md text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] cursor-pointer">
               <Menu size={20} />
             </button>
 
-            {/* Search */}
-            <div className={`relative hidden sm:flex items-center ${searchFocused ? 'w-80' : 'w-64'}`} style={{ transition: 'width 200ms ease' }}>
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none z-10" />
+            {/* Subtle Search */}
+            <div className="relative hidden sm:flex items-center w-full max-w-md group">
+              <Search size={15} className="absolute left-0 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none group-focus-within:text-[var(--accent)] transition-colors" />
               <input
                 type="text"
-                placeholder="Search employees, loans..."
-                className="w-full bg-[var(--surface-secondary)] border border-[var(--border)] rounded-[var(--radius-md)] py-1.5 pl-9 pr-12 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:bg-[var(--surface)]"
+                placeholder="Search employees, pages or actions..."
+                className="w-full bg-transparent border-none py-2 pl-7 pr-12 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
               />
-              <kbd className="absolute right-3 text-[10px] font-medium text-[var(--text-muted)] bg-[var(--surface-secondary)] border border-[var(--border)] px-1.5 py-0.5 rounded">
+              <kbd className="absolute right-0 text-[10px] font-semibold text-[var(--text-muted)] border border-[var(--border)] bg-[var(--surface-secondary)] px-1.5 py-0.5 rounded shadow-xs">
                 ⌘K
               </kbd>
             </div>
@@ -348,8 +351,17 @@ export const AppLayout: React.FC = () => {
             <NotificationDropdown />
 
             {/* Theme Toggle */}
-            <button onClick={toggleTheme} className="p-2 rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] cursor-pointer" title="Toggle theme">
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-[var(--radius-md)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-transform active:scale-95 flex items-center justify-center"
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? (
+                <Sun size={18} className="text-amber-400 transition-transform duration-300 hover:rotate-45" />
+              ) : (
+                <Moon size={18} className="text-[var(--text-secondary)] transition-transform duration-300 hover:-rotate-12" />
+              )}
             </button>
 
             {/* User Avatar (mobile) */}

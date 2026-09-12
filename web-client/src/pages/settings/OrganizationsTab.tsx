@@ -56,7 +56,7 @@ export const OrganizationsTab: React.FC = () => {
             longitude: o.longitude || 72.8311,
             radiusMeters: o.radiusMeters || 100,
             logoUrl: o.logoUrl || '',
-            primaryColor: o.primaryColor || '#D97706',
+            primaryColor: o.primaryColor && o.primaryColor !== '#D97706' ? o.primaryColor : '#4F46E5',
             customDomain: o.customDomain || '',
             isActive: o.isActive !== false,
             status: o.isActive !== false ? 'Active' : 'Inactive',
@@ -170,7 +170,7 @@ export const OrganizationsTab: React.FC = () => {
           >
             <div
               className="w-8 h-8 rounded-[4px] flex items-center justify-center shrink-0 font-bold text-xs shadow-xs overflow-hidden border border-[var(--rule)]"
-              style={{ backgroundColor: org.primaryColor || '#D97706', color: '#FFFFFF' }}
+              style={{ backgroundColor: org.primaryColor && org.primaryColor !== '#D97706' ? org.primaryColor : '#4F46E5', color: '#FFFFFF' }}
             >
               {org.logoUrl ? (
                 <img

@@ -67,7 +67,7 @@ export const OrgBranchesTab: React.FC = () => {
               className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--paper)]/60 transition-colors cursor-pointer"
               onClick={() => navigate(`/settings/organizations/${id}/branches/${branch.publicId}`)}
             >
-              <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-[3px] bg-indigo-50 dark:bg-indigo-950/50 text-[var(--accent)] border border-indigo-200/60 dark:border-indigo-800/40 flex items-center justify-center shrink-0">
                 <MapPin size={14} />
               </div>
               <div className="flex-1 min-w-0">

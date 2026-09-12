@@ -1001,8 +1001,8 @@ export const Loans: React.FC = () => {
                         onClick={() => setPrefixForm({ ...prefixForm, connector: sym })}
                         className={`px-1.5 py-0.5 rounded-[2px] border text-[10px] font-mono font-bold cursor-pointer transition-colors ${
                           prefixForm.connector === sym
-                            ? 'bg-[var(--gold-500)] text-[var(--navy-900)] border-[var(--gold-500)]'
-                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--gold-500)]'
+                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-bold shadow-xs'
+                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--accent)]'
                         }`}
                       >
                         {sym}
@@ -1013,8 +1013,8 @@ export const Loans: React.FC = () => {
                       onClick={() => setPrefixForm({ ...prefixForm, connector: '' })}
                       className={`px-1.5 py-0.5 rounded-[2px] border text-[9px] font-ui cursor-pointer transition-colors ${
                         prefixForm.connector === ''
-                          ? 'bg-[var(--gold-500)] text-[var(--navy-900)] border-[var(--gold-500)]'
-                          : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink-muted)]'
+                          ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-semibold shadow-xs'
+                          : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink-muted)] hover:border-[var(--accent)]'
                       }`}
                     >
                       none
@@ -1053,8 +1053,8 @@ export const Loans: React.FC = () => {
                         onClick={() => setPrefixForm({ ...prefixForm, paddingDigits: item.len })}
                         className={`px-2 py-0.5 rounded-[2px] border text-[10px] font-mono cursor-pointer transition-colors ${
                           prefixForm.paddingDigits === item.len
-                            ? 'bg-[var(--gold-500)] text-[var(--navy-900)] border-[var(--gold-500)] font-bold'
-                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--gold-500)]'
+                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-bold shadow-xs'
+                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--accent)]'
                         }`}
                       >
                         {item.label}
@@ -1081,7 +1081,7 @@ export const Loans: React.FC = () => {
               <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-[var(--ink-muted)]">Next Generated #:</span>
-                  <span className="font-mono text-base font-bold text-[var(--gold-500)] tracking-wide">
+                  <span className="font-mono text-base font-bold text-[var(--accent)] tracking-wide">
                     {prefixForm.seriesCode || 'LN'}{prefixForm.connector}{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}
                   </span>
                 </div>

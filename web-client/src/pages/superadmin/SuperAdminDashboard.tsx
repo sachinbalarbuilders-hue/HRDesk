@@ -244,13 +244,13 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* ── Top Navbar ──────────────────────────────────── */}
       <header className="bg-[var(--navy-900)] text-white border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-[var(--gold-500)] text-[var(--navy-900)] flex items-center justify-center font-bold">
+          <div className="w-8 h-8 rounded bg-indigo-600 text-white flex items-center justify-center font-bold shadow-xs">
             <ShieldCheck size={18} />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-display font-bold text-base tracking-tight text-white">
-                HRDesk<span className="text-[var(--gold-500)] text-xs ml-1 font-mono">PLATFORM CONSOLE</span>
+                HRDesk<span className="text-indigo-400 text-xs ml-1 font-mono">PLATFORM CONSOLE</span>
               </span>
               <span className="px-1.5 py-0.2 text-[9px] font-bold uppercase rounded bg-rose-500 text-white">
                 SuperAdmin
@@ -471,7 +471,7 @@ export const SuperAdminDashboard: React.FC = () => {
                               <div className="flex items-center gap-2.5">
                                 <div
                                   className="w-8 h-8 rounded flex items-center justify-center font-bold text-xs text-white shrink-0"
-                                  style={{ backgroundColor: t.primaryColor || '#D97706' }}
+                                  style={{ backgroundColor: t.primaryColor && t.primaryColor !== '#D97706' ? t.primaryColor : '#4F46E5' }}
                                 >
                                   {t.logoUrl ? (
                                     <img src={t.logoUrl} alt={t.name} className="w-full h-full object-cover rounded" />

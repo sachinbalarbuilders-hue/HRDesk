@@ -165,10 +165,10 @@ export function DataTable<T extends Record<string, any>>({
         header: 'Sr.',
         width: '50px',
         align: 'center',
-        className: 'font-mono text-xs text-[var(--ink-muted)] w-12 text-center',
+        className: 'font-mono text-xs text-[var(--text-muted)] w-12 text-center',
         render: (_: T, index: number) => {
           const offset = pagination ? (pagination.page - 1) * pagination.pageSize : 0;
-          return <span className="font-mono text-xs tabular-nums text-[var(--ink-muted)]">{offset + index + 1}</span>;
+          return <span className="font-mono text-xs tabular-nums text-[var(--text-muted)]">{offset + index + 1}</span>;
         },
       };
       cols.push(srCol);
@@ -188,10 +188,10 @@ export function DataTable<T extends Record<string, any>>({
       {selection && selectedKeysSet.size > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 bg-[var(--accent-light)] dark:bg-[var(--accent)]/15 border border-[var(--accent)]/40 rounded-[4px] text-xs animate-in fade-in duration-150">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-[2px] bg-[var(--gold-500)] text-[var(--navy-900)] font-bold text-[11px] tabular-nums">
+            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-[2px] bg-[var(--accent)] text-white font-bold text-[11px] tabular-nums shadow-xs">
               {selectedKeysSet.size}
             </span>
-            <span className="font-semibold text-[var(--ink)]">
+            <span className="font-semibold text-[var(--text-primary)]">
               item{selectedKeysSet.size !== 1 ? 's' : ''} selected
             </span>
           </div>
@@ -226,7 +226,7 @@ export function DataTable<T extends Record<string, any>>({
             <button
               type="button"
               onClick={clearSelection}
-              className="inline-flex items-center gap-1 px-2 py-1 text-xs text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)] rounded-[2px] cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] rounded-[2px] cursor-pointer transition-colors"
               title="Clear selection"
               aria-label="Clear selection"
             >
@@ -238,16 +238,17 @@ export function DataTable<T extends Record<string, any>>({
       )}
 
       {/* ── Table Container ─────────────────────────────────────────────────── */}
-      <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--surface)]">
+      <div className="w-full overflow-hidden bg-transparent">
         <div className="overflow-x-auto">
-          <table className="register-table w-full">
+          <table className="w-full border-collapse">
             <thead>
-              <tr>
+              <tr className="border-y border-[var(--table-header-border)] bg-[var(--table-header-bg)]">
                 {effectiveColumns.map((col) => (
                   <th
                     key={col.key}
                     style={{ width: col.width }}
                     className={`
+                      py-3 px-4 text-[11px] uppercase font-semibold tracking-wider text-[var(--table-header-text)]
                       ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}
                       ${col.className || ''}
                     `}
@@ -273,14 +274,16 @@ export function DataTable<T extends Record<string, any>>({
                     <tr
                       key={key}
                       className={`
-                        transition-colors
-                        ${isSelected ? 'bg-[var(--accent-light)]/70 dark:bg-[var(--accent)]/10' : 'hover:bg-[var(--paper-subtle)]'}
+                        group border-b border-[var(--border)] last:border-0
+                        transition-colors duration-150 ease-out
+                        ${isSelected ? 'bg-[var(--accent-light)]/70 dark:bg-[var(--accent)]/10' : 'hover:bg-[var(--surface-sunken)]'}
                       `}
                     >
                       {effectiveColumns.map((col) => (
                         <td
                           key={col.key}
                           className={`
+                            py-5 px-4 text-[13px] font-medium text-[var(--text-primary)]
                             ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}
                             ${col.className || ''}
                           `}
@@ -297,7 +300,7 @@ export function DataTable<T extends Record<string, any>>({
                 <tr>
                   <td
                     colSpan={effectiveColumns.length}
-                    className="py-12 text-center text-xs text-[var(--ink-muted)]"
+                    className="py-12 text-center text-[13px] text-[var(--text-muted)]"
                   >
                     {emptyMessage}
                   </td>
@@ -309,7 +312,7 @@ export function DataTable<T extends Record<string, any>>({
 
         {/* ── Reusable Pagination ────────────────────────────────────────────── */}
         {pagination && pagination.totalCount > 0 && (
-          <div className="border-t border-[var(--rule)] p-2 bg-[var(--surface)]">
+          <div className="border-t border-[var(--border)] py-2 bg-transparent">
             <PaginationToolbar
               page={pagination.page}
               pageSize={pagination.pageSize}

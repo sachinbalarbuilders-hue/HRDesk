@@ -134,7 +134,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           address: o.address,
           whatsAppGroupId: o.whatsAppGroupId,
           logoUrl: o.logoUrl,
-          primaryColor: o.primaryColor || '#D97706',
+          primaryColor: o.primaryColor && o.primaryColor !== '#D97706' ? o.primaryColor : '#4F46E5',
           customDomain: o.customDomain,
           isActive: o.isActive ?? true,
         }));
@@ -214,10 +214,12 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   useEffect(() => {
-    if (currentOrganization?.primaryColor) {
-      document.documentElement.style.setProperty('--gold-500', currentOrganization.primaryColor);
-      document.documentElement.style.setProperty('--gold-600', currentOrganization.primaryColor);
-    }
+    const color = (currentOrganization?.primaryColor && currentOrganization.primaryColor !== '#D97706')
+      ? currentOrganization.primaryColor
+      : '#4F46E5';
+    document.documentElement.style.setProperty('--accent', color);
+    document.documentElement.style.setProperty('--gold-500', color);
+    document.documentElement.style.setProperty('--gold-600', color);
   }, [currentOrganization?.primaryColor]);
 
   useEffect(() => {

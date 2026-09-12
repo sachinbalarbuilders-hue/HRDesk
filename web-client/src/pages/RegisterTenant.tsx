@@ -216,18 +216,18 @@ export const RegisterTenant: React.FC = () => {
     <div className="min-h-screen bg-[var(--canvas)] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center items-center gap-2">
-          <div className="h-10 w-10 bg-[var(--navy-900)] rounded flex items-center justify-center text-[var(--gold-500)] shadow-md">
+          <div className="h-10 w-10 bg-[var(--accent)] rounded flex items-center justify-center text-white shadow-md">
             <Building2 size={24} />
           </div>
           <span className="font-display font-bold text-2xl tracking-tight text-[var(--ink)]">
-            HRDesk<span className="text-[var(--gold-500)] text-sm ml-1 font-mono">CLOUD</span>
+            HRDesk<span className="text-[var(--accent)] text-sm ml-1 font-mono">CLOUD</span>
           </span>
         </div>
         <h2 className="mt-4 text-center text-xl font-display font-bold text-[var(--ink)]">
           Create your Organization Workspace
         </h2>
         <p className="mt-1 text-center text-xs text-[var(--ink-muted)] font-ui">
-          Start your <strong className="text-[var(--gold-600)] dark:text-[var(--gold-400)]">14-day full free trial</strong>. No credit card required.
+          Start your <strong className="text-[var(--accent)]">14-day full free trial</strong>. No credit card required.
         </p>
 
         {/* Step Indicator */}
@@ -237,7 +237,7 @@ export const RegisterTenant: React.FC = () => {
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${
                   step === s
-                    ? 'bg-[var(--gold-500)] text-[var(--navy-900)] ring-2 ring-[var(--gold-500)]/30'
+                    ? 'bg-[var(--accent)] text-white ring-2 ring-[var(--accent)]/30 shadow-xs'
                     : step > s
                     ? 'bg-emerald-500 text-white'
                     : 'bg-[var(--surface-sunken)] text-[var(--ink-muted)] border border-[var(--rule)]'

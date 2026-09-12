@@ -782,7 +782,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                                         type="button"
                                         onClick={() => setSelectedPhoto(punch.photoUrl)}
                                         aria-label="View punch photo verification"
-                                        className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--navy-900)] hover:underline font-medium cursor-pointer ml-1"
+                                        className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--accent)] hover:underline font-medium cursor-pointer ml-1"
                                       >
                                         <Camera size={12} aria-hidden="true" />
                                         <span>Photo</span>

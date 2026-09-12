@@ -177,7 +177,7 @@ export const ViewEmployee: React.FC = () => {
               placeholder="Search employees..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[var(--canvas)] border border-[var(--rule)] rounded-[4px] py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:border-[var(--gold-500)]"
+              className="w-full bg-[var(--canvas)] border border-[var(--rule)] rounded-[4px] py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent-ring)]"
             />
           </div>
         </div>
@@ -193,7 +193,7 @@ export const ViewEmployee: React.FC = () => {
                 to={`/employees/${emp.publicId}${profileTab !== 'details' ? `?tab=${profileTab}` : ''}`}
                 className={`flex items-center gap-3 p-2 rounded-[4px] transition-colors cursor-pointer ${
                   isSelected 
-                    ? 'bg-[var(--gold-500)]/10 border border-[var(--gold-500)]/30' 
+                    ? 'bg-[#EEF2FF] border border-[#C7D2FE]' 
                     : 'hover:bg-[var(--surface-sunken)] border border-transparent'
                 }`}
               >
@@ -206,12 +206,12 @@ export const ViewEmployee: React.FC = () => {
                     fallbackClassName="w-8 h-8 rounded-full font-display text-xs shrink-0"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-[var(--navy-900)] text-[var(--gold-500)] font-display text-xs flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#312E81] text-white font-display text-xs flex items-center justify-center shrink-0">
                     {emp.employeeName.charAt(0)}
                   </div>
                 )}
                 <div className="overflow-hidden">
-                  <p className={`text-sm font-semibold truncate ${isSelected ? 'text-[var(--gold-600)]' : 'text-[var(--ink)]'}`}>
+                  <p className={`text-sm font-semibold truncate ${isSelected ? 'text-[#4F46E5]' : 'text-[var(--ink)]'}`}>
                     {emp.employeeName}
                   </p>
                   <p className="text-[10px] text-[var(--ink-muted)] truncate">{emp.designation ? `${emp.designation} • ` : ''}{emp.employeeCode || `EMP#${String(emp.employeeId).padStart(3, '0')}`}</p>
@@ -222,7 +222,7 @@ export const ViewEmployee: React.FC = () => {
           
           {loadingSidebar && (
             <div className="py-4 flex justify-center">
-              <Loader2 size={16} className="animate-spin text-[var(--gold-500)]" />
+              <Loader2 size={16} className="animate-spin text-[var(--accent)]" />
             </div>
           )}
           
@@ -268,7 +268,7 @@ export const ViewEmployee: React.FC = () => {
                   fallbackClassName={`w-16 h-16 rounded-full font-display text-2xl shrink-0 ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`}
                 />
               ) : (
-                <div className={`w-16 h-16 rounded-full bg-[var(--navy-900)] text-[var(--gold-500)] font-display text-2xl flex items-center justify-center shrink-0 ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`}>
+                <div className={`w-16 h-16 rounded-full bg-[#312E81] text-white font-display text-2xl flex items-center justify-center shrink-0 ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`}>
                   {employee.employeeName.charAt(0)}
                 </div>
               )}
@@ -295,7 +295,7 @@ export const ViewEmployee: React.FC = () => {
               )}
             </div>
             <div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] bg-[var(--paper)] border border-[var(--rule)] font-mono text-[11px] font-bold text-[var(--gold-600)] shadow-2xs mb-1">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#EEF2FF] font-mono text-[11px] font-semibold text-[#4338CA] tracking-wide mb-1">
                 {employee.employeeCode || `EMP#${String(employee.employeeId).padStart(3, '0')}`}
               </span>
               <h2 className="font-display text-2xl font-semibold text-[var(--ink)] mt-0.5">
@@ -311,7 +311,7 @@ export const ViewEmployee: React.FC = () => {
             {canEdit && (
               <Link
                 to={`/employees/${employee.publicId}/edit`}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded bg-[var(--navy-900)] text-[var(--gold-500)] hover:bg-[var(--navy-800)] transition-colors"
+                className="btn-primary flex items-center gap-2 text-sm"
               >
                 <Pencil size={14} />
                 Edit Profile
@@ -326,7 +326,7 @@ export const ViewEmployee: React.FC = () => {
             onClick={() => setProfileTab('details')}
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'details'
-                ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
+                ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
                 : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
           >
@@ -336,7 +336,7 @@ export const ViewEmployee: React.FC = () => {
             onClick={() => setProfileTab('attendance')}
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'attendance'
-                ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
+                ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
                 : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
           >
@@ -346,7 +346,7 @@ export const ViewEmployee: React.FC = () => {
             onClick={() => setProfileTab('leaves')}
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'leaves'
-                ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
+                ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
                 : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
           >
@@ -356,7 +356,7 @@ export const ViewEmployee: React.FC = () => {
             onClick={() => setProfileTab('records')}
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'records'
-                ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
+                ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
                 : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
           >
@@ -366,7 +366,7 @@ export const ViewEmployee: React.FC = () => {
             onClick={() => setProfileTab('idcard')}
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'idcard'
-                ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
+                ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
                 : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
           >
@@ -377,7 +377,7 @@ export const ViewEmployee: React.FC = () => {
               onClick={() => setProfileTab('payroll')}
               className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
                 profileTab === 'payroll'
-                  ? 'border-b-2 border-[var(--gold-500)] text-[var(--gold-500)]'
+                  ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
                   : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
               }`}
             >

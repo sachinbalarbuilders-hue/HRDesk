@@ -548,7 +548,7 @@ export const GuardScanner: React.FC = () => {
                           ? 'bg-emerald-600 text-white shadow-2xs'
                           : st === 'denied'
                           ? 'bg-rose-600 text-white shadow-2xs'
-                          : 'bg-[var(--navy-900)] text-[var(--gold-500)] shadow-2xs'
+                          : 'bg-[var(--accent)] text-white shadow-2xs'
                         : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
                     }`}
                   >

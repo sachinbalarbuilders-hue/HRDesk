@@ -233,7 +233,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               System-generated with branch prefix
             </p>
           </div>
-          <span className="font-mono text-xs font-bold text-[var(--gold-600)] px-2.5 py-1 rounded-[3px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
+          <span className="font-mono text-xs font-semibold text-[var(--accent)] px-2.5 py-1 rounded-md bg-[var(--accent-light)] border border-[var(--accent-ring)]">
             {(() => {
               const branch = branches?.find((b: any) => String(b.id) === String(formData.branchId || currentBranch?.id));
               const rawPrefix = branch?.code || 'EMP#';
@@ -401,9 +401,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
           {/* Dynamic Contract / Internship Term Section */}
           {(formData.employmentType === 'Contract' || formData.employmentType === 'Intern') && (
-            <div className="col-span-2 p-3.5 bg-[var(--surface-sunken)]/70 rounded-[var(--radius-md)] border border-[var(--gold-500)]/30 space-y-3">
+            <div className="col-span-2 p-3.5 bg-[var(--surface-sunken)]/70 rounded-[var(--radius-md)] border border-[var(--accent-ring)] space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-xs text-[var(--gold-600)] dark:text-[var(--gold-400)] flex items-center gap-1.5 uppercase tracking-wider">
+                <span className="font-semibold text-xs text-[var(--accent)] flex items-center gap-1.5 uppercase tracking-wider">
                   <Clock size={14} />
                   {formData.employmentType === 'Contract' ? 'Contract Agreement Duration' : 'Internship Term Duration'}
                 </span>
@@ -464,7 +464,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-semibold text-[var(--ink)]">Department</label>
               {(lookups?.createScope === 'Department' || lookups?.createScope === 'Own Department' || lookups?.createScope === 'Reporting To' || lookups?.createScope === 'Reporting') && (
-                <span className="text-[10px] text-[var(--gold-600)] dark:text-[var(--gold-400)] font-medium">🔒 Your Department</span>
+                <span className="text-[10px] text-[var(--accent)] font-medium">🔒 Your Department</span>
               )}
             </div>
             <select 
@@ -497,7 +497,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-semibold text-[var(--ink)]">Reporting Manager</label>
               {(lookups?.createScope === 'Reporting To' || lookups?.createScope === 'Reporting') && (
-                <span className="text-[10px] text-[var(--gold-600)] dark:text-[var(--gold-400)] font-medium">🔒 You (Direct Reportee)</span>
+                <span className="text-[10px] text-[var(--accent)] font-medium">🔒 You (Direct Reportee)</span>
               )}
             </div>
             <select 
@@ -524,7 +524,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               {lookups?.roles?.map((r: any) => (<option key={r.id} value={r.id}>{r.name}</option>))}
             </select>
             {formData.roleId && (
-              <p className="text-[10px] text-[var(--gold-600)] dark:text-[var(--gold-400)] mt-1 font-medium">
+              <p className="text-[10px] text-[var(--accent)] mt-1 font-medium">
                 ✨ Auto-creates corporate login using Work Email with initial password <code>Welcome@123</code>.
               </p>
             )}
@@ -740,7 +740,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               </div>
             </div>
           ))}
-          <button type="button" onClick={addEmergencyContact} className="text-xs text-[var(--teal-600)] hover:text-[var(--teal-700)] font-semibold flex items-center gap-1 mt-1">
+          <button type="button" onClick={addEmergencyContact} className="text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] font-semibold flex items-center gap-1 mt-1 cursor-pointer">
             + Add Another Contact
           </button>
         </div>

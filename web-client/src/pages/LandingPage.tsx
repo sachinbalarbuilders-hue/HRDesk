@@ -311,7 +311,7 @@ export const LandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)] font-ui selection:bg-[var(--gold-500)] selection:text-[var(--navy-900)]">
+    <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)] font-ui selection:bg-[var(--accent)] selection:text-white">
       {/* ═══════════════════════════════════════════
           1. STICKY TOP NAVBAR (Rippling/Deel Clean Bar)
       ═══════════════════════════════════════════ */}
@@ -322,7 +322,7 @@ export const LandingPage: React.FC = () => {
             className="flex items-center gap-3 cursor-pointer"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
-            <div className="w-9 h-9 rounded bg-[var(--gold-500)] text-[var(--navy-900)] flex items-center justify-center font-bold shadow-xs">
+            <div className="w-9 h-9 rounded bg-[var(--accent)] text-white flex items-center justify-center font-bold shadow-xs">
               <Building2 size={20} />
             </div>
             <div>
@@ -576,7 +576,7 @@ export const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Step 1 */}
             <div className="p-5 rounded-[var(--radius-lg)] bg-[var(--surface-sunken)]/60 border border-[var(--rule)] space-y-3 relative">
-              <span className="w-7 h-7 rounded-full bg-[var(--gold-500)] text-[var(--navy-900)] font-bold text-xs flex items-center justify-center">
+              <span className="w-7 h-7 rounded-full bg-[var(--accent)] text-white font-bold text-xs flex items-center justify-center shadow-xs">
                 1
               </span>
               <h3 className="font-display text-sm font-bold text-[var(--ink)]">Mobile Selfie / Biometric Punch</h3>
@@ -587,7 +587,7 @@ export const LandingPage: React.FC = () => {
 
             {/* Step 2 */}
             <div className="p-5 rounded-[var(--radius-lg)] bg-[var(--surface-sunken)]/60 border border-[var(--rule)] space-y-3 relative">
-              <span className="w-7 h-7 rounded-full bg-[var(--gold-500)] text-[var(--navy-900)] font-bold text-xs flex items-center justify-center">
+              <span className="w-7 h-7 rounded-full bg-[var(--accent)] text-white font-bold text-xs flex items-center justify-center shadow-xs">
                 2
               </span>
               <h3 className="font-display text-sm font-bold text-[var(--ink)]">31-Day Muster Calculation</h3>
@@ -598,7 +598,7 @@ export const LandingPage: React.FC = () => {
 
             {/* Step 3 */}
             <div className="p-5 rounded-[var(--radius-lg)] bg-[var(--surface-sunken)]/60 border border-[var(--rule)] space-y-3 relative">
-              <span className="w-7 h-7 rounded-full bg-[var(--gold-500)] text-[var(--navy-900)] font-bold text-xs flex items-center justify-center">
+              <span className="w-7 h-7 rounded-full bg-[var(--accent)] text-white font-bold text-xs flex items-center justify-center shadow-xs">
                 3
               </span>
               <h3 className="font-display text-sm font-bold text-[var(--ink)]">1-Click Salary Ledger</h3>
@@ -887,7 +887,7 @@ export const LandingPage: React.FC = () => {
                       <button
                         onClick={() => setActiveShiftType('day')}
                         className={`px-2.5 py-1 rounded cursor-pointer transition-all ${
-                          activeShiftType === 'day' ? 'bg-[var(--gold-500)] text-[var(--navy-900)]' : 'text-[var(--ink-muted)]'
+                          activeShiftType === 'day' ? 'bg-[var(--accent)] text-white shadow-xs' : 'text-[var(--ink-muted)]'
                         }`}
                       >
                         Day
@@ -895,7 +895,7 @@ export const LandingPage: React.FC = () => {
                       <button
                         onClick={() => setActiveShiftType('night')}
                         className={`px-2.5 py-1 rounded cursor-pointer transition-all ${
-                          activeShiftType === 'night' ? 'bg-[var(--gold-500)] text-[var(--navy-900)]' : 'text-[var(--ink-muted)]'
+                          activeShiftType === 'night' ? 'bg-[var(--accent)] text-white shadow-xs' : 'text-[var(--ink-muted)]'
                         }`}
                       >
                         Night
@@ -903,7 +903,7 @@ export const LandingPage: React.FC = () => {
                       <button
                         onClick={() => setActiveShiftType('rotational')}
                         className={`px-2.5 py-1 rounded cursor-pointer transition-all ${
-                          activeShiftType === 'rotational' ? 'bg-[var(--gold-500)] text-[var(--navy-900)]' : 'text-[var(--ink-muted)]'
+                          activeShiftType === 'rotational' ? 'bg-[var(--accent)] text-white shadow-xs' : 'text-[var(--ink-muted)]'
                         }`}
                       >
                         Rotational
@@ -1547,7 +1547,7 @@ export const LandingPage: React.FC = () => {
                 onClick={() => setBillingCycle('yearly')}
                 className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-1.5 ${
                   billingCycle === 'yearly'
-                    ? 'bg-[var(--gold-500)] text-[var(--navy-900)] shadow-xs'
+                    ? 'bg-[var(--accent)] text-white shadow-xs'
                     : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
                 }`}
               >
@@ -1566,12 +1566,12 @@ export const LandingPage: React.FC = () => {
                   key={idx}
                   className={`bg-[var(--surface)] rounded-[var(--radius-xl)] border p-7 flex flex-col justify-between transition-all relative ${
                     p.popular
-                      ? 'border-[var(--gold-500)] shadow-xl ring-2 ring-[var(--gold-500)]/20'
+                      ? 'border-[var(--accent)] shadow-xl ring-2 ring-[var(--accent)]/20'
                       : 'border-[var(--rule)] hover:border-[var(--rule-bold)] shadow-xs'
                   }`}
                 >
                   {p.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full bg-[var(--gold-500)] text-[var(--navy-900)] text-[10px] font-bold uppercase tracking-wider shadow-xs">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
                       {p.badge ?? 'Most Popular'}
                     </div>
                   )}
@@ -1717,7 +1717,7 @@ export const LandingPage: React.FC = () => {
       <footer className="bg-[var(--surface)] border-t border-[var(--rule)] py-12 text-xs text-[var(--ink-muted)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded bg-[var(--gold-500)] text-[var(--navy-900)] flex items-center justify-center font-bold text-xs">
+            <div className="w-7 h-7 rounded bg-[var(--accent)] text-white flex items-center justify-center font-bold text-xs shadow-xs">
               <Building2 size={15} />
             </div>
             <span className="font-display font-bold text-sm text-[var(--ink)]">HRDesk Platform</span>

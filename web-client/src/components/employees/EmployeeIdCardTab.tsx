@@ -212,7 +212,7 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
 
           <div className="w-full bg-white/5 rounded-lg p-4 border border-white/10 backdrop-blur-sm text-center">
              <span className="text-gray-400 uppercase text-[10px] tracking-widest block mb-1">ID NUMBER</span>
-             <span className="font-mono text-[var(--gold-500)] text-lg tracking-wider">{employee.employeeCode || `EMP#${String(employee.employeeId).padStart(3, '0')}`}</span>
+             <span className="font-mono text-[var(--accent)] text-lg tracking-wider">{employee.employeeCode || `EMP#${String(employee.employeeId).padStart(3, '0')}`}</span>
           </div>
         </div>
       </div>
@@ -220,7 +220,7 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
       {/* Back */}
       <div className="w-[300px] h-[450px] rounded-xl overflow-hidden shadow-2xl bg-[#111] text-white border border-gray-800 flex flex-col relative font-sans shrink-0">
         <div className="absolute inset-0 bg-gradient-to-tr from-[#1a1a1a] to-[#0a0a0a] z-0"></div>
-        <div className="h-2 bg-[var(--gold-500)] w-full shrink-0 z-10"></div>
+        <div className="h-2 bg-[var(--accent)] w-full shrink-0 z-10"></div>
         <div className="flex-1 flex flex-col p-8 z-10">
           
           <div className="space-y-5 mb-auto">

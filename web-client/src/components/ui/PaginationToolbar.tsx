@@ -26,17 +26,17 @@ export const PaginationToolbar: React.FC<PaginationToolbarProps> = ({
   const endRecord = Math.min(page * pageSize, totalCount);
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-2.5 border-t border-[var(--rule)] bg-[var(--surface-header)] text-xs select-none font-ui">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-2 py-4 text-[13px] select-none font-ui mt-2">
       {/* Range summary & Page size picker */}
-      <div className="flex items-center gap-3 text-[var(--ink-muted)]">
-        <span className="font-ui text-xs">
-          Showing <strong className="text-[var(--ink)] font-data font-semibold tabular-nums">{startRecord}</strong> to{' '}
-          <strong className="text-[var(--ink)] font-data font-semibold tabular-nums">{endRecord}</strong> of{' '}
-          <strong className="text-[var(--ink)] font-data font-semibold tabular-nums">{totalCount}</strong> records
+      <div className="flex items-center gap-3 text-[var(--text-muted)]">
+        <span>
+          Showing <strong className="text-[var(--text-primary)] font-semibold tabular-nums">{startRecord}</strong> to{' '}
+          <strong className="text-[var(--text-primary)] font-semibold tabular-nums">{endRecord}</strong> of{' '}
+          <strong className="text-[var(--text-primary)] font-semibold tabular-nums">{totalCount}</strong> results
         </span>
 
         <div className="hidden sm:flex items-center gap-1.5 ml-3">
-          <label htmlFor="pagination-rows-per-page" className="text-[10px] uppercase tracking-wider font-semibold text-[var(--ink-muted)]">
+          <label htmlFor="pagination-rows-per-page" className="text-[12px] font-medium text-[var(--text-muted)]">
             Rows per page:
           </label>
           <select
@@ -47,7 +47,7 @@ export const PaginationToolbar: React.FC<PaginationToolbarProps> = ({
               onPageSizeChange(Number(e.target.value));
               onPageChange(1);
             }}
-            className="px-2 py-0.5 rounded-[2px] bg-[var(--surface)] border border-[var(--rule)] text-xs font-semibold font-data tabular-nums text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] cursor-pointer"
+            className="px-2 py-1 rounded-md bg-[var(--surface)] border border-[var(--border)] text-[12px] font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer shadow-xs"
           >
             {pageSizeOptions.map((opt) => (
               <option key={opt} value={opt}>
@@ -59,10 +59,11 @@ export const PaginationToolbar: React.FC<PaginationToolbarProps> = ({
       </div>
 
       {/* Navigation Buttons & Page indicator */}
+      {/* Navigation Buttons & Page indicator */}
       <div className="flex items-center gap-1.5 self-end sm:self-auto">
-        <span className="text-[var(--ink-muted)] mr-2 text-xs">
-          Page <strong className="text-[var(--ink)] font-data font-semibold tabular-nums">{page}</strong> of{' '}
-          <strong className="text-[var(--ink)] font-data font-semibold tabular-nums">{totalPages}</strong>
+        <span className="text-[var(--text-muted)] mr-3">
+          Page <strong className="text-[var(--text-primary)] font-semibold tabular-nums">{page}</strong> of{' '}
+          <strong className="text-[var(--text-primary)] font-semibold tabular-nums">{totalPages}</strong>
         </span>
 
         {/* First Page */}
@@ -71,10 +72,10 @@ export const PaginationToolbar: React.FC<PaginationToolbarProps> = ({
           onClick={() => onPageChange(1)}
           disabled={page <= 1}
           aria-label="First page"
-          className="p-1 rounded-[2px] border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] disabled:opacity-30 disabled:cursor-not-allowed text-[var(--ink)] cursor-pointer transition-colors"
+          className="p-1.5 rounded-md hover:bg-[var(--surface-secondary)] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors"
           title="First Page"
         >
-          <ChevronsLeft size={14} aria-hidden="true" />
+          <ChevronsLeft size={16} aria-hidden="true" />
         </button>
 
         {/* Previous Page */}
@@ -83,10 +84,10 @@ export const PaginationToolbar: React.FC<PaginationToolbarProps> = ({
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
           aria-label="Previous page"
-          className="p-1 rounded-[2px] border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] disabled:opacity-30 disabled:cursor-not-allowed text-[var(--ink)] cursor-pointer transition-colors"
+          className="p-1.5 rounded-md hover:bg-[var(--surface-secondary)] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors"
           title="Previous Page"
         >
-          <ChevronLeft size={14} aria-hidden="true" />
+          <ChevronLeft size={16} aria-hidden="true" />
         </button>
 
         {/* Next Page */}
@@ -95,10 +96,10 @@ export const PaginationToolbar: React.FC<PaginationToolbarProps> = ({
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
           aria-label="Next page"
-          className="p-1 rounded-[2px] border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] disabled:opacity-30 disabled:cursor-not-allowed text-[var(--ink)] cursor-pointer transition-colors"
+          className="p-1.5 rounded-md hover:bg-[var(--surface-secondary)] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors"
           title="Next Page"
         >
-          <ChevronRight size={14} aria-hidden="true" />
+          <ChevronRight size={16} aria-hidden="true" />
         </button>
 
         {/* Last Page */}
@@ -107,10 +108,10 @@ export const PaginationToolbar: React.FC<PaginationToolbarProps> = ({
           onClick={() => onPageChange(totalPages)}
           disabled={page >= totalPages}
           aria-label="Last page"
-          className="p-1 rounded-[2px] border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] disabled:opacity-30 disabled:cursor-not-allowed text-[var(--ink)] cursor-pointer transition-colors"
+          className="p-1.5 rounded-md hover:bg-[var(--surface-secondary)] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors"
           title="Last Page"
         >
-          <ChevronsRight size={14} aria-hidden="true" />
+          <ChevronsRight size={16} aria-hidden="true" />
         </button>
       </div>
     </div>

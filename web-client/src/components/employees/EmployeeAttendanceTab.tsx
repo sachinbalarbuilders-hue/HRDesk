@@ -37,7 +37,7 @@ export const EmployeeAttendanceTab: React.FC<EmployeeAttendanceTabProps> = ({ em
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2 font-semibold text-[var(--ink)] text-xs">
-          <Calendar size={14} className="text-[var(--gold-500)]" />
+          <Calendar size={14} className="text-[var(--accent)]" />
           <span>Monthly Summary</span>
         </div>
         <div className="flex items-center gap-2">

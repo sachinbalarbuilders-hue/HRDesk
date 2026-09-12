@@ -344,7 +344,7 @@ export const Roles: React.FC = () => {
                                 }
                                 disabled={roleDetail?.isSystemRole || isSaving}
                                 className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                                  isGranted ? 'bg-[var(--navy-900)] dark:bg-[var(--gold-500)]' : 'bg-[var(--rule)]'
+                                  isGranted ? 'bg-[var(--accent)]' : 'bg-[var(--rule)]'
                                 }`}
                               >
                                 <span

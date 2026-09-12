@@ -107,7 +107,7 @@ export const EmployeeLeavesTab: React.FC<EmployeeLeavesTabProps> = ({ employeeId
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 font-semibold text-[var(--ink)] text-xs">
-          <CalendarCheck2 size={14} className="text-[var(--gold-500)]" />
+          <CalendarCheck2 size={14} className="text-[var(--accent)]" />
           <span>Allocated Leaves</span>
         </div>
         {year != null && (

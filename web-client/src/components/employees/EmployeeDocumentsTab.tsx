@@ -171,7 +171,7 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
       {/* Document List */}
       <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-2">
         <div className="flex items-center gap-2 font-semibold text-[var(--ink)] border-b border-[var(--rule)] pb-2">
-          <FileText size={14} className="text-[var(--gold-500)]" />
+          <FileText size={14} className="text-[var(--accent)]" />
           <span className="text-xs">Employee Documents ({documents.length})</span>
         </div>
         

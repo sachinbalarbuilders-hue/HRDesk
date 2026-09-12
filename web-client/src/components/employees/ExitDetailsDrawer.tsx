@@ -242,13 +242,13 @@ export const ExitDetailsDrawer: React.FC<ExitDetailsDrawerProps> = ({
         {/* Header */}
         <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--paper)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[4px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-[4px] bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 flex items-center justify-center font-bold">
               <UserMinus size={20} />
             </div>
             <div>
               <h2 className="text-sm font-bold text-[var(--ink)] flex items-center gap-2">
                 <span>{exit?.employeeName || 'Exit Dossier'}</span>
-                <span className="text-xs font-mono text-[var(--gold-600)] px-1.5 py-0.2 rounded bg-[var(--surface)] border border-[var(--rule)]">
+                <span className="text-xs font-mono text-[var(--ink-muted)] px-1.5 py-0.2 rounded bg-[var(--surface)] border border-[var(--rule)]">
                   {exit?.employeeCode}
                 </span>
               </h2>

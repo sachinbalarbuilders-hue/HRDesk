@@ -252,7 +252,7 @@ export const SubscriptionTab: React.FC = () => {
       <div className="rounded-[4px] border border-[var(--rule)] bg-[var(--surface)] p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--rule)] pb-5">
           <div className="flex items-start gap-4">
-            <div className="p-3 rounded-full bg-[var(--navy-900)] text-[var(--gold-500)] shrink-0">
+            <div className="p-3 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-[var(--accent)] border border-indigo-200/60 dark:border-indigo-800/40 shrink-0">
               <CreditCard size={24} />
             </div>
             <div>
@@ -326,7 +326,7 @@ export const SubscriptionTab: React.FC = () => {
             </div>
             <div className="w-full bg-[var(--canvas)] h-2 rounded-full overflow-hidden border border-[var(--rule)]">
               <div
-                className="h-full bg-[var(--navy-900)] transition-all duration-500"
+                className="h-full bg-[var(--accent)] transition-all duration-500"
                 style={{ width: `${branchPercent}%` }}
               />
             </div>
@@ -422,7 +422,7 @@ export const SubscriptionTab: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <h4 className="font-display text-base font-bold text-[var(--ink)]">{plan.name}</h4>
                     {isCurrent && (
-                      <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-[var(--gold-500)] text-[var(--navy-900)]">
+                      <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-[var(--accent)] text-white shadow-xs">
                         Current
                       </span>
                     )}
@@ -504,7 +504,7 @@ export const SubscriptionTab: React.FC = () => {
                     <button
                       onClick={() => handleInitiateCheckout(plan)}
                       disabled={isCreating}
-                      className="w-full py-2 px-3 text-xs font-semibold rounded bg-[var(--navy-900)] text-[var(--gold-500)] hover:bg-[var(--navy-800)] transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                      className="w-full py-2 px-3 text-xs font-semibold rounded btn-primary transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
                     >
                       {isCreating ? (
                         <Loader2 size={14} className="animate-spin" />

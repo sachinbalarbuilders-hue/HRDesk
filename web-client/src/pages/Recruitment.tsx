@@ -550,7 +550,7 @@ export const Recruitment: React.FC = () => {
       header: 'Candidate Name',
       render: (c) => (
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center font-bold text-[10px] shrink-0">
+          <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[10px] shrink-0 border border-indigo-200/50 dark:border-indigo-800/50">
             {c.candidateName.charAt(0)}
           </div>
           <div>
@@ -896,7 +896,7 @@ export const Recruitment: React.FC = () => {
             onClick={() => setActiveTab('candidates')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 ${
               activeTab === 'candidates'
-                ? 'bg-[var(--navy-900)] text-[var(--gold-500)]'
+                ? 'bg-[var(--accent)] text-white shadow-xs'
                 : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
           >
@@ -908,7 +908,7 @@ export const Recruitment: React.FC = () => {
             onClick={() => setActiveTab('interviews')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 ${
               activeTab === 'interviews'
-                ? 'bg-[var(--navy-900)] text-[var(--gold-500)]'
+                ? 'bg-[var(--accent)] text-white shadow-xs'
                 : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
           >
@@ -920,7 +920,7 @@ export const Recruitment: React.FC = () => {
             onClick={() => setActiveTab('openings')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 ${
               activeTab === 'openings'
-                ? 'bg-[var(--navy-900)] text-[var(--gold-500)]'
+                ? 'bg-[var(--accent)] text-white shadow-xs'
                 : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
             }`}
           >
@@ -1146,7 +1146,7 @@ export const Recruitment: React.FC = () => {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-[4px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-[4px] bg-indigo-50 dark:bg-indigo-950/50 text-[var(--accent)] flex items-center justify-center font-bold text-xs border border-indigo-200/60 dark:border-indigo-800/40">
                       <Briefcase size={16} />
                     </div>
                     <div>
@@ -1304,7 +1304,7 @@ export const Recruitment: React.FC = () => {
                   type="file"
                   accept=".pdf,.doc,.docx"
                   onChange={handleFileUpload}
-                  className="register-input w-full file:mr-3 file:py-1 file:px-2 file:rounded-[2px] file:border-0 file:text-xs file:bg-[var(--navy-900)] file:text-[var(--gold-500)] file:font-semibold cursor-pointer"
+                  className="register-input w-full file:mr-3 file:py-1 file:px-2 file:rounded-[2px] file:border-0 file:text-xs file:bg-slate-900 dark:file:bg-slate-100 file:text-white dark:file:text-slate-900 file:font-semibold cursor-pointer"
                 />
               </div>
 

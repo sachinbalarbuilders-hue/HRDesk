@@ -119,7 +119,7 @@ export const OrganizationShell: React.FC = () => {
           code: org.code || '',
           address: org.address || '',
           logoUrl: org.logoUrl || '',
-          primaryColor: org.primaryColor || '#D97706',
+          primaryColor: org.primaryColor && org.primaryColor !== '#D97706' ? org.primaryColor : '#4F46E5',
           customDomain: org.customDomain || '',
           isActive: org.isActive !== false,
         });
