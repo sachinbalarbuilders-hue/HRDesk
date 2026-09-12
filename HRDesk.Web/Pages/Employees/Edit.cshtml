@@ -18,6 +18,13 @@
         @TempData["ErrorMessage"]
     </div>
 }
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success py-1 px-3 mb-0 d-flex align-items-center small shadow-sm">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        @TempData["SuccessMessage"]
+    </div>
+}
         <form method="post" asp-page-handler="ToggleStatus">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn @(isActive ? "btn-outline-secondary" : "btn-outline-success")">
@@ -25,6 +32,12 @@
                 @(isActive ? "Deactivate" : "Activate")
             </button>
         </form>
+        @if (!string.IsNullOrEmpty(Model.CurrentPhotoPath))
+        {
+            <form id="removePhotoForm" method="post" asp-page-handler="RemovePhoto" asp-route-id="@Model.Id">
+                @Html.AntiForgeryToken()
+            </form>
+        }
         <a asp-page="./Index" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back
         </a>
@@ -108,11 +121,19 @@
                     <label asp-for="Input.PhotoUpload" class="form-label fw-semibold"></label>
                     @if (!string.IsNullOrEmpty(Model.CurrentPhotoPath))
                     {
-                        <div class="mb-2 d-flex align-items-center gap-2">
-                            <span class="badge text-bg-info">Current Photo: Loaded from Database</span>
-                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" id="btnCropExisting" data-url="/api/Thumbnail?employeeId=@Model.Id&width=800&height=800">
-                                <i class="bi bi-crop"></i> Re-crop
-                            </button>
+                        <div class="mb-2 d-flex align-items-center gap-3 p-2 border rounded bg-light">
+                            <img src="/api/Thumbnail?employeeId=@Model.Id&v=@Model.CurrentPhotoPath&width=100&height=100" class="rounded-circle border" style="width: 44px; height: 44px; object-fit: cover;" onerror="this.parentElement.style.display='none';" />
+                            <div>
+                                <div class="small fw-semibold text-success"><i class="bi bi-check-circle-fill me-1"></i>Current Photo in DB</div>
+                                <div class="d-flex gap-1 mt-1">
+                                    <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" id="btnCropExisting" data-url="/api/Thumbnail?employeeId=@Model.Id&v=@Model.CurrentPhotoPath&width=800&height=800">
+                                        <i class="bi bi-crop me-1"></i> Re-crop
+                                    </button>
+                                    <button type="submit" form="removePhotoForm" class="btn btn-sm btn-outline-danger py-0 px-2" title="Remove profile photo">
+                                        <i class="bi bi-trash me-1"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     }
                     <input asp-for="Input.PhotoUpload" class="form-control" type="file" accept="image/jpeg,image/png" />

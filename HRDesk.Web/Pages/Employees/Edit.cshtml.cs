@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using HRDesk.Web.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HRDesk.Web.Pages.Employees;
 
@@ -17,12 +18,16 @@ public sealed class EditModel : PageModel
     private readonly BiometricAttendanceDbContext _db;
     private readonly IConfiguration _configuration;
     private readonly IReferenceDataCacheService _cache;
+    private readonly IMemoryCache _memoryCache;
+    private readonly ICurrentTenantProvider _tenantProvider;
 
-    public EditModel(BiometricAttendanceDbContext db, IConfiguration configuration, IReferenceDataCacheService cache)
+    public EditModel(BiometricAttendanceDbContext db, IConfiguration configuration, IReferenceDataCacheService cache, IMemoryCache memoryCache, ICurrentTenantProvider tenantProvider)
     {
         _db = db;
         _configuration = configuration;
         _cache = cache;
+        _memoryCache = memoryCache;
+        _tenantProvider = tenantProvider;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -71,6 +76,28 @@ public sealed class EditModel : PageModel
                 : null
         };
         CurrentPhotoPath = employee.PhotoPath;
+        if (string.IsNullOrWhiteSpace(CurrentPhotoPath))
+        {
+            var connection = _db.Database.GetDbConnection();
+            bool wasClosed = connection.State == System.Data.ConnectionState.Closed;
+            if (wasClosed) await connection.OpenAsync();
+            try
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "SELECT CASE WHEN PhotoData IS NOT NULL THEN 1 ELSE 0 END FROM employees WHERE employee_id = @id AND organization_id = @org";
+                var idParam = cmd.CreateParameter(); idParam.ParameterName = "@id"; idParam.Value = Id; cmd.Parameters.Add(idParam);
+                var orgParam = cmd.CreateParameter(); orgParam.ParameterName = "@org"; orgParam.Value = employee.OrganizationId; cmd.Parameters.Add(orgParam);
+                var res = await cmd.ExecuteScalarAsync();
+                if (res != null && Convert.ToInt32(res) == 1)
+                {
+                    CurrentPhotoPath = "1";
+                }
+            }
+            finally
+            {
+                if (wasClosed) await connection.CloseAsync();
+            }
+        }
 
         return Page();
     }
@@ -143,6 +170,11 @@ public sealed class EditModel : PageModel
             rawPhotoContentType = Input.PhotoUpload.ContentType;
         }
 
+        if (rawPhotoBytes != null)
+        {
+            employee.PhotoPath = DateTime.UtcNow.Ticks.ToString();
+        }
+
         if (oldWeekoff != Input.Weekoff)
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
@@ -168,10 +200,11 @@ public sealed class EditModel : PageModel
             try
             {
                 using var cmd = connection.CreateCommand();
-                cmd.CommandText = "UPDATE employees SET PhotoData = @p, PhotoContentType = @c WHERE employee_id = @id AND organization_id = @org";
+                cmd.CommandText = "UPDATE employees SET PhotoData = @p, PhotoContentType = @c, PhotoPath = @path WHERE employee_id = @id AND organization_id = @org";
                 
                 var pParam = cmd.CreateParameter(); pParam.ParameterName = "@p"; pParam.Value = rawPhotoBytes; cmd.Parameters.Add(pParam);
                 var cParam = cmd.CreateParameter(); cParam.ParameterName = "@c"; cParam.Value = rawPhotoContentType; cmd.Parameters.Add(cParam);
+                var pathParam = cmd.CreateParameter(); pathParam.ParameterName = "@path"; pathParam.Value = employee.PhotoPath; cmd.Parameters.Add(pathParam);
                 var idParam = cmd.CreateParameter(); idParam.ParameterName = "@id"; idParam.Value = employee.EmployeeId; cmd.Parameters.Add(idParam);
                 var orgParam = cmd.CreateParameter(); orgParam.ParameterName = "@org"; orgParam.Value = employee.OrganizationId; cmd.Parameters.Add(orgParam);
                 
@@ -204,6 +237,46 @@ public sealed class EditModel : PageModel
 
         employee.Status = isCurrentlyActive ? "inactive" : "active";
         await _db.SaveChangesAsync();
+        return RedirectToPage(new { id = Id });
+    }
+
+    public async Task<IActionResult> OnPostRemovePhotoAsync()
+    {
+        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == Id);
+        if (employee is null)
+        {
+            return NotFound();
+        }
+
+        var oldPhotoPath = employee.PhotoPath; // capture before nulling
+
+        employee.PhotoPath = null;
+        await _db.SaveChangesAsync();
+
+        var connection = Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.GetDbConnection(_db.Database);
+        bool wasClosed = connection.State == System.Data.ConnectionState.Closed;
+        if (wasClosed) await connection.OpenAsync();
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = "UPDATE employees SET PhotoData = NULL, PhotoContentType = NULL, PhotoPath = NULL WHERE employee_id = @id AND organization_id = @org";
+            var idParam = cmd.CreateParameter(); idParam.ParameterName = "@id"; idParam.Value = employee.EmployeeId; cmd.Parameters.Add(idParam);
+            var orgParam = cmd.CreateParameter(); orgParam.ParameterName = "@org"; orgParam.Value = employee.OrganizationId; cmd.Parameters.Add(orgParam);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        finally
+        {
+            if (wasClosed) await connection.CloseAsync();
+        }
+
+        // Evict all cached thumbnails for this employee so the list shows initials immediately
+        foreach (var size in new[] { 44, 100, 150, 200, 300, 400, 800 })
+        {
+            _memoryCache.Remove($"thumb_{employee.OrganizationId}_{employee.EmployeeId}_{size}_{size}_{oldPhotoPath}");
+            _memoryCache.Remove($"thumb_{employee.OrganizationId}_{employee.EmployeeId}_{size}_{size}_default");
+        }
+
+        TempData["SuccessMessage"] = "Profile photo removed successfully.";
         return RedirectToPage(new { id = Id });
     }
 

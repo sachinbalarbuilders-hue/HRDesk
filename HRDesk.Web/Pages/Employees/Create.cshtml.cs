@@ -111,6 +111,11 @@ public sealed class CreateModel : PageModel
             employee.ProbationEnd = employee.JoiningDate.Value.AddDays(Input.ProbationDays.Value);
         }
 
+        if (rawPhotoBytes != null)
+        {
+            employee.PhotoPath = DateTime.UtcNow.Ticks.ToString();
+        }
+
         _db.Employees.Add(employee);
         await _db.SaveChangesAsync();
 
@@ -123,10 +128,11 @@ public sealed class CreateModel : PageModel
             try
             {
                 using var cmd = connection.CreateCommand();
-                cmd.CommandText = "UPDATE employees SET PhotoData = @p, PhotoContentType = @c WHERE employee_id = @id AND organization_id = @org";
+                cmd.CommandText = "UPDATE employees SET PhotoData = @p, PhotoContentType = @c, PhotoPath = @path WHERE employee_id = @id AND organization_id = @org";
                 
                 var pParam = cmd.CreateParameter(); pParam.ParameterName = "@p"; pParam.Value = rawPhotoBytes; cmd.Parameters.Add(pParam);
                 var cParam = cmd.CreateParameter(); cParam.ParameterName = "@c"; cParam.Value = rawPhotoContentType; cmd.Parameters.Add(cParam);
+                var pathParam = cmd.CreateParameter(); pathParam.ParameterName = "@path"; pathParam.Value = employee.PhotoPath; cmd.Parameters.Add(pathParam);
                 var idParam = cmd.CreateParameter(); idParam.ParameterName = "@id"; idParam.Value = employee.EmployeeId; cmd.Parameters.Add(idParam);
                 var orgParam = cmd.CreateParameter(); orgParam.ParameterName = "@org"; orgParam.Value = employee.OrganizationId; cmd.Parameters.Add(orgParam);
                 

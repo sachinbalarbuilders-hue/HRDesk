@@ -86,8 +86,8 @@
                     <a asp-page="./Details" asp-route-id="@e.EmployeeId" class="text-decoration-none text-body">
                         <div class="employee-item p-3 d-flex align-items-center @(e.EmployeeId == Model.Id ? "active" : "")">
                             <div class="avatar-circle me-3 flex-shrink-0" style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: rgba(var(--bs-primary-rgb), 0.1); color: var(--bs-primary); display: flex; align-items: center; justify-content: center;">
-                                <img src="/api/Thumbnail?employeeId=@e.EmployeeId&width=100&height=100" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
-                                <span class="fw-bold initials-fallback" style="display:none;">@e.EmployeeName.Substring(0, 1).ToUpper()</span>
+                                <img src="/api/Thumbnail?employeeId=@e.EmployeeId&v=@(e.PhotoPath ?? "0")&width=100&height=100" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                                <span class="fw-bold initials-fallback" style="display:none;">@(string.IsNullOrEmpty(e.EmployeeName) ? "?" : e.EmployeeName[0].ToString().ToUpper())</span>
                             </div>
                             <div class="overflow-hidden">
                                 <h6 class="mb-0 text-truncate fw-semibold" style="font-size: 0.9rem;">@e.EmployeeName</h6>
@@ -114,19 +114,10 @@
                     <div class="d-flex justify-content-between align-items-start mb-4">
                         <div class="d-flex">
                             <div class="profile-avatar-container shadow-sm rounded-circle me-4">
-                                @if (!string.IsNullOrEmpty(emp.PhotoPath) || emp.PhotoContentType != null)
-                                {
-                                    <img src="/api/Thumbnail?employeeId=@emp.EmployeeId&width=300&height=300" class="profile-avatar" alt="@emp.EmployeeName" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
-                                    <div class="profile-initials" style="display:none;">
-                                        @emp.EmployeeName.Substring(0, 1).ToUpper()
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="profile-initials">
-                                        @emp.EmployeeName.Substring(0, 1).ToUpper()
-                                    </div>
-                                }
+                                <img src="/api/Thumbnail?employeeId=@emp.EmployeeId&v=@(emp.PhotoPath ?? "0")&width=300&height=300" class="profile-avatar" alt="@emp.EmployeeName" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                <div class="profile-initials" style="display:none;">
+                                    @(string.IsNullOrEmpty(emp.EmployeeName) ? "?" : emp.EmployeeName[0].ToString().ToUpper())
+                                </div>
                             </div>
                             <div class="pt-3 mt-1">
                                 <h3 class="mb-1 fw-bold">@emp.EmployeeName</h3>

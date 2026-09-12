@@ -31,11 +31,25 @@ public class ThumbnailController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetThumbnail(int? employeeId, int width = 150, int height = 150)
+    public async Task<IActionResult> GetThumbnail(int? employeeId, int width = 150, int height = 150, string? v = null)
     {
         if (employeeId == null)
         {
             return BadRequest("Employee ID is required.");
+        }
+
+        var cacheKey = $"thumb_{_tenantProvider.TenantId}_{employeeId}_{width}_{height}_{v ?? "default"}";
+        if (_cache.TryGetValue(cacheKey, out byte[]? cachedBytes))
+        {
+            if (!string.IsNullOrEmpty(v))
+            {
+                Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+            }
+            else
+            {
+                Response.Headers["Cache-Control"] = "no-cache, must-revalidate";
+            }
+            return File(cachedBytes!, "image/jpeg");
         }
 
         byte[]? photoBytes = null;
@@ -85,10 +99,13 @@ public class ThumbnailController : ControllerBase
             return NotFound("No photo found.");
         }
 
-        var cacheKey = $"thumb_{_tenantProvider.TenantId}_{employeeId}_{width}_{height}";
-        if (_cache.TryGetValue(cacheKey, out byte[]? cachedBytes))
+        if (!string.IsNullOrEmpty(v))
         {
-            return File(cachedBytes!, "image/jpeg");
+            Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+        }
+        else
+        {
+            Response.Headers["Cache-Control"] = "no-cache, must-revalidate";
         }
 
         try
@@ -106,7 +123,7 @@ public class ThumbnailController : ControllerBase
                 image.SaveAsJpeg(outStream);
                 var finalBytes = outStream.ToArray();
                 
-                _cache.Set(cacheKey, finalBytes, TimeSpan.FromDays(1)); // Cache for 1 day
+                _cache.Set(cacheKey, finalBytes, TimeSpan.FromDays(7));
                 return File(finalBytes, "image/jpeg");
             }
         }
