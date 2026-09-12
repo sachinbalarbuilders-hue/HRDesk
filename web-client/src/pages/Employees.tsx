@@ -298,10 +298,10 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
               alt={emp.employeeName}
               className="w-full h-full aspect-square object-cover"
               fallbackInitial={emp.employeeName?.charAt(0) || 'E'}
-              fallbackClassName="w-full h-full text-xs flex items-center justify-center bg-[var(--navy-900)] text-[var(--gold-500)] font-bold"
+              fallbackClassName="w-full h-full text-xs flex items-center justify-center bg-[#312E81] text-white font-bold"
             />
           ) : (
-            <div className="w-full h-full bg-[var(--navy-900)] text-[var(--gold-500)] font-bold flex items-center justify-center text-xs">
+            <div className="w-full h-full bg-[#312E81] text-white font-bold flex items-center justify-center text-xs">
               {emp.employeeName?.charAt(0) || 'E'}
             </div>
           )}
@@ -315,7 +315,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
         <button
           type="button"
           onClick={() => handleRowClick(emp)}
-          className="font-semibold text-[var(--ink)] hover:text-[var(--gold-600)] hover:underline text-left cursor-pointer"
+          className="font-semibold text-[var(--text-primary)] hover:text-[var(--accent)] text-left cursor-pointer transition-colors"
         >
           {emp.employeeName}
         </button>
@@ -325,7 +325,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       key: 'employeeCode',
       header: 'Employee ID',
       render: (emp) => (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] bg-[var(--paper)] border border-[var(--rule)] font-mono text-[11px] font-bold text-[var(--gold-600)] shadow-2xs">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--surface-secondary)] font-mono text-[11px] font-semibold text-[var(--text-secondary)] tracking-wide">
           {emp.employeeCode || `EMP#${String(emp.employeeId).padStart(3, '0')}`}
         </span>
       ),
@@ -333,23 +333,23 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
     {
       key: 'department',
       header: 'Department',
-      render: (emp) => <span className="text-xs text-[var(--ink)]">{emp.department || '—'}</span>,
+      render: (emp) => <span className="text-[13px] text-[var(--text-primary)]">{emp.department || '—'}</span>,
     },
     {
       key: 'designation',
       header: 'Designation',
-      render: (emp) => <span className="text-xs text-[var(--ink-muted)]">{emp.designation || '—'}</span>,
+      render: (emp) => <span className="text-[13px] text-[var(--text-secondary)]">{emp.designation || '—'}</span>,
     },
     {
       key: 'reportingManager',
       header: 'Reporting Manager',
-      render: (emp) => <span className="text-xs text-[var(--ink-muted)]">{emp.reportingManager || '—'}</span>,
+      render: (emp) => <span className="text-[13px] text-[var(--text-secondary)]">{emp.reportingManager || '—'}</span>,
     },
     {
       key: 'joiningDate',
       header: 'Joining Date',
       align: 'center',
-      render: (emp) => <span className="font-mono text-xs text-[var(--ink-muted)]">{formatDate(emp.joiningDate)}</span>,
+      render: (emp) => <span className="font-mono text-[12px] text-[var(--text-secondary)]">{formatDate(emp.joiningDate)}</span>,
     },
     {
       key: 'status',
@@ -404,42 +404,69 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
 
   return (
     <PageContainer>
-      <PageHeader title="Workforce Management" description="Manage your organization's employee directory and exit lifecycle" />
+      <PageHeader 
+        title="Employees" 
+        description="Manage your organization's people, roles and employment lifecycle."
+        actions={
+          activeTab === 'exits' ? (
+            canEdit && (
+              <button
+                onClick={() => {
+                  setExitTargetEmp(null);
+                  setExitModalOpen(true);
+                }}
+                className="btn-primary flex items-center gap-2 shadow-sm"
+              >
+                <UserMinus size={16} />
+                <span>Initiate Exit</span>
+              </button>
+            )
+          ) : (
+            canCreate && (
+              <button
+                onClick={() => navigate('/employees/add')}
+                className="btn-primary flex items-center gap-2 shadow-sm"
+              >
+                <Plus size={16} />
+                <span>Add Employee</span>
+              </button>
+            )
+          )
+        }
+      />
 
-      {/* Sub-Navigation Tabs */}
-      <div className="flex items-center justify-between mb-4 border-b border-[var(--rule)]">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab('directory')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 cursor-pointer transition-colors ${
-              activeTab === 'directory'
-                ? 'border-[var(--gold-500)] text-[var(--gold-600)] bg-[var(--surface-sunken)]/50'
-                : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
-            }`}
-          >
-            <Users size={14} />
-            <span>Employee Directory</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('exits')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 cursor-pointer transition-colors ${
-              activeTab === 'exits'
-                ? 'border-[var(--gold-500)] text-[var(--gold-600)] bg-[var(--surface-sunken)]/50'
-                : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
-            }`}
-          >
-            <UserMinus size={14} />
-            <span>Exit & Offboarding</span>
-          </button>
-        </div>
+      {/* Workspace Tabs */}
+      <div className="flex items-center gap-6 border-b border-[var(--border)] mb-6 mt-4">
+        <button
+          type="button"
+          onClick={() => setActiveTab('directory')}
+          className={`pb-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+            activeTab === 'directory'
+              ? 'border-[var(--accent)] text-[var(--text-primary)]'
+              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]'
+          }`}
+        >
+          Directory
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('exits')}
+          className={`pb-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+            activeTab === 'exits'
+              ? 'border-[var(--accent)] text-[var(--text-primary)]'
+              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]'
+          }`}
+        >
+          Offboarding
+        </button>
       </div>
+
+
 
       {activeTab === 'exits' ? (
         <EmployeeExits />
       ) : (
-        <>
+        <div className="flex flex-col gap-6">
           {/* 2. Unified Common Action Toolbar */}
           <DataToolbar
             searchValue={search}
@@ -478,15 +505,6 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
             exportLabel="Export CSV"
             onImport={canCreate ? () => setImportModalOpen(true) : undefined}
             importLabel="Import CSV"
-            primaryAction={
-              canCreate
-                ? {
-                    label: 'Add Employee',
-                    icon: <Plus size={14} />,
-                    onClick: () => navigate('/employees/add'),
-                  }
-                : undefined
-            }
             customActions={
               <>
                 {canCreate && (
@@ -497,11 +515,11 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                       setOnboardingForm({ employeeName: '', workEmail: '', departmentId: '', designationId: '' });
                       setGenerateLinkModalOpen(true);
                     }}
-                    className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
+                    className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer"
                     title="Generate Self-Onboarding Link"
                   >
-                    <Link size={13} className="text-[var(--gold-500)]" />
-                    <span>Generate Onboarding Link</span>
+                    <Link size={13} className="text-[var(--accent)]" />
+                    <span>Onboarding Link</span>
                   </button>
                 )}
                 {canEdit && (
@@ -511,10 +529,10 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                       fetchPrefixSettings();
                       setPrefixModalOpen(true);
                     }}
-                    className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
+                    className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer"
                     title="Configure Series Code, Connector and Sequence"
                   >
-                    <Sliders size={13} className="text-[var(--gold-500)]" />
+                    <Sliders size={13} className="text-[var(--accent)]" />
                     <span>Prefix Setup</span>
                   </button>
                 )}
@@ -523,27 +541,30 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
           />
 
           {/* 3. Primary DataTable with Multi-Selection & Bulk Actions */}
-          <DataTable
-            columns={columns}
-            data={employees}
-            loading={loading}
-            keyExtractor={(emp) => emp.publicId || emp.employeeId}
-            selection={employeeArchive.getSelectionConfig(
-              selectedIds,
-              setSelectedIds,
-              archiveFilter === 'archived'
-            )}
-            emptyMessage="No employees found matching search criteria."
-            pagination={{
-              page,
-              pageSize,
-              totalCount,
-              totalPages,
-              onPageChange: setPage,
-              onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
-            }}
-          />
-        </>
+          <div className="flex-1">
+            <DataTable
+              columns={columns}
+              data={employees}
+              loading={loading}
+              showSrNo={false}
+              keyExtractor={(emp) => emp.publicId || emp.employeeId}
+              selection={employeeArchive.getSelectionConfig(
+                selectedIds,
+                setSelectedIds,
+                archiveFilter === 'archived'
+              )}
+              emptyMessage="No employees found matching search criteria."
+              pagination={{
+                page,
+                pageSize,
+                totalCount,
+                totalPages,
+                onPageChange: setPage,
+                onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {/* Initiate Exit Modal from row actions */}
@@ -582,7 +603,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-[#EEF2FF] text-[var(--accent)] flex items-center justify-center">
                   <Sliders size={16} />
                 </div>
                 <div>
@@ -606,8 +627,8 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
               {/* Active Branch Display Banner */}
               <div className="flex items-center justify-between p-2.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
                 <span className="text-[var(--ink-muted)] font-ui text-[11px]">Active Branch:</span>
-                <span className="font-semibold text-xs text-[var(--gold-600)] flex items-center gap-1.5 font-ui">
-                  <MapPin size={13} className="text-[var(--gold-500)]" />
+                <span className="font-semibold text-xs text-[var(--accent)] flex items-center gap-1.5 font-ui">
+                  <MapPin size={13} className="text-[var(--accent)]" />
                   {currentBranch ? currentBranch.name : 'All Branches (Company Default)'}
                 </span>
               </div>
@@ -650,8 +671,8 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                         onClick={() => setPrefixForm({ ...prefixForm, connector: sym })}
                         className={`px-1.5 py-0.5 rounded-[2px] border text-[10px] font-mono font-bold cursor-pointer transition-colors ${
                           prefixForm.connector === sym
-                            ? 'bg-[var(--gold-500)] text-[var(--navy-950)] border-[var(--gold-500)] font-bold'
-                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--gold-500)]'
+                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-bold shadow-xs'
+                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--accent)]'
                         }`}
                       >
                         {sym}
@@ -662,8 +683,8 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                       onClick={() => setPrefixForm({ ...prefixForm, connector: '' })}
                       className={`px-1.5 py-0.5 rounded-[2px] border text-[9px] font-ui cursor-pointer transition-colors ${
                         prefixForm.connector === ''
-                          ? 'bg-[var(--gold-500)] text-[var(--navy-950)] border-[var(--gold-500)]'
-                          : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink-muted)]'
+                          ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-semibold shadow-xs'
+                          : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink-muted)] hover:border-[var(--accent)]'
                       }`}
                     >
                       None
@@ -705,8 +726,8 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                         onClick={() => setPrefixForm({ ...prefixForm, paddingDigits: item.len })}
                         className={`px-2 py-1 rounded-[2px] border text-[11px] font-mono cursor-pointer transition-colors ${
                           prefixForm.paddingDigits === item.len
-                            ? 'bg-[var(--gold-500)] text-[var(--navy-950)] border-[var(--gold-500)] font-bold'
-                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--gold-500)]'
+                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-bold shadow-xs'
+                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--accent)]'
                         }`}
                       >
                         {item.label}
@@ -722,7 +743,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
               {/* 4. LIVE INTERACTIVE PREVIEW */}
               <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--gold-600)] font-ui flex items-center gap-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--accent)] font-ui flex items-center gap-1">
                     <Sparkles size={12} /> Live Preview Output
                   </span>
                   <span className="text-[10px] font-mono text-[var(--ink-muted)]">
@@ -732,7 +753,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
 
                 <div className="flex items-center justify-between p-3 rounded-[3px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
                   <span className="text-xs text-[var(--ink-muted)] font-ui">Next Generated ID:</span>
-                  <span className="font-mono text-base font-bold text-[var(--gold-600)] tracking-wide">
+                  <span className="font-mono text-base font-bold text-[var(--accent)] tracking-wide">
                     {prefixForm.seriesCode || 'EMP'}{prefixForm.connector}{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}
                   </span>
                 </div>
@@ -773,7 +794,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-[3px] bg-[var(--navy-900)] text-[var(--gold-500)] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-[#EEF2FF] dark:bg-indigo-950/60 text-[var(--accent)] border border-indigo-200/60 dark:border-indigo-800/40 flex items-center justify-center">
                   <Link size={16} />
                 </div>
                 <div>

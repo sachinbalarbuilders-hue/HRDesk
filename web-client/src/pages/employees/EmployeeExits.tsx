@@ -146,7 +146,7 @@ export const EmployeeExits: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleOpenDrawer(item.id)}
-                className="font-bold text-xs text-[var(--ink)] hover:text-[var(--gold-600)] transition-colors block truncate text-left cursor-pointer"
+                className="font-bold text-xs text-[var(--ink)] hover:text-[var(--accent)] transition-colors block truncate text-left cursor-pointer"
               >
                 {item.employeeName}
               </button>
@@ -169,7 +169,7 @@ export const EmployeeExits: React.FC = () => {
                 ? 'text-[var(--err-500)]'
                 : item.exitType === 'Resignation'
                 ? 'text-[var(--ink)]'
-                : 'text-[var(--gold-600)]'
+                : 'text-[var(--accent)]'
             }`}
           >
             {item.exitType}
@@ -183,7 +183,7 @@ export const EmployeeExits: React.FC = () => {
         render: (item: any) => (
           <div className="text-xs space-y-0.5">
             <div className="flex items-center gap-1 text-[var(--ink)] font-semibold">
-              <Calendar size={11} className="text-[var(--gold-500)] shrink-0" />
+              <Calendar size={11} className="text-[var(--accent)] shrink-0" />
               <span>LWD: {item.lastWorkingDate}</span>
             </div>
             <div className="text-[11px] text-[var(--ink-muted)]">
@@ -251,7 +251,7 @@ export const EmployeeExits: React.FC = () => {
         render: (item: any) => {
           const docCount = [item.hasResignationDoc, item.hasRelievingDoc, item.hasExperienceDoc, item.hasClearanceDoc].filter(Boolean).length;
           return docCount > 0 ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--gold-600)] font-bold">
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--accent)] font-bold">
               <FileText size={12} />
               <span>{docCount} files</span>
             </span>
@@ -340,15 +340,7 @@ export const EmployeeExits: React.FC = () => {
           value: isArchivedView ? 'archived' : 'active',
           onChange: (val) => setIsArchivedView(val === 'archived'),
         }}
-        primaryAction={
-          canEdit
-            ? {
-                label: 'Initiate Exit',
-                icon: <Plus size={14} />,
-                onClick: () => setInitiateModalOpen(true),
-              }
-            : undefined
-        }
+
         filters={[
           {
             id: 'status',
