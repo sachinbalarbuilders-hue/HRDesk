@@ -15,6 +15,12 @@ import {
   Search,
   Lock,
   RotateCcw,
+  Image as ImageIcon,
+  Film,
+  X,
+  UploadCloud,
+  Sparkles,
+  MapPin,
 } from 'lucide-react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -85,12 +91,26 @@ export const AnnouncementsPage: React.FC = () => {
   const [priority, setPriority] = useState('Normal');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState('');
-  const [targetBranchId, setTargetBranchId] = useState<number | ''>('');
   const [isPinned, setIsPinned] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const videoInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null);
+    setVideoPreview(null);
+    if (videoInputRef.current) videoInputRef.current.value = '';
+  };
 
   const fetchAnnouncements = async () => {
     try {
@@ -123,7 +143,6 @@ export const AnnouncementsPage: React.FC = () => {
     setPriority('Normal');
     setStartDate(new Date().toISOString().split('T')[0]);
     setEndDate('');
-    setTargetBranchId(currentBranch?.id ? Number(currentBranch.id) : (branches[0]?.id ? Number(branches[0].id) : ''));
     setIsPinned(false);
     setImageFile(null);
     setVideoFile(null);
@@ -141,7 +160,6 @@ export const AnnouncementsPage: React.FC = () => {
     setPriority(item.priority || 'Normal');
     setStartDate(item.startDate || new Date().toISOString().split('T')[0]);
     setEndDate(item.endDate || '');
-    setTargetBranchId(item.branchId ? Number(item.branchId) : (currentBranch?.id ? Number(currentBranch.id) : (branches[0]?.id ? Number(branches[0].id) : '')));
     setIsPinned(item.isPinned);
     setImageFile(null);
     setVideoFile(null);
@@ -162,12 +180,6 @@ export const AnnouncementsPage: React.FC = () => {
       return;
     }
 
-    const selectedBranch = targetBranchId ? Number(targetBranchId) : (currentBranch?.id || branches[0]?.id);
-    if (!selectedBranch) {
-      setFormError('Please select a valid branch.');
-      return;
-    }
-
     try {
       setSubmitting(true);
       setFormError(null);
@@ -179,7 +191,7 @@ export const AnnouncementsPage: React.FC = () => {
         priority,
         startDate,
         endDate: endDate || null,
-        branchId: selectedBranch,
+        branchId: currentBranch?.id || null, // Scoped to currently selected branch
         isPinned,
         isActive: true,
       };
@@ -351,9 +363,9 @@ export const AnnouncementsPage: React.FC = () => {
 
       {/* Bulk Action Bar */}
       {announcementArchive.canBulkDelete && selectedIds.length > 0 && (
-        <div className="flex items-center justify-between px-4 py-2.5 mb-6 bg-[var(--surface)] border border-[var(--gold-500)]/40 rounded-[4px] shadow-xs animate-in fade-in slide-in-from-top-1 font-ui">
+        <div className="flex items-center justify-between px-4 py-2.5 mb-6 bg-[var(--surface)] border border-[var(--accent)]/40 rounded-[4px] shadow-xs animate-in fade-in slide-in-from-top-1 font-ui">
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold font-mono rounded bg-[var(--gold-500)] text-[var(--navy-950)]">
+            <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold font-mono rounded bg-[var(--accent)] text-white shadow-xs">
               {selectedIds.length}
             </span>
             <span className="text-xs font-semibold text-[var(--ink)]">
@@ -542,190 +554,282 @@ export const AnnouncementsPage: React.FC = () => {
         open={modalOpen}
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
+        size="3xl"
         title={editingItem ? 'Edit Announcement' : 'Post New Announcement'}
+        description="Broadcast company-wide notices, policy updates, holidays, or urgent alerts to branches."
       >
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {formError && (
-              <div className="p-3 rounded-[var(--radius-md)] bg-rose-500/15 text-rose-400 text-xs flex items-center gap-2">
-                <AlertCircle size={15} /> {formError}
-              </div>
-            )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {formError && (
+            <div className="p-3 rounded-[var(--radius-md)] bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2.5 animate-in fade-in">
+              <AlertCircle size={16} className="shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
 
+          {/* Row 1: Title & Target Branch */}
+          {/* Row 1: Title (Full width) */}
+          <div>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span>Announcement Title <span className="text-rose-500">*</span></span>
+              </span>
+              <span className="text-[10px] font-normal text-[var(--text-muted)] font-mono">{title.length} chars</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Office Holiday Notice - Diwali 2026"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 transition-all"
+            />
+          </div>
+
+          {/* Row 2: Category, Priority, Start Date, End Date */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                Announcement Title *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Office Holiday Notice - Diwali 2026"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  Category
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                >
-                  {CATEGORIES.filter((c) => c !== 'All').map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  Priority
-                </label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                >
-                  {PRIORITIES.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  Start Date *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  End Date (Optional)
-                </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                Target Office Branch *
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                Category
               </label>
               <select
-                required
-                value={targetBranchId}
-                onChange={(e) => setTargetBranchId(Number(e.target.value))}
-                className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 cursor-pointer"
               >
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
+                {CATEGORIES.filter((c) => c !== 'All').map((c) => (
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                Message Body *
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5">
+                Priority
               </label>
-              <textarea
-                required
-                rows={4}
-                placeholder="Write the full announcement details..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] resize-none"
-              />
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 cursor-pointer"
+              >
+                {PRIORITIES.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
             </div>
 
-            {/* Media Upload */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  Attach Image (optional)
-                </label>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] || null;
-                    setImageFile(f);
-                    if (f) setImagePreview(URL.createObjectURL(f));
-                  }}
-                  className="w-full text-xs text-[var(--text-secondary)] file:mr-2 file:px-3 file:py-1.5 file:rounded-[var(--radius-md)] file:border-0 file:text-xs file:font-medium file:bg-[var(--accent-light)] file:text-[var(--accent)] file:cursor-pointer cursor-pointer"
-                />
-                {imagePreview && (
-                  <img src={imagePreview} alt="Preview" className="mt-2 h-20 rounded-[var(--radius-md)] object-cover border border-[var(--border)]" />
-                )}
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  Attach Video (optional)
-                </label>
-                <input
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0] || null;
-                    setVideoFile(f);
-                    if (f) setVideoPreview(URL.createObjectURL(f));
-                  }}
-                  className="w-full text-xs text-[var(--text-secondary)] file:mr-2 file:px-3 file:py-1.5 file:rounded-[var(--radius-md)] file:border-0 file:text-xs file:font-medium file:bg-[var(--accent-light)] file:text-[var(--accent)] file:cursor-pointer cursor-pointer"
-                />
-                {videoPreview && (
-                  <video src={videoPreview} className="mt-2 h-20 rounded-[var(--radius-md)] border border-[var(--border)]" controls muted />
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1">
+                <Calendar size={12} className="text-[var(--text-muted)]" />
+                <span>Publish Date <span className="text-rose-500">*</span></span>
+              </label>
               <input
-                type="checkbox"
-                id="isPinnedCheck"
-                checked={isPinned}
-                onChange={(e) => setIsPinned(e.target.checked)}
-                className="w-4 h-4 rounded text-[var(--accent)] cursor-pointer"
+                type="date"
+                required
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 font-mono"
               />
-              <label htmlFor="isPinnedCheck" className="text-xs text-[var(--text-primary)] cursor-pointer">
-                Pin this announcement to top of dashboard
-              </label>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1">
+                <Calendar size={12} className="text-[var(--text-muted)]" />
+                <span>Expiry Date <span className="text-[10px] text-[var(--text-muted)] font-normal">(Opt)</span></span>
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 font-mono"
+              />
+            </div>
+          </div>
+
+          {/* Row 3: Message Body */}
+          <div>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1.5">
+              Message Body <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              required
+              rows={4}
+              placeholder="Write the full announcement details, guidelines, or notice for team members..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-xs rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 transition-all resize-y min-h-[90px]"
+            />
+          </div>
+
+          {/* Row 4: Attachments Deck & Pin Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+            {/* Left Deck: Media Attachments */}
+            <div className="p-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-secondary)]/40 space-y-2.5">
+              <span className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
+                <UploadCloud size={14} className="text-[var(--accent)]" /> Media Attachments (Optional)
+              </span>
+
+              <div className="grid grid-cols-2 gap-2">
+                {/* Photo Upload Zone */}
+                <div>
+                  <input
+                    type="file"
+                    ref={imageInputRef}
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null;
+                      setImageFile(f);
+                      if (f) setImagePreview(URL.createObjectURL(f));
+                    }}
+                    className="hidden"
+                  />
+                  {imagePreview ? (
+                    <div className="relative rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-1.5 flex items-center gap-2">
+                      <img src={imagePreview} alt="Preview" className="w-9 h-9 rounded object-cover border border-[var(--border)] shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium text-[var(--text-primary)] truncate">{imageFile?.name || 'Photo'}</p>
+                        <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium">Ready to upload</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="p-1 rounded-full hover:bg-rose-500/15 text-[var(--text-muted)] hover:text-rose-500 cursor-pointer transition-colors"
+                        title="Remove photo"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] border border-dashed border-[var(--border)] hover:border-[var(--accent)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-xs text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-all shadow-2xs"
+                    >
+                      <ImageIcon size={13} />
+                      <span>Attach Photo</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Video Upload Zone */}
+                <div>
+                  <input
+                    type="file"
+                    ref={videoInputRef}
+                    accept="video/mp4,video/webm,video/quicktime"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null;
+                      setVideoFile(f);
+                      if (f) setVideoPreview(URL.createObjectURL(f));
+                    }}
+                    className="hidden"
+                  />
+                  {videoPreview ? (
+                    <div className="relative rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-1.5 flex items-center gap-2">
+                      <div className="w-9 h-9 rounded bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-[var(--accent)] border border-[var(--border)] shrink-0">
+                        <Film size={15} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium text-[var(--text-primary)] truncate">{videoFile?.name || 'Video'}</p>
+                        <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-medium">Video clip</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveVideo}
+                        className="p-1 rounded-full hover:bg-rose-500/15 text-[var(--text-muted)] hover:text-rose-500 cursor-pointer transition-colors"
+                        title="Remove video"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => videoInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] border border-dashed border-[var(--border)] hover:border-[var(--accent)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-xs text-[var(--text-secondary)] hover:text-[var(--accent)] cursor-pointer transition-all shadow-2xs"
+                    >
+                      <Film size={13} />
+                      <span>Attach Video</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Deck: Placement & Scope Settings */}
+            <div className="p-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-secondary)]/40 flex flex-col justify-between space-y-2">
+              <span className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
+                <Sparkles size={14} className="text-amber-500" /> Placement & Scope
+              </span>
+
+              <div
+                onClick={() => setIsPinned(!isPinned)}
+                className={`p-2 rounded-[var(--radius-md)] border transition-all cursor-pointer flex items-center gap-2.5 select-none ${
+                  isPinned
+                    ? 'bg-[var(--accent-light)] dark:bg-[var(--accent)]/15 border-[var(--accent)]/40 shadow-xs'
+                    : 'bg-[var(--surface)] border-[var(--border)] hover:border-[var(--border-strong)]'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${
+                  isPinned ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'
+                }`}>
+                  <Pin size={13} className={isPinned ? 'rotate-45 transition-transform' : ''} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-[var(--text-primary)] leading-tight">Pin to top of dashboard</p>
+                  <p className="text-[10px] text-[var(--text-muted)] truncate">Anchors notice prominently for team members</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isPinned}
+                  onChange={(e) => setIsPinned(e.target.checked)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-4 h-4 rounded text-[var(--accent)] cursor-pointer"
+                />
+              </div>
+
+              <div className="text-[10px] text-[var(--text-muted)] flex items-center justify-between px-1">
+                <span>Scope: <strong className="text-[var(--text-primary)]">{currentBranch ? currentBranch.name : 'Company-wide (All)'}</strong></span>
+                <span className="inline-flex items-center gap-1">
+                  Priority: <strong className="text-[var(--text-primary)]">{priority}</strong>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
+            <span className="text-[11px] text-[var(--text-muted)] hidden sm:inline">
+              Employees will see this notice across web and mobile.
+            </span>
+            <div className="flex items-center gap-2 ml-auto">
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="btn-secondary px-4 py-2 text-sm cursor-pointer"
+                className="btn-outline px-4 py-2 text-xs font-semibold cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-primary px-4 py-2 text-sm cursor-pointer flex items-center gap-2"
+                className="btn-primary px-5 py-2 text-xs font-semibold cursor-pointer flex items-center gap-2 shadow-xs disabled:opacity-50"
               >
-                <CheckCircle2 size={16} />
-                <span>{editingItem ? 'Save Changes' : 'Publish Announcement'}</span>
+                {submitting ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Publishing...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={14} />
+                    <span>{editingItem ? 'Save Changes' : 'Publish Announcement'}</span>
+                  </>
+                )}
               </button>
             </div>
-          </form>
-        </Modal>
+          </div>
+        </form>
+      </Modal>
 
       {/* Media Lightbox */}
       {lightboxUrl && (
