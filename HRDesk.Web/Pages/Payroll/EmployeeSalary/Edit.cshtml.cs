@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -38,6 +38,30 @@ namespace HRDesk.Web.Pages.Payroll.EmployeeSalary
 
         [BindProperty]
         public decimal ESIC { get; set; }
+
+        [BindProperty]
+        public decimal ProfessionalTax { get; set; }
+
+        [BindProperty]
+        public bool IsPfEligible { get; set; } = true;
+
+        [BindProperty]
+        public bool PfWageCap { get; set; } = true;
+
+        [BindProperty]
+        public bool IsEsicEligible { get; set; } = true;
+
+        [BindProperty]
+        public bool IsPtEligible { get; set; } = true;
+
+        [BindProperty]
+        public string? UanNumber { get; set; }
+
+        [BindProperty]
+        public string? EsicNumber { get; set; }
+
+        [BindProperty]
+        public string? PanNumber { get; set; }
 
         [BindProperty]
         [DataType(DataType.Date)]
@@ -96,6 +120,22 @@ namespace HRDesk.Web.Pages.Payroll.EmployeeSalary
                     .FirstOrDefaultAsync(s => s.EmployeeId == id && s.ComponentId == esicComponent.Id && s.IsActive);
                 ESIC = esic?.Amount ?? 0;
             }
+
+            var ptComponent = salaryComponents.FirstOrDefault(c => c.ComponentCode == "PT");
+            if (ptComponent != null)
+            {
+                var pt = await _context.EmployeeSalaryStructures
+                    .FirstOrDefaultAsync(s => s.EmployeeId == id && s.ComponentId == ptComponent.Id && s.IsActive);
+                ProfessionalTax = pt?.Amount ?? 0;
+            }
+
+            UanNumber = employee.UanNumber;
+            EsicNumber = employee.EsicNumber;
+            PanNumber = employee.PanNumber;
+            IsPfEligible = employee.IsPfEligible;
+            PfWageCap = employee.PfWageCap;
+            IsEsicEligible = employee.IsEsicEligible;
+            IsPtEligible = employee.IsPtEligible;
 
             SalaryHistory = await _context.EmployeeSalaryStructures
                 .Include(s => s.SalaryComponent)
@@ -171,10 +211,23 @@ namespace HRDesk.Web.Pages.Payroll.EmployeeSalary
                 }
             }
 
+            var employee = await _context.Employees.FirstOrDefaultAsync(e => e.EmployeeId == EmployeeId);
+            if (employee != null)
+            {
+                employee.UanNumber = string.IsNullOrWhiteSpace(UanNumber) ? null : UanNumber.Trim();
+                employee.EsicNumber = string.IsNullOrWhiteSpace(EsicNumber) ? null : EsicNumber.Trim();
+                employee.PanNumber = string.IsNullOrWhiteSpace(PanNumber) ? null : PanNumber.Trim().ToUpperInvariant();
+                employee.IsPfEligible = IsPfEligible;
+                employee.PfWageCap = PfWageCap;
+                employee.IsEsicEligible = IsEsicEligible;
+                employee.IsPtEligible = IsPtEligible;
+            }
+
             await ProcessSalaryComponentAsync(basicComponent?.Id, BasicSalary);
             await ProcessSalaryComponentAsync(specialComponent?.Id, SpecialAllowance);
             await ProcessSalaryComponentAsync(salaryComponents.FirstOrDefault(c => c.ComponentCode == "PF")?.Id, ProvidentFund);
             await ProcessSalaryComponentAsync(salaryComponents.FirstOrDefault(c => c.ComponentCode == "ESIC")?.Id, ESIC);
+            await ProcessSalaryComponentAsync(salaryComponents.FirstOrDefault(c => c.ComponentCode == "PT")?.Id, ProfessionalTax);
 
             await _context.SaveChangesAsync();
 

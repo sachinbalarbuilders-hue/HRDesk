@@ -1,0 +1,385 @@
+@page
+@model HRDesk.Web.Pages.Payroll.Compliance.IndexModel
+@{
+    ViewData["Title"] = "Statutory & ECR Compliance";
+}
+
+<div class="container-fluid px-4 py-3">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
+        <div>
+            <h4 class="fw-bold mb-1"><i class="bi bi-shield-check text-primary me-2"></i>Statutory & ECR Compliance</h4>
+            <p class="text-muted small mb-0">EPFO Electronic Challan cum Return (ECR), ESIC Monthly Returns, and Professional Tax Challans</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-page="/Payroll/Process" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Payroll Runs
+            </a>
+            <a asp-page="/Payroll/EmployeeSalary/Index" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-gear me-1"></i> Salary Structure
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card border-0 shadow-sm mb-4 bg-light">
+        <div class="card-body py-3">
+            <form method="get" class="row g-3 align-items-end">
+                <input type="hidden" name="ActiveTab" id="activeTabInput" value="@Model.ActiveTab" />
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">Wage Month</label>
+                    <select asp-for="Month" asp-items="Model.MonthOptions" class="form-select form-select-sm" onchange="this.form.submit()"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">Pay Group Filter</label>
+                    <select asp-for="PayGroupId" asp-items="Model.PayGroupOptions" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">All Pay Groups</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-funnel me-1"></i> Apply Filter
+                    </button>
+                </div>
+                <div class="col-md-4 text-md-end text-muted small pt-2">
+                    Month: <span class="fw-bold text-dark">@Model.Month</span> &bull; 
+                    EPF Members: <span class="badge bg-primary">@Model.EcrRecords.Count</span> &bull; 
+                    ESIC Covered: <span class="badge bg-success">@Model.EsicRecords.Count</span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI Summary Row -->
+    <div class="row g-3 mb-4">
+        <!-- EPFO Summary -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="text-muted small text-uppercase fw-semibold">EPFO Remittance (A/c 1 + 10)</span>
+                            <h4 class="fw-bold text-primary mb-1 mt-1">₹@Model.TotalEcrRemittance.ToString("N0")</h4>
+                            <div class="small text-muted">
+                                EE (12%): ₹@Model.TotalEcrEeShare.ToString("N0") | ER: ₹@((Model.TotalEcrErEps + Model.TotalEcrErEpf).ToString("N0"))
+                            </div>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 text-primary rounded p-2">
+                            <i class="bi bi-bank fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ESIC Summary -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="text-muted small text-uppercase fw-semibold">ESIC Remittance (4.0%)</span>
+                            <h4 class="fw-bold text-success mb-1 mt-1">₹@Model.TotalEsicRemittance.ToString("N0")</h4>
+                            <div class="small text-muted">
+                                EE (0.75%): ₹@Model.TotalEsicEeShare.ToString("N0") | ER (3.25%): ₹@Model.TotalEsicErShare.ToString("N0")
+                            </div>
+                        </div>
+                        <div class="bg-success bg-opacity-10 text-success rounded p-2">
+                            <i class="bi bi-heart-pulse fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PT Summary -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="text-muted small text-uppercase fw-semibold">Gujarat Professional Tax (PT)</span>
+                            <h4 class="fw-bold text-warning-emphasis mb-1 mt-1">₹@Model.PtReport.TotalTaxPayable.ToString("N0")</h4>
+                            <div class="small text-muted">
+                                @Model.PtReport.TotalEmployees Employees Taxable in Month
+                            </div>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 text-warning rounded p-2">
+                            <i class="bi bi-receipt fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom-0 pb-0 pt-3">
+            <ul class="nav nav-tabs card-header-tabs" id="complianceTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link @(Model.ActiveTab == "ecr" ? "active fw-bold" : "")" id="ecr-tab" data-bs-toggle="tab" data-bs-target="#ecr-pane" type="button" role="tab">
+                        <i class="bi bi-file-earmark-text text-primary me-1"></i> EPFO ECR File Generator
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(Model.ActiveTab == "esic" ? "active fw-bold" : "")" id="esic-tab" data-bs-toggle="tab" data-bs-target="#esic-pane" type="button" role="tab">
+                        <i class="bi bi-heart-pulse text-success me-1"></i> ESIC Monthly Return
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(Model.ActiveTab == "pt" ? "active fw-bold" : "")" id="pt-tab" data-bs-toggle="tab" data-bs-target="#pt-pane" type="button" role="tab">
+                        <i class="bi bi-receipt text-warning me-1"></i> Professional Tax (PT Slabs)
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-4">
+            <div class="tab-content" id="complianceTabsContent">
+                <!-- TAB 1: EPFO ECR -->
+                <div class="tab-pane fade @(Model.ActiveTab == "ecr" ? "show active" : "")" id="ecr-pane" role="tabpanel">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-0">EPFO Electronic Challan cum Return (ECR)</h5>
+                            <small class="text-muted">Standard 11-field #~# delimited plain text file ready for EPFO Unified Employer Portal upload</small>
+                        </div>
+                        <div class="mt-2 mt-sm-0">
+                            <a asp-page-handler="DownloadEcr" asp-route-month="@Model.Month" asp-route-payGroupId="@Model.PayGroupId" class="btn btn-primary btn-sm px-3 shadow-sm">
+                                <i class="bi bi-download me-1"></i> Download ECR Text File (.txt)
+                            </a>
+                        </div>
+                    </div>
+
+                    @if (Model.EcrRecords.Any())
+                    {
+                        <div class="table-responsive border rounded">
+                            <table class="table table-hover table-sm align-middle mb-0 font-monospace" style="font-size: 0.85rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>UAN</th>
+                                        <th>Member Name</th>
+                                        <th class="text-end">Gross Wages</th>
+                                        <th class="text-end">EPF Wages</th>
+                                        <th class="text-end">EPS Wages</th>
+                                        <th class="text-end">EE (12%)</th>
+                                        <th class="text-end">ER EPS (8.33%)</th>
+                                        <th class="text-end">ER EPF (3.67%)</th>
+                                        <th class="text-center">NCP</th>
+                                        <th class="text-end pe-3">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ int idx = 1; }
+                                    @foreach (var r in Model.EcrRecords)
+                                    {
+                                        <tr>
+                                            <td>@(idx++)</td>
+                                            <td><span class="badge bg-light text-dark border">@r.Uan</span></td>
+                                            <td class="fw-semibold text-dark font-sans-serif">@r.MemberName</td>
+                                            <td class="text-end">₹@r.GrossWages.ToString("N0")</td>
+                                            <td class="text-end">₹@r.EpfWages.ToString("N0")</td>
+                                            <td class="text-end">₹@r.EpsWages.ToString("N0")</td>
+                                            <td class="text-end text-danger fw-semibold">₹@r.EeShare.ToString("N0")</td>
+                                            <td class="text-end">₹@r.ErEpsShare.ToString("N0")</td>
+                                            <td class="text-end">₹@r.ErEpfShare.ToString("N0")</td>
+                                            <td class="text-center">
+                                                @if (r.NcpDays > 0)
+                                                {
+                                                    <span class="badge bg-warning text-dark">@r.NcpDays d</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">0</span>
+                                                }
+                                            </td>
+                                            <td class="text-end pe-3 fw-bold text-primary">₹@((r.EeShare + r.ErEpsShare + r.ErEpfShare).ToString("N0"))</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="table-secondary fw-bold">
+                                    <tr>
+                                        <td colspan="3" class="ps-3">Total Remittance (@Model.EcrRecords.Count Members)</td>
+                                        <td class="text-end">₹@Model.TotalEcrGross.ToString("N0")</td>
+                                        <td class="text-end">₹@Model.TotalEcrEpfWages.ToString("N0")</td>
+                                        <td class="text-end">-</td>
+                                        <td class="text-end text-danger">₹@Model.TotalEcrEeShare.ToString("N0")</td>
+                                        <td class="text-end">₹@Model.TotalEcrErEps.ToString("N0")</td>
+                                        <td class="text-end">₹@Model.TotalEcrErEpf.ToString("N0")</td>
+                                        <td class="text-center">-</td>
+                                        <td class="text-end pe-3 text-primary">₹@Model.TotalEcrRemittance.ToString("N0")</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info border-0 rounded-3 text-center py-4">
+                            <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                            No PF contributions found for month <strong>@Model.Month</strong>. 
+                            Ensure payroll has been processed with PF-eligible employees in 
+                            <a asp-page="/Payroll/Process" class="alert-link">Payroll Runs</a>.
+                        </div>
+                    }
+                </div>
+
+                <!-- TAB 2: ESIC MONTHLY RETURN -->
+                <div class="tab-pane fade @(Model.ActiveTab == "esic" ? "show active" : "")" id="esic-pane" role="tabpanel">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-0">ESIC Monthly Contribution Return</h5>
+                            <small class="text-muted">Return file for employees earning monthly gross &le; ₹21,000 (0.75% EE + 3.25% ER)</small>
+                        </div>
+                        <div class="mt-2 mt-sm-0">
+                            <a asp-page-handler="DownloadEsicCsv" asp-route-month="@Model.Month" asp-route-payGroupId="@Model.PayGroupId" class="btn btn-success btn-sm px-3 shadow-sm">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Download ESIC CSV (.csv)
+                            </a>
+                        </div>
+                    </div>
+
+                    @if (Model.EsicRecords.Any())
+                    {
+                        <div class="table-responsive border rounded">
+                            <table class="table table-hover table-sm align-middle mb-0 font-monospace" style="font-size: 0.85rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>IP Number</th>
+                                        <th>Insured Person Name</th>
+                                        <th class="text-center">Paid Days</th>
+                                        <th class="text-end">Earned Wages</th>
+                                        <th class="text-end">EE Share (0.75%)</th>
+                                        <th class="text-end">ER Share (3.25%)</th>
+                                        <th class="text-end pe-3">Total ESIC</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ int esicIdx = 1; }
+                                    @foreach (var r in Model.EsicRecords)
+                                    {
+                                        <tr>
+                                            <td>@(esicIdx++)</td>
+                                            <td><span class="badge bg-light text-dark border">@r.IpNumber</span></td>
+                                            <td class="fw-semibold text-dark font-sans-serif">@r.IpName</td>
+                                            <td class="text-center"><span class="badge bg-secondary-subtle text-dark">@r.PaidDays</span></td>
+                                            <td class="text-end">₹@r.TotalWages.ToString("N2")</td>
+                                            <td class="text-end text-danger fw-semibold">₹@r.EmployeeContribution.ToString("N2")</td>
+                                            <td class="text-end">₹@r.EmployerContribution.ToString("N2")</td>
+                                            <td class="text-end pe-3 fw-bold text-success">₹@((r.EmployeeContribution + r.EmployerContribution).ToString("N2"))</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot class="table-secondary fw-bold">
+                                    <tr>
+                                        <td colspan="4" class="ps-3">Total ESIC Contribution (@Model.EsicRecords.Count Insured Persons)</td>
+                                        <td class="text-end">₹@Model.TotalEsicWages.ToString("N2")</td>
+                                        <td class="text-end text-danger">₹@Model.TotalEsicEeShare.ToString("N2")</td>
+                                        <td class="text-end">₹@Model.TotalEsicErShare.ToString("N2")</td>
+                                        <td class="text-end pe-3 text-success">₹@Model.TotalEsicRemittance.ToString("N2")</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info border-0 rounded-3 text-center py-4">
+                            <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                            No ESIC covered employees (Gross &le; ₹21,000) recorded for month <strong>@Model.Month</strong>.
+                        </div>
+                    }
+                </div>
+
+                <!-- TAB 3: PROFESSIONAL TAX (GUJARAT) -->
+                <div class="tab-pane fade @(Model.ActiveTab == "pt" ? "show active" : "")" id="pt-pane" role="tabpanel">
+                    <div class="mb-3">
+                        <h5 class="fw-bold mb-0">Professional Tax (PT) Challan Summary — Gujarat</h5>
+                        <small class="text-muted">Categorized by statutory wage slabs under Gujarat State Tax on Professions, Trades, Callings and Employments Act</small>
+                    </div>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-6">
+                            <div class="card border">
+                                <div class="card-header bg-light py-2">
+                                    <h6 class="mb-0 fw-bold small text-uppercase">Monthly PT Slab Breakdown</h6>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Monthly Gross Wages</th>
+                                                <th class="text-center">Rate / Employee</th>
+                                                <th class="text-center">Count</th>
+                                                <th class="text-end">Total Payable</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var slab in Model.PtReport.Slabs)
+                                            {
+                                                <tr>
+                                                    <td class="fw-semibold">@slab.SlabDescription</td>
+                                                    <td class="text-center">₹@slab.RatePerEmployee.ToString("N0")</td>
+                                                    <td class="text-center">
+                                                        @if (slab.EmployeeCount > 0)
+                                                        {
+                                                            <span class="badge bg-primary">@slab.EmployeeCount</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">0</span>
+                                                        }
+                                                    </td>
+                                                    <td class="text-end fw-bold text-dark">₹@slab.TotalTaxAmount.ToString("N0")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                        <tfoot class="table-secondary fw-bold">
+                                            <tr>
+                                                <td colspan="2" class="ps-3">Total Challan Amount</td>
+                                                <td class="text-center">@Model.PtReport.TotalEmployees</td>
+                                                <td class="text-end text-primary">₹@Model.PtReport.TotalTaxPayable.ToString("N0")</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="card border bg-light h-100">
+                                <div class="card-body">
+                                    <h6 class="fw-bold text-primary mb-2"><i class="bi bi-info-circle me-1"></i> Gujarat PT Rules & Due Dates</h6>
+                                    <ul class="small text-muted mb-0 ps-3">
+                                        <li class="mb-2">Monthly Gross &ge; ₹12,000: <strong>₹200 / month</strong></li>
+                                        <li class="mb-2">Monthly Gross ₹9,000 to ₹11,999: <strong>₹150 / month</strong></li>
+                                        <li class="mb-2">Monthly Gross ₹6,000 to ₹8,999: <strong>₹80 / month</strong></li>
+                                        <li class="mb-2">Monthly Gross &lt; ₹6,000: <strong>Exempt (₹0)</strong></li>
+                                        <li class="mb-2">Monthly Challan Form 5A due by the <strong>15th of the succeeding month</strong>.</li>
+                                        <li>Annual PT Return Form 5 due on or before <strong>30th September</strong>.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('#complianceTabs button[data-bs-toggle="tab"]');
+            const activeTabInput = document.getElementById('activeTabInput');
+            tabs.forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function(e) {
+                    const id = e.target.id.replace('-tab', '');
+                    if (activeTabInput) activeTabInput.value = id;
+                });
+            });
+        });
+    </script>
+}

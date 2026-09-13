@@ -1,4 +1,4 @@
-﻿using HRDesk.Web.Data;
+using HRDesk.Web.Data;
 using HRDesk.Web.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -72,16 +72,19 @@ public class SequenceService : ISequenceService
         var endDate = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
 
         var regAppNos = await _db.AttendanceRegularizations
+            .AsNoTracking()
             .Where(r => r.RequestDate >= startDate && r.RequestDate <= endDate && r.ApplicationNumber != null)
             .Select(r => r.ApplicationNumber)
             .ToListAsync();
 
         var leaveAppNos = await _db.LeaveApplications
+            .AsNoTracking()
             .Where(l => l.StartDate >= startDate && l.StartDate <= endDate && l.ApplicationNumber != null)
             .Select(l => l.ApplicationNumber)
             .ToListAsync();
 
         var attendanceAppNos = await _db.DailyAttendance
+            .AsNoTracking()
             .Where(d => d.RecordDate >= startDate && d.RecordDate <= endDate && d.ApplicationNumber != null)
             .Select(d => d.ApplicationNumber)
             .ToListAsync();

@@ -3,6 +3,7 @@
 @using HRDesk.Web.Models
 @{
     ViewData["Title"] = "Employees";
+    var isArchivedTab = string.Equals(Model.Tab, "archived", StringComparison.OrdinalIgnoreCase);
 }
 
 <form id="ajaxTokenForm" style="display:none">@Html.AntiForgeryToken()</form>
@@ -10,45 +11,83 @@
 @if (TempData["SetNameResult"] is string msg)
 {
     <div class="alert alert-info alert-dismissible fade show" role="alert">
-        @msg
+        <i class="bi bi-info-circle me-2"></i>@msg
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] is string errMsg)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@errMsg
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
 <!-- Page Header -->
-<div class="d-flex align-items-center justify-content-between mb-4">
+<div class="d-flex align-items-center justify-content-between mb-3">
     <div>
         <h4 class="mb-1 fw-bold">Employees</h4>
-        <p class="text-muted mb-0 small">Manage your organization's workforce</p>
+        <p class="text-muted mb-0 small">Manage your organization's workforce and archive records</p>
     </div>
     <a class="btn btn-primary" asp-page="./Create">
         <i class="bi bi-person-plus-fill me-2"></i>Add Employee
     </a>
 </div>
 
+<!-- Pill Tabs: Active Workforce vs Archived -->
+<div class="mb-3">
+    <ul class="nav nav-pills p-1 bg-white rounded-pill shadow-sm border d-inline-flex" id="empTabs">
+        <li class="nav-item">
+            <a class="nav-link rounded-pill px-4 py-2 fw-semibold @(!isArchivedTab ? "active" : "")" 
+               asp-page="./Index" asp-route-tab="active" asp-route-searchQuery="@Model.SearchQuery" asp-route-payGroupFilter="@Model.PayGroupFilter">
+                <i class="bi bi-people-fill me-2"></i>Active Workforce (@Model.ActiveEmployeesCount)
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link rounded-pill px-4 py-2 fw-semibold @(isArchivedTab ? "active text-bg-warning" : "text-muted")" 
+               asp-page="./Index" asp-route-tab="archived" asp-route-searchQuery="@Model.SearchQuery" asp-route-payGroupFilter="@Model.PayGroupFilter">
+                <i class="bi bi-archive me-2"></i>Archived Employees (@Model.ArchivedEmployeesCount)
+            </a>
+        </li>
+    </ul>
+</div>
+
 <!-- Main Card -->
-<div class="card">
-    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <h5 class="mb-0">Employee List
+<div class="card border-0 shadow-sm overflow-hidden">
+    <div class="card-header bg-white py-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <h5 class="mb-0 fw-bold">
+            <i class="bi @(!isArchivedTab ? "bi-people text-primary" : "bi-archive text-warning") me-2"></i>
+            @(!isArchivedTab ? "Active Workforce" : "Archived Employees")
             <span class="badge text-bg-secondary ms-2 fw-normal">@(Model.Employees?.TotalCount ?? 0) total</span>
         </h5>
 
         <!-- Search and Filter -->
         <form method="get" class="d-flex flex-wrap gap-2 align-items-center" id="searchForm">
+            <input type="hidden" name="tab" value="@Model.Tab" />
             <div class="input-group" style="width:280px;">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="text" name="SearchQuery" class="form-control"
                        placeholder="Search name, ID, phone..."
                        value="@Model.SearchQuery" id="searchInput" autocomplete="off" />
             </div>
-            <select name="StatusFilter" class="form-select" id="statusFilter" style="width:160px;">
-                <option value="all" selected="@(Model.StatusFilter == "all" || string.IsNullOrEmpty(Model.StatusFilter))">All Status</option>
-                <option value="active" selected="@(Model.StatusFilter == "active")">Active Only</option>
-                <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Inactive Only</option>
-            </select>
-            @if (!string.IsNullOrWhiteSpace(Model.SearchQuery) || (!string.IsNullOrWhiteSpace(Model.StatusFilter) && Model.StatusFilter != "all"))
+            @if (!isArchivedTab)
             {
-                <a href="@Url.Page("./Index")" class="btn btn-outline-secondary" title="Clear">
+                <select name="StatusFilter" class="form-select" id="statusFilter" style="width:140px;">
+                    <option value="all" selected="@(Model.StatusFilter == "all" || string.IsNullOrEmpty(Model.StatusFilter))">All Status</option>
+                    <option value="active" selected="@(Model.StatusFilter == "active")">Active Only</option>
+                    <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Inactive Only</option>
+                </select>
+            }
+            <select name="PayGroupFilter" class="form-select" id="payGroupFilter" style="width:170px;" onchange="document.getElementById('searchForm').submit();">
+                <option value="">All Pay Groups</option>
+                @foreach (var pg in Model.PayGroupsList)
+                {
+                    <option value="@pg.Id" selected="@(Model.PayGroupFilter == pg.Id)">@pg.Name (@pg.Code)</option>
+                }
+            </select>
+            @if (!string.IsNullOrWhiteSpace(Model.SearchQuery) || (!isArchivedTab && !string.IsNullOrWhiteSpace(Model.StatusFilter) && Model.StatusFilter != "all") || Model.PayGroupFilter.HasValue)
+            {
+                <a asp-page="./Index" asp-route-tab="@Model.Tab" class="btn btn-outline-secondary" title="Clear">
                     <i class="bi bi-x-lg"></i>
                 </a>
             }
@@ -64,18 +103,19 @@
                         <th>Name</th>
                         <th>Department</th>
                         <th>Designation</th>
+                        <th>Pay Group</th>
                         <th>Device</th>
                         <th>Status</th>
                         <th class="text-end pe-4">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                @if (Model.Employees.Count == 0)
+                @if (Model.Employees == null || Model.Employees.Count == 0)
                 {
                     <tr>
-                        <td colspan="7" class="text-center py-5 text-muted">
-                            <i class="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
-                            No employees found. Try adjusting your search or filters.
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi @(!isArchivedTab ? "bi-people" : "bi-archive") fs-1 d-block mb-2 opacity-25"></i>
+                            @(!isArchivedTab ? "No employees found. Try adjusting your search or filters." : "No archived employees found.")
                         </td>
                     </tr>
                 }
@@ -84,20 +124,16 @@
                     foreach (var e in Model.Employees)
                     {
                         var isActive = string.Equals(e.Status, "active", StringComparison.OrdinalIgnoreCase);
+                        var isArchived = string.Equals(e.Status, "archived", StringComparison.OrdinalIgnoreCase);
                         var btnLabel = e.DeviceSynced == 1 ? "Resync" : "Set in Device";
-                        var btnClass = e.DeviceSynced == 1 ? "btn-outline-warning" : "btn-warning";
 
-                        <tr>
+                        <tr class="@(isArchived ? "table-light" : "")">
                             <td class="ps-4 text-muted">#@e.EmployeeId</td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="avatar-circle" style="overflow: hidden; padding: 0;">
                                         @{
-                                            // PhotoData is not loaded in list queries to avoid loading BLOBs.
-                                            // We check PhotoPath as a proxy: migrated employees keep their PhotoPath set.
-                                            // For employees uploaded after migration, PhotoData is checked via ADO.NET in other places, 
-                                            // but for the list view, we just try to load the Thumbnail endpoint which handles 404s gracefully.
-                                            bool hasPhoto = true; // Let the img onerror handler take care of fallback
+                                            bool hasPhoto = true;
                                         }
                                         @if (hasPhoto)
                                         {
@@ -112,7 +148,9 @@
                                         }
                                     </div>
                                     <div>
-                                        <div class="fw-semibold">@e.EmployeeName</div>
+                                        <div class="fw-semibold @(isArchived ? "text-muted text-decoration-line-through" : "")">
+                                            <a asp-page="./Details" asp-route-id="@e.EmployeeId" class="text-reset text-decoration-none">@e.EmployeeName</a>
+                                        </div>
                                         @if (!string.IsNullOrEmpty(e.Phone))
                                         {
                                             <div class="small text-muted">@e.Phone</div>
@@ -122,6 +160,56 @@
                             </td>
                             <td>@(e.Department?.DepartmentName ?? "—")</td>
                             <td>@(e.Designation?.DesignationName ?? "—")</td>
+                            <td>
+                                @if (isArchived)
+                                {
+                                    <span class="text-muted small">@(e.PayGroup?.Name ?? "Unassigned")</span>
+                                }
+                                else
+                                {
+                                    <div class="dropup d-inline-block">
+                                        <button class="btn btn-sm btn-light border dropdown-toggle py-0 px-2 small fw-semibold" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Click to assign or change pay group">
+                                            @if (e.PayGroup != null)
+                                            {
+                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-1">@e.PayGroup.Code</span>
+                                                <span>@e.PayGroup.Name</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted fst-italic">Unassigned</span>
+                                            }
+                                        </button>
+                                        <ul class="dropdown-menu shadow-sm">
+                                            <li class="dropdown-header small text-uppercase fw-bold">Select Pay Group</li>
+                                            @foreach (var pg in Model.PayGroupsList)
+                                            {
+                                                <li>
+                                                    <form method="post" asp-page-handler="UpdatePayGroup">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="employeeId" value="@e.EmployeeId" />
+                                                        <input type="hidden" name="payGroupId" value="@pg.Id" />
+                                                        <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between py-1 @(e.PayGroupId == pg.Id ? "active fw-bold" : "")">
+                                                            <span>@pg.Name</span>
+                                                            <span class="badge @(e.PayGroupId == pg.Id ? "bg-light text-primary" : "bg-primary-subtle text-primary") ms-2">@pg.Code</span>
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            }
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <form method="post" asp-page-handler="UpdatePayGroup">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="employeeId" value="@e.EmployeeId" />
+                                                    <input type="hidden" name="payGroupId" value="" />
+                                                    <button type="submit" class="dropdown-item text-danger py-1">
+                                                        <i class="bi bi-x-circle me-1"></i>Unassign Group
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                }
+                            </td>
                             <td>
                                 <div class="device-status" data-employee-id="@e.EmployeeId">
                                 @if (e.DeviceSynced == 1)
@@ -139,53 +227,98 @@
                                 }
                             </td>
                             <td>
-                                <span class="badge rounded-pill @(isActive ? "text-bg-success" : "text-bg-secondary")">
-                                    @((e.Status ?? "unknown").ToUpper())
-                                </span>
+                                @if (isArchived)
+                                {
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                        ARCHIVED
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge rounded-pill status-badge @(isActive ? "text-bg-success" : "text-bg-secondary")">
+                                        @((e.Status ?? "unknown").ToUpper())
+                                    </span>
+                                }
                             </td>
                             <td class="text-end pe-4">
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bi bi-three-dots-vertical"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <a class="dropdown-item" asp-page="./Details" asp-route-id="@e.EmployeeId">
-                                                <i class="bi bi-eye me-2 text-info"></i>View Profile
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-page="./Edit" asp-route-id="@e.EmployeeId">
-                                                <i class="bi bi-pencil me-2 text-primary"></i>Edit
-                                            </a>
-                                        </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <button type="button"
-                                                    class="dropdown-item toggle-status-ajax"
-                                                    data-employee-id="@e.EmployeeId"
-                                                    data-current-status="@(isActive ? "active" : "inactive")">
-                                                <i class="bi @(isActive ? "bi-person-slash" : "bi-person-check") me-2 @(isActive ? "text-warning" : "text-success")"></i>
-                                                @(isActive ? "Deactivate" : "Activate")
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <button type="button" class="dropdown-item set-name-ajax" data-employee-id="@e.EmployeeId">
-                                                <i class="bi bi-phone me-2 text-secondary"></i>@btnLabel
-                                            </button>
-                                        </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <form method="post" asp-page-handler="Delete" asp-route-id="@e.EmployeeId"
-                                                  onsubmit="return confirm('Delete this employee? This also removes them from the biometric device.');">
-                                                @Html.AntiForgeryToken()
-                                                <button type="submit" class="dropdown-item text-danger">
-                                                    <i class="bi bi-trash me-2"></i>Delete
+                                @if (!isArchived)
+                                {
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                            <li>
+                                                <a class="dropdown-item" asp-page="./Details" asp-route-id="@e.EmployeeId">
+                                                    <i class="bi bi-eye me-2 text-info"></i>View Profile
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" asp-page="./Edit" asp-route-id="@e.EmployeeId">
+                                                    <i class="bi bi-pencil me-2 text-primary"></i>Edit
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button type="button"
+                                                        class="dropdown-item toggle-status-ajax"
+                                                        data-employee-id="@e.EmployeeId"
+                                                        data-current-status="@(isActive ? "active" : "inactive")">
+                                                    <i class="bi @(isActive ? "bi-person-slash" : "bi-person-check") me-2 @(isActive ? "text-warning" : "text-success")"></i>
+                                                    @(isActive ? "Deactivate" : "Activate")
                                                 </button>
-                                            </form>
-                                        </li>
-                                    </ul>
-                                </div>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item set-name-ajax" data-employee-id="@e.EmployeeId">
+                                                    <i class="bi bi-phone me-2 text-secondary"></i>@btnLabel
+                                                </button>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="post" asp-page-handler="Archive" asp-route-id="@e.EmployeeId"
+                                                      onsubmit="return confirm('Move employee \'@e.EmployeeName\' to Archive? Their historical punches and payroll records will be preserved safely, but device punching will be disabled.');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="bi bi-archive me-2"></i>Archive (Soft Delete)
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                            <li>
+                                                <a class="dropdown-item" asp-page="./Details" asp-route-id="@e.EmployeeId">
+                                                    <i class="bi bi-eye me-2 text-info"></i>View Profile
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="post" asp-page-handler="Restore" asp-route-id="@e.EmployeeId">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="dropdown-item text-success">
+                                                        <i class="bi bi-arrow-counterclockwise me-2"></i>Restore
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form method="post" asp-page-handler="Delete" asp-route-id="@e.EmployeeId">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="bi bi-trash3-fill me-2"></i>Permanently Delete
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                }
                             </td>
                         </tr>
                     }
@@ -196,7 +329,16 @@
     </div>
 
     <!-- Pagination Footer -->
-    <partial name="_Pagination" model="@(new PaginationViewModel { List = Model.Employees, QueryParams = new Dictionary<string, string?> { { "SearchQuery", Model.SearchQuery }, { "StatusFilter", Model.StatusFilter } }, PageName = "./Index" })" />
+    <partial name="_Pagination" model="@(new PaginationViewModel { 
+        List = Model.Employees, 
+        QueryParams = new Dictionary<string, string?> { 
+            { "SearchQuery", Model.SearchQuery }, 
+            { "StatusFilter", Model.StatusFilter },
+            { "PayGroupFilter", Model.PayGroupFilter?.ToString() },
+            { "Tab", Model.Tab }
+        }, 
+        PageName = "./Index" 
+    })" />
 </div>
 
 @section Scripts {
@@ -297,10 +439,10 @@
                     btn.classList.remove('btn-outline-secondary', 'btn-outline-success');
                     btn.classList.add(next === 'active' ? 'btn-outline-secondary' : 'btn-outline-success');
                     const row = btn.closest('tr');
-                    const badge = row?.querySelector('td:nth-child(6) .badge');
+                    const badge = row?.querySelector('.status-badge');
                     if (badge) {
                         badge.textContent = next.toUpperCase();
-                        badge.className = `badge rounded-pill ${next === 'active' ? 'text-bg-success' : 'text-bg-secondary'}`;
+                        badge.className = `badge rounded-pill status-badge ${next === 'active' ? 'text-bg-success' : 'text-bg-secondary'}`;
                     }
                     showToast('success', data.message || 'Status updated');
                 } else {

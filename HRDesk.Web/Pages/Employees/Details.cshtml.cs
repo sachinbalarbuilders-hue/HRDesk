@@ -35,6 +35,7 @@ public sealed class DetailsModel : PageModel
         EmployeeData = await _db.Employees
             .Include(e => e.Department)
             .Include(e => e.Designation)
+            .Include(e => e.PayGroup)
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.EmployeeId == Id);
 

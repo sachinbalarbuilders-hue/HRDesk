@@ -65,25 +65,89 @@
                             </div>
 
                             <div class="row g-3">
-                                <div class="col-md-6 mb-4">
-                                    <label asp-for="ProvidentFund" class="form-label fw-semibold small text-uppercase text-muted">PF Deduction (₹)</label>
+                                <div class="col-md-4 mb-3">
+                                    <label asp-for="ProvidentFund" class="form-label fw-semibold small text-uppercase text-muted">PF (₹)</label>
                                     <div class="input-group drop-shadow-sm">
-                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-dash-circle text-danger"></i></span>
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-bank text-primary"></i></span>
                                         <input asp-for="ProvidentFund" class="form-control border-start-0 ps-0 text-danger" type="number" step="0.01" min="0" placeholder="0.00" />
                                     </div>
+                                    <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">0 = Auto 12% (₹1,800 max)</small>
                                     <span asp-validation-for="ProvidentFund" class="text-danger small mt-1 d-block"></span>
                                 </div>
-                                <div class="col-md-6 mb-4">
-                                    <label asp-for="ESIC" class="form-label fw-semibold small text-uppercase text-muted">ESIC Deduction (₹)</label>
+                                <div class="col-md-4 mb-3">
+                                    <label asp-for="ESIC" class="form-label fw-semibold small text-uppercase text-muted">ESIC (₹)</label>
                                     <div class="input-group drop-shadow-sm">
-                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-dash-circle text-danger"></i></span>
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-heart-pulse text-success"></i></span>
                                         <input asp-for="ESIC" class="form-control border-start-0 ps-0 text-danger" type="number" step="0.01" min="0" placeholder="0.00" />
                                     </div>
+                                    <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">0 = Auto 0.75% (&le; ₹21k)</small>
                                     <span asp-validation-for="ESIC" class="text-danger small mt-1 d-block"></span>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label asp-for="ProfessionalTax" class="form-label fw-semibold small text-uppercase text-muted">PT Gujarat (₹)</label>
+                                    <div class="input-group drop-shadow-sm">
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-receipt text-warning"></i></span>
+                                        <input asp-for="ProfessionalTax" class="form-control border-start-0 ps-0 text-danger" type="number" step="0.01" min="0" placeholder="0.00" />
+                                    </div>
+                                    <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">0 = Auto Gujarat slabs</small>
+                                    <span asp-validation-for="ProfessionalTax" class="text-danger small mt-1 d-block"></span>
                                 </div>
                             </div>
 
-                            <div class="mt-5 d-flex gap-2">
+                            <div class="card bg-light border-0 shadow-none p-3 mb-4 rounded-3">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="fw-bold small text-dark"><i class="bi bi-shield-check text-primary me-1"></i> Statutory Compliance Eligibility</span>
+                                    <a class="small text-decoration-none" data-bs-toggle="collapse" href="#statutoryConfigCollapse" role="button" aria-expanded="false">
+                                        Configure Details <i class="bi bi-chevron-down"></i>
+                                    </a>
+                                </div>
+                                <div class="collapse" id="statutoryConfigCollapse">
+                                    <div class="pt-2 border-top">
+                                        <div class="row g-2 mb-2">
+                                            <div class="col-6">
+                                                <div class="form-check form-switch small">
+                                                    <input class="form-check-input" type="checkbox" asp-for="IsPfEligible" role="switch" id="salaryPfEligible">
+                                                    <label class="form-check-label" for="salaryPfEligible">PF Eligible (12%)</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check form-switch small">
+                                                    <input class="form-check-input" type="checkbox" asp-for="PfWageCap" role="switch" id="salaryPfCap">
+                                                    <label class="form-check-label" for="salaryPfCap">Cap at ₹15k Ceiling</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check form-switch small">
+                                                    <input class="form-check-input" type="checkbox" asp-for="IsEsicEligible" role="switch" id="salaryEsicEligible">
+                                                    <label class="form-check-label" for="salaryEsicEligible">ESIC Eligible</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check form-switch small">
+                                                    <input class="form-check-input" type="checkbox" asp-for="IsPtEligible" role="switch" id="salaryPtEligible">
+                                                    <label class="form-check-label" for="salaryPtEligible">PT Eligible</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row g-2">
+                                            <div class="col-md-4">
+                                                <label class="form-label small mb-1" style="font-size:0.75rem;">UAN</label>
+                                                <input asp-for="UanNumber" class="form-control form-control-sm" placeholder="EPFO UAN" />
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small mb-1" style="font-size:0.75rem;">ESIC IP No.</label>
+                                                <input asp-for="EsicNumber" class="form-control form-control-sm" placeholder="ESIC Number" />
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small mb-1" style="font-size:0.75rem;">PAN</label>
+                                                <input asp-for="PanNumber" class="form-control form-control-sm text-uppercase" placeholder="PAN" maxlength="10" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 d-flex gap-2">
                                 <button type="submit" class="btn btn-primary px-4 py-2">
                                     <i class="bi bi-save me-2"></i>Save Configuration
                                 </button>
@@ -94,12 +158,12 @@
 
                     <!-- Info/Summary Side -->
                     <div class="col-md-5 bg-light p-4 p-lg-5 border-start">
-                        <h6 class="fw-bold text-uppercase small text-muted mb-4">Salary Summary</h6>
+                        <h6 class="fw-bold text-uppercase small text-muted mb-4">Salary & Statutory Summary</h6>
                         <div class="mb-4 bg-white p-3 rounded border">
                                 <span class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem;">Net Annual Projection</span>
                                 <h3 class="mb-0 text-primary fw-bolder mt-1" id="annualProjection">
                                     @{ 
-                                        var netAnnual = ((Model.BasicSalary + Model.SpecialAllowance) - (Model.ProvidentFund + Model.ESIC)) * 12;
+                                        var netAnnual = ((Model.BasicSalary + Model.SpecialAllowance) - (Model.ProvidentFund + Model.ESIC + Model.ProfessionalTax)) * 12;
                                         var formattedNetAnnual = netAnnual.ToString("C0", new System.Globalization.CultureInfo("en-IN"));
                                      }
                                     @formattedNetAnnual
@@ -110,13 +174,25 @@
                             <span class="text-muted">Monthly Gross</span>
                             <span class="fw-bold text-dark">₹<span id="grossSalary">@((Model.BasicSalary + Model.SpecialAllowance).ToString("N2"))</span></span>
                         </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">PF (EE 12%)</span>
+                            <span class="text-danger small" id="pfEstDisplay">- ₹@Model.ProvidentFund.ToString("N2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">ESIC (EE 0.75%)</span>
+                            <span class="text-danger small" id="esicEstDisplay">- ₹@Model.ESIC.ToString("N2")</span>
+                        </div>
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">Total Deductions</span>
-                            <span class="fw-bold text-danger">- ₹<span id="totalDeductions">@((Model.ProvidentFund + Model.ESIC).ToString("N2"))</span></span>
+                            <span class="text-muted small">PT (Gujarat)</span>
+                            <span class="text-danger small" id="ptEstDisplay">- ₹@Model.ProfessionalTax.ToString("N2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2 pt-2 border-top">
+                            <span class="text-muted fw-semibold">Total Deductions</span>
+                            <span class="fw-bold text-danger">- ₹<span id="totalDeductions">@((Model.ProvidentFund + Model.ESIC + Model.ProfessionalTax).ToString("N2"))</span></span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-0 mt-3 pt-3 border-top">
-                            <span class="fw-bold text-dark">Net Payout</span>
-                            <span class="fw-900 text-primary fs-5">₹<span id="totalSalary">@((Model.BasicSalary + Model.SpecialAllowance - Model.ProvidentFund - Model.ESIC).ToString("N2"))</span></span>
+                            <span class="fw-bold text-dark">Estimated Net Take-Home</span>
+                            <span class="fw-900 text-primary fs-5">₹<span id="totalSalary">@((Model.BasicSalary + Model.SpecialAllowance - Model.ProvidentFund - Model.ESIC - Model.ProfessionalTax).ToString("N2"))</span></span>
                         </div>
                         
                         <hr class="my-4">
@@ -209,32 +285,87 @@
             const specialInput = document.querySelector('input[name="SpecialAllowance"]');
             const pfInput = document.querySelector('input[name="ProvidentFund"]');
             const esicInput = document.querySelector('input[name="ESIC"]');
+            const ptInput = document.querySelector('input[name="ProfessionalTax"]');
+
+            const pfEligibleSwitch = document.getElementById('salaryPfEligible');
+            const pfCapSwitch = document.getElementById('salaryPfCap');
+            const esicEligibleSwitch = document.getElementById('salaryEsicEligible');
+            const ptEligibleSwitch = document.getElementById('salaryPtEligible');
             
             const grossSpan = document.getElementById('grossSalary');
             const deductionSpan = document.getElementById('totalDeductions');
             const netSpan = document.getElementById('totalSalary');
-            const annualSpan = document.getElementById('annualSalary');
+            const annualSpan = document.getElementById('annualProjection');
+
+            const pfEstDisplay = document.getElementById('pfEstDisplay');
+            const esicEstDisplay = document.getElementById('esicEstDisplay');
+            const ptEstDisplay = document.getElementById('ptEstDisplay');
 
             function updateTotal() {
-                const basic = parseFloat(basicInput.value) || 0;
-                const special = parseFloat(specialInput.value) || 0;
-                const pf = parseFloat(pfInput.value) || 0;
-                const esic = parseFloat(esicInput.value) || 0;
-
+                const basic = parseFloat(basicInput?.value) || 0;
+                const special = parseFloat(specialInput?.value) || 0;
                 const gross = basic + special;
-                const deductions = pf + esic;
-                const net = gross - deductions;
+
+                let manualPf = parseFloat(pfInput?.value) || 0;
+                let manualEsic = parseFloat(esicInput?.value) || 0;
+                let manualPt = parseFloat(ptInput?.value) || 0;
+
+                let effectivePf = manualPf;
+                let isPfAuto = false;
+                if (manualPf <= 0 && pfEligibleSwitch && pfEligibleSwitch.checked) {
+                    let wages = basic;
+                    if (pfCapSwitch && pfCapSwitch.checked) {
+                        wages = Math.min(15000, wages);
+                    }
+                    effectivePf = Math.round(wages * 0.12);
+                    isPfAuto = true;
+                }
+
+                let effectiveEsic = manualEsic;
+                let isEsicAuto = false;
+                if (manualEsic <= 0 && esicEligibleSwitch && esicEligibleSwitch.checked && gross <= 21000) {
+                    effectiveEsic = Math.ceil(gross * 0.0075);
+                    isEsicAuto = true;
+                }
+
+                let effectivePt = manualPt;
+                let isPtAuto = false;
+                if (manualPt <= 0 && ptEligibleSwitch && ptEligibleSwitch.checked) {
+                    if (gross >= 12000) effectivePt = 200;
+                    else if (gross >= 9000) effectivePt = 150;
+                    else if (gross >= 6000) effectivePt = 80;
+                    else effectivePt = 0;
+                    isPtAuto = true;
+                }
+
+                if (pfEstDisplay) {
+                    pfEstDisplay.innerHTML = `- ₹${effectivePf.toFixed(2)} ${isPfAuto ? '<span class="badge bg-primary-subtle text-primary border" style="font-size:0.65rem;">Auto</span>' : ''}`;
+                }
+                if (esicEstDisplay) {
+                    esicEstDisplay.innerHTML = `- ₹${effectiveEsic.toFixed(2)} ${isEsicAuto ? '<span class="badge bg-success-subtle text-success border" style="font-size:0.65rem;">Auto</span>' : ''}`;
+                }
+                if (ptEstDisplay) {
+                    ptEstDisplay.innerHTML = `- ₹${effectivePt.toFixed(2)} ${isPtAuto ? '<span class="badge bg-warning-subtle text-warning border" style="font-size:0.65rem;">Auto</span>' : ''}`;
+                }
+
+                const deductions = effectivePf + effectiveEsic + effectivePt;
+                const net = Math.max(0, gross - deductions);
                 const annual = net * 12;
 
-                grossSpan.textContent = gross.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                deductionSpan.textContent = deductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                netSpan.textContent = net.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                annualSpan.textContent = annual.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+                if (grossSpan) grossSpan.textContent = gross.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (deductionSpan) deductionSpan.textContent = deductions.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (netSpan) netSpan.textContent = net.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (annualSpan) annualSpan.textContent = annual.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
             }
 
-            [basicInput, specialInput, pfInput, esicInput].forEach(inp => {
-                if(inp) inp.addEventListener('input', updateTotal);
+            [basicInput, specialInput, pfInput, esicInput, ptInput].forEach(inp => {
+                if (inp) inp.addEventListener('input', updateTotal);
             });
+            [pfEligibleSwitch, pfCapSwitch, esicEligibleSwitch, ptEligibleSwitch].forEach(sw => {
+                if (sw) sw.addEventListener('change', updateTotal);
+            });
+
+            updateTotal();
         });
     </script>
 }

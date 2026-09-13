@@ -108,11 +108,17 @@
                 <a asp-page="/Loans/Applications/Index" class="nav-link">
                     <i class="bi bi-wallet2"></i> Loan Applications
                 </a>
+                <a asp-page="/Payroll/PayGroups/Index" class="nav-link">
+                    <i class="bi bi-diagram-3"></i> Pay Groups
+                </a>
                 <a asp-page="/Payroll/EmployeeSalary/Index" class="nav-link">
                     <i class="bi bi-currency-rupee"></i> Employee Salaries
                 </a>
                 <a asp-page="/Payroll/Process" class="nav-link">
-                    <i class="bi bi-calculator"></i> Process Payroll
+                    <i class="bi bi-calculator"></i> Payroll
+                </a>
+                <a asp-page="/Payroll/Compliance/Index" class="nav-link">
+                    <i class="bi bi-shield-check"></i> Statutory & ECR
                 </a>
 
                 <!-- Recruitment Section -->
@@ -170,32 +176,62 @@
             <!-- Topbar -->
             <header class="topbar">
                 <div class="d-flex align-items-center">
-                    <button class="topbar-toggler" id="sidebarToggle">
+                    <button class="topbar-toggler" id="sidebarToggle" aria-label="Toggle Navigation">
                         <i class="bi bi-list"></i>
                     </button>
-                    <h5 class="mb-0 ms-2 fw-semibold text-body-emphasis">@ViewData["Title"]</h5>
+                    <nav aria-label="breadcrumb" class="topbar-breadcrumb d-flex align-items-center">
+                        <a asp-page="/Index" class="breadcrumb-root" title="Dashboard">
+                            <i class="bi bi-grid-fill"></i>
+                        </a>
+                        <i class="bi bi-chevron-right breadcrumb-separator"></i>
+                        <span class="breadcrumb-current">@ViewData["Title"]</span>
+                    </nav>
                 </div>
-                <div class="d-flex align-items-center gap-3">
+
+                <div class="d-flex align-items-center gap-2">
                     @if (User.Identity != null && User.Identity.IsAuthenticated)
                     {
+                        var displayName = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.GivenName)?.Value ?? User.Identity.Name ?? "User";
+                        var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value ?? "Staff";
+                        var userInitial = !string.IsNullOrWhiteSpace(displayName) ? displayName.Substring(0, 1).ToUpper() : "U";
+
                         @if (User.IsInRole("SuperAdmin"))
                         {
                             var organizations = DbContext.Organizations.Where(o => o.IsActive).ToList();
                             var currentTenantId = TenantProvider.TenantId;
-                            
-                            <div class="dropdown me-3">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="tenantDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-building"></i> @(organizations.FirstOrDefault(o => o.Id == currentTenantId)?.Name ?? "Switch Org")
+                            var currentOrgName = organizations.FirstOrDefault(o => o.Id == currentTenantId)?.Name ?? "Switch Org";
+
+                            <div class="dropdown">
+                                <button class="btn-topbar-tenant" type="button" id="tenantDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Switch Organization">
+                                    <span class="tenant-icon-box">
+                                        <i class="bi bi-building"></i>
+                                    </span>
+                                    <span class="tenant-info d-none d-md-flex">
+                                        <span class="tenant-label">Organization</span>
+                                        <span class="tenant-name">@currentOrgName</span>
+                                    </span>
+                                    <i class="bi bi-chevron-down tenant-chevron"></i>
                                 </button>
-                                <ul class="dropdown-menu shadow" aria-labelledby="tenantDropdown">
+                                <ul class="dropdown-menu dropdown-menu-end topbar-dropdown-menu border-0" aria-labelledby="tenantDropdown">
+                                    <li class="dropdown-header">SWITCH ORGANIZATION</li>
                                     @foreach (var org in organizations)
                                     {
+                                        var isCurrent = org.Id == currentTenantId;
                                         <li>
-                                            <form method="post" asp-page="/Account/SwitchTenant">
+                                            <form method="post" asp-page="/Account/SwitchTenant" class="m-0">
                                                 <input type="hidden" name="tenantId" value="@org.Id" />
                                                 <input type="hidden" name="returnUrl" value="@Context.Request.Path" />
-                                                <button type="submit" class="dropdown-item @(org.Id == currentTenantId ? "active" : "")">
-                                                    @org.Name
+                                                <button type="submit" class="dropdown-item topbar-tenant-item @(isCurrent ? "active-tenant" : "")">
+                                                    <div class="d-flex align-items-center justify-content-between w-100">
+                                                        <span class="d-flex align-items-center gap-2">
+                                                            <span class="tenant-item-icon"><i class="bi bi-building"></i></span>
+                                                            <span>@org.Name</span>
+                                                        </span>
+                                                        @if (isCurrent)
+                                                        {
+                                                            <i class="bi bi-check2 text-primary fw-bold"></i>
+                                                        }
+                                                    </div>
                                                 </button>
                                             </form>
                                         </li>
@@ -204,24 +240,62 @@
                             </div>
                         }
 
-                        <button id="themeToggle" class="btn btn-sm btn-outline-secondary" type="button" title="Toggle Dark/Light Mode">
-                            <i class="bi bi-circle-half"></i>
+                        <!-- Theme Toggle Button -->
+                        <button id="themeToggle" class="btn-topbar-icon" type="button" title="Toggle Dark/Light Mode" aria-label="Toggle Dark/Light Theme">
+                            <i class="bi bi-moon-stars-fill theme-icon-moon"></i>
+                            <i class="bi bi-sun-fill theme-icon-sun"></i>
                         </button>
 
-                        <span class="text-secondary">
-                            <i class="bi bi-person-circle"></i>
-                            @(User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.GivenName)?.Value ?? User.Identity.Name)
-                        </span>
-                        <form method="post" asp-page="/Account/Logout" class="d-inline">
-                            <button type="submit" class="btn btn-outline-danger btn-sm">
-                                <i class="bi bi-box-arrow-right"></i> Logout
+                        <div class="topbar-divider d-none d-sm-block"></div>
+
+                        <!-- User Profile Menu -->
+                        <div class="dropdown">
+                            <button class="btn-topbar-user" type="button" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="user-avatar-gradient">
+                                    @userInitial
+                                </div>
+                                <div class="user-meta d-none d-sm-flex flex-column text-start">
+                                    <span class="user-meta-name">@displayName</span>
+                                    <span class="user-meta-role">@userRole</span>
+                                </div>
+                                <i class="bi bi-chevron-down user-chevron d-none d-sm-inline-block"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end topbar-dropdown-menu border-0" aria-labelledby="userMenuDropdown">
+                                <li class="user-menu-header">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="user-avatar-gradient lg">
+                                            @userInitial
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold text-main">@displayName</div>
+                                            <div class="small text-muted">@User.Identity.Name</div>
+                                            <span class="badge badge-subtle-primary mt-1">@userRole</span>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider my-2"></li>
+                                <li>
+                                    <form method="post" asp-page="/Account/Logout" class="m-0">
+                                        <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2">
+                                            <i class="bi bi-box-arrow-right"></i>
+                                            <span>Sign Out</span>
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Quick Sign Out Icon Button -->
+                        <form method="post" asp-page="/Account/Logout" class="d-inline m-0">
+                            <button type="submit" class="btn-topbar-logout" title="Sign Out">
+                                <i class="bi bi-power"></i>
                             </button>
                         </form>
                     }
                     else
                     {
-                        <a asp-page="/Account/Login" class="btn btn-primary btn-sm">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        <a asp-page="/Account/Login" class="btn btn-primary btn-sm rounded-pill px-3">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
                         </a>
                     }
                 </div>

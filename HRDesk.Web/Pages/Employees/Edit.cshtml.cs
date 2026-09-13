@@ -40,6 +40,8 @@ public sealed class EditModel : PageModel
 
     public SelectList DepartmentOptions { get; private set; } = default!;
 
+    public SelectList PayGroupOptions { get; private set; } = default!;
+
     public SelectList DesignationOptions { get; private set; } = default!;
 
     public SelectList StatusOptions { get; private set; } = default!;
@@ -64,6 +66,7 @@ public sealed class EditModel : PageModel
             EmployeeName = employee.EmployeeName,
             DepartmentId = employee.DepartmentId,
             DesignationId = employee.DesignationId,
+            PayGroupId = employee.PayGroupId,
             Weekoff = employee.Weekoff ?? string.Empty,
             JoiningDate = employee.JoiningDate,
             ResignationDate = employee.ResignationDate,
@@ -73,7 +76,15 @@ public sealed class EditModel : PageModel
             Status = employee.Status,
             ProbationDays = employee.ProbationStart.HasValue && employee.ProbationEnd.HasValue 
                 ? employee.ProbationEnd.Value.DayNumber - employee.ProbationStart.Value.DayNumber 
-                : null
+                : null,
+            UanNumber = employee.UanNumber,
+            PfNumber = employee.PfNumber,
+            IsPfEligible = employee.IsPfEligible,
+            PfWageCap = employee.PfWageCap,
+            EsicNumber = employee.EsicNumber,
+            IsEsicEligible = employee.IsEsicEligible,
+            IsPtEligible = employee.IsPtEligible,
+            PanNumber = employee.PanNumber
         };
         CurrentPhotoPath = employee.PhotoPath;
         if (string.IsNullOrWhiteSpace(CurrentPhotoPath))
@@ -129,6 +140,7 @@ public sealed class EditModel : PageModel
         employee.EmployeeName = Input.EmployeeName.Trim();
         employee.DepartmentId = Input.DepartmentId;
         employee.DesignationId = Input.DesignationId;
+        employee.PayGroupId = Input.PayGroupId;
         employee.Weekoff = Input.Weekoff;
         employee.JoiningDate = Input.JoiningDate;
         employee.ResignationDate = Input.ResignationDate;
@@ -147,6 +159,14 @@ public sealed class EditModel : PageModel
         }
         employee.Phone = string.IsNullOrWhiteSpace(Input.Phone) ? null : Input.Phone.Trim();
         employee.Status = Input.Status;
+        employee.UanNumber = string.IsNullOrWhiteSpace(Input.UanNumber) ? null : Input.UanNumber.Trim();
+        employee.PfNumber = string.IsNullOrWhiteSpace(Input.PfNumber) ? null : Input.PfNumber.Trim();
+        employee.IsPfEligible = Input.IsPfEligible;
+        employee.PfWageCap = Input.PfWageCap;
+        employee.EsicNumber = string.IsNullOrWhiteSpace(Input.EsicNumber) ? null : Input.EsicNumber.Trim();
+        employee.IsEsicEligible = Input.IsEsicEligible;
+        employee.IsPtEligible = Input.IsPtEligible;
+        employee.PanNumber = string.IsNullOrWhiteSpace(Input.PanNumber) ? null : Input.PanNumber.Trim().ToUpperInvariant();
 
         byte[]? rawPhotoBytes = null;
         string? rawPhotoContentType = null;
@@ -285,8 +305,15 @@ public sealed class EditModel : PageModel
         var departments = await _cache.GetDepartmentsAsync();
         var designations = await _cache.GetDesignationsAsync();
 
+        var payGroups = await _db.PayGroups
+            .AsNoTracking()
+            .Where(p => p.Status == "active")
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+
         DepartmentOptions = new SelectList(departments, nameof(Department.Id), nameof(Department.DepartmentName));
         DesignationOptions = new SelectList(designations, nameof(Designation.Id), nameof(Designation.DesignationName));
+        PayGroupOptions = new SelectList(payGroups, nameof(PayGroup.Id), nameof(PayGroup.Name));
  
         var weekoffDays = new[]
         {
@@ -310,6 +337,9 @@ public sealed class EditModel : PageModel
 
         [Display(Name = "Designation")]
         public int? DesignationId { get; set; }
+
+        [Display(Name = "Pay Group")]
+        public int? PayGroupId { get; set; }
 
         [Display(Name = "Weekoff")]
         public string? Weekoff { get; set; }
@@ -342,5 +372,34 @@ public sealed class EditModel : PageModel
 
         [Display(Name = "Status")]
         public string? Status { get; set; }
+
+        [Display(Name = "UAN (Universal Account Number)")]
+        [StringLength(20)]
+        public string? UanNumber { get; set; }
+
+        [Display(Name = "PF Member ID")]
+        [StringLength(50)]
+        public string? PfNumber { get; set; }
+
+        [Display(Name = "PF Eligible")]
+        public bool IsPfEligible { get; set; } = true;
+
+        [Display(Name = "PF Wage Cap (₹15,000 ceiling)")]
+        public bool PfWageCap { get; set; } = true;
+
+        [Display(Name = "ESIC Insurance No.")]
+        [StringLength(20)]
+        public string? EsicNumber { get; set; }
+
+        [Display(Name = "ESIC Eligible")]
+        public bool IsEsicEligible { get; set; } = true;
+
+        [Display(Name = "Professional Tax (PT) Eligible")]
+        public bool IsPtEligible { get; set; } = true;
+
+        [Display(Name = "PAN Number")]
+        [StringLength(10)]
+        [RegularExpression(@"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", ErrorMessage = "Invalid PAN format (e.g. ABCDE1234F).")]
+        public string? PanNumber { get; set; }
     }
 }

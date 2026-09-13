@@ -6,6 +6,8 @@ using HRDesk.Web.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
+using HRDesk.Web.Services.Payroll;
+
 namespace HRDesk.Web.Services;
 
 public class PayrollService : IPayrollService
@@ -13,17 +15,20 @@ public class PayrollService : IPayrollService
     private readonly BiometricAttendanceDbContext _db;
     private readonly ILoanService _loanService;
     private readonly IAttendanceSummaryService _attendanceSummaryService;
+    private readonly IStatutoryService _statutoryService;
     private readonly ILogger<PayrollService> _logger;
 
     public PayrollService(
         BiometricAttendanceDbContext db, 
         ILoanService loanService, 
         IAttendanceSummaryService attendanceSummaryService,
+        IStatutoryService statutoryService,
         ILogger<PayrollService> logger)
     {
         _db = db;
         _loanService = loanService;
         _attendanceSummaryService = attendanceSummaryService;
+        _statutoryService = statutoryService;
         _logger = logger;
     }
 
@@ -357,6 +362,23 @@ public class PayrollService : IPayrollService
             
         var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
+        // Check if any cohort in this batch is locked (Approved or Paid)
+        var payGroupIds = await _db.Employees
+            .Where(e => employeeIds.Contains(e.EmployeeId) && e.PayGroupId != null)
+            .Select(e => e.PayGroupId!.Value)
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var pgId in payGroupIds)
+        {
+            var run = await _db.PayrollRuns.AsNoTracking().FirstOrDefaultAsync(r => r.PayGroupId == pgId && r.Month == month);
+            if (run != null && (run.Status == "Approved" || run.Status == "Paid"))
+            {
+                var grp = await _db.PayGroups.FindAsync(pgId);
+                throw new InvalidOperationException($"Cannot process: Payroll for Pay Group '{grp?.Name ?? "Cohort"}' ({month}) is {run.Status} and locked. Please unlock the run to re-process.");
+            }
+        }
+
         // 1. Bulk read existing records
         var existingMasters = await _db.PayrollMasters
             .Where(p => employeeIds.Contains(p.EmployeeId) && p.Month == month)
@@ -415,6 +437,11 @@ public class PayrollService : IPayrollService
                 .ToListAsync();
         }
         
+        var allEmployees = await _db.Employees
+            .AsNoTracking()
+            .Where(e => employeeIds.Contains(e.EmployeeId))
+            .ToDictionaryAsync(e => e.EmployeeId);
+
         var newDetails = new System.Collections.Generic.List<PayrollDetail>();
         int processedCount = 0;
 
@@ -541,6 +568,87 @@ public class PayrollService : IPayrollService
                     }
                 }
 
+                // Statutory Deductions (PF, ESIC, Professional Tax)
+                PfCalculationResult pfResult = new(0, 0, 0, 0, 0, 0);
+                EsicCalculationResult esicResult = new(0, 0, 0, false);
+                PtCalculationResult ptResult = new(0, 0);
+
+                if (allEmployees.TryGetValue(employeeId, out var emp))
+                {
+                    decimal lopDeduction = currentDeductionDetails.FirstOrDefault(d => d.ComponentName == "Loss Without Pay")?.Amount ?? 0m;
+                    decimal earnedGross = Math.Max(0m, grossSalary - lopDeduction);
+
+                    var basicComponent = salaryStructure.FirstOrDefault(s => s.SalaryComponent != null && s.SalaryComponent.ComponentCode == "BASIC");
+                    decimal monthlyBasic = basicComponent?.Amount ?? 0m;
+                    decimal earnedBasic = attendance.TotalDays > 0 ? (monthlyBasic / attendance.TotalDays) * payableDays : 0m;
+
+                    // 1. Provident Fund (PF)
+                    bool hasExplicitPf = deductionComponents.Any(d => d.SalaryComponent?.ComponentCode == "PF" && d.Amount > 0);
+                    if (!hasExplicitPf)
+                    {
+                        pfResult = _statutoryService.CalculatePf(emp, earnedBasic);
+                        if (pfResult.EmployeePf > 0)
+                        {
+                            currentDeductionDetails.Add(new PayrollDetail
+                            {
+                                ComponentType = "Deduction",
+                                ComponentName = "Provident Fund (PF)",
+                                Amount = pfResult.EmployeePf,
+                                Remarks = $"PF Employee 12% on ₹{pfResult.PfWages:0}"
+                            });
+                        }
+                    }
+                    else
+                    {
+                        var explicitPf = deductionComponents.First(d => d.SalaryComponent?.ComponentCode == "PF").Amount;
+                        pfResult = new PfCalculationResult(earnedBasic, explicitPf, Math.Min(1250m, Math.Round(Math.Min(earnedBasic, 15000m) * 0.0833m)), Math.Max(0, explicitPf - Math.Min(1250m, Math.Round(Math.Min(earnedBasic, 15000m) * 0.0833m))), 0, 0);
+                    }
+
+                    // 2. ESIC
+                    bool hasExplicitEsic = deductionComponents.Any(d => d.SalaryComponent?.ComponentCode == "ESIC" && d.Amount > 0);
+                    if (!hasExplicitEsic)
+                    {
+                        esicResult = _statutoryService.CalculateEsic(emp, earnedGross, grossSalary);
+                        if (esicResult.EmployeeEsic > 0)
+                        {
+                            currentDeductionDetails.Add(new PayrollDetail
+                            {
+                                ComponentType = "Deduction",
+                                ComponentName = "ESIC",
+                                Amount = esicResult.EmployeeEsic,
+                                Remarks = $"ESIC Employee 0.75% on ₹{esicResult.EsicWages:0}"
+                            });
+                        }
+                    }
+                    else
+                    {
+                        var explicitEsic = deductionComponents.First(d => d.SalaryComponent?.ComponentCode == "ESIC").Amount;
+                        esicResult = new EsicCalculationResult(earnedGross, explicitEsic, Math.Ceiling(earnedGross * 0.0325m), true);
+                    }
+
+                    // 3. Professional Tax (PT)
+                    bool hasExplicitPt = deductionComponents.Any(d => d.SalaryComponent?.ComponentCode == "PT" && d.Amount > 0);
+                    if (!hasExplicitPt)
+                    {
+                        ptResult = _statutoryService.CalculatePt(emp, earnedGross);
+                        if (ptResult.PtAmount > 0)
+                        {
+                            currentDeductionDetails.Add(new PayrollDetail
+                            {
+                                ComponentType = "Deduction",
+                                ComponentName = "Professional Tax (PT)",
+                                Amount = ptResult.PtAmount,
+                                Remarks = $"Gujarat PT on ₹{earnedGross:0} earned gross"
+                            });
+                        }
+                    }
+                    else
+                    {
+                        var explicitPt = deductionComponents.First(d => d.SalaryComponent?.ComponentCode == "PT").Amount;
+                        ptResult = new PtCalculationResult(earnedGross, explicitPt);
+                    }
+                }
+
                 totalEarnings = currentEarningDetails.Sum(e => e.Amount);
                 totalDeductions = currentDeductionDetails.Sum(d => d.Amount);
 
@@ -573,6 +681,16 @@ public class PayrollService : IPayrollService
                 payroll.ProcessedDate = DateTime.Now;
                 payroll.LeaveBreakdown = attendance.LeaveTypeCounts.Any() ? System.Text.Json.JsonSerializer.Serialize(attendance.LeaveTypeCounts) : null;
 
+                // Statutory audit values
+                payroll.PfWages = pfResult.PfWages;
+                payroll.EmployeePf = pfResult.EmployeePf;
+                payroll.EmployerEps = pfResult.EmployerEps;
+                payroll.EmployerEpf = pfResult.EmployerEpf;
+                payroll.EsicWages = esicResult.EsicWages;
+                payroll.EmployeeEsic = esicResult.EmployeeEsic;
+                payroll.EmployerEsic = esicResult.EmployerEsic;
+                payroll.ProfessionalTax = ptResult.PtAmount;
+
                 if (isNew)
                 {
                     _db.PayrollMasters.Add(payroll);
@@ -599,6 +717,12 @@ public class PayrollService : IPayrollService
         }
 
         await _db.SaveChangesAsync();
+
+        foreach (var pgId in payGroupIds)
+        {
+            await SyncPayrollRunTotalsAsync(pgId, month);
+        }
+
         return processedCount;
     }
 
@@ -613,6 +737,171 @@ public class PayrollService : IPayrollService
             .ToListAsync();
 
         return await ProcessBulkEmployeePayrollAsync(employeeIds, month, new System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<ManualAdjustment>>(), !includeLoans);
+    }
+
+    public async Task<bool> IsCohortLockedAsync(int payGroupId, string month)
+    {
+        var run = await _db.PayrollRuns
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.PayGroupId == payGroupId && r.Month == month);
+
+        return run != null && (run.Status == "Approved" || run.Status == "Paid");
+    }
+
+    public async Task<PayrollRun> GetOrCreatePayrollRunAsync(int payGroupId, string month)
+    {
+        var run = await _db.PayrollRuns
+            .Include(r => r.PayGroup)
+            .FirstOrDefaultAsync(r => r.PayGroupId == payGroupId && r.Month == month);
+
+        if (run == null)
+        {
+            run = new PayrollRun
+            {
+                PayGroupId = payGroupId,
+                Month = month,
+                Status = "Draft",
+                CreatedAt = DateTime.UtcNow
+            };
+            _db.PayrollRuns.Add(run);
+            await _db.SaveChangesAsync();
+            await _db.Entry(run).Reference(r => r.PayGroup).LoadAsync();
+        }
+
+        return run;
+    }
+
+    public async Task<PayrollRun> SyncPayrollRunTotalsAsync(int payGroupId, string month)
+    {
+        var run = await GetOrCreatePayrollRunAsync(payGroupId, month);
+
+        int targetYear = int.Parse(month.Substring(0, 4));
+        int targetMonth = int.Parse(month.Substring(5, 2));
+        var lastDayOfMonth = new DateOnly(targetYear, targetMonth, DateTime.DaysInMonth(targetYear, targetMonth));
+
+        var totalStaff = await _db.Employees
+            .AsNoTracking()
+            .CountAsync(e => e.PayGroupId == payGroupId &&
+                             (e.Status == "Active" || e.Status == "active") &&
+                             (e.JoiningDate == null || e.JoiningDate <= lastDayOfMonth));
+
+        var masters = await _db.PayrollMasters
+            .AsNoTracking()
+            .Include(p => p.Employee)
+            .Where(p => p.Month == month && p.Employee != null && p.Employee.PayGroupId == payGroupId)
+            .Select(p => new { p.GrossSalary, p.TotalEarnings, p.TotalDeductions, p.NetSalary })
+            .ToListAsync();
+
+        run.TotalEmployees = totalStaff;
+        run.ProcessedEmployees = masters.Count;
+        run.GrossPayout = masters.Sum(m => m.GrossSalary);
+        run.TotalDeductions = masters.Sum(m => m.TotalDeductions);
+        run.NetPayout = masters.Sum(m => m.NetSalary);
+
+        await _db.SaveChangesAsync();
+        return run;
+    }
+
+    public async Task<PayrollRun> SubmitPayrollRunAsync(int payGroupId, string month, string submittedBy, string? notes = null)
+    {
+        var run = await SyncPayrollRunTotalsAsync(payGroupId, month);
+        if (run.Status == "Approved" || run.Status == "Paid")
+        {
+            throw new InvalidOperationException($"Cannot submit: Payroll run is already {run.Status}.");
+        }
+
+        run.Status = "Review";
+        run.SubmittedAt = DateTime.UtcNow;
+        run.SubmittedBy = submittedBy;
+        if (!string.IsNullOrWhiteSpace(notes)) run.Notes = notes;
+
+        await _db.SaveChangesAsync();
+        return run;
+    }
+
+    public async Task<PayrollRun> ApprovePayrollRunAsync(int payGroupId, string month, string approvedBy, string? notes = null)
+    {
+        var run = await SyncPayrollRunTotalsAsync(payGroupId, month);
+        if (run.Status == "Paid")
+        {
+            throw new InvalidOperationException("Payroll run is already marked as Paid.");
+        }
+
+        run.Status = "Approved";
+        run.ApprovedAt = DateTime.UtcNow;
+        run.ApprovedBy = approvedBy;
+        if (!string.IsNullOrWhiteSpace(notes)) run.Notes = notes;
+
+        // Also update individual payroll master records to Approved
+        var masters = await _db.PayrollMasters
+            .Include(p => p.Employee)
+            .Where(p => p.Month == month && p.Employee != null && p.Employee.PayGroupId == payGroupId)
+            .ToListAsync();
+
+        foreach (var m in masters)
+        {
+            m.Status = "Approved";
+            m.ApprovedBy = approvedBy;
+            m.ApprovedDate = DateTime.Now;
+        }
+
+        await _db.SaveChangesAsync();
+        return run;
+    }
+
+    public async Task<PayrollRun> MarkPayrollRunPaidAsync(int payGroupId, string month, string paidBy, string paymentMethod, string? reference, DateOnly? paymentDate = null, string? notes = null)
+    {
+        var run = await SyncPayrollRunTotalsAsync(payGroupId, month);
+
+        run.Status = "Paid";
+        run.PaidAt = DateTime.UtcNow;
+        run.PaidBy = paidBy;
+        run.PaymentDate = paymentDate ?? DateOnly.FromDateTime(DateTime.Now);
+        run.PaymentMethod = paymentMethod;
+        run.PaymentReference = reference;
+        if (!string.IsNullOrWhiteSpace(notes)) run.Notes = notes;
+
+        // Update individual payroll master records to Paid
+        var masters = await _db.PayrollMasters
+            .Include(p => p.Employee)
+            .Where(p => p.Month == month && p.Employee != null && p.Employee.PayGroupId == payGroupId)
+            .ToListAsync();
+
+        foreach (var m in masters)
+        {
+            m.Status = "Paid";
+            m.PaymentDate = run.PaymentDate;
+        }
+
+        await _db.SaveChangesAsync();
+        return run;
+    }
+
+    public async Task<PayrollRun> UnlockPayrollRunAsync(int payGroupId, string month, string unlockedBy, string reason)
+    {
+        var run = await GetOrCreatePayrollRunAsync(payGroupId, month);
+
+        run.Status = "Draft";
+        run.Notes = $"[Unlocked by {unlockedBy} on {DateTime.Now:yyyy-MM-dd HH:mm}: {reason}]" + (string.IsNullOrWhiteSpace(run.Notes) ? "" : " | " + run.Notes);
+        run.ApprovedAt = null;
+        run.ApprovedBy = null;
+        run.PaidAt = null;
+        run.PaidBy = null;
+        run.PaymentDate = null;
+        run.PaymentReference = null;
+
+        var masters = await _db.PayrollMasters
+            .Include(p => p.Employee)
+            .Where(p => p.Month == month && p.Employee != null && p.Employee.PayGroupId == payGroupId)
+            .ToListAsync();
+
+        foreach (var m in masters)
+        {
+            m.Status = "Draft";
+        }
+
+        await _db.SaveChangesAsync();
+        return run;
     }
 }
 

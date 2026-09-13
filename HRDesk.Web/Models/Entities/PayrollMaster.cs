@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -58,6 +58,30 @@ public class PayrollMaster : IMustHaveTenant
 
     [Column("net_salary")]
     public decimal NetSalary { get; set; }
+
+    [Column("pf_wages")]
+    public decimal PfWages { get; set; }
+
+    [Column("employee_pf")]
+    public decimal EmployeePf { get; set; }
+
+    [Column("employer_eps")]
+    public decimal EmployerEps { get; set; }
+
+    [Column("employer_epf")]
+    public decimal EmployerEpf { get; set; }
+
+    [Column("esic_wages")]
+    public decimal EsicWages { get; set; }
+
+    [Column("employee_esic")]
+    public decimal EmployeeEsic { get; set; }
+
+    [Column("employer_esic")]
+    public decimal EmployerEsic { get; set; }
+
+    [Column("professional_tax")]
+    public decimal ProfessionalTax { get; set; }
 
     [Column("status")]
     [StringLength(20)]

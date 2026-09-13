@@ -39,10 +39,11 @@ HRDesk.Web/HRDesk_SmarterASP_Deployment.zip
 HRDesk.Web/Controllers/*.txt
 
 # Mobile build artifacts
-hrdesk_mobile/build/
-hrdesk_mobile/.dart_tool/
-hrdesk_mobile/.flutter-plugins
-hrdesk_mobile/.flutter-plugins-dependencies
+hrdesk_mobile/
 
 # Web client
 web-client/
+client/
+
+# Biometric attendance photos
+HRDesk.Web/wwwroot/attendance_photos/

@@ -124,6 +124,10 @@
                                 <div class="d-flex align-items-center gap-3 text-muted">
                                     <span><i class="bi bi-briefcase me-1"></i> @(emp.Designation?.DesignationName ?? "—")</span>
                                     <span><i class="bi bi-building me-1"></i> @(emp.Department?.DepartmentName ?? "—")</span>
+                                    @if (emp.PayGroup != null)
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1"><i class="bi bi-diagram-3 me-1"></i>@emp.PayGroup.Name</span>
+                                    }
                                 </div>
                             </div>
                         </div>
@@ -181,6 +185,21 @@
                                             <tr>
                                                 <td class="text-muted">Contact Number</td>
                                                 <td class="fw-semibold">@(emp.Phone ?? "—")</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Pay Group</td>
+                                                <td>
+                                                    @if (emp.PayGroup != null)
+                                                    {
+                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 fw-semibold">
+                                                            @emp.PayGroup.Name (@emp.PayGroup.Code)
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">—</span>
+                                                    }
+                                                </td>
                                             </tr>
                                             <tr>
                                                 <td class="text-muted">Date of Birth</td>

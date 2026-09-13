@@ -19,6 +19,7 @@ public sealed class IndexModel : PageModel
     }
 
     public PaginatedList<Employee> Employees { get; private set; } = default!;
+    public List<PayGroup> PayGroupsList { get; private set; } = new();
     
     // Search property
     [BindProperty(SupportsGet = true)]
@@ -28,6 +29,16 @@ public sealed class IndexModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string? StatusFilter { get; set; }
 
+    [BindProperty(SupportsGet = true)]
+    public string Tab { get; set; } = "active";
+
+    public int ActiveEmployeesCount { get; private set; }
+    public int ArchivedEmployeesCount { get; private set; }
+
+    // Pay Group filter
+    [BindProperty(SupportsGet = true)]
+    public int? PayGroupFilter { get; set; }
+
     public async Task OnGetAsync(int pageNum = 1)
     {
         if (string.IsNullOrEmpty(StatusFilter))
@@ -35,10 +46,17 @@ public sealed class IndexModel : PageModel
             StatusFilter = "active";
         }
         
+        PayGroupsList = await _db.PayGroups
+            .AsNoTracking()
+            .Where(p => p.Status == "active")
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+
         var query = _db.Employees
             .AsNoTracking()
             .Include(e => e.Department)
             .Include(e => e.Designation)
+            .Include(e => e.PayGroup)
             .AsQueryable();
         
         // Apply search filter
@@ -54,10 +72,28 @@ public sealed class IndexModel : PageModel
             );
         }
         
-        // Apply status filter
-        if (!string.IsNullOrWhiteSpace(StatusFilter) && StatusFilter != "all")
+        ActiveEmployeesCount = await _db.Employees.CountAsync(e => e.Status != "archived");
+        ArchivedEmployeesCount = await _db.Employees.CountAsync(e => e.Status == "archived");
+
+        if (string.Equals(Tab, "archived", StringComparison.OrdinalIgnoreCase))
         {
-            query = query.Where(e => e.Status != null && e.Status.ToLower() == StatusFilter.ToLower());
+            query = query.Where(e => e.Status == "archived");
+        }
+        else
+        {
+            query = query.Where(e => e.Status != "archived");
+
+            // Apply status filter inside active workforce
+            if (!string.IsNullOrWhiteSpace(StatusFilter) && StatusFilter != "all")
+            {
+                query = query.Where(e => e.Status != null && e.Status.ToLower() == StatusFilter.ToLower());
+            }
+        }
+
+        // Apply pay group filter
+        if (PayGroupFilter.HasValue && PayGroupFilter.Value > 0)
+        {
+            query = query.Where(e => e.PayGroupId == PayGroupFilter.Value);
         }
         
         var orderedQuery = query
@@ -162,6 +198,56 @@ public sealed class IndexModel : PageModel
         }
     }
 
+    public async Task<IActionResult> OnPostArchiveAsync(int id)
+    {
+        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id);
+        if (employee is null)
+        {
+            TempData["SetNameResult"] = "Employee not found.";
+            return RedirectToPage();
+        }
+
+        employee.Status = "archived";
+
+        if (employee.DeviceSynced == 1)
+        {
+            try
+            {
+                await _deviceService.EnableUserAsync(employee.EmployeeId, false);
+            }
+            catch {}
+        }
+
+        await _db.SaveChangesAsync();
+        TempData["SetNameResult"] = $"Employee '{employee.EmployeeName}' moved to Archive. Historical records preserved, device punching disabled.";
+        return RedirectToPage(new { Tab = "active", PayGroupFilter, SearchQuery });
+    }
+
+    public async Task<IActionResult> OnPostRestoreAsync(int id)
+    {
+        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id);
+        if (employee is null)
+        {
+            TempData["SetNameResult"] = "Employee not found.";
+            return RedirectToPage();
+        }
+
+        employee.Status = "active";
+
+        if (employee.DeviceSynced == 1)
+        {
+            try
+            {
+                await _deviceService.EnableUserAsync(employee.EmployeeId, true);
+            }
+            catch {}
+        }
+
+        await _db.SaveChangesAsync();
+        TempData["SetNameResult"] = $"Employee '{employee.EmployeeName}' restored to Active.";
+        return RedirectToPage(new { Tab = "archived", PayGroupFilter, SearchQuery });
+    }
+
     public async Task<IActionResult> OnPostDeleteAsync(int id)
     {
         var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == id);
@@ -171,18 +257,25 @@ public sealed class IndexModel : PageModel
             return RedirectToPage();
         }
 
+        // Safety check for foreign key constraints
+        var hasAttendance = await _db.DailyAttendance.AnyAsync(a => a.EmployeeId == id);
+        var hasPayroll = await _db.PayrollMasters.AnyAsync(p => p.EmployeeId == id);
+        var hasLoans = await _db.EmployeeLoans.AnyAsync(l => l.EmployeeId == id);
+        var hasLeaves = await _db.LeaveApplications.AnyAsync(la => la.EmployeeId == id);
+
+        if (hasAttendance || hasPayroll || hasLoans || hasLeaves)
+        {
+            TempData["ErrorMessage"] = $"Cannot permanently delete '{employee.EmployeeName}' because historical records (attendance punches, payroll, leaves, or loans) exist in the database. Please keep this employee in Archive to maintain compliance and historical audit integrity.";
+            return RedirectToPage(new { Tab = "archived" });
+        }
+
         string? deviceError = null;
-        
-        // Try to delete from device first (if synced)
         if (employee.DeviceSynced == 1)
         {
             try
             {
                 var (success, errorMessage) = await _deviceService.DeleteUserAsync(employee.EmployeeId);
-                if (!success)
-                {
-                    deviceError = errorMessage;
-                }
+                if (!success) deviceError = errorMessage;
             }
             catch (Exception ex)
             {
@@ -190,30 +283,32 @@ public sealed class IndexModel : PageModel
             }
         }
 
-        // Delete from database
         try
         {
             _db.Employees.Remove(employee);
             await _db.SaveChangesAsync();
-            
-            if (deviceError != null)
-            {
-                TempData["SetNameResult"] = $"Employee deleted from database, but device deletion failed: {deviceError}";
-            }
-            else if (employee.DeviceSynced == 1)
-            {
-                TempData["SetNameResult"] = "Employee deleted from database and device.";
-            }
-            else
-            {
-                TempData["SetNameResult"] = "Employee deleted from database.";
-            }
+
+            TempData["SetNameResult"] = deviceError != null 
+                ? $"Employee permanently deleted from database, but device deletion failed: {deviceError}" 
+                : $"Employee '{employee.EmployeeName}' permanently deleted.";
         }
         catch (Exception ex)
         {
-            TempData["SetNameResult"] = $"Failed to delete employee: {ex.Message}";
+            TempData["ErrorMessage"] = $"Failed to permanently delete employee: {ex.Message}";
         }
 
-        return RedirectToPage();
+        return RedirectToPage(new { Tab = "archived" });
+    }
+
+    public async Task<IActionResult> OnPostUpdatePayGroupAsync(int employeeId, int? payGroupId)
+    {
+        var employee = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+        if (employee is null) return NotFound();
+
+        employee.PayGroupId = (payGroupId.HasValue && payGroupId.Value > 0) ? payGroupId.Value : null;
+        await _db.SaveChangesAsync();
+
+        TempData["SetNameResult"] = $"Pay group updated for {employee.EmployeeName}.";
+        return RedirectToPage(new { pageNum = Request.Query["pageNum"], SearchQuery, StatusFilter, PayGroupFilter });
     }
 }

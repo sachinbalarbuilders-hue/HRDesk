@@ -28,6 +28,10 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     public DbSet<Department> Departments => Set<Department>();
 
+    public DbSet<PayGroup> PayGroups => Set<PayGroup>();
+
+    public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
+
     public DbSet<Designation> Designations => Set<Designation>();
 
     public DbSet<Shift> Shifts => Set<Shift>();
@@ -362,7 +366,39 @@ public sealed class BiometricAttendanceDbContext : DbContext
                 .HasForeignKey(e => e.DesignationId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.Property(e => e.PayGroupId).HasColumnName("pay_group_id");
 
+            entity.HasOne(e => e.PayGroup)
+                .WithMany(p => p.Employees)
+                .HasForeignKey(e => e.PayGroupId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PayGroup>(entity =>
+        {
+            entity.ToTable("pay_groups");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name).HasColumnName("name");
+            entity.Property(e => e.Code).HasColumnName("code");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.PaymentFrequency).HasColumnName("payment_frequency");
+            entity.Property(e => e.CutoffDay).HasColumnName("cutoff_day");
+            entity.Property(e => e.Status).HasColumnName("status");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<PayrollRun>(entity =>
+        {
+            entity.ToTable("payroll_runs");
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.PayGroup)
+                .WithMany()
+                .HasForeignKey(e => e.PayGroupId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.OrganizationId, e.PayGroupId, e.Month })
+                .IsUnique();
         });
 
         modelBuilder.Entity<LoanType>(entity =>

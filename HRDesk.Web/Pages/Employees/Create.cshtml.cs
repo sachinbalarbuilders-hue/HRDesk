@@ -31,6 +31,8 @@ public sealed class CreateModel : PageModel
 
     public SelectList DepartmentOptions { get; private set; } = default!;
 
+    public SelectList PayGroupOptions { get; private set; } = default!;
+
     public SelectList DesignationOptions { get; private set; } = default!;
 
 
@@ -75,12 +77,21 @@ public sealed class CreateModel : PageModel
             EmployeeName = Input.EmployeeName.Trim(),
             DepartmentId = Input.DepartmentId,
             DesignationId = Input.DesignationId,
+            PayGroupId = Input.PayGroupId,
             Weekoff = Input.Weekoff,
             JoiningDate = Input.JoiningDate,
             ResignationDate = Input.ResignationDate,
             DateOfBirth = Input.DateOfBirth,
             Phone = string.IsNullOrWhiteSpace(Input.Phone) ? null : Input.Phone.Trim(),
-            Status = Input.Status
+            Status = Input.Status,
+            UanNumber = string.IsNullOrWhiteSpace(Input.UanNumber) ? null : Input.UanNumber.Trim(),
+            PfNumber = string.IsNullOrWhiteSpace(Input.PfNumber) ? null : Input.PfNumber.Trim(),
+            IsPfEligible = Input.IsPfEligible,
+            PfWageCap = Input.PfWageCap,
+            EsicNumber = string.IsNullOrWhiteSpace(Input.EsicNumber) ? null : Input.EsicNumber.Trim(),
+            IsEsicEligible = Input.IsEsicEligible,
+            IsPtEligible = Input.IsPtEligible,
+            PanNumber = string.IsNullOrWhiteSpace(Input.PanNumber) ? null : Input.PanNumber.Trim().ToUpperInvariant()
         };
 
         byte[]? rawPhotoBytes = null;
@@ -152,8 +163,15 @@ public sealed class CreateModel : PageModel
         var departments = await _cache.GetDepartmentsAsync();
         var designations = await _cache.GetDesignationsAsync();
 
+        var payGroups = await _db.PayGroups
+            .AsNoTracking()
+            .Where(p => p.Status == "active")
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+
         DepartmentOptions = new SelectList(departments, nameof(Department.Id), nameof(Department.DepartmentName));
         DesignationOptions = new SelectList(designations, nameof(Designation.Id), nameof(Designation.DesignationName));
+        PayGroupOptions = new SelectList(payGroups, nameof(PayGroup.Id), nameof(PayGroup.Name));
 
         var weekoffDays = new[]
         {
@@ -181,6 +199,9 @@ public sealed class CreateModel : PageModel
 
         [Display(Name = "Designation")]
         public int? DesignationId { get; set; }
+
+        [Display(Name = "Pay Group")]
+        public int? PayGroupId { get; set; }
 
 
 
@@ -212,5 +233,34 @@ public sealed class CreateModel : PageModel
 
         [Display(Name = "Status")]
         public string? Status { get; set; }
+
+        [Display(Name = "UAN (Universal Account Number)")]
+        [StringLength(20)]
+        public string? UanNumber { get; set; }
+
+        [Display(Name = "PF Member ID")]
+        [StringLength(50)]
+        public string? PfNumber { get; set; }
+
+        [Display(Name = "PF Eligible")]
+        public bool IsPfEligible { get; set; } = true;
+
+        [Display(Name = "PF Wage Cap (₹15,000 ceiling)")]
+        public bool PfWageCap { get; set; } = true;
+
+        [Display(Name = "ESIC Insurance No.")]
+        [StringLength(20)]
+        public string? EsicNumber { get; set; }
+
+        [Display(Name = "ESIC Eligible")]
+        public bool IsEsicEligible { get; set; } = true;
+
+        [Display(Name = "Professional Tax (PT) Eligible")]
+        public bool IsPtEligible { get; set; } = true;
+
+        [Display(Name = "PAN Number")]
+        [StringLength(10)]
+        [RegularExpression(@"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", ErrorMessage = "Invalid PAN format (e.g. ABCDE1234F).")]
+        public string? PanNumber { get; set; }
     }
 }

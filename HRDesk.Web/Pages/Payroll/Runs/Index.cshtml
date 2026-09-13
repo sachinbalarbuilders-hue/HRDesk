@@ -1,0 +1,216 @@
+@page
+@model HRDesk.Web.Pages.Payroll.Runs.IndexModel
+@{
+    ViewData["Title"] = "Payroll Runs Register";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-1 fw-bold">Payroll Runs & History</h4>
+        <p class="text-muted mb-0 small">Audit trail, approval states, and disbursement history across all pay cohorts</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a asp-page="/Payroll/Process" class="btn btn-primary">
+            <i class="bi bi-play-circle me-1"></i> Process Payroll
+        </a>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-stat border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon bg-soft-primary text-primary me-3">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1 small text-uppercase fw-semibold">Total Runs</h6>
+                    <h3 class="mb-0 fw-bold">@Model.TotalRunsCount</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon bg-soft-info text-info me-3">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1 small text-uppercase fw-semibold">Pending Review</h6>
+                    <h3 class="mb-0 fw-bold text-info">@Model.TotalPendingApproval</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon bg-soft-warning text-warning me-3">
+                    <i class="bi bi-patch-check-fill"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1 small text-uppercase fw-semibold">Approved & Locked</h6>
+                    <h3 class="mb-0 fw-bold text-primary">@Model.TotalApproved</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-stat border-0 shadow-sm">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon bg-soft-success text-success me-3">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted mb-1 small text-uppercase fw-semibold">Total Disbursed</h6>
+                    <h3 class="mb-0 fw-bold text-success">₹@Model.TotalNetDisbursed.ToString("N0")</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-calendar3"></i></span>
+                    <input type="month" name="TargetMonth" value="@Model.TargetMonth" class="form-control" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="PayGroupId" class="form-select form-select-sm">
+                    <option value="">All Pay Groups</option>
+                    @foreach (var pg in Model.PayGroups)
+                    {
+                        <option value="@pg.Id" selected="@(Model.PayGroupId == pg.Id)">@pg.Name (@pg.Code)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="StatusFilter" class="form-select form-select-sm">
+                    <option value="all">All Statuses</option>
+                    <option value="Draft" selected="@(Model.StatusFilter == "Draft")">Draft</option>
+                    <option value="Review" selected="@(Model.StatusFilter == "Review")">In Review</option>
+                    <option value="Approved" selected="@(Model.StatusFilter == "Approved")">Approved & Locked</option>
+                    <option value="Paid" selected="@(Model.StatusFilter == "Paid")">Paid / Disbursed</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary flex-grow-1"><i class="bi bi-funnel me-1"></i>Filter</button>
+                @if (!string.IsNullOrEmpty(Model.TargetMonth) || Model.PayGroupId.HasValue || (!string.IsNullOrEmpty(Model.StatusFilter) && Model.StatusFilter != "all"))
+                {
+                    <a asp-page="./Index" class="btn btn-sm btn-outline-secondary" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Runs Register Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent border-bottom d-flex align-items-center justify-content-between py-3 px-4">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-journal-text me-2 text-primary"></i>Cohort Payroll Runs</h5>
+        <span class="badge text-bg-secondary">@Model.Runs.Count records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Month & Cohort</th>
+                        <th>Headcount</th>
+                        <th>Gross Payout</th>
+                        <th>Deductions</th>
+                        <th>Net Payout</th>
+                        <th>Workflow Status</th>
+                        <th>Audit Details</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.Runs.Count == 0)
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-folder2-open fs-1 d-block mb-2 opacity-25"></i>No payroll runs recorded yet. Process payroll to generate runs.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var r in Model.Runs)
+                    {
+                        var statusClass = r.Status switch {
+                            "Paid" => "text-bg-success",
+                            "Approved" => "text-bg-primary",
+                            "Review" => "text-bg-info text-dark",
+                            "Draft" => "text-bg-warning text-dark",
+                            _ => "text-bg-light border text-muted"
+                        };
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 fw-bold">@r.Month</span>
+                                    <div>
+                                        <div class="fw-semibold">@(r.PayGroup?.Name ?? "Unassigned")</div>
+                                        <small class="text-muted">Code: @(r.PayGroup?.Code ?? "—")</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-dark">@r.ProcessedEmployees</span>
+                                <small class="text-muted">/ @r.TotalEmployees staff</small>
+                            </td>
+                            <td>₹@r.GrossPayout.ToString("N2")</td>
+                            <td class="text-danger">₹@r.TotalDeductions.ToString("N2")</td>
+                            <td><strong class="text-success">₹@r.NetPayout.ToString("N2")</strong></td>
+                            <td>
+                                <span class="badge @statusClass px-2 py-1 fw-semibold">
+                                    @(r.Status == "Approved" || r.Status == "Paid" ? "🔒 " : "")@r.Status
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                    @if (r.Status == "Paid")
+                                    {
+                                        <span class="text-success"><i class="bi bi-check2-circle me-1"></i>Paid: @(r.PaymentDate?.ToString("dd-MMM-yyyy") ?? "—") via @r.PaymentMethod</span>
+                                        @if (!string.IsNullOrEmpty(r.PaymentReference))
+                                        {
+                                            <span class="d-block text-muted">Ref: @r.PaymentReference</span>
+                                        }
+                                    }
+                                    else if (r.Status == "Approved")
+                                    {
+                                        <span><i class="bi bi-lock me-1"></i>Approved by @(r.ApprovedBy ?? "Admin") on @(r.ApprovedAt?.ToString("dd-MMM HH:mm") ?? "—")</span>
+                                    }
+                                    else if (r.Status == "Review")
+                                    {
+                                        <span><i class="bi bi-hourglass me-1"></i>Submitted by @(r.SubmittedBy ?? "HR") on @(r.SubmittedAt?.ToString("dd-MMM HH:mm") ?? "—")</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Created: @r.CreatedAt.ToString("dd-MMM HH:mm")</span>
+                                    }
+                                </small>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a asp-page="/Payroll/Process" 
+                                   asp-route-TargetProcessMonth="@r.Month" 
+                                   asp-route-SelectedPayGroupId="@r.PayGroupId" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>Open Run
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
