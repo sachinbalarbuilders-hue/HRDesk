@@ -65,6 +65,18 @@ public class PayGroup : IMustHaveTenant, IArchivable
     [Column("pf_applicable")]
     public bool PfApplicable { get; set; } = true;
 
+    /// <summary>Whether to cap the Employee PF deduction at the statutory ceiling (e.g. 12% of ₹15,000).</summary>
+    [Column("cap_employee_pf")]
+    public bool CapEmployeePf { get; set; } = true;
+
+    /// <summary>Whether to cap the Employer PF contribution at the statutory ceiling.</summary>
+    [Column("cap_employer_pf")]
+    public bool CapEmployerPf { get; set; } = true;
+
+    /// <summary>The statutory ceiling amount for PF calculation.</summary>
+    [Column("pf_wage_ceiling")]
+    public decimal PfWageCeiling { get; set; } = 15000m;
+
     /// <summary>Whether ESI is applicable (automatically disabled when gross > ₹21,000).</summary>
     [Column("esi_applicable")]
     public bool EsiApplicable { get; set; } = true;

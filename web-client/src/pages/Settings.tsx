@@ -5,7 +5,7 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { Tabs } from '../components/ui/Tabs';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
 import { useAuth } from '../context/AuthContext';
-import { Building2, FolderTree, Award, CalendarCheck, Layers, CreditCard, History, Mail, Lock } from 'lucide-react';
+import { Building2, FolderTree, Award, CalendarCheck, Layers, CreditCard, History, Mail, Lock, Landmark } from 'lucide-react';
 
 import { AccessRestricted } from '../components/layout/AccessRestricted';
 
@@ -24,6 +24,7 @@ const ALL_SETTINGS_TABS: SettingsTabDef[] = [
   { id: 'designations', label: 'Designations', icon: <Award size={14} />, path: '/settings/designations', permission: 'Masters.Designations.View' },
   { id: 'leave-types', label: 'Leave Types', icon: <CalendarCheck size={14} />, path: '/settings/leave-types', permission: 'Leaves.Types.View' },
   { id: 'shifts', label: 'Work Shifts', icon: <Layers size={14} />, path: '/settings/shifts', permission: 'Shifts.View' },
+  { id: 'statutory', label: 'Statutory Limits', icon: <Landmark size={14} />, path: '/settings/statutory', permission: 'System.Settings.View' },
   { id: 'subscription', label: 'Subscription & Plans', icon: <CreditCard size={14} />, path: '/settings/subscription', permission: 'System.Settings.View' },
   { id: 'audit-logs', label: 'Audit Logs', icon: <History size={14} />, path: '/settings/audit-logs', permission: 'System.Logs.View' },
   { id: 'email', label: 'Email', icon: <Mail size={14} />, path: '/settings/email', permission: 'System.Settings.View' },

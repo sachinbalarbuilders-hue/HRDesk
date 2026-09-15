@@ -69,8 +69,10 @@ public class PayGroupsApiController : ControllerBase
                 g.Name,
                 g.Description,
                 g.SalaryBasis,
-                g.LopRounding,
                 g.PfApplicable,
+                g.CapEmployeePf,
+                g.CapEmployerPf,
+                g.PfWageCeiling,
                 g.EsiApplicable,
                 g.PtApplicable,
                 g.PtState,
@@ -103,7 +105,7 @@ public class PayGroupsApiController : ControllerBase
         return Ok(new
         {
             g.Id, g.Name, g.Description, g.SalaryBasis, g.LopRounding,
-            g.PfApplicable, g.EsiApplicable, g.PtApplicable, g.PtState,
+            g.PfApplicable, g.CapEmployeePf, g.CapEmployerPf, g.PfWageCeiling, g.EsiApplicable, g.PtApplicable, g.PtState,
             g.TemplateId, TemplateName = g.Template?.Name,
             g.IsActive
         });
@@ -127,6 +129,9 @@ public class PayGroupsApiController : ControllerBase
             SalaryBasis     = dto.SalaryBasis ?? "CalendarDays",
             LopRounding     = dto.LopRounding ?? "None",
             PfApplicable    = dto.PfApplicable,
+            CapEmployeePf   = dto.CapEmployeePf,
+            CapEmployerPf   = dto.CapEmployerPf,
+            PfWageCeiling   = dto.PfWageCeiling ?? 15000m,
             EsiApplicable   = dto.EsiApplicable,
             PtApplicable    = dto.PtApplicable,
             PtState         = dto.PtState?.Trim(),
@@ -153,11 +158,14 @@ public class PayGroupsApiController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(dto.Name))     group.Name         = dto.Name.Trim();
         if (dto.Description != null)                   group.Description  = dto.Description.Trim();
-        if (!string.IsNullOrWhiteSpace(dto.SalaryBasis)) group.SalaryBasis = dto.SalaryBasis;
-        if (!string.IsNullOrWhiteSpace(dto.LopRounding)) group.LopRounding = dto.LopRounding;
-        group.PfApplicable  = dto.PfApplicable;
+        group.SalaryBasis = dto.SalaryBasis ?? "CalendarDays";
+        group.LopRounding = dto.LopRounding ?? "None";
+        group.PfApplicable = dto.PfApplicable;
+        group.CapEmployeePf = dto.CapEmployeePf;
+        group.CapEmployerPf = dto.CapEmployerPf;
+        if (dto.PfWageCeiling.HasValue) group.PfWageCeiling = dto.PfWageCeiling.Value;
         group.EsiApplicable = dto.EsiApplicable;
-        group.PtApplicable  = dto.PtApplicable;
+        group.PtApplicable = dto.PtApplicable;
         if (dto.PtState != null) group.PtState = dto.PtState.Trim();
         if (dto.TemplateId.HasValue) group.TemplateId = dto.TemplateId;
         if (dto.IsActive.HasValue) group.IsActive = dto.IsActive.Value;
@@ -357,6 +365,9 @@ public record PayGroupDto(
     string? SalaryBasis,
     string? LopRounding,
     bool PfApplicable = true,
+    bool CapEmployeePf = true,
+    bool CapEmployerPf = true,
+    decimal? PfWageCeiling = 15000m,
     bool EsiApplicable = true,
     bool PtApplicable = true,
     string? PtState = null,

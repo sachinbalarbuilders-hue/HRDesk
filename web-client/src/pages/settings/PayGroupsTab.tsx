@@ -9,6 +9,7 @@ import { DataToolbar } from '../../components/ui/DataToolbar';
 import {
   Users, Plus, Pencil, X, MapPin, ChevronDown, ChevronRight,
 } from 'lucide-react';
+import { Switch } from '../../components/ui/Switch';
 
 interface PayGroup {
   id: number;
@@ -17,6 +18,9 @@ interface PayGroup {
   salaryBasis: string;
   lopRounding: string;
   pfApplicable: boolean;
+  capEmployeePf: boolean;
+  capEmployerPf: boolean;
+  pfWageCeiling: number;
   esiApplicable: boolean;
   ptApplicable: boolean;
   ptState?: string;
@@ -48,7 +52,8 @@ const STATES = [
 
 const emptyForm = {
   name: '', description: '', salaryBasis: 'CalendarDays',
-  pfApplicable: true, esiApplicable: true, ptApplicable: true,
+  pfApplicable: true, capEmployeePf: true, capEmployerPf: true, pfWageCeiling: 15000,
+  esiApplicable: true, ptApplicable: true,
   ptState: 'Telangana', templateId: '',
 };
 
@@ -90,8 +95,10 @@ export const PayGroupsTab: React.FC = () => {
     setForm({
       name: g.name, description: g.description || '',
       salaryBasis: g.salaryBasis,
-      pfApplicable: g.pfApplicable, esiApplicable: g.esiApplicable,
-      ptApplicable: g.ptApplicable, ptState: g.ptState || 'Telangana',
+      pfApplicable: g.pfApplicable, capEmployeePf: g.capEmployeePf, capEmployerPf: g.capEmployerPf,
+      pfWageCeiling: g.pfWageCeiling ?? 15000,
+      esiApplicable: g.esiApplicable, ptApplicable: g.ptApplicable,
+      ptState: g.ptState || 'Telangana',
       templateId: g.templateId?.toString() || '',
     });
     setModalOpen(true);
@@ -378,20 +385,66 @@ export const PayGroupsTab: React.FC = () => {
                 </select>
               </div>
 
-              <div className="space-y-2 border-t border-[var(--rule)] pt-3">
+              <div className="space-y-4 border-t border-[var(--rule)] pt-4 mt-4">
                 <p className="font-bold text-[var(--ink)] text-[11px] uppercase tracking-wider">Statutory Deductions</p>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" name="pfApplicable" checked={form.pfApplicable} onChange={FC} className="rounded" />
-                  <span className="text-[var(--ink)] font-medium">EPF Applicable (12% employee + 12% employer)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" name="esiApplicable" checked={form.esiApplicable} onChange={FC} className="rounded" />
-                  <span className="text-[var(--ink)] font-medium">ESI Applicable (0.75% emp + 3.25% employer)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" name="ptApplicable" checked={form.ptApplicable} onChange={FC} className="rounded" />
-                  <span className="text-[var(--ink)] font-medium">Professional Tax (PT) Applicable</span>
-                </label>
+                
+                <div className="space-y-3">
+                  <Switch
+                    checked={form.pfApplicable}
+                    onChange={(checked) => setForm(f => ({ ...f, pfApplicable: checked }))}
+                    label="EPF Applicable"
+                    description="Include 12% employee + 12% employer contribution"
+                  />
+
+                  {form.pfApplicable && (
+                    <div className="pl-12 space-y-3">
+                      <Switch
+                        checked={form.capEmployeePf}
+                        onChange={(checked) => setForm(f => ({ ...f, capEmployeePf: checked }))}
+                        label="Cap Employee PF"
+                        description={`Limit deduction to 12% of statutory ceiling. If off, calculates on full basic.`}
+                      />
+                      <Switch
+                        checked={form.capEmployerPf}
+                        onChange={(checked) => setForm(f => ({ ...f, capEmployerPf: checked }))}
+                        label="Cap Employer PF"
+                        description={`Limit contribution to 12% of statutory ceiling. If off, calculates on full basic.`}
+                      />
+                      
+                      {(form.capEmployeePf || form.capEmployerPf) && (
+                        <div className="pt-2">
+                          <label className="text-[var(--ink)] font-semibold block mb-1 text-[11px] uppercase tracking-wider">
+                            PF Wage Ceiling Limit (₹)
+                          </label>
+                          <input
+                            type="number"
+                            name="pfWageCeiling"
+                            value={form.pfWageCeiling}
+                            onChange={F}
+                            className="w-full max-w-[200px] px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                            min="0"
+                            step="100"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <Switch
+                    checked={form.esiApplicable}
+                    onChange={(checked) => setForm(f => ({ ...f, esiApplicable: checked }))}
+                    label="ESI Applicable"
+                    description="Include 0.75% employee + 3.25% employer contribution"
+                  />
+
+                  <Switch
+                    checked={form.ptApplicable}
+                    onChange={(checked) => setForm(f => ({ ...f, ptApplicable: checked }))}
+                    label="Professional Tax (PT) Applicable"
+                    description="Calculate monthly PT based on state slabs"
+                  />
+                </div>
+
                 {form.ptApplicable && (
                   <div className="pl-6 pt-1">
                     <label className="text-[var(--ink-muted)] block mb-1 text-[11px]">PT State Slabs</label>

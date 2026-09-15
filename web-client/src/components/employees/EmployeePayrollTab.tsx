@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { IndianRupee, Plus, Pencil, X, ChevronDown, Users } from 'lucide-react';
+import { IndianRupee, Plus, Pencil, X, ChevronDown, Users, Landmark } from 'lucide-react';
+import { TaxDeclarationModal } from '../payroll/TaxDeclarationModal';
 
 interface CTCRecord {
   id: number;
@@ -39,6 +40,10 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, canEdit }) => 
   const [currentGroup, setCurrentGroup] = useState<PayGroup | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [taxModalOpen, setTaxModalOpen] = useState(false);
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  const defaultFy = currentMonth >= 4 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
   const [form, setForm] = useState({ ...empty });
   const [saving, setSaving] = useState(false);
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
@@ -212,6 +217,27 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, canEdit }) => 
             )}
           </div>
 
+          {/* Income Tax (IT) Declaration & TDS */}
+          <div className="p-4 border border-[var(--rule)] rounded-[6px] bg-[var(--paper)]">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold text-[var(--ink)] font-ui uppercase tracking-wide flex items-center gap-1.5">
+                  <Landmark size={13} /> Income Tax (IT) Declaration & TDS
+                </h3>
+                <p className="text-[11px] text-[var(--ink-muted)] mt-1">
+                  Tax regime (Old vs New Sec 115BAC), Chapter VI-A deductions (80C, 80D), HRA exemptions & monthly TDS.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTaxModalOpen(true)}
+                className="btn-outline text-xs flex items-center gap-1.5 px-3 py-1.5 font-medium hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
+              >
+                <Landmark size={12} /> Manage Declaration
+              </button>
+            </div>
+          </div>
+
           {/* CTC History */}
           {records.length > 1 && (
             <div>
@@ -302,6 +328,18 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, canEdit }) => 
             </form>
           </div>
         </div>
+      )}
+
+      {taxModalOpen && (
+        <TaxDeclarationModal
+          isOpen={taxModalOpen}
+          employeeId={employeeId}
+          financialYear={defaultFy}
+          onClose={() => setTaxModalOpen(false)}
+          onSaved={() => {
+            showSuccess('Tax declaration updated');
+          }}
+        />
       )}
     </div>
   );

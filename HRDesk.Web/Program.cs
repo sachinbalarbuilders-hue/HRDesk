@@ -139,6 +139,7 @@ builder.Services.AddScoped<HRDesk.Web.Services.LoanService>();
 builder.Services.AddScoped<HRDesk.Web.Services.AttendanceSummaryService>(); // Shared counting logic
 builder.Services.AddScoped<HRDesk.Web.Services.Attendance.AttendanceDialService>();
 builder.Services.AddScoped<HRDesk.Web.Services.PayrollService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Payroll.TaxComputationService>();
 builder.Services.AddScoped<HRDesk.Web.Services.CompOffService>();
 builder.Services.AddScoped<HRDesk.Web.Services.LeaveAdjustmentService>();
 builder.Services.AddScoped<HRDesk.Web.Services.Email.EmailService>();

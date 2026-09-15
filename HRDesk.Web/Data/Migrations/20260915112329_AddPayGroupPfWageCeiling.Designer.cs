@@ -4,16 +4,19 @@ using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace HRDesk.Web.Migrations
+namespace HRDesk.Web.Data.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260915112329_AddPayGroupPfWageCeiling")]
+    partial class AddPayGroupPfWageCeiling
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1992,267 +1995,6 @@ namespace HRDesk.Web.Migrations
                     b.HasIndex("OrganizationId", "EmployeeId");
 
                     b.ToTable("employee_shift_assignments");
-                });
-
-            modelBuilder.Entity("HRDesk.Web.Models.EmployeeTaxDeclaration", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("AnnualRentPaid")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("annual_rent_paid");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("approved_at");
-
-                    b.Property<string>("ApprovedBy")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .HasColumnName("approved_by");
-
-                    b.Property<DateTime?>("ArchivedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("archived_at");
-
-                    b.Property<string>("ArchivedBy")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .HasColumnName("archived_by");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("created_at");
-
-                    b.Property<int>("EmployeeId")
-                        .HasColumnType("int")
-                        .HasColumnName("employee_id");
-
-                    b.Property<string>("FinancialYear")
-                        .IsRequired()
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)")
-                        .HasColumnName("financial_year");
-
-                    b.Property<string>("LandlordName")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .HasColumnName("landlord_name");
-
-                    b.Property<string>("LandlordPAN")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("landlord_pan");
-
-                    b.Property<string>("LenderName")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .HasColumnName("lender_name");
-
-                    b.Property<string>("LenderPAN")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("lender_pan");
-
-                    b.Property<int>("OrganizationId")
-                        .HasColumnType("int")
-                        .HasColumnName("organization_id");
-
-                    b.Property<decimal>("OtherIncome")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("other_income");
-
-                    b.Property<decimal>("PreviousEmployerGross")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("previous_employer_gross");
-
-                    b.Property<decimal>("PreviousEmployerTDS")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("previous_employer_tds");
-
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("rejection_reason");
-
-                    b.Property<string>("Remarks")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)")
-                        .HasColumnName("remarks");
-
-                    b.Property<string>("RentalCityType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("rental_city_type");
-
-                    b.Property<decimal>("Sec24_HomeLoanInterest")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec24_home_loan_interest");
-
-                    b.Property<decimal>("Sec80CCD_NPS")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80ccd_nps");
-
-                    b.Property<decimal>("Sec80C_ELSS")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80c_elss");
-
-                    b.Property<decimal>("Sec80C_EPF")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80c_epf");
-
-                    b.Property<decimal>("Sec80C_HomeLoanPrincipal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80c_home_loan_principal");
-
-                    b.Property<decimal>("Sec80C_LifeInsurance")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80c_life_insurance");
-
-                    b.Property<decimal>("Sec80C_Other")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80c_other");
-
-                    b.Property<decimal>("Sec80C_PPF")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80c_ppf");
-
-                    b.Property<decimal>("Sec80C_TuitionFees")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80c_tuition_fees");
-
-                    b.Property<decimal>("Sec80D_Parents")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80d_parents");
-
-                    b.Property<bool>("Sec80D_ParentsSeniorCitizen")
-                        .HasColumnType("bit")
-                        .HasColumnName("sec80d_parents_senior_citizen");
-
-                    b.Property<decimal>("Sec80D_PreventiveCheckup")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80d_preventive_checkup");
-
-                    b.Property<decimal>("Sec80D_SelfFamily")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80d_self_family");
-
-                    b.Property<decimal>("Sec80E_EducationLoanInterest")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80e_education_loan_interest");
-
-                    b.Property<decimal>("Sec80G_Donations")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80g_donations");
-
-                    b.Property<decimal>("Sec80TTA_SavingsInterest")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(12,2)")
-                        .HasColumnName("sec80tta_savings_interest");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("status");
-
-                    b.Property<DateTime?>("SubmittedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("submitted_at");
-
-                    b.Property<string>("TaxRegime")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasColumnName("tax_regime");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId", "EmployeeId", "FinancialYear");
-
-                    b.ToTable("EmployeeTaxDeclarations");
-                });
-
-            modelBuilder.Entity("HRDesk.Web.Models.EmployeeTaxDeclarationProof", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("content_type");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
-                        .HasColumnName("file_name");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("file_path");
-
-                    b.Property<int>("OrganizationId")
-                        .HasColumnType("int")
-                        .HasColumnName("organization_id");
-
-                    b.Property<string>("ProofType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("proof_type");
-
-                    b.Property<int>("TaxDeclarationId")
-                        .HasColumnType("int")
-                        .HasColumnName("tax_declaration_id");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("uploaded_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("TaxDeclarationId");
-
-                    b.ToTable("employee_tax_declaration_proofs");
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.GateActivityLog", b =>
@@ -4973,44 +4715,6 @@ namespace HRDesk.Web.Migrations
                     b.Navigation("Shift");
                 });
 
-            modelBuilder.Entity("HRDesk.Web.Models.EmployeeTaxDeclaration", b =>
-                {
-                    b.HasOne("HRDesk.Web.Models.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("HRDesk.Web.Models.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId", "EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("HRDesk.Web.Models.EmployeeTaxDeclarationProof", b =>
-                {
-                    b.HasOne("HRDesk.Web.Models.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("HRDesk.Web.Models.EmployeeTaxDeclaration", "TaxDeclaration")
-                        .WithMany("Proofs")
-                        .HasForeignKey("TaxDeclarationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Organization");
-
-                    b.Navigation("TaxDeclaration");
-                });
-
             modelBuilder.Entity("HRDesk.Web.Models.GateActivityLog", b =>
                 {
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
@@ -5678,11 +5382,6 @@ namespace HRDesk.Web.Migrations
             modelBuilder.Entity("HRDesk.Web.Models.EmployeeLoan", b =>
                 {
                     b.Navigation("LoanInstallments");
-                });
-
-            modelBuilder.Entity("HRDesk.Web.Models.EmployeeTaxDeclaration", b =>
-                {
-                    b.Navigation("Proofs");
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.Holiday", b =>

@@ -34,9 +34,22 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, 200);
   }, []);
 
-  const showToast = useCallback((type: ToastType, title: string, message?: string) => {
+  const showToast = useCallback((type: any, title?: string, message?: string) => {
+    let finalType: ToastType = 'info';
+    let finalTitle = '';
+    let finalMessage = message;
+
+    if (typeof type === 'object' && type !== null) {
+      finalType = type.type || 'info';
+      finalTitle = type.title || '';
+      finalMessage = type.message;
+    } else {
+      finalType = type || 'info';
+      finalTitle = title || '';
+    }
+
     const id = Math.random().toString(36).substring(2, 9);
-    const newToast: Toast = { id, type, title, message, exiting: false };
+    const newToast: Toast = { id, type: finalType, title: finalTitle, message: finalMessage, exiting: false };
     setToasts((prev) => [...prev, newToast]);
 
     const timer = setTimeout(() => { removeToast(id); }, 4500);
@@ -60,7 +73,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             warning: { border: 'border-l-[var(--warning)]', icon: <AlertTriangle size={16} className="text-[var(--warning)]" />, badge: 'text-[var(--warning)] bg-[var(--warning-light)]' },
             info: { border: 'border-l-[var(--accent)]', icon: <Info size={16} className="text-[var(--accent)]" />, badge: 'text-[var(--accent)] bg-[var(--accent-light)]' },
           };
-          const cfg = configs[toast.type];
+          const cfg = (configs as any)[toast.type] || configs.info;
 
           return (
             <div

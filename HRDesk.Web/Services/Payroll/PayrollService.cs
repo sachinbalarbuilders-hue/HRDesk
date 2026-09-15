@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using HRDesk.Web.Controllers.Api;          // ComputeCTCBreakdown helper
 using HRDesk.Web.Data;
 using HRDesk.Web.Models;
+using HRDesk.Web.Services.Payroll;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -29,25 +30,20 @@ public class PayrollService
     private readonly BiometricAttendanceDbContext _db;
     private readonly LoanService _loanService;
     private readonly AttendanceSummaryService _attendanceSummaryService;
+    private readonly TaxComputationService _taxComputationService;
     private readonly ILogger<PayrollService> _logger;
-
-    // Statutory constants (India 2024-25)
-    private const decimal PfCeilingWage   = 15_000m;   // PF computed only on Basic+DA up to ₹15,000
-    private const decimal PfEmployeeRate  = 0.12m;     // 12%
-    private const decimal PfEmployerRate  = 0.12m;     // 12% (3.67% EPS + 8.33% EPF)
-    private const decimal EsiEmployeeRate = 0.0075m;   // 0.75%
-    private const decimal EsiEmployerRate = 0.0325m;   // 3.25%
-    private const decimal EsiGrossCeiling = 21_000m;   // ESI not applicable above ₹21,000 gross
 
     public PayrollService(
         BiometricAttendanceDbContext db,
         LoanService loanService,
         AttendanceSummaryService attendanceSummaryService,
+        TaxComputationService taxComputationService,
         ILogger<PayrollService> logger)
     {
         _db = db;
         _loanService = loanService;
         _attendanceSummaryService = attendanceSummaryService;
+        _taxComputationService = taxComputationService;
         _logger = logger;
     }
 
@@ -323,6 +319,19 @@ public class PayrollService
         // ── Step 1: Resolve component amounts ─────────────────────────────────
         decimal grossSalary; // Full monthly CTC before any deduction
         var earningDetails    = new List<PayrollDetail>();
+        // Fetch live statutory settings for this tenant
+        var statutorySettings = await _db.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == employee.OrganizationId && s.SettingKey.StartsWith("Statutory_"))
+            .ToDictionaryAsync(s => s.SettingKey, s => s.SettingValue);
+
+        decimal defaultPfCeiling   = ParseDecimalSetting(statutorySettings, "Statutory_PfCeilingWage", 15000m);
+        decimal pfEmployeeRate     = ParseDecimalSetting(statutorySettings, "Statutory_PfEmployeeRate", 12m) / 100m;
+        decimal pfEmployerRate     = ParseDecimalSetting(statutorySettings, "Statutory_PfEmployerRate", 12m) / 100m;
+        decimal esiEmployeeRate    = ParseDecimalSetting(statutorySettings, "Statutory_EsiEmployeeRate", 0.75m) / 100m;
+        decimal esiEmployerRate    = ParseDecimalSetting(statutorySettings, "Statutory_EsiEmployerRate", 3.25m) / 100m;
+        decimal esiGrossCeiling    = ParseDecimalSetting(statutorySettings, "Statutory_EsiGrossCeiling", 21000m);
+
         var deductionDetails  = new List<PayrollDetail>();
         decimal basicAmount   = 0m;
 
@@ -514,50 +523,53 @@ public class PayrollService
         bool ptApplicable  = payGroup?.PtApplicable  ?? true;
         string? ptState    = payGroup?.PtState;
 
-        // Gross for PF = sum of all EPF-applicable components (approx: basic)
-        decimal pfWage = Math.Min(basicAmount, PfCeilingWage);
+        decimal customPfCeiling = payGroup?.PfWageCeiling ?? defaultPfCeiling;
 
-        if (pfApplicable && pfWage > 0)
+        // Gross for PF = sum of all EPF-applicable components (approx: basic)
+        decimal employeePfWage = payGroup?.CapEmployeePf == false ? basicAmount : Math.Min(basicAmount, customPfCeiling);
+        decimal employerPfWage = payGroup?.CapEmployerPf == false ? basicAmount : Math.Min(basicAmount, customPfCeiling);
+
+        if (pfApplicable && (employeePfWage > 0 || employerPfWage > 0))
         {
-            pfEmployee  = Math.Round(pfWage * PfEmployeeRate, 2);
-            employerPf  = Math.Round(pfWage * PfEmployerRate, 2);
+            pfEmployee  = Math.Round(employeePfWage * pfEmployeeRate, 2);
+            employerPf  = Math.Round(employerPfWage * pfEmployerRate, 2);
             totalDeductions += pfEmployee;
             deductionDetails.Add(new PayrollDetail
             {
                 ComponentType = "Deduction",
-                ComponentName = "Provident Fund (Employee 12%)",
+                ComponentName = $"Provident Fund (Employee {pfEmployeeRate:P2})",
                 Amount        = pfEmployee,
-                Remarks       = $"12% of ₹{pfWage:N0} (Basic, capped at ₹15,000)"
+                Remarks       = $"{pfEmployeeRate:P2} of ₹{employeePfWage:N0}" + (payGroup?.CapEmployeePf != false ? $" (capped at ₹{customPfCeiling:N0})" : "")
             });
             // Employer PF — informational only, not deducted from employee
             deductionDetails.Add(new PayrollDetail
             {
                 ComponentType = "Informational",
-                ComponentName = "Provident Fund (Employer 12%)",
+                ComponentName = $"Provident Fund (Employer {pfEmployerRate:P2})",
                 Amount        = employerPf,
-                Remarks       = $"Employer contribution 12% of ₹{pfWage:N0}"
+                Remarks       = $"Employer contribution {pfEmployerRate:P2} of ₹{employerPfWage:N0}" + (payGroup?.CapEmployerPf != false ? $" (capped at ₹{customPfCeiling:N0})" : "")
             });
         }
 
         decimal esiGross = totalEarnings;   // ESI gross = total earnings before deductions
-        if (esiApplicable && esiGross <= EsiGrossCeiling)
+        if (esiApplicable && esiGross <= esiGrossCeiling)
         {
-            esiEmployee  = Math.Round(esiGross * EsiEmployeeRate, 2);
-            employerEsi  = Math.Round(esiGross * EsiEmployerRate, 2);
+            esiEmployee  = Math.Round(esiGross * esiEmployeeRate, 2);
+            employerEsi  = Math.Round(esiGross * esiEmployerRate, 2);
             totalDeductions += esiEmployee;
             deductionDetails.Add(new PayrollDetail
             {
                 ComponentType = "Deduction",
-                ComponentName = "ESI (Employee 0.75%)",
+                ComponentName = $"ESI (Employee {esiEmployeeRate:P2})",
                 Amount        = esiEmployee,
-                Remarks       = $"0.75% of gross ₹{esiGross:N0}"
+                Remarks       = $"{esiEmployeeRate:P2} of gross ₹{esiGross:N0}"
             });
             deductionDetails.Add(new PayrollDetail
             {
                 ComponentType = "Informational",
-                ComponentName = "ESI (Employer 3.25%)",
+                ComponentName = $"ESI (Employer {esiEmployerRate:P2})",
                 Amount        = employerEsi,
-                Remarks       = $"Employer contribution 3.25% of ₹{esiGross:N0}"
+                Remarks       = $"Employer contribution {esiEmployerRate:P2} of ₹{esiGross:N0}"
             });
         }
 
@@ -612,6 +624,35 @@ public class PayrollService
             }
         }
 
+        // ── Step 8b: Statutory TDS (Income Tax) Deduction ─────────────────────
+        decimal tdsAmount = 0m;
+        decimal currentHraAmount = earningDetails
+            .Where(e => e.ComponentName.Contains("HRA", StringComparison.OrdinalIgnoreCase) ||
+                        e.ComponentName.Contains("House Rent", StringComparison.OrdinalIgnoreCase))
+            .Sum(e => e.Amount);
+
+        var (computedTds, annualTax, regime) = await _taxComputationService.ComputeMonthlyTdsAsync(
+            employee.EmployeeId,
+            employee.OrganizationId,
+            monthStart.Year,
+            monthStart.Month,
+            totalEarnings,
+            basicAmount,
+            currentHraAmount);
+
+        if (computedTds > 0)
+        {
+            tdsAmount = computedTds;
+            totalDeductions += tdsAmount;
+            deductionDetails.Add(new PayrollDetail
+            {
+                ComponentType = "Deduction",
+                ComponentName = "Tax Deducted at Source (TDS)",
+                Amount        = tdsAmount,
+                Remarks       = $"{regime} Regime (Projected Annual Tax: ₹{annualTax:N0})"
+            });
+        }
+
         // Ensure totals match detail sum exactly
         totalEarnings   = earningDetails.Where(e => e.ComponentType == "Earning").Sum(e => e.Amount);
         totalDeductions = deductionDetails.Where(d => d.ComponentType == "Deduction").Sum(d => d.Amount);
@@ -643,6 +684,7 @@ public class PayrollService
         payroll.EmployerPF      = employerPf;
         payroll.EmployerESI     = employerEsi;
         payroll.ProfessionalTax = ptAmount;
+        payroll.TDS             = tdsAmount > 0 ? tdsAmount : null;
         payroll.IsProrated      = isProrated;
         payroll.ProratedDays    = isProrated ? proratedDays : null;
         payroll.SalaryBasis     = salaryBasis;
@@ -734,6 +776,13 @@ public class PayrollService
             inst.Remarks = "Reverted for re-processing";
         }
         await _db.SaveChangesAsync();
+    }
+
+    private static decimal ParseDecimalSetting(Dictionary<string, string?> dict, string key, decimal defaultValue)
+    {
+        if (dict.TryGetValue(key, out var val) && decimal.TryParse(val, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+            return parsed;
+        return defaultValue;
     }
 
     private static decimal LookupPT(

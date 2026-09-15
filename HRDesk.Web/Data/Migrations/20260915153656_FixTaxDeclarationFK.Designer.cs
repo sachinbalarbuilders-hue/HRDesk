@@ -4,16 +4,19 @@ using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace HRDesk.Web.Migrations
+namespace HRDesk.Web.Data.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260915153656_FixTaxDeclarationFK")]
+    partial class FixTaxDeclarationFK
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2199,60 +2202,6 @@ namespace HRDesk.Web.Migrations
                     b.HasIndex("OrganizationId", "EmployeeId", "FinancialYear");
 
                     b.ToTable("EmployeeTaxDeclarations");
-                });
-
-            modelBuilder.Entity("HRDesk.Web.Models.EmployeeTaxDeclarationProof", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("content_type");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
-                        .HasColumnName("file_name");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("file_path");
-
-                    b.Property<int>("OrganizationId")
-                        .HasColumnType("int")
-                        .HasColumnName("organization_id");
-
-                    b.Property<string>("ProofType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("proof_type");
-
-                    b.Property<int>("TaxDeclarationId")
-                        .HasColumnType("int")
-                        .HasColumnName("tax_declaration_id");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("uploaded_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.HasIndex("TaxDeclarationId");
-
-                    b.ToTable("employee_tax_declaration_proofs");
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.GateActivityLog", b =>
@@ -4992,25 +4941,6 @@ namespace HRDesk.Web.Migrations
                     b.Navigation("Organization");
                 });
 
-            modelBuilder.Entity("HRDesk.Web.Models.EmployeeTaxDeclarationProof", b =>
-                {
-                    b.HasOne("HRDesk.Web.Models.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("HRDesk.Web.Models.EmployeeTaxDeclaration", "TaxDeclaration")
-                        .WithMany("Proofs")
-                        .HasForeignKey("TaxDeclarationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Organization");
-
-                    b.Navigation("TaxDeclaration");
-                });
-
             modelBuilder.Entity("HRDesk.Web.Models.GateActivityLog", b =>
                 {
                     b.HasOne("HRDesk.Web.Models.Organization", "Organization")
@@ -5678,11 +5608,6 @@ namespace HRDesk.Web.Migrations
             modelBuilder.Entity("HRDesk.Web.Models.EmployeeLoan", b =>
                 {
                     b.Navigation("LoanInstallments");
-                });
-
-            modelBuilder.Entity("HRDesk.Web.Models.EmployeeTaxDeclaration", b =>
-                {
-                    b.Navigation("Proofs");
                 });
 
             modelBuilder.Entity("HRDesk.Web.Models.Holiday", b =>

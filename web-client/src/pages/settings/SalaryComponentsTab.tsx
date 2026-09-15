@@ -7,6 +7,8 @@ import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { DataToolbar } from '../../components/ui/DataToolbar';
+import { Switch } from '../../components/ui/Switch';
+import { SearchableSelect } from '../../components/ui/SearchableSelect';
 
 interface SalaryComponent {
   id: number;
@@ -23,7 +25,6 @@ interface SalaryComponent {
 }
 
 const COMPONENT_TYPES = ['Earning', 'Deduction', 'Informational'];
-const CATEGORIES = ['Basic', 'Allowance', 'Statutory', 'Reimbursement', 'Bonus', 'Other'];
 
 const TYPE_COLORS: Record<string, string> = {
   Earning: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300',
@@ -47,7 +48,6 @@ const emptyForm = {
   componentName: '',
   componentCode: '',
   componentType: 'Earning' as SalaryComponent['componentType'],
-  category: 'Allowance',
   isEpfApplicable: false,
   isEsiApplicable: false,
   isTaxable: true,
@@ -100,7 +100,6 @@ export const SalaryComponentsTab: React.FC = () => {
       componentName: c.componentName,
       componentCode: c.componentCode,
       componentType: c.componentType,
-      category: c.category,
       isEpfApplicable: c.isEpfApplicable,
       isEsiApplicable: c.isEsiApplicable,
       isTaxable: c.isTaxable,
@@ -149,7 +148,7 @@ export const SalaryComponentsTab: React.FC = () => {
     const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
     const matchesType = typeFilter === 'all' || c.componentType === typeFilter;
     const s = search.trim().toLowerCase();
-    const matchesSearch = !s || c.componentName.toLowerCase().includes(s) || c.componentCode.toLowerCase().includes(s) || c.category.toLowerCase().includes(s);
+    const matchesSearch = !s || c.componentName.toLowerCase().includes(s) || c.componentCode.toLowerCase().includes(s);
     return matchesArchive && matchesType && matchesSearch;
   }).sort((a, b) => a.displayOrder - b.displayOrder);
 
@@ -183,11 +182,6 @@ export const SalaryComponentsTab: React.FC = () => {
           {c.componentCode}
         </code>
       ),
-    },
-    {
-      key: 'category',
-      header: 'Category',
-      render: (c) => <span className="text-xs text-[var(--ink-muted)]">{c.category}</span>,
     },
     {
       key: 'isEpfApplicable',
@@ -252,7 +246,7 @@ export const SalaryComponentsTab: React.FC = () => {
       <DataToolbar
         searchValue={search}
         onSearchChange={(v) => { setSearch(v); setPage(1); }}
-        searchPlaceholder="Search component name, code, category..."
+        searchPlaceholder="Search component name or code..."
         archiveFilter={{
           value: archiveFilter,
           onChange: (v) => { setArchiveFilter(v); setPage(1); },
@@ -313,58 +307,44 @@ export const SalaryComponentsTab: React.FC = () => {
               {/* Name + Code */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-[var(--ink)] block mb-1">Component Name *</label>
+                  <label className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider block mb-1.5">Component Name *</label>
                   <input
                     name="componentName"
                     value={form.componentName}
                     onChange={F}
                     required
                     placeholder="e.g. Basic Salary, HRA"
-                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all shadow-sm font-ui"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[var(--ink)] block mb-1">Code * (UPPERCASE)</label>
+                  <label className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider block mb-1.5">Code * (UPPERCASE)</label>
                   <input
                     name="componentCode"
                     value={form.componentCode}
                     onChange={F}
                     required
                     placeholder="e.g. BASIC, HRA, PF"
-                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs font-mono text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)]"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm font-mono text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all shadow-sm"
                   />
                 </div>
               </div>
 
-              {/* Type + Category */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-[var(--ink)] block mb-1">Component Type</label>
-                  <select
-                    name="componentType"
-                    value={form.componentType}
-                    onChange={F}
-                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui cursor-pointer"
-                  >
-                    {COMPONENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="font-semibold text-[var(--ink)] block mb-1">Category</label>
-                  <select
-                    name="category"
-                    value={form.category}
-                    onChange={F}
-                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui cursor-pointer"
-                  >
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
+              {/* Type */}
+              <div>
+                <label className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider block mb-1.5">Component Type</label>
+                <SearchableSelect
+                  value={form.componentType}
+                  options={COMPONENT_TYPES}
+                  onChange={(v) => setForm(f => ({ ...f, componentType: v as any }))}
+                  searchable={false}
+                  className="h-10 w-full"
+                />
               </div>
 
               {/* Display Order */}
               <div>
-                <label className="font-semibold text-[var(--ink)] block mb-1">Display Order (lower numbers appear first on payslip)</label>
+                <label className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider block mb-1.5">Display Order (lower numbers appear first on payslip)</label>
                 <input
                   type="number"
                   name="displayOrder"
@@ -372,42 +352,50 @@ export const SalaryComponentsTab: React.FC = () => {
                   onChange={F}
                   min={1}
                   max={999}
-                  className="w-24 px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                  className="w-24 px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all shadow-sm font-ui"
                 />
               </div>
 
-              {/* Checkboxes */}
-              <div className="space-y-2 border-t border-[var(--rule)] pt-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" name="isTaxable" checked={form.isTaxable} onChange={FC} className="rounded" />
-                  <span className="text-[var(--ink)] font-medium">Taxable (included in income tax calculation)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" name="isEpfApplicable" checked={form.isEpfApplicable} onChange={FC} className="rounded" />
-                  <span className="text-[var(--ink)] font-medium">EPF Qualifying (included in PF wage for 12% calculation)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" name="isEsiApplicable" checked={form.isEsiApplicable} onChange={FC} className="rounded" />
-                  <span className="text-[var(--ink)] font-medium">ESI Qualifying (included in gross wages for ESI threshold)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" name="isActive" checked={form.isActive} onChange={FC} className="rounded" />
-                  <span className="text-[var(--ink)] font-medium">Active (available for selection in salary templates)</span>
-                </label>
+              {/* Custom Switches */}
+              <div className="grid grid-cols-1 gap-4 border-t border-[var(--rule)] pt-5 pb-2">
+                <Switch 
+                  checked={form.isTaxable} 
+                  onChange={(c) => setForm(f => ({ ...f, isTaxable: c }))} 
+                  label="Taxable" 
+                  description="Included in income tax calculation" 
+                />
+                <Switch 
+                  checked={form.isEpfApplicable} 
+                  onChange={(c) => setForm(f => ({ ...f, isEpfApplicable: c }))} 
+                  label="EPF Qualifying" 
+                  description="Included in PF wage for 12% calculation" 
+                />
+                <Switch 
+                  checked={form.isEsiApplicable} 
+                  onChange={(c) => setForm(f => ({ ...f, isEsiApplicable: c }))} 
+                  label="ESI Qualifying" 
+                  description="Included in gross wages for ESI threshold" 
+                />
+                <Switch 
+                  checked={form.isActive} 
+                  onChange={(c) => setForm(f => ({ ...f, isActive: c }))} 
+                  label="Active" 
+                  description="Available for selection in salary templates" 
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-[var(--rule)]">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="btn-outline text-xs py-1.5 px-3 cursor-pointer"
+                  className="px-5 py-2 text-sm font-medium rounded-lg border border-[var(--rule)] hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors shadow-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="btn-primary text-xs py-1.5 px-4 cursor-pointer"
+                  className="px-5 py-2 text-sm font-medium rounded-lg bg-[var(--gold-500)] hover:bg-[var(--gold-600)] text-white shadow-sm transition-colors flex items-center justify-center min-w-[140px]"
                 >
                   {saving ? 'Saving...' : editId ? 'Update Component' : 'Create Component'}
                 </button>

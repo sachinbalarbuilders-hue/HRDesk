@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -79,18 +79,12 @@ namespace HRDesk.Web.Data.Migrations
                 oldMaxLength: 20,
                 oldNullable: true);
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "archived_at",
-                table: "shift_change_requests",
-                type: "datetime2",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "archived_by",
-                table: "shift_change_requests",
-                type: "nvarchar(100)",
-                maxLength: 100,
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('shift_change_requests') AND name = 'archived_at')
+                    ALTER TABLE shift_change_requests ADD archived_at datetime2 NULL;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('shift_change_requests') AND name = 'archived_by')
+                    ALTER TABLE shift_change_requests ADD archived_by nvarchar(100) NULL;
+            ");
 
             migrationBuilder.AlterColumn<string>(
                 name: "category",
@@ -402,20 +396,12 @@ namespace HRDesk.Web.Data.Migrations
                 oldMaxLength: 20,
                 oldNullable: true);
 
-            migrationBuilder.AddColumn<decimal>(
-                name: "availed_days",
-                table: "comp_off_requests",
-                type: "decimal(18,2)",
-                precision: 18,
-                scale: 2,
-                nullable: false,
-                defaultValue: 0m);
-
-            migrationBuilder.AddColumn<DateOnly>(
-                name: "expiry_date",
-                table: "comp_off_requests",
-                type: "date",
-                nullable: true);
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('comp_off_requests') AND name = 'availed_days')
+                    ALTER TABLE comp_off_requests ADD availed_days decimal(18,2) NOT NULL DEFAULT 0;
+                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('comp_off_requests') AND name = 'expiry_date')
+                    ALTER TABLE comp_off_requests ADD expiry_date date NULL;
+            ");
 
             migrationBuilder.AlterColumn<string>(
                 name: "outside_attendance_policy",

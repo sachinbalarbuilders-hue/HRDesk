@@ -45,6 +45,7 @@ const SubscriptionTab = lazy(() => import('./pages/settings/SubscriptionTab').th
 const AuditLogsTab = lazy(() => import('./pages/settings/AuditLogsTab').then(m => ({ default: m.AuditLogsTab })));
 const ChangePasswordTab = lazy(() => import('./pages/settings/ChangePasswordTab').then(m => ({ default: m.ChangePasswordTab })));
 const EmailSettingsTab = lazy(() => import('./pages/settings/EmailSettingsTab').then(m => ({ default: m.EmailSettingsTab })));
+const StatutorySettingsTab = lazy(() => import('./pages/settings/StatutorySettingsTab').then(m => ({ default: m.StatutorySettingsTab })));
 const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
 const EmployeeOnboarding = lazy(() => import('./pages/public/EmployeeOnboarding').then(m => ({ default: m.EmployeeOnboarding })));
 const RegisterTenant = lazy(() => import('./pages/RegisterTenant').then(m => ({ default: m.RegisterTenant })));
@@ -374,6 +375,14 @@ export const App: React.FC = () => {
                       element={
                         <ProtectedRoute permission="System.Settings.View">
                           <EmailSettingsTab />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="statutory"
+                      element={
+                        <ProtectedRoute permission="System.Settings.View">
+                          <StatutorySettingsTab />
                         </ProtectedRoute>
                       }
                     />

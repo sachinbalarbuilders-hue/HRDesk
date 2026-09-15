@@ -5,7 +5,8 @@ import { useToast } from '../../context/ToastContext';
 import { exportToCSV } from '../../utils/csvHelper';
 import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { DataToolbar } from '../../components/ui/DataToolbar';
-import { Check, UserX, ExternalLink } from 'lucide-react';
+import { Check, UserX, ExternalLink, Settings2 } from 'lucide-react';
+import { BulkAssignSalaryModal } from './BulkAssignSalaryModal';
 
 interface EmpRow {
   employeeId: number;
@@ -47,7 +48,7 @@ export const EmployeeSalariesTab: React.FC = () => {
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   // Bulk pay group assign bar
-  const [bulkGroupId, setBulkGroupId] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
   const [bulkSaving, setBulkSaving] = useState(false);
 
   const fetchAll = useCallback(async () => {
@@ -84,19 +85,6 @@ export const EmployeeSalariesTab: React.FC = () => {
   const paginatedRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   // ── Bulk assign pay group ──────────────────────────────────────────────────
-  const handleBulkAssign = async () => {
-    if (!bulkGroupId || selected.size === 0) return;
-    try {
-      setBulkSaving(true);
-      await apiClient.post(`/pay-groups/${bulkGroupId}/assign`, { employeeIds: Array.from(selected) });
-      showSuccess(`${selected.size} employee(s) assigned to pay group`);
-      setSelected(new Set());
-      setBulkGroupId('');
-      fetchAll();
-    } catch { showError('Failed to assign pay group'); }
-    finally { setBulkSaving(false); }
-  };
-
   const handleBulkUnassign = async () => {
     if (selected.size === 0) return;
     if (!confirm(`Remove ${selected.size} employee(s) from their pay group?`)) return;
@@ -257,20 +245,11 @@ export const EmployeeSalariesTab: React.FC = () => {
           onChange: (keys) => setSelected(new Set(keys as number[])),
           renderBulkActions: () => (
             <div className="flex items-center gap-2 flex-wrap">
-              <select
-                value={bulkGroupId}
-                onChange={e => setBulkGroupId(e.target.value)}
-                className="px-2.5 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--ink)] min-w-40 cursor-pointer"
-              >
-                <option value="">— Assign to pay group —</option>
-                {payGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
               <button
-                onClick={handleBulkAssign}
-                disabled={!bulkGroupId || bulkSaving}
+                onClick={() => setModalOpen(true)}
                 className="btn-primary text-xs flex items-center gap-1 cursor-pointer py-1 px-3"
               >
-                <Check size={12} /> {bulkSaving ? 'Saving...' : 'Assign'}
+                <Settings2 size={12} /> Bulk Assign Configuration
               </button>
               <button
                 onClick={handleBulkUnassign}
@@ -291,6 +270,16 @@ export const EmployeeSalariesTab: React.FC = () => {
           onPageChange: setPage,
           onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
         }}
+      />
+
+      <BulkAssignSalaryModal 
+        isOpen={modalOpen} 
+        onClose={() => setModalOpen(false)} 
+        selectedEmployeeIds={Array.from(selected)} 
+        onSuccess={() => {
+          setSelected(new Set());
+          fetchAll();
+        }} 
       />
     </div>
   );

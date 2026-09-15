@@ -73,6 +73,8 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<TemplateComponent> TemplateComponents => Set<TemplateComponent>();
     public DbSet<EmployeeCTC> EmployeeCTCs => Set<EmployeeCTC>();
     public DbSet<ProfessionalTaxSlab> ProfessionalTaxSlabs => Set<ProfessionalTaxSlab>();
+    public DbSet<EmployeeTaxDeclaration> EmployeeTaxDeclarations => Set<EmployeeTaxDeclaration>();
+    public DbSet<EmployeeTaxDeclarationProof> EmployeeTaxDeclarationProofs => Set<EmployeeTaxDeclarationProof>();
 
     public DbSet<CompOffCredit> CompOffCredits { get; set; }
     public DbSet<SystemSetting> SystemSettings { get; set; }
@@ -155,6 +157,19 @@ public sealed class BiometricAttendanceDbContext : DbContext
         modelBuilder.Entity<ShiftCycle>().HasIndex(c => new { c.OrganizationId, c.IsActive });
         modelBuilder.Entity<ShiftCycleSlot>().HasIndex(s => new { s.CycleId, s.SlotIndex }).IsUnique();
         modelBuilder.Entity<ShiftChangeRequest>().HasIndex(r => new { r.OrganizationId, r.EmployeeId, r.RequestDate });
+        modelBuilder.Entity<EmployeeTaxDeclaration>().HasIndex(t => new { t.OrganizationId, t.EmployeeId, t.FinancialYear });
+        
+        modelBuilder.Entity<EmployeeTaxDeclaration>()
+            .HasOne(t => t.Employee)
+            .WithMany()
+            .HasForeignKey(t => new { t.OrganizationId, t.EmployeeId })
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<EmployeeTaxDeclarationProof>()
+            .HasOne(p => p.TaxDeclaration)
+            .WithMany(t => t.Proofs)
+            .HasForeignKey(p => p.TaxDeclarationId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Opaque public-facing identifiers (used in URLs/API responses instead of the
         // internal integer Id) must be unique so they safely resolve back to one row.

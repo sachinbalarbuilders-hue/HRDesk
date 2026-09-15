@@ -73,14 +73,14 @@ export const Modal: React.FC<ModalProps> = ({
         aria-labelledby={title ? 'modal-title' : undefined}
         aria-describedby={description ? 'modal-description' : undefined}
         className={clsx(
-          'relative w-full bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xl)] shadow-[var(--shadow-xl)] animate-scale-in overflow-hidden',
+          'relative w-full flex flex-col max-h-[calc(100vh-2rem)] bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xl)] shadow-[var(--shadow-xl)] animate-scale-in overflow-hidden',
           sizeClasses[size],
           className
         )}
       >
         {/* Header */}
         {(title || description) && (
-          <div className="flex items-start justify-between p-5 pb-4">
+          <div className="flex items-start justify-between p-5 pb-4 shrink-0">
             <div>
               {title && (
                 <h2 id="modal-title" className="text-base font-semibold text-[var(--text-primary)] text-balance">
@@ -97,7 +97,7 @@ export const Modal: React.FC<ModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close dialog"
-              className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] cursor-pointer"
+              className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] cursor-pointer shrink-0"
             >
               <X size={16} aria-hidden="true" />
             </button>
@@ -105,13 +105,13 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Body */}
-        <div className={clsx('px-5 pb-5', !title && 'pt-5')}>
+        <div className={clsx('px-5 pb-5 overflow-y-auto', !title && 'pt-5')}>
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[var(--border)] bg-[var(--surface-secondary)]">
+          <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[var(--border)] bg-[var(--surface-secondary)] shrink-0">
             {footer}
           </div>
         )}
