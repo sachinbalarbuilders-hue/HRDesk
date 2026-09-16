@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -51,15 +51,94 @@ const EmployeeOnboarding = lazy(() => import('./pages/public/EmployeeOnboarding'
 const RegisterTenant = lazy(() => import('./pages/RegisterTenant').then(m => ({ default: m.RegisterTenant })));
 const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
 
+// ─── Full-screen animated auth loader ──────────────────────────────────────
+const AuthLoader: React.FC = () => {
+  const [dots, setDots] = useState('');
+  useEffect(() => {
+    const iv = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 450);
+    return () => clearInterval(iv);
+  }, []);
+  return (
+    <div
+      className="fixed inset-0 flex flex-col items-center justify-center gap-6"
+      style={{ background: 'var(--bg)' }}
+    >
+      {/* Spinner */}
+      <div className="relative flex items-center justify-center">
+        {/* Outer ring – slow spin */}
+        <svg
+          width="64" height="64" viewBox="0 0 64 64"
+          style={{ animation: 'spin 1.8s linear infinite' }}
+        >
+          <circle
+            cx="32" cy="32" r="28"
+            fill="none"
+            stroke="var(--accent-light)"
+            strokeWidth="4"
+          />
+          <circle
+            cx="32" cy="32" r="28"
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeDasharray="40 136"
+          />
+        </svg>
+        {/* Inner dot */}
+        <div
+          className="absolute w-3 h-3 rounded-full"
+          style={{
+            background: 'var(--accent)',
+            boxShadow: '0 0 10px var(--accent)',
+            animation: 'pulse-soft 1.8s ease-in-out infinite',
+          }}
+        />
+      </div>
+
+      {/* Wordmark */}
+      <div className="flex flex-col items-center gap-1">
+        <span
+          className="font-semibold tracking-tight"
+          style={{ fontSize: '1.1rem', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}
+        >
+          HR<span style={{ color: 'var(--accent)' }}>Desk</span>
+        </span>
+        <span
+          style={{
+            fontSize: '0.7rem',
+            color: 'var(--text-muted)',
+            fontFamily: 'Inter, sans-serif',
+            letterSpacing: '0.03em',
+            minWidth: '9ch',
+            textAlign: 'center',
+          }}
+        >
+          Authenticating{dots}
+        </span>
+      </div>
+
+      {/* Progress shimmer bar */}
+      <div
+        className="rounded-full overflow-hidden"
+        style={{ width: '120px', height: '3px', background: 'var(--border)' }}
+      >
+        <div
+          className="h-full rounded-full"
+          style={{
+            background: 'linear-gradient(90deg, transparent, var(--accent), transparent)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.5s infinite',
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
 const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading } = useAuth();
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-[var(--paper)] text-[var(--ink)] text-xs font-data">
-        Authenticating muster roll...
-      </div>
-    );
-  }
+  if (isLoading) return <AuthLoader />;
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -79,13 +158,7 @@ const ProtectedRoute: React.FC<{
 }) => {
   const { user, isLoading, hasPermission, isAdmin } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-[var(--paper)] text-[var(--ink)] text-xs font-data">
-        Authenticating muster roll...
-      </div>
-    );
-  }
+  if (isLoading) return <AuthLoader />;
 
   if (!user) {
     return <Navigate to="/auth/sign-in" replace />;
