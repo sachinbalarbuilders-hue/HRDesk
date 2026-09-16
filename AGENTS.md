@@ -313,3 +313,15 @@ Controllers/Api/
 If you find any other controller in `Controllers/Api/` growing beyond ~400 lines or
 mixing unrelated concerns, split it the same way before adding more endpoints.
 
+---
+
+## 🔑 Local Development & Testing Credentials
+
+When testing local REST endpoints, running verification scripts, or authenticating via `/api/auth/login`:
+- **Primary Admin User**: `sachin@gmail.com`
+- **Password**: `123456`
+- **Employee ID**: `7` (`EMP#007` — Sachin Mandal, Org 1, Branch 1)
+- **Role**: `Admin`
+
+Always use these credentials directly for local API validation — do NOT guess or re-prompt the user.
+

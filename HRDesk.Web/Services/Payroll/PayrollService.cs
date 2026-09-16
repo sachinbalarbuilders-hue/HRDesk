@@ -173,7 +173,7 @@ public class PayrollService
 
         // Bulk load CTC + salary structure data
         var allCTCs = await _db.EmployeeCTCs
-            .Include(c => c.Template)
+            .Include(c => c.PayGroup)
                 .ThenInclude(t => t!.Components)
                     .ThenInclude(tc => tc.Component)
             .Where(c => employeeIds.Contains(c.EmployeeId)
@@ -335,12 +335,12 @@ public class PayrollService
         var deductionDetails  = new List<PayrollDetail>();
         decimal basicAmount   = 0m;
 
-        if (ctcRecord?.Template?.Components?.Any() == true)
+        if (ctcRecord?.PayGroup?.Components?.Any() == true)
         {
             // === CTC FORMULA PATH ============================================
-            var breakdown = SalaryTemplatesApiController.ComputeCTCBreakdown(
+            var breakdown = PayGroupsApiController.ComputeCTCBreakdown(
                 ctcRecord.AnnualCTC,
-                ctcRecord.Template.Components.ToList());
+                ctcRecord.PayGroup.Components.ToList());
 
             grossSalary = breakdown
                 .Where(b => b.ComponentType == "Earning" && b.CalculationType != "Statutory")
@@ -731,7 +731,7 @@ public class PayrollService
 
     private async Task<EmployeeCTC?> GetActiveCTCAsync(int employeeId, DateOnly monthEnd)
         => await _db.EmployeeCTCs
-            .Include(c => c.Template)
+            .Include(c => c.PayGroup)
                 .ThenInclude(t => t!.Components.OrderBy(tc => tc.DisplayOrder))
                     .ThenInclude(tc => tc.Component)
             .Where(c => c.EmployeeId == employeeId
@@ -751,10 +751,10 @@ public class PayrollService
     private async Task<decimal> ResolveGrossSalaryAsync(int employeeId, DateOnly monthEnd)
     {
         var ctc = await GetActiveCTCAsync(employeeId, monthEnd);
-        if (ctc?.Template?.Components?.Any() == true)
+        if (ctc?.PayGroup?.Components?.Any() == true)
         {
-            var breakdown = SalaryTemplatesApiController.ComputeCTCBreakdown(
-                ctc.AnnualCTC, ctc.Template.Components.ToList());
+            var breakdown = PayGroupsApiController.ComputeCTCBreakdown(
+                ctc.AnnualCTC, ctc.PayGroup!.Components.ToList());
             return breakdown.Where(b => b.ComponentType == "Earning" && b.CalculationType != "Statutory")
                             .Sum(b => b.Amount);
         }

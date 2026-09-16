@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
@@ -21,23 +21,26 @@ export const RowActionMenu: React.FC<RowActionMenuProps> = ({ actions }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const updatePosition = useCallback(() => {
-    if (!triggerRef.current) return;
+  const getCoordinates = useCallback(() => {
+    if (!triggerRef.current) return { top: 0, left: 0 };
     const rect = triggerRef.current.getBoundingClientRect();
-    const menuHeight = menuRef.current?.offsetHeight || 200;
+    const menuWidth = menuRef.current?.offsetWidth || 170;
+    const menuHeight = menuRef.current?.offsetHeight || 180;
     const spaceBelow = window.innerHeight - rect.bottom;
     const openAbove = spaceBelow < menuHeight && rect.top > menuHeight;
 
-    setPosition({
-      top: openAbove ? rect.top - menuHeight - 4 : rect.bottom + 4,
-      left: Math.max(8, rect.right - 170), // 170 ≈ menu min-width + padding
-    });
+    return {
+      top: openAbove ? Math.max(8, rect.top - menuHeight - 4) : rect.bottom + 4,
+      left: Math.max(8, Math.min(window.innerWidth - menuWidth - 8, rect.right - menuWidth)),
+    };
   }, []);
 
-  // Position on open
-  useEffect(() => {
-    if (open) updatePosition();
-  }, [open, updatePosition]);
+  // Position on open before browser paint
+  useLayoutEffect(() => {
+    if (open) {
+      setPosition(getCoordinates());
+    }
+  }, [open, getCoordinates]);
 
   // Close on click outside
   useEffect(() => {
@@ -75,7 +78,15 @@ export const RowActionMenu: React.FC<RowActionMenuProps> = ({ actions }) => {
       <button
         ref={triggerRef}
         type="button"
-        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!open) {
+            setPosition(getCoordinates());
+            setOpen(true);
+          } else {
+            setOpen(false);
+          }
+        }}
         className="p-1.5 rounded-[4px] hover:bg-[var(--surface-hover)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
         aria-label="Row actions"
         aria-haspopup="menu"
@@ -84,10 +95,10 @@ export const RowActionMenu: React.FC<RowActionMenuProps> = ({ actions }) => {
         <MoreHorizontal size={16} aria-hidden="true" />
       </button>
 
-      {open && createPortal(
+      {open && position.top !== 0 && createPortal(
         <div
           ref={menuRef}
-          className="fixed z-[9999] min-w-[170px] bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl py-1 animate-in fade-in zoom-in-95 duration-100 ease-out"
+          className="fixed z-[9999] min-w-[170px] bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl py-1"
           style={{ top: position.top, left: position.left }}
           role="menu"
         >

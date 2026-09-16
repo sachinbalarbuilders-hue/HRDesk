@@ -34,8 +34,6 @@ public static class ArchivableRegistry
         Register("organizations",      typeof(Branch),                   AppPermissions.Keys.MastersOrganizationsDelete, AppPermissions.Keys.MastersOrganizationsView, "Branch");
         Register("roles",              typeof(Role),                     AppPermissions.Keys.SystemRolesEdit,            AppPermissions.Keys.SystemRolesView,          "Role");
         Register("pay-groups",         typeof(PayGroup),                 AppPermissions.Keys.PayrollManageSalary,        AppPermissions.Keys.PayrollView,              "Pay group");
-        Register("salary-templates",   typeof(SalaryStructureTemplate),  AppPermissions.Keys.PayrollManageSalary,        AppPermissions.Keys.PayrollView,              "Salary template");
-        Register("templates",          typeof(SalaryStructureTemplate),  AppPermissions.Keys.PayrollManageSalary,        AppPermissions.Keys.PayrollView,              "Salary template");
         Register("salary-components",  typeof(SalaryComponent),          AppPermissions.Keys.PayrollManageSalary,        AppPermissions.Keys.PayrollView,              "Salary component");
         Register("components",         typeof(SalaryComponent),          AppPermissions.Keys.PayrollManageSalary,        AppPermissions.Keys.PayrollView,              "Salary component");
         Register("pt-slabs",           typeof(ProfessionalTaxSlab),      AppPermissions.Keys.PayrollManageSalary,        AppPermissions.Keys.PayrollView,              "PT slab");

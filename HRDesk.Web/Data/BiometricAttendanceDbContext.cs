@@ -67,10 +67,9 @@ public sealed class BiometricAttendanceDbContext : DbContext
 
     public DbSet<PayrollDetail> PayrollDetails => Set<PayrollDetail>();
 
-    // ── Payroll Phase 1: Pay Groups + CTC Templates ──────────────────────────
+    // ── Payroll Phase 1: Pay Groups + CTC Templates ────────────────────────
     public DbSet<PayGroup> PayGroups => Set<PayGroup>();
-    public DbSet<SalaryStructureTemplate> SalaryStructureTemplates => Set<SalaryStructureTemplate>();
-    public DbSet<TemplateComponent> TemplateComponents => Set<TemplateComponent>();
+    public DbSet<PayGroupComponent> PayGroupComponents => Set<PayGroupComponent>();
     public DbSet<EmployeeCTC> EmployeeCTCs => Set<EmployeeCTC>();
     public DbSet<ProfessionalTaxSlab> ProfessionalTaxSlabs => Set<ProfessionalTaxSlab>();
     public DbSet<EmployeeTaxDeclaration> EmployeeTaxDeclarations => Set<EmployeeTaxDeclaration>();
@@ -541,23 +540,14 @@ public sealed class BiometricAttendanceDbContext : DbContext
         modelBuilder.Entity<PayGroup>(entity =>
         {
             entity.ToTable("pay_groups");
-            entity.HasOne(pg => pg.Template)
-                  .WithMany(t => t.PayGroups)
-                  .HasForeignKey(pg => pg.TemplateId)
-                  .OnDelete(DeleteBehavior.SetNull);
         });
 
-        modelBuilder.Entity<SalaryStructureTemplate>(entity =>
+        modelBuilder.Entity<PayGroupComponent>(entity =>
         {
-            entity.ToTable("salary_structure_templates");
-        });
-
-        modelBuilder.Entity<TemplateComponent>(entity =>
-        {
-            entity.ToTable("template_components");
-            entity.HasOne(tc => tc.Template)
+            entity.ToTable("pay_group_components");
+            entity.HasOne(tc => tc.PayGroup)
                   .WithMany(t => t.Components)
-                  .HasForeignKey(tc => tc.TemplateId)
+                  .HasForeignKey(tc => tc.PayGroupId)
                   .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(tc => tc.Component)
                   .WithMany()
@@ -572,9 +562,9 @@ public sealed class BiometricAttendanceDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(ec => new { ec.OrganizationId, ec.EmployeeId })
                   .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(ec => ec.Template)
-                  .WithMany(t => t.EmployeeCTCs)
-                  .HasForeignKey(ec => ec.TemplateId)
+            entity.HasOne(ec => ec.PayGroup)
+                  .WithMany()
+                  .HasForeignKey(ec => ec.PayGroupId)
                   .OnDelete(DeleteBehavior.Restrict);
         });
 

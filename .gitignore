@@ -43,6 +43,7 @@ HRDesk.Web/publish_temp/
 HRDesk.Web/HRDesk_SmarterASP_Deployment.zip
 HRDesk.Web/wwwroot/attendance_photos/
 HRDesk.Web/wwwroot/assets/
+HRDesk.Web/App_Data/EmployeeDocuments/
 *.zip
 
 # Credentials / publish profiles (contain server passwords)

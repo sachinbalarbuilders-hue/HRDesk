@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -60,6 +60,20 @@ public class SalaryComponent : IMustHaveTenant, IArchivable
     /// <summary>True = amount is taxable under income tax.</summary>
     [Column("is_taxable")]
     public bool IsTaxable { get; set; } = true;
+
+    /// <summary>FixedAmount | PercentOfCTC | PercentOfComponent | Remainder | Statutory</summary>
+    [Column("calculation_type")]
+    [StringLength(30)]
+    public string CalculationType { get; set; } = "PercentOfCTC";
+
+    /// <summary>Default monthly rupee amount or percentage value.</summary>
+    [Column("default_value", TypeName = "decimal(10,4)")]
+    public decimal? DefaultValue { get; set; }
+
+    /// <summary>Base component code for PercentOfComponent calculation type (e.g. "BASIC").</summary>
+    [Column("base_component_code")]
+    [StringLength(20)]
+    public string? BaseComponentCode { get; set; }
 
     [System.ComponentModel.DataAnnotations.Schema.Column("organization_id")]
     public int OrganizationId { get; set; }

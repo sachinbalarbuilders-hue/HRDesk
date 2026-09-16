@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
-import { Plus, Pencil, X, Check, Minus } from 'lucide-react';
+import { Plus, Pencil, X } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
-import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
+import { useArchiveActions } from '../../hooks/useArchiveActions';
 import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { DataToolbar } from '../../components/ui/DataToolbar';
 import { Switch } from '../../components/ui/Switch';
@@ -22,9 +22,20 @@ interface SalaryComponent {
   isActive: boolean;
   displayOrder: number;
   archivedAt?: string;
+  calculationType?: string;
+  defaultValue?: number | null;
+  baseComponentCode?: string | null;
 }
 
 const COMPONENT_TYPES = ['Earning', 'Deduction', 'Informational'];
+
+const CALCULATION_TYPES = [
+  { value: 'PercentOfCTC', label: '% of Monthly CTC' },
+  { value: 'PercentOfComponent', label: '% of Base Component (e.g. Basic)' },
+  { value: 'FixedAmount', label: '₹ Fixed Monthly Amount' },
+  { value: 'Remainder', label: 'Remainder (fills CTC)' },
+  { value: 'Statutory', label: 'Statutory (auto-computed)' },
+];
 
 const TYPE_COLORS: Record<string, string> = {
   Earning: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300',
@@ -32,25 +43,13 @@ const TYPE_COLORS: Record<string, string> = {
   Informational: 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300',
 };
 
-const Dot: React.FC<{ on: boolean }> = ({ on }) => (
-  <span
-    className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] ${
-      on
-        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold'
-        : 'bg-[var(--paper-subtle)] text-[var(--ink-muted)]'
-    }`}
-  >
-    {on ? <Check size={10} /> : <Minus size={10} />}
-  </span>
-);
-
 const emptyForm = {
   componentName: '',
   componentCode: '',
   componentType: 'Earning' as SalaryComponent['componentType'],
-  isEpfApplicable: false,
-  isEsiApplicable: false,
-  isTaxable: true,
+  calculationType: 'PercentOfCTC',
+  defaultValue: '' as number | '',
+  baseComponentCode: 'BASIC',
   isActive: true,
   displayOrder: 50,
 };
@@ -64,6 +63,7 @@ export const SalaryComponentsTab: React.FC = () => {
   const [form, setForm] = useState<typeof emptyForm>({ ...emptyForm });
   const [saving, setSaving] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
@@ -73,7 +73,7 @@ export const SalaryComponentsTab: React.FC = () => {
   const fetchComponents = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/salary-templates/components', {
+      const res = await apiClient.get('/salary-components', {
         params: { archiveStatus: archiveFilter }
       });
       setComponents(res.data || []);
@@ -84,7 +84,7 @@ export const SalaryComponentsTab: React.FC = () => {
     }
   }, [archiveFilter]);
 
-  const archive = useArchiveActions({ endpoint: '/salary-templates/components', onDone: fetchComponents, label: 'Component' });
+  const archive = useArchiveActions({ endpoint: '/salary-components', onDone: fetchComponents, label: 'Component' });
 
   useEffect(() => { fetchComponents(); }, [archiveFilter, fetchComponents]);
 
@@ -100,9 +100,9 @@ export const SalaryComponentsTab: React.FC = () => {
       componentName: c.componentName,
       componentCode: c.componentCode,
       componentType: c.componentType,
-      isEpfApplicable: c.isEpfApplicable,
-      isEsiApplicable: c.isEsiApplicable,
-      isTaxable: c.isTaxable,
+      calculationType: c.calculationType || 'PercentOfCTC',
+      defaultValue: c.defaultValue != null ? c.defaultValue : '',
+      baseComponentCode: c.baseComponentCode || 'BASIC',
       isActive: c.isActive,
       displayOrder: c.displayOrder,
     });
@@ -114,12 +114,20 @@ export const SalaryComponentsTab: React.FC = () => {
     if (!form.componentName.trim() || !form.componentCode.trim()) return;
     try {
       setSaving(true);
+      const code = form.componentCode.trim().toUpperCase();
+      const isBasic = code === 'BASIC';
+      const isEarning = form.componentType === 'Earning';
       const payload = {
         ...form,
-        componentCode: form.componentCode.trim().toUpperCase(),
+        componentCode: code,
+        isEpfApplicable: isBasic,
+        isEsiApplicable: isEarning,
+        isTaxable: isEarning,
+        defaultValue: form.defaultValue !== '' ? parseFloat(form.defaultValue as any) : null,
+        baseComponentCode: form.calculationType === 'PercentOfComponent' ? form.baseComponentCode : null,
         id: editId ?? undefined,
       };
-      await apiClient.post('/salary-templates/components', payload);
+      await apiClient.post('/salary-components', payload);
       showSuccess(editId ? 'Component updated' : 'Component created');
       setModalOpen(false);
       fetchComponents();
@@ -144,12 +152,13 @@ export const SalaryComponentsTab: React.FC = () => {
     setForm(f => ({ ...f, [e.target.name]: e.target.checked }));
 
   const filtered = components.filter(c => {
-    const isAct = !isRowArchived(c);
-    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? isAct : !isAct);
+    const isArchived = Boolean(c.archivedAt);
+    const matchesArchive = archiveFilter === 'all' || (archiveFilter === 'active' ? !isArchived : isArchived);
     const matchesType = typeFilter === 'all' || c.componentType === typeFilter;
+    const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? c.isActive : !c.isActive);
     const s = search.trim().toLowerCase();
     const matchesSearch = !s || c.componentName.toLowerCase().includes(s) || c.componentCode.toLowerCase().includes(s);
-    return matchesArchive && matchesType && matchesSearch;
+    return matchesArchive && matchesType && matchesStatus && matchesSearch;
   }).sort((a, b) => a.displayOrder - b.displayOrder);
 
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -184,22 +193,46 @@ export const SalaryComponentsTab: React.FC = () => {
       ),
     },
     {
-      key: 'isEpfApplicable',
-      header: 'EPF',
-      align: 'center',
-      render: (c) => <Dot on={c.isEpfApplicable} />,
-    },
-    {
-      key: 'isEsiApplicable',
-      header: 'ESI',
-      align: 'center',
-      render: (c) => <Dot on={c.isEsiApplicable} />,
-    },
-    {
-      key: 'isTaxable',
-      header: 'Taxable',
-      align: 'center',
-      render: (c) => <Dot on={c.isTaxable} />,
+      key: 'calculationType',
+      header: 'Calculation Rule',
+      render: (c) => {
+        if (c.calculationType === 'PercentOfCTC') {
+          return (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300">
+              {c.defaultValue ?? 0}% of CTC
+            </span>
+          );
+        }
+        if (c.calculationType === 'PercentOfComponent') {
+          return (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300">
+              {c.defaultValue ?? 0}% of {c.baseComponentCode || 'BASIC'}
+            </span>
+          );
+        }
+        if (c.calculationType === 'FixedAmount') {
+          return (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
+              ₹{Number(c.defaultValue || 0).toLocaleString('en-IN')} / mo
+            </span>
+          );
+        }
+        if (c.calculationType === 'Remainder') {
+          return (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+              Remainder
+            </span>
+          );
+        }
+        if (c.calculationType === 'Statutory') {
+          return (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              Statutory
+            </span>
+          );
+        }
+        return <span className="text-xs text-[var(--ink-muted)]">—</span>;
+      },
     },
     {
       key: 'isActive',
@@ -220,12 +253,13 @@ export const SalaryComponentsTab: React.FC = () => {
     {
       key: 'actions',
       header: 'Actions',
-      align: 'right',
+      align: 'center',
+      width: '100px',
       render: (c) => (
         <RowActionMenu
           actions={[
             { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(c) },
-            ...archive.rowActions({ id: c.id, name: c.componentName, isArchived: isRowArchived(c) }),
+            ...archive.rowActions({ id: c.id, name: c.componentName, isArchived: Boolean(c.archivedAt) }),
           ] as RowAction[]}
         />
       ),
@@ -260,6 +294,17 @@ export const SalaryComponentsTab: React.FC = () => {
             options: [
               { value: 'all', label: 'All Types' },
               ...COMPONENT_TYPES.map(t => ({ value: t, label: `${t}s` })),
+            ],
+          },
+          {
+            id: 'statusFilter',
+            ariaLabel: 'Status Filter',
+            value: statusFilter,
+            onChange: (v) => { setStatusFilter(v); setPage(1); },
+            options: [
+              { value: 'all', label: 'All Status' },
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive' },
             ],
           },
         ]}
@@ -342,6 +387,90 @@ export const SalaryComponentsTab: React.FC = () => {
                 />
               </div>
 
+              {/* Calculation & Default Value Section */}
+              <div className="p-3.5 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[var(--ink)] uppercase tracking-wider">
+                    Calculation & Value Type
+                  </span>
+                  <span className="text-[10px] text-[var(--ink-muted)]">Default calculation rule</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-[var(--ink-muted)] block mb-1">Value Type *</label>
+                    <select
+                      name="calculationType"
+                      value={form.calculationType}
+                      onChange={F}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all font-ui cursor-pointer"
+                    >
+                      {CALCULATION_TYPES.map(t => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {form.calculationType === 'PercentOfComponent' && (
+                    <div>
+                      <label className="text-[11px] font-semibold text-[var(--ink-muted)] block mb-1">Base Component *</label>
+                      <select
+                        name="baseComponentCode"
+                        value={form.baseComponentCode}
+                        onChange={F}
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all font-ui cursor-pointer"
+                      >
+                        {components
+                          .filter(c => c.componentType === 'Earning' && c.id !== editId)
+                          .map(c => (
+                            <option key={c.componentCode} value={c.componentCode}>
+                              {c.componentName} ({c.componentCode})
+                            </option>
+                          ))}
+                        {!components.some(c => c.componentCode === 'BASIC') && (
+                          <option value="BASIC">Basic Salary (BASIC)</option>
+                        )}
+                      </select>
+                    </div>
+                  )}
+
+                  {['PercentOfCTC', 'PercentOfComponent', 'FixedAmount'].includes(form.calculationType) && (
+                    <div>
+                      <label className="text-[11px] font-semibold text-[var(--ink-muted)] block mb-1">
+                        {form.calculationType === 'FixedAmount' ? 'Monthly Rupee Value (₹) *' : 'Percentage Value (%) *'}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          name="defaultValue"
+                          value={form.defaultValue}
+                          onChange={F}
+                          step={form.calculationType === 'FixedAmount' ? '1' : '0.01'}
+                          min="0"
+                          placeholder={form.calculationType === 'FixedAmount' ? 'e.g. 1600' : 'e.g. 40 or 50'}
+                          className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all font-ui pr-8"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[var(--ink-muted)]">
+                          {form.calculationType === 'FixedAmount' ? '₹' : '%'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {form.calculationType === 'Remainder' && (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2 rounded border border-amber-200 dark:border-amber-900/50">
+                    💡 <strong>Remainder:</strong> This component automatically absorbs whatever monthly CTC remains after all other earnings are deducted, keeping CTC exact.
+                  </p>
+                )}
+
+                {form.calculationType === 'Statutory' && (
+                  <p className="text-[11px] text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 p-2 rounded border border-slate-200 dark:border-slate-700">
+                    ⚖️ <strong>Statutory:</strong> This component is auto-calculated at payroll time according to PF, ESI, PT, or TDS rules and wage limits.
+                  </p>
+                )}
+              </div>
+
               {/* Display Order */}
               <div>
                 <label className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider block mb-1.5">Display Order (lower numbers appear first on payslip)</label>
@@ -356,31 +485,13 @@ export const SalaryComponentsTab: React.FC = () => {
                 />
               </div>
 
-              {/* Custom Switches */}
-              <div className="grid grid-cols-1 gap-4 border-t border-[var(--rule)] pt-5 pb-2">
-                <Switch 
-                  checked={form.isTaxable} 
-                  onChange={(c) => setForm(f => ({ ...f, isTaxable: c }))} 
-                  label="Taxable" 
-                  description="Included in income tax calculation" 
-                />
-                <Switch 
-                  checked={form.isEpfApplicable} 
-                  onChange={(c) => setForm(f => ({ ...f, isEpfApplicable: c }))} 
-                  label="EPF Qualifying" 
-                  description="Included in PF wage for 12% calculation" 
-                />
-                <Switch 
-                  checked={form.isEsiApplicable} 
-                  onChange={(c) => setForm(f => ({ ...f, isEsiApplicable: c }))} 
-                  label="ESI Qualifying" 
-                  description="Included in gross wages for ESI threshold" 
-                />
+              {/* Active Switch */}
+              <div className="border-t border-[var(--rule)] pt-4 pb-1">
                 <Switch 
                   checked={form.isActive} 
                   onChange={(c) => setForm(f => ({ ...f, isActive: c }))} 
-                  label="Active" 
-                  description="Available for selection in salary templates" 
+                  label="Active Component" 
+                  description="Available for use in payroll calculations" 
                 />
               </div>
 

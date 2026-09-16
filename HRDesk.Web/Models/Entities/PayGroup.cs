@@ -90,12 +90,7 @@ public class PayGroup : IMustHaveTenant, IArchivable
     [StringLength(50)]
     public string? PtState { get; set; }
 
-    /// <summary>Default salary structure template assigned to this group.
-    /// Employees can override individually.</summary>
-    [Column("template_id")]
-    public int? TemplateId { get; set; }
-
-    public SalaryStructureTemplate? Template { get; set; }
+    public ICollection<PayGroupComponent> Components { get; set; } = new List<PayGroupComponent>();
 
     [Column("is_active")]
     public bool IsActive { get; set; } = true;

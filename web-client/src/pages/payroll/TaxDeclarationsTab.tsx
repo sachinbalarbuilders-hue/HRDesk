@@ -2,19 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { TaxDeclarationModal } from '../../components/payroll/TaxDeclarationModal';
+import { Form16Modal } from '../../components/payroll/Form16Modal';
+import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import {
-  Calculator,
   Search,
   CheckCircle2,
-  AlertCircle,
   Clock,
-  Filter,
-  FileText,
   Download,
-  Sparkles,
   RefreshCw,
-  Landmark,
-  ChevronRight
+  ChevronRight,
+  FileText,
 } from 'lucide-react';
 
 export const TaxDeclarationsTab: React.FC = () => {
@@ -32,16 +29,23 @@ export const TaxDeclarationsTab: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [declarations, setDeclarations] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [metrics, setMetrics] = useState({
     total: 0,
     approved: 0,
     submitted: 0,
     draft: 0,
-    notStarted: 0
+    notStarted: 0,
   });
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [form16ModalOpen, setForm16ModalOpen] = useState(false);
+  const [selectedForm16Emp, setSelectedForm16Emp] = useState<{ id: number; name: string } | null>(null);
 
   const fetchDepartments = async () => {
     try {
@@ -62,12 +66,15 @@ export const TaxDeclarationsTab: React.FC = () => {
           financialYear,
           status: statusFilter,
           search: search || undefined,
-          departmentId: selectedDept
-        }
+          departmentId: selectedDept,
+          page,
+          pageSize,
+        },
       });
       const data = res.data;
       if (data) {
         setDeclarations(data.data || []);
+        setTotalCount(data.totalCount || 0);
         if (data.metrics) {
           setMetrics(data.metrics);
         }
@@ -85,10 +92,11 @@ export const TaxDeclarationsTab: React.FC = () => {
 
   useEffect(() => {
     fetchDeclarations();
-  }, [financialYear, statusFilter, selectedDept]);
+  }, [financialYear, statusFilter, selectedDept, page, pageSize]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setPage(1);
     fetchDeclarations();
   };
 
@@ -102,42 +110,195 @@ export const TaxDeclarationsTab: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const exportCsv = () => {
-    if (!declarations.length) return;
-    const headers = ['Employee ID', 'Employee Code', 'Employee Name', 'Department', 'Designation', 'Annual CTC', 'Regime', '80C Declared', 'Status'];
-    const rows = declarations.map(d => [
-      d.employeeId,
-      d.employeeCode,
-      `"${d.fullName}"`,
-      `"${d.departmentName}"`,
-      `"${d.designationName}"`,
-      d.annualCTC,
-      d.taxRegime,
-      d.total80CDeclared,
-      d.status
-    ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `IT_Declarations_${financialYear}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showSuccess('Exported', 'IT declarations list exported to CSV.');
+  const exportCsv = async () => {
+    try {
+      const res = await apiClient.get('/tax-declarations', {
+        params: {
+          financialYear,
+          status: statusFilter,
+          search: search || undefined,
+          departmentId: selectedDept,
+          page: 1,
+          pageSize: 5000,
+        },
+      });
+      const allRows = res.data?.data || declarations;
+      if (!allRows.length) {
+        showError('Export Empty', 'No declaration records found to export.');
+        return;
+      }
+      const headers = ['Employee ID', 'Employee Code', 'Employee Name', 'Department', 'Designation', 'Annual CTC', 'Regime', '80C Declared', 'Rent Paid', 'Home Loan Int', 'Status'];
+      const rows = allRows.map((d: any) => [
+        d.employeeId,
+        d.employeeCode,
+        `"${d.fullName}"`,
+        `"${d.departmentName || ''}"`,
+        `"${d.designationName || ''}"`,
+        d.annualCTC || 0,
+        d.taxRegime,
+        d.total80CDeclared || 0,
+        d.annualRentPaid || 0,
+        d.homeLoanInterest || 0,
+        d.status,
+      ]);
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `IT_Declarations_${financialYear}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showSuccess('Export Complete', 'IT declarations exported to CSV.');
+    } catch {
+      showError('Export Failed', 'Failed to export declarations to CSV.');
+    }
   };
 
+  const columns: ColumnDef<any>[] = [
+    {
+      key: 'employee',
+      header: 'Employee',
+      render: (row) => (
+        <div>
+          <div className="font-semibold text-xs text-[var(--text-primary)]">{row.fullName}</div>
+          <div className="text-[10px] font-mono text-[var(--text-muted)]">{row.employeeCode}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'department',
+      header: 'Department & Role',
+      render: (row) => (
+        <div>
+          <div className="text-xs text-[var(--text-primary)]">{row.departmentName || '—'}</div>
+          <div className="text-[10px] text-[var(--text-muted)]">{row.designationName || '—'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'annualCTC',
+      header: 'Annual CTC',
+      align: 'right',
+      render: (row) => (
+        <span className="font-mono text-xs font-semibold text-[var(--text-primary)]">
+          {formatCurrency(row.annualCTC)}
+        </span>
+      ),
+    },
+    {
+      key: 'taxRegime',
+      header: 'Tax Regime',
+      align: 'center',
+      render: (row) => (
+        <span
+          className={`inline-flex px-2 py-0.5 rounded text-[10px] font-medium font-mono ${
+            row.taxRegime === 'Old'
+              ? 'bg-[var(--surface-secondary)] text-[var(--text-primary)] border border-[var(--border)]'
+              : 'bg-[var(--accent-light)] text-[var(--accent)] border border-[var(--accent)]/30'
+          }`}
+        >
+          {row.taxRegime === 'Old' ? 'Old Regime' : 'New (115BAC)'}
+        </span>
+      ),
+    },
+    {
+      key: 'total80C',
+      header: '80C Declared',
+      align: 'right',
+      render: (row) => (
+        <span className={`font-mono text-xs ${row.total80CDeclared > 0 ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
+          {formatCurrency(row.total80CDeclared)}
+        </span>
+      ),
+    },
+    {
+      key: 'rentSec24',
+      header: 'Rent / Sec 24',
+      align: 'right',
+      render: (row) => (
+        <div className="text-right font-mono text-xs">
+          <div className={row.annualRentPaid > 0 ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-muted)]'}>
+            Rent: {formatCurrency(row.annualRentPaid)}
+          </div>
+          {row.homeLoanInterest > 0 && (
+            <div className="text-[10px] text-[var(--success)] font-medium">
+              Int: {formatCurrency(row.homeLoanInterest)}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      render: (row) => {
+        const isApproved = row.status === 'Approved';
+        const isSubmitted = row.status === 'Submitted';
+        const isRejected = row.status === 'Rejected';
+
+        return (
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium ${
+              isApproved
+                ? 'bg-[var(--success-light)] text-[var(--success)]'
+                : isSubmitted
+                ? 'bg-[var(--warning-light)] text-[var(--warning)]'
+                : isRejected
+                ? 'bg-[var(--danger-light)] text-[var(--danger)]'
+                : 'bg-[var(--surface-secondary)] text-[var(--text-muted)] border border-[var(--border)]'
+            }`}
+          >
+            {isApproved && <CheckCircle2 size={11} />}
+            {isSubmitted && <Clock size={11} />}
+            {row.status}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'action',
+      header: 'Action',
+      align: 'right',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-1.5 ml-auto">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedForm16Emp({ id: row.employeeId, name: row.fullName });
+              setForm16ModalOpen(true);
+            }}
+            className="btn-secondary py-1 px-2 text-xs flex items-center gap-1 cursor-pointer"
+            title="Generate & View Form 16 (Part B)"
+          >
+            <FileText size={11} className="text-[var(--accent)]" /> Form 16
+          </button>
+          <button
+            type="button"
+            onClick={() => openDeclaration(row.employeeId)}
+            className="btn-secondary py-1 px-2.5 text-xs flex items-center gap-1 cursor-pointer"
+          >
+            Review & Compute <ChevronRight size={12} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 font-ui">
       {/* Top Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface)] p-3.5 rounded-lg border border-[var(--border)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface)] p-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-[var(--ink)]">Financial Year:</span>
+            <span className="text-xs font-semibold text-[var(--text-primary)]">Financial Year:</span>
             <select
               value={financialYear}
-              onChange={e => setFinancialYear(e.target.value)}
-              className="px-3 py-1.5 bg-[var(--surface-sunken)] border border-[var(--border)] rounded-md text-xs font-medium font-data cursor-pointer"
+              onChange={e => { setFinancialYear(e.target.value); setPage(1); }}
+              className="register-input h-8 py-1 px-2.5 w-auto text-xs font-medium font-mono cursor-pointer"
             >
               <option value="2024-2025">FY 2024-2025</option>
               <option value="2025-2026">FY 2025-2026</option>
@@ -151,8 +312,8 @@ export const TaxDeclarationsTab: React.FC = () => {
           {/* Department Filter */}
           <select
             value={selectedDept || ''}
-            onChange={e => setSelectedDept(e.target.value ? Number(e.target.value) : undefined)}
-            className="px-3 py-1.5 bg-[var(--surface-sunken)] border border-[var(--border)] rounded-md text-xs font-medium cursor-pointer"
+            onChange={e => { setSelectedDept(e.target.value ? Number(e.target.value) : undefined); setPage(1); }}
+            className="register-input h-8 py-1 px-2.5 w-auto text-xs font-medium cursor-pointer"
           >
             <option value="">All Departments</option>
             {departments.map(d => (
@@ -168,16 +329,16 @@ export const TaxDeclarationsTab: React.FC = () => {
               placeholder="Search employee..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-8 pr-3 py-1.5 text-xs bg-[var(--surface-sunken)] border border-[var(--border)] rounded-md w-48 focus:w-64 transition-all"
+              className="register-input h-8 pl-8 pr-3 py-1 text-xs w-48 focus:w-64 transition-all"
             />
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           </form>
 
           <button
             type="button"
             onClick={fetchDeclarations}
             title="Refresh List"
-            className="p-1.5 rounded-md border border-[var(--border)] hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)] cursor-pointer"
+            className="p-1.5 rounded-[var(--radius-md)] border border-[var(--border)] hover:bg-[var(--surface-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer transition-colors"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -185,7 +346,7 @@ export const TaxDeclarationsTab: React.FC = () => {
           <button
             type="button"
             onClick={exportCsv}
-            className="px-3 py-1.5 text-xs font-medium border border-[var(--border)] rounded-md hover:bg-[var(--surface-sunken)] text-[var(--ink)] flex items-center gap-1.5 cursor-pointer"
+            className="btn-secondary h-8 py-1 px-3 text-xs flex items-center gap-1.5 cursor-pointer"
           >
             <Download size={13} /> Export CSV
           </button>
@@ -194,21 +355,21 @@ export const TaxDeclarationsTab: React.FC = () => {
 
       {/* KPI Metric Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[var(--surface)] p-3.5 rounded-lg border border-[var(--border)]">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--ink-muted)] block">Total Employees</span>
-          <span className="text-xl font-bold font-data text-[var(--ink)] mt-1 block">{metrics.total}</span>
+        <div className="bg-[var(--surface)] p-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs">
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-secondary)] block">Total Employees</span>
+          <span className="text-xl font-bold font-mono text-[var(--text-primary)] mt-1 block">{metrics.total}</span>
         </div>
-        <div className="bg-[var(--surface)] p-3.5 rounded-lg border border-[var(--border)]">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--ok-600)] block">Approved</span>
-          <span className="text-xl font-bold font-data text-[var(--ok-600)] mt-1 block">{metrics.approved}</span>
+        <div className="bg-[var(--surface)] p-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs">
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--success)] block">Approved</span>
+          <span className="text-xl font-bold font-mono text-[var(--success)] mt-1 block">{metrics.approved}</span>
         </div>
-        <div className="bg-[var(--surface)] p-3.5 rounded-lg border border-[var(--border)]">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--warn-600)] block">Submitted (Pending)</span>
-          <span className="text-xl font-bold font-data text-[var(--warn-600)] mt-1 block">{metrics.submitted}</span>
+        <div className="bg-[var(--surface)] p-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs">
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--warning)] block">Submitted (Pending)</span>
+          <span className="text-xl font-bold font-mono text-[var(--warning)] mt-1 block">{metrics.submitted}</span>
         </div>
-        <div className="bg-[var(--surface)] p-3.5 rounded-lg border border-[var(--border)]">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--ink-muted)] block">Draft / Not Started</span>
-          <span className="text-xl font-bold font-data text-[var(--ink-muted)] mt-1 block">{metrics.draft + metrics.notStarted}</span>
+        <div className="bg-[var(--surface)] p-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs">
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block">Draft / Not Started</span>
+          <span className="text-xl font-bold font-mono text-[var(--text-primary)] mt-1 block">{metrics.draft + metrics.notStarted}</span>
         </div>
       </div>
 
@@ -219,11 +380,11 @@ export const TaxDeclarationsTab: React.FC = () => {
           return (
             <button
               key={status}
-              onClick={() => setStatusFilter(status)}
+              onClick={() => { setStatusFilter(status); setPage(1); }}
               className={`px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-all cursor-pointer ${
                 isActive
-                  ? 'border-[var(--gold-500)] text-[var(--gold-600)] font-semibold'
-                  : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               {status}
@@ -232,110 +393,24 @@ export const TaxDeclarationsTab: React.FC = () => {
         })}
       </div>
 
-      {/* Declarations Register Table */}
-      <div className="bg-[var(--surface)] rounded-lg border border-[var(--border)] overflow-hidden shadow-xs">
-        {loading ? (
-          <div className="p-12 text-center text-xs text-[var(--ink-muted)] flex items-center justify-center gap-2 font-data">
-            <RefreshCw size={16} className="animate-spin text-[var(--gold-500)]" /> Loading muster records...
-          </div>
-        ) : declarations.length === 0 ? (
-          <div className="p-12 text-center space-y-2">
-            <FileText size={32} className="mx-auto text-[var(--ink-muted)] opacity-50" />
-            <p className="text-xs font-medium text-[var(--ink)]">No IT declarations found</p>
-            <p className="text-[11px] text-[var(--ink-muted)]">Try selecting a different financial year or status filter.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-[var(--table-header-bg)] border-b border-[var(--border)] text-[var(--ink-muted)] font-medium">
-                  <th className="py-2.5 px-4">Employee</th>
-                  <th className="py-2.5 px-3">Department & Role</th>
-                  <th className="py-2.5 px-3 text-right">Annual CTC</th>
-                  <th className="py-2.5 px-3 text-center">Tax Regime</th>
-                  <th className="py-2.5 px-3 text-right">80C Declared</th>
-                  <th className="py-2.5 px-3 text-right">Rent / Sec 24</th>
-                  <th className="py-2.5 px-3 text-center">Status</th>
-                  <th className="py-2.5 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {declarations.map(row => {
-                  const isApproved = row.status === 'Approved';
-                  const isSubmitted = row.status === 'Submitted';
-
-                  return (
-                    <tr
-                      key={row.employeeId}
-                      className="hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
-                      onClick={() => openDeclaration(row.employeeId)}
-                    >
-                      <td className="py-2.5 px-4">
-                        <div className="font-semibold text-[var(--ink)]">{row.fullName}</div>
-                        <div className="text-[10px] font-data text-[var(--ink-muted)]">{row.employeeCode}</div>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <div className="text-[var(--ink)]">{row.departmentName}</div>
-                        <div className="text-[10px] text-[var(--ink-muted)]">{row.designationName}</div>
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-data font-medium text-[var(--ink)]">
-                        {formatCurrency(row.annualCTC)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-medium font-data ${
-                          row.taxRegime === 'Old'
-                            ? 'bg-[var(--navy-900)] text-white'
-                            : 'bg-[var(--gold-500)]/15 text-[var(--gold-700)] border border-[var(--gold-500)]/30'
-                        }`}>
-                          {row.taxRegime === 'Old' ? 'Old Regime' : 'New (115BAC)'}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-data">
-                        <span className={row.total80CDeclared > 0 ? 'text-[var(--ink)] font-medium' : 'text-[var(--ink-muted)]'}>
-                          {formatCurrency(row.total80CDeclared)}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-data">
-                        <div className={row.annualRentPaid > 0 ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)]'}>
-                          Rent: {formatCurrency(row.annualRentPaid)}
-                        </div>
-                        {row.homeLoanInterest > 0 && (
-                          <div className="text-[10px] text-[var(--ok-600)]">
-                            Int: {formatCurrency(row.homeLoanInterest)}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium font-data ${
-                          isApproved ? 'bg-[var(--ok-600)]/15 text-[var(--ok-600)]' :
-                          isSubmitted ? 'bg-[var(--warn-600)]/15 text-[var(--warn-600)]' :
-                          row.status === 'Rejected' ? 'bg-[var(--err-600)]/15 text-[var(--err-600)]' :
-                          'bg-[var(--rule)]/50 text-[var(--ink-muted)]'
-                        }`}>
-                          {isApproved && <CheckCircle2 size={11} />}
-                          {isSubmitted && <Clock size={11} />}
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDeclaration(row.employeeId);
-                          }}
-                          className="px-2.5 py-1 text-xs font-medium rounded border border-[var(--border)] hover:bg-[var(--surface-sunken)] text-[var(--ink)] flex items-center gap-1 ml-auto cursor-pointer"
-                        >
-                          Review & Compute <ChevronRight size={12} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* Standard Reusable DataTable with Skeleton Loading & Pagination */}
+      <div className="bg-[var(--surface)] rounded-[var(--radius-lg)] border border-[var(--border)] overflow-hidden shadow-xs">
+        <DataTable
+          columns={columns}
+          data={declarations}
+          loading={loading}
+          showSrNo={false}
+          keyExtractor={(item) => item.employeeId}
+          emptyMessage="No IT declarations found matching your filter criteria."
+          pagination={{
+            page,
+            pageSize,
+            totalCount,
+            totalPages: Math.ceil(totalCount / pageSize) || 1,
+            onPageChange: (p) => setPage(p),
+            onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
+          }}
+        />
       </div>
 
       {/* Interactive Modal */}
@@ -349,6 +424,20 @@ export const TaxDeclarationsTab: React.FC = () => {
           employeeId={selectedEmployeeId}
           financialYear={financialYear}
           onSaved={fetchDeclarations}
+        />
+      )}
+
+      {/* Form 16 Part B Document Modal */}
+      {selectedForm16Emp && (
+        <Form16Modal
+          open={form16ModalOpen}
+          onClose={() => {
+            setForm16ModalOpen(false);
+            setSelectedForm16Emp(null);
+          }}
+          employeeId={selectedForm16Emp.id}
+          employeeName={selectedForm16Emp.name}
+          initialFinancialYear={financialYear}
         />
       )}
     </div>

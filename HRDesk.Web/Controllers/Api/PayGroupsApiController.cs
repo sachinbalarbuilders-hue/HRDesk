@@ -53,7 +53,6 @@ public class PayGroupsApiController : ControllerBase
 
         var query = _db.PayGroups
             .AsNoTracking()
-            .Include(g => g.Template)
             .AsQueryable();
 
         if (archiveStatus.Equals("archived", StringComparison.OrdinalIgnoreCase))
@@ -76,11 +75,24 @@ public class PayGroupsApiController : ControllerBase
                 g.EsiApplicable,
                 g.PtApplicable,
                 g.PtState,
-                g.TemplateId,
-                TemplateName = g.Template != null ? g.Template.Name : null,
+                TemplateId = (int?)null,
+                TemplateName = (string?)null,
                 g.IsActive,
                 archivedAt = g.ArchivedAt,
-                employeeCount = _db.Employees.Count(e => e.PayGroupId == g.Id)
+                employeeCount = _db.Employees.Count(e => e.PayGroupId == g.Id),
+                componentCount = g.Components.Count,
+                components = g.Components.OrderBy(c => c.DisplayOrder).Select(c => new
+                {
+                    c.Id,
+                    c.ComponentId,
+                    componentName = c.Component != null ? c.Component.ComponentName : "",
+                    componentCode = c.Component != null ? c.Component.ComponentCode : "",
+                    componentType = c.Component != null ? c.Component.ComponentType : "",
+                    c.CalculationType,
+                    c.Value,
+                    c.BaseComponentCode,
+                    c.DisplayOrder
+                }).ToList()
             })
             .ToListAsync();
 
@@ -97,7 +109,8 @@ public class PayGroupsApiController : ControllerBase
 
         var g = await _db.PayGroups
             .AsNoTracking()
-            .Include(g => g.Template)
+            .Include(pg => pg.Components.OrderBy(c => c.DisplayOrder))
+                .ThenInclude(c => c.Component)
             .FirstOrDefaultAsync(g => g.Id == id);
 
         if (g == null) return NotFound(new { message = "Pay group not found." });
@@ -106,8 +119,20 @@ public class PayGroupsApiController : ControllerBase
         {
             g.Id, g.Name, g.Description, g.SalaryBasis, g.LopRounding,
             g.PfApplicable, g.CapEmployeePf, g.CapEmployerPf, g.PfWageCeiling, g.EsiApplicable, g.PtApplicable, g.PtState,
-            g.TemplateId, TemplateName = g.Template?.Name,
-            g.IsActive
+            TemplateId = (int?)null, TemplateName = (string?)null,
+            g.IsActive,
+            components = g.Components.Select(c => new
+            {
+                c.Id,
+                c.ComponentId,
+                componentName = c.Component?.ComponentName ?? "",
+                componentCode = c.Component?.ComponentCode ?? "",
+                componentType = c.Component?.ComponentType ?? "",
+                c.CalculationType,
+                c.Value,
+                c.BaseComponentCode,
+                c.DisplayOrder
+            }).ToList()
         });
     }
 
@@ -135,10 +160,39 @@ public class PayGroupsApiController : ControllerBase
             EsiApplicable   = dto.EsiApplicable,
             PtApplicable    = dto.PtApplicable,
             PtState         = dto.PtState?.Trim(),
-            TemplateId      = dto.TemplateId,
             IsActive        = true,
             OrganizationId  = _tenantProvider.TenantId
         };
+
+        if (dto.Components != null && dto.Components.Any())
+        {
+            var componentIds = dto.Components.Select(c => c.ComponentId).Distinct().ToList();
+            var salaryComponents = await _db.SalaryComponents
+                .Where(sc => componentIds.Contains(sc.Id))
+                .ToDictionaryAsync(sc => sc.Id);
+
+            int order = 1;
+            foreach (var item in dto.Components)
+            {
+                if (!salaryComponents.TryGetValue(item.ComponentId, out var sc))
+                    continue;
+
+                group.Components.Add(new PayGroupComponent
+                {
+                    ComponentId = item.ComponentId,
+                    CalculationType = !string.IsNullOrWhiteSpace(item.CalculationType) ? item.CalculationType : sc.CalculationType ?? "FixedAmount",
+                    Value = item.Value ?? sc.DefaultValue,
+                    BaseComponentCode = item.BaseComponentCode ?? sc.BaseComponentCode,
+                    DisplayOrder = item.DisplayOrder > 0 ? item.DisplayOrder : order++,
+                    OrganizationId = _tenantProvider.TenantId
+                });
+            }
+
+            var codes = salaryComponents.Values.Select(sc => sc.ComponentCode.ToUpper()).ToHashSet();
+            group.PfApplicable = codes.Any(c => c.Contains("PF"));
+            group.EsiApplicable = codes.Any(c => c.Contains("ESI"));
+            group.PtApplicable = codes.Any(c => c == "PT" || c.Contains("PROFESSIONAL_TAX"));
+        }
 
         _db.PayGroups.Add(group);
         await _db.SaveChangesAsync();
@@ -153,11 +207,13 @@ public class PayGroupsApiController : ControllerBase
         if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
             return Forbid();
 
-        var group = await _db.PayGroups.FirstOrDefaultAsync(g => g.Id == id);
+        var group = await _db.PayGroups
+            .Include(g => g.Components)
+            .FirstOrDefaultAsync(g => g.Id == id);
         if (group == null) return NotFound(new { message = "Pay group not found." });
 
         if (!string.IsNullOrWhiteSpace(dto.Name))     group.Name         = dto.Name.Trim();
-        if (dto.Description != null)                   group.Description  = dto.Description.Trim();
+        if (dto.Description != null)                 group.Description  = dto.Description.Trim();
         group.SalaryBasis = dto.SalaryBasis ?? "CalendarDays";
         group.LopRounding = dto.LopRounding ?? "None";
         group.PfApplicable = dto.PfApplicable;
@@ -167,8 +223,41 @@ public class PayGroupsApiController : ControllerBase
         group.EsiApplicable = dto.EsiApplicable;
         group.PtApplicable = dto.PtApplicable;
         if (dto.PtState != null) group.PtState = dto.PtState.Trim();
-        if (dto.TemplateId.HasValue) group.TemplateId = dto.TemplateId;
         if (dto.IsActive.HasValue) group.IsActive = dto.IsActive.Value;
+
+        if (dto.Components != null)
+        {
+            _db.PayGroupComponents.RemoveRange(group.Components);
+            group.Components.Clear();
+
+            var componentIds = dto.Components.Select(c => c.ComponentId).Distinct().ToList();
+            var salaryComponents = await _db.SalaryComponents
+                .Where(sc => componentIds.Contains(sc.Id))
+                .ToDictionaryAsync(sc => sc.Id);
+
+            int order = 1;
+            foreach (var item in dto.Components)
+            {
+                if (!salaryComponents.TryGetValue(item.ComponentId, out var sc))
+                    continue;
+
+                group.Components.Add(new PayGroupComponent
+                {
+                    PayGroupId = group.Id,
+                    ComponentId = item.ComponentId,
+                    CalculationType = !string.IsNullOrWhiteSpace(item.CalculationType) ? item.CalculationType : sc.CalculationType ?? "FixedAmount",
+                    Value = item.Value ?? sc.DefaultValue,
+                    BaseComponentCode = item.BaseComponentCode ?? sc.BaseComponentCode,
+                    DisplayOrder = item.DisplayOrder > 0 ? item.DisplayOrder : order++,
+                    OrganizationId = _tenantProvider.TenantId
+                });
+            }
+
+            var codes = salaryComponents.Values.Select(sc => sc.ComponentCode.ToUpper()).ToHashSet();
+            group.PfApplicable = codes.Any(c => c.Contains("PF"));
+            group.EsiApplicable = codes.Any(c => c.Contains("ESI"));
+            group.PtApplicable = codes.Any(c => c == "PT" || c.Contains("PROFESSIONAL_TAX"));
+        }
 
         await _db.SaveChangesAsync();
         return Ok(new { message = "Pay group updated." });
@@ -223,7 +312,8 @@ public class PayGroupsApiController : ControllerBase
                 e.EmployeeId,
                 e.EmployeeName,
                 department = e.Department != null ? e.Department.DepartmentName : null,
-                designation = e.Designation != null ? e.Designation.DesignationName : null
+                designation = e.Designation != null ? e.Designation.DesignationName : null,
+                photoPath = e.PhotoPath
             })
             .ToListAsync();
 
@@ -355,9 +445,211 @@ public class PayGroupsApiController : ControllerBase
 
         return FromArchive(result);
     }
+
+    // ── Employee CTC Assignments ─────────────────────────────────────────────
+
+    [HttpGet("employee-ctc/{employeeId:int}")]
+    public async Task<IActionResult> GetEmployeeCTC(int employeeId)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.EmployeesViewSalary))
+            return Forbid();
+
+        var emp = await _db.Employees
+            .AsNoTracking()
+            .Include(e => e.PayGroup)
+            .FirstOrDefaultAsync(e => e.EmployeeId == employeeId);
+
+        var records = await _db.EmployeeCTCs
+            .AsNoTracking()
+            .Include(ec => ec.PayGroup)
+            .Where(ec => ec.EmployeeId == employeeId)
+            .OrderByDescending(ec => ec.EffectiveFrom)
+            .Select(ec => new
+            {
+                ec.Id,
+                ec.AnnualCTC,
+                monthlyCTC = ec.AnnualCTC / 12,
+                payGroupId = ec.PayGroupId,
+                payGroupName = ec.PayGroup != null ? ec.PayGroup.Name : null,
+                ec.SalaryBasisOverride,
+                ec.EffectiveFrom,
+                ec.EffectiveTo,
+                ec.Remarks
+            })
+            .ToListAsync();
+
+        return Ok(new
+        {
+            assignedPayGroupId = emp?.PayGroupId,
+            assignedPayGroupName = emp?.PayGroup?.Name,
+            records
+        });
+    }
+
+    /// <summary>Assign or update CTC for an employee.</summary>
+    [HttpPost("employee-ctc")]
+    public async Task<IActionResult> SaveEmployeeCTC([FromBody] EmployeeCTCDto dto)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
+            return Forbid();
+
+        if (dto.AnnualCTC <= 0)
+            return BadRequest(new { message = "Annual CTC must be greater than zero." });
+
+        // Close off any currently open record
+        var active = await _db.EmployeeCTCs
+            .Where(ec => ec.EmployeeId == dto.EmployeeId && ec.EffectiveTo == null)
+            .ToListAsync();
+
+        foreach (var prev in active)
+            prev.EffectiveTo = dto.EffectiveFrom.AddDays(-1);
+
+        _db.EmployeeCTCs.Add(new EmployeeCTC
+        {
+            EmployeeId          = dto.EmployeeId,
+            AnnualCTC           = dto.AnnualCTC,
+            PayGroupId          = dto.PayGroupId,
+            SalaryBasisOverride = dto.SalaryBasisOverride,
+            EffectiveFrom       = dto.EffectiveFrom,
+            EffectiveTo         = null,
+            Remarks             = dto.Remarks,
+            OrganizationId      = _tenantProvider.TenantId
+        });
+
+        // Ensure employees.pay_group_id stays synchronized
+        var emp = await _db.Employees.FirstOrDefaultAsync(e => e.EmployeeId == dto.EmployeeId);
+        if (emp != null)
+        {
+            emp.PayGroupId = dto.PayGroupId;
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "CTC saved successfully." });
+    }
+
+    /// <summary>
+    /// Preview: given a CTC and pay group, compute all monthly component amounts
+    /// WITHOUT saving anything. Used by the frontend to show a live breakdown.
+    /// </summary>
+    [HttpPost("preview-ctc")]
+    public async Task<IActionResult> PreviewCTC([FromBody] PreviewCTCDto dto)
+    {
+        if (!await _permissionService.HasPermissionAsync(User, AppPermissions.Keys.PayrollManageSalary))
+            return Forbid();
+
+        if (dto.AnnualCTC <= 0 || dto.PayGroupId <= 0)
+            return BadRequest(new { message = "AnnualCTC and PayGroupId are required." });
+
+        var payGroup = await _db.PayGroups
+            .AsNoTracking()
+            .Include(t => t.Components.OrderBy(c => c.DisplayOrder))
+                .ThenInclude(tc => tc.Component)
+            .FirstOrDefaultAsync(t => t.Id == dto.PayGroupId);
+
+        if (payGroup == null) return NotFound(new { message = "Pay group not found." });
+
+        var breakdown = ComputeCTCBreakdown(dto.AnnualCTC, payGroup.Components.ToList());
+
+        return Ok(new
+        {
+            annualCTC  = dto.AnnualCTC,
+            monthlyCTC = dto.AnnualCTC / 12,
+            components = breakdown
+        });
+    }
+
+    // ── CTC formula engine (used by preview and payroll service) ─────────────
+
+    public static List<CTCComponentResult> ComputeCTCBreakdown(
+        decimal annualCTC,
+        List<PayGroupComponent> components)
+    {
+        var monthly  = annualCTC / 12m;
+        var results  = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        var output   = new List<CTCComponentResult>();
+
+        // Pass 1: compute everything except Remainder and Statutory
+        decimal earningsTotal = 0m;
+        PayGroupComponent? remainderRow = null;
+
+        foreach (var tc in components.Where(c => c.Component != null))
+        {
+            var code = tc.Component!.ComponentCode;
+            var calcType = !string.IsNullOrWhiteSpace(tc.Component.CalculationType) ? tc.Component.CalculationType : tc.CalculationType;
+            var val = tc.Component.DefaultValue ?? tc.Value ?? 0m;
+            var baseCode = !string.IsNullOrWhiteSpace(tc.Component.BaseComponentCode) ? tc.Component.BaseComponentCode : tc.BaseComponentCode;
+
+            if (calcType == "Remainder")
+            {
+                remainderRow = tc;
+                continue;
+            }
+            if (calcType == "Statutory")
+            {
+                // Statutory amounts are computed later by the payroll engine.
+                // Preview shows 0 as a placeholder.
+                results[code] = 0m;
+                output.Add(new CTCComponentResult(
+                    code, tc.Component.ComponentName, tc.Component.ComponentType,
+                    0m, calcType, "Auto-computed at payroll time"));
+                continue;
+            }
+
+            decimal amount = calcType switch
+            {
+                "FixedAmount"        => val,
+                "PercentOfCTC"       => Math.Round(monthly * val / 100m, 2),
+                "PercentOfComponent" => results.TryGetValue(baseCode ?? "", out var base_)
+                                        ? Math.Round(base_ * val / 100m, 2)
+                                        : 0m,
+                _                    => 0m
+            };
+
+            results[code] = amount;
+            if (tc.Component.ComponentType == "Earning") earningsTotal += amount;
+
+            output.Add(new CTCComponentResult(
+                code, tc.Component.ComponentName, tc.Component.ComponentType,
+                amount, calcType,
+                FormatFormula(calcType, val, baseCode)));
+        }
+
+        // Pass 2: fill Remainder = monthly CTC − all other earnings
+        if (remainderRow?.Component != null)
+        {
+            var remainder = Math.Max(0m, Math.Round(monthly - earningsTotal, 2));
+            var code      = remainderRow.Component.ComponentCode;
+            results[code] = remainder;
+            output.Add(new CTCComponentResult(
+                code, remainderRow.Component.ComponentName, "Earning",
+                remainder, "Remainder",
+                $"Monthly CTC ({monthly:F2}) − other earnings ({earningsTotal:F2})"));
+        }
+
+        return output.OrderBy(r => r.ComponentType == "Earning" ? 0 : 1)
+                     .ToList();
+    }
+
+    private static string FormatFormula(string calcType, decimal val, string? baseCode) => calcType switch
+    {
+        "FixedAmount"        => $"Fixed \u20b9{val:N0}/month",
+        "PercentOfCTC"       => $"{val:G29}% of Monthly CTC",
+        "PercentOfComponent" => $"{val:G29}% of {baseCode}",
+        "Remainder"          => "Monthly CTC − other earnings",
+        "Statutory"          => "Auto-computed (PF/ESI/PT)",
+        _                    => ""
+    };
 }
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
+
+public record PayGroupComponentItemDto(
+    int ComponentId,
+    string? CalculationType,
+    decimal? Value,
+    string? BaseComponentCode,
+    int DisplayOrder
+);
 
 public record PayGroupDto(
     string? Name,
@@ -372,7 +664,8 @@ public record PayGroupDto(
     bool PtApplicable = true,
     string? PtState = null,
     int? TemplateId = null,
-    bool? IsActive = null
+    bool? IsActive = null,
+    List<PayGroupComponentItemDto>? Components = null
 );
 
 public record AssignEmployeesDto(List<int> EmployeeIds);
@@ -387,3 +680,24 @@ public record PtSlabDto(
     DateOnly EffectiveFrom,
     DateOnly? EffectiveTo
 );
+
+public record EmployeeCTCDto(
+    int EmployeeId,
+    decimal AnnualCTC,
+    int PayGroupId,
+    string? SalaryBasisOverride,
+    DateOnly EffectiveFrom,
+    string? Remarks
+);
+
+public record PreviewCTCDto(decimal AnnualCTC, int PayGroupId);
+
+public record CTCComponentResult(
+    string ComponentCode,
+    string ComponentName,
+    string ComponentType,
+    decimal Amount,
+    string CalculationType,
+    string Formula
+);
+

@@ -290,92 +290,91 @@ public class TenantProvisioningService
             {
                 ComponentName = "Basic Salary", ComponentCode = "BASIC", ComponentType = "Earning",
                 Category = "Basic", IsEpfApplicable = true, IsEsiApplicable = true, IsTaxable = true,
-                DisplayOrder = 1, OrganizationId = org.Id
+                DisplayOrder = 1, OrganizationId = org.Id,
+                CalculationType = "PercentOfCTC", DefaultValue = 40m
             };
             var scHra = new SalaryComponent
             {
                 ComponentName = "House Rent Allowance", ComponentCode = "HRA", ComponentType = "Earning",
                 Category = "Allowance", IsEpfApplicable = false, IsEsiApplicable = true, IsTaxable = false,
-                DisplayOrder = 2, OrganizationId = org.Id
+                DisplayOrder = 2, OrganizationId = org.Id,
+                CalculationType = "PercentOfComponent", DefaultValue = 50m, BaseComponentCode = "BASIC"
             };
             var scConveyance = new SalaryComponent
             {
                 ComponentName = "Conveyance Allowance", ComponentCode = "CONVEYANCE", ComponentType = "Earning",
                 Category = "Allowance", IsEpfApplicable = false, IsEsiApplicable = true, IsTaxable = false,
-                DisplayOrder = 3, OrganizationId = org.Id
+                DisplayOrder = 3, OrganizationId = org.Id,
+                CalculationType = "FixedAmount", DefaultValue = 1600m
             };
             var scMedical = new SalaryComponent
             {
                 ComponentName = "Medical Allowance", ComponentCode = "MEDICAL", ComponentType = "Earning",
                 Category = "Allowance", IsEpfApplicable = false, IsEsiApplicable = true, IsTaxable = false,
-                DisplayOrder = 4, OrganizationId = org.Id
+                DisplayOrder = 4, OrganizationId = org.Id,
+                CalculationType = "FixedAmount", DefaultValue = 1250m
             };
             var scSpecial = new SalaryComponent
             {
                 ComponentName = "Special Allowance", ComponentCode = "SPECIAL", ComponentType = "Earning",
                 Category = "Allowance", IsEpfApplicable = false, IsEsiApplicable = true, IsTaxable = true,
-                DisplayOrder = 5, OrganizationId = org.Id
+                DisplayOrder = 5, OrganizationId = org.Id,
+                CalculationType = "Remainder"
             };
             var scPfEmp = new SalaryComponent
             {
                 ComponentName = "Provident Fund (Employee)", ComponentCode = "PF_EMP", ComponentType = "Deduction",
                 Category = "Statutory", IsEpfApplicable = false, IsEsiApplicable = false, IsTaxable = false,
-                DisplayOrder = 10, OrganizationId = org.Id
+                DisplayOrder = 10, OrganizationId = org.Id,
+                CalculationType = "Statutory"
             };
             var scEsiEmp = new SalaryComponent
             {
                 ComponentName = "ESI (Employee)", ComponentCode = "ESI_EMP", ComponentType = "Deduction",
                 Category = "Statutory", IsEpfApplicable = false, IsEsiApplicable = false, IsTaxable = false,
-                DisplayOrder = 11, OrganizationId = org.Id
+                DisplayOrder = 11, OrganizationId = org.Id,
+                CalculationType = "Statutory"
             };
             var scPt = new SalaryComponent
             {
                 ComponentName = "Professional Tax", ComponentCode = "PT", ComponentType = "Deduction",
                 Category = "Statutory", IsEpfApplicable = false, IsEsiApplicable = false, IsTaxable = false,
-                DisplayOrder = 12, OrganizationId = org.Id
+                DisplayOrder = 12, OrganizationId = org.Id,
+                CalculationType = "Statutory"
             };
             var scPfEr = new SalaryComponent
             {
                 ComponentName = "Provident Fund (Employer)", ComponentCode = "PF_ER", ComponentType = "Informational",
                 Category = "Statutory", IsEpfApplicable = false, IsEsiApplicable = false, IsTaxable = false,
-                DisplayOrder = 20, OrganizationId = org.Id
+                DisplayOrder = 20, OrganizationId = org.Id,
+                CalculationType = "Statutory"
             };
             var scEsiEr = new SalaryComponent
             {
                 ComponentName = "ESI (Employer)", ComponentCode = "ESI_ER", ComponentType = "Informational",
                 Category = "Statutory", IsEpfApplicable = false, IsEsiApplicable = false, IsTaxable = false,
-                DisplayOrder = 21, OrganizationId = org.Id
+                DisplayOrder = 21, OrganizationId = org.Id,
+                CalculationType = "Statutory"
             };
             _db.SalaryComponents.AddRange(scBasic, scHra, scConveyance, scMedical, scSpecial,
                                           scPfEmp, scEsiEmp, scPt, scPfEr, scEsiEr);
             await _db.SaveChangesAsync();
 
-            // ── Salary Structure Template ─────────────────────────────────────
-            var template = new SalaryStructureTemplate
+            // ── Pay Groups and Components ─────────────────────────────────────
+            var components = new List<PayGroupComponent>
             {
-                Name = "Standard CTC Template",
-                Description = "Default CTC-based salary structure. Basic=40%, HRA=50% of Basic, Conveyance=₹1,600, Medical=₹1,250, Special=Remainder. PF/ESI/PT auto-computed.",
-                IsDefault = true, IsActive = true, OrganizationId = org.Id
+                new PayGroupComponent { ComponentId = scBasic.Id,      CalculationType = "PercentOfCTC",       Value = 40m,    DisplayOrder = 1,  OrganizationId = org.Id },
+                new PayGroupComponent { ComponentId = scHra.Id,        CalculationType = "PercentOfComponent", Value = 50m,    BaseComponentCode = "BASIC", DisplayOrder = 2, OrganizationId = org.Id },
+                new PayGroupComponent { ComponentId = scConveyance.Id, CalculationType = "FixedAmount",        Value = 1600m,  DisplayOrder = 3,  OrganizationId = org.Id },
+                new PayGroupComponent { ComponentId = scMedical.Id,    CalculationType = "FixedAmount",        Value = 1250m,  DisplayOrder = 4,  OrganizationId = org.Id },
+                new PayGroupComponent { ComponentId = scSpecial.Id,    CalculationType = "Remainder",          Value = null,   DisplayOrder = 5,  OrganizationId = org.Id },
+                new PayGroupComponent { ComponentId = scPfEmp.Id,      CalculationType = "Statutory",          Value = null,   DisplayOrder = 10, OrganizationId = org.Id },
+                new PayGroupComponent { ComponentId = scEsiEmp.Id,     CalculationType = "Statutory",          Value = null,   DisplayOrder = 11, OrganizationId = org.Id },
+                new PayGroupComponent { ComponentId = scPt.Id,         CalculationType = "Statutory",          Value = null,   DisplayOrder = 12, OrganizationId = org.Id },
+                new PayGroupComponent { ComponentId = scPfEr.Id,       CalculationType = "Statutory",          Value = null,   DisplayOrder = 20, OrganizationId = org.Id },
+                new PayGroupComponent { ComponentId = scEsiEr.Id,      CalculationType = "Statutory",          Value = null,   DisplayOrder = 21, OrganizationId = org.Id }
             };
-            _db.SalaryStructureTemplates.Add(template);
-            await _db.SaveChangesAsync();
 
-            // ── Template Components (formula definitions) ─────────────────────
-            _db.TemplateComponents.AddRange(
-                new TemplateComponent { TemplateId = template.Id, ComponentId = scBasic.Id,      CalculationType = "PercentOfCTC",       Value = 40m,    DisplayOrder = 1,  OrganizationId = org.Id },
-                new TemplateComponent { TemplateId = template.Id, ComponentId = scHra.Id,        CalculationType = "PercentOfComponent", Value = 50m,    BaseComponentCode = "BASIC", DisplayOrder = 2, OrganizationId = org.Id },
-                new TemplateComponent { TemplateId = template.Id, ComponentId = scConveyance.Id, CalculationType = "FixedAmount",        Value = 1600m,  DisplayOrder = 3,  OrganizationId = org.Id },
-                new TemplateComponent { TemplateId = template.Id, ComponentId = scMedical.Id,    CalculationType = "FixedAmount",        Value = 1250m,  DisplayOrder = 4,  OrganizationId = org.Id },
-                new TemplateComponent { TemplateId = template.Id, ComponentId = scSpecial.Id,    CalculationType = "Remainder",          Value = null,   DisplayOrder = 5,  OrganizationId = org.Id },
-                new TemplateComponent { TemplateId = template.Id, ComponentId = scPfEmp.Id,      CalculationType = "Statutory",          Value = null,   DisplayOrder = 10, OrganizationId = org.Id },
-                new TemplateComponent { TemplateId = template.Id, ComponentId = scEsiEmp.Id,     CalculationType = "Statutory",          Value = null,   DisplayOrder = 11, OrganizationId = org.Id },
-                new TemplateComponent { TemplateId = template.Id, ComponentId = scPt.Id,         CalculationType = "Statutory",          Value = null,   DisplayOrder = 12, OrganizationId = org.Id },
-                new TemplateComponent { TemplateId = template.Id, ComponentId = scPfEr.Id,       CalculationType = "Statutory",          Value = null,   DisplayOrder = 20, OrganizationId = org.Id },
-                new TemplateComponent { TemplateId = template.Id, ComponentId = scEsiEr.Id,      CalculationType = "Statutory",          Value = null,   DisplayOrder = 21, OrganizationId = org.Id }
-            );
-            await _db.SaveChangesAsync();
-
-            // ── Pay Groups ────────────────────────────────────────────────────
             _db.PayGroups.AddRange(
                 new PayGroup
                 {
@@ -384,7 +383,8 @@ public class TenantProvisioningService
                     SalaryBasis = "CalendarDays", LopRounding = "None",
                     PfApplicable = true, EsiApplicable = true, PtApplicable = true,
                     PtState = "Telangana",
-                    TemplateId = template.Id, IsActive = true, OrganizationId = org.Id
+                    IsActive = true, OrganizationId = org.Id,
+                    Components = components.Select(c => new PayGroupComponent { ComponentId = c.ComponentId, CalculationType = c.CalculationType, Value = c.Value, BaseComponentCode = c.BaseComponentCode, DisplayOrder = c.DisplayOrder, OrganizationId = c.OrganizationId }).ToList()
                 },
                 new PayGroup
                 {
@@ -393,7 +393,8 @@ public class TenantProvisioningService
                     SalaryBasis = "Fixed26", LopRounding = "HalfDay",
                     PfApplicable = true, EsiApplicable = true, PtApplicable = true,
                     PtState = "Telangana",
-                    TemplateId = template.Id, IsActive = true, OrganizationId = org.Id
+                    IsActive = true, OrganizationId = org.Id,
+                    Components = components.Select(c => new PayGroupComponent { ComponentId = c.ComponentId, CalculationType = c.CalculationType, Value = c.Value, BaseComponentCode = c.BaseComponentCode, DisplayOrder = c.DisplayOrder, OrganizationId = c.OrganizationId }).ToList()
                 },
                 new PayGroup
                 {
@@ -401,7 +402,8 @@ public class TenantProvisioningService
                     Description = "Contract employees. Calendar-day basis. No PF/ESI (as per contract terms).",
                     SalaryBasis = "CalendarDays", LopRounding = "None",
                     PfApplicable = false, EsiApplicable = false, PtApplicable = false,
-                    TemplateId = template.Id, IsActive = true, OrganizationId = org.Id
+                    IsActive = true, OrganizationId = org.Id,
+                    Components = components.Select(c => new PayGroupComponent { ComponentId = c.ComponentId, CalculationType = c.CalculationType, Value = c.Value, BaseComponentCode = c.BaseComponentCode, DisplayOrder = c.DisplayOrder, OrganizationId = c.OrganizationId }).ToList()
                 }
             );
             await _db.SaveChangesAsync();

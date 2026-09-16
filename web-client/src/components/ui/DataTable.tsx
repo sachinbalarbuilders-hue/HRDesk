@@ -44,6 +44,8 @@ export interface DataTableProps<T> {
     onPageChange: (page: number) => void;
     onPageSizeChange: (pageSize: number) => void;
   };
+  expandedRowKeys?: (string | number)[];
+  expandedRowRender?: (item: T, index: number) => React.ReactNode;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -55,6 +57,8 @@ export function DataTable<T extends Record<string, any>>({
   keyExtractor = (item, index) => item.id || item.candidateId || item.employeeId || index,
   selection,
   pagination,
+  expandedRowKeys = [],
+  expandedRowRender,
 }: DataTableProps<T>) {
   const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
 
@@ -271,29 +275,37 @@ export function DataTable<T extends Record<string, any>>({
                   const isSelected = selectedKeysSet.has(key);
 
                   return (
-                    <tr
-                      key={key}
-                      className={`
-                        group border-b border-[var(--border)] last:border-0
-                        transition-colors duration-150 ease-out
-                        ${isSelected ? 'bg-[var(--accent-light)]/70 dark:bg-[var(--accent)]/10' : 'hover:bg-[var(--surface-sunken)]'}
-                      `}
-                    >
-                      {effectiveColumns.map((col) => (
-                        <td
-                          key={col.key}
-                          className={`
-                            py-5 px-4 text-[13px] font-medium text-[var(--text-primary)]
-                            ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}
-                            ${col.className || ''}
-                          `}
-                        >
-                          {col.render
-                            ? col.render(item, index)
-                            : (item[col.key] ?? '—')}
-                        </td>
-                      ))}
-                    </tr>
+                    <React.Fragment key={key}>
+                      <tr
+                        className={`
+                          group border-b border-[var(--border)] last:border-0
+                          transition-colors duration-150 ease-out
+                          ${isSelected ? 'bg-[var(--accent-light)]/70 dark:bg-[var(--accent)]/10' : 'hover:bg-[var(--surface-sunken)]'}
+                        `}
+                      >
+                        {effectiveColumns.map((col) => (
+                          <td
+                            key={col.key}
+                            className={`
+                              py-5 px-4 text-[13px] font-medium text-[var(--text-primary)]
+                              ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}
+                              ${col.className || ''}
+                            `}
+                          >
+                            {col.render
+                              ? col.render(item, index)
+                              : (item[col.key] ?? '—')}
+                          </td>
+                        ))}
+                      </tr>
+                      {expandedRowRender && expandedRowKeys.includes(key) && (
+                        <tr className="bg-[var(--surface-sunken)]">
+                          <td colSpan={effectiveColumns.length} className="p-0 border-b border-[var(--border)]">
+                            {expandedRowRender(item, index)}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })
               ) : (

@@ -4,16 +4,19 @@ using HRDesk.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace HRDesk.Web.Migrations
+namespace HRDesk.Web.Data.Migrations
 {
     [DbContext(typeof(BiometricAttendanceDbContext))]
-    partial class BiometricAttendanceDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260916073500_MigrateCTC_TemplateIdToPayGroupId")]
+    partial class MigrateCTC_TemplateIdToPayGroupId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3652,17 +3655,6 @@ namespace HRDesk.Web.Migrations
                         .HasColumnType("nvarchar(150)")
                         .HasColumnName("archived_by");
 
-                    b.Property<string>("BaseComponentCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("base_component_code");
-
-                    b.Property<string>("CalculationType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasColumnName("calculation_type");
-
                     b.Property<string>("Category")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -3690,11 +3682,6 @@ namespace HRDesk.Web.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2")
                         .HasColumnName("created_at");
-
-                    b.Property<decimal?>("DefaultValue")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(10,4)")
-                        .HasColumnName("default_value");
 
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("int")

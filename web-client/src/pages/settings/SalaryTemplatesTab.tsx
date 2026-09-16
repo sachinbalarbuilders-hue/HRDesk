@@ -10,8 +10,10 @@ import {
   Layers, Plus, Pencil, X,
   IndianRupee, Percent, Equal, Wand2, Zap, ChevronDown, ChevronRight,
 } from 'lucide-react';
+import { Avatar } from '../../components/ui/Avatar';
 
-interface Template { id: number; name: string; description?: string; isDefault: boolean; isActive: boolean; componentCount: number; archivedAt?: string; }
+interface EmployeeMini { id: number; name: string; photoPath?: string; hasPhoto?: boolean; }
+interface Template { id: number; name: string; description?: string; isDefault: boolean; isActive: boolean; componentCount: number; archivedAt?: string; componentNames?: string[]; employees?: EmployeeMini[]; employeeCount?: number; }
 interface Component { id: number; componentName: string; componentCode: string; componentType: string; category: string; isEpfApplicable: boolean; isEsiApplicable: boolean; isTaxable: boolean; isActive: boolean; displayOrder: number; }
 interface TplComponent { id?: number; componentId: number; calculationType: string; value?: number | ''; baseComponentCode?: string; displayOrder: number; componentName?: string; componentCode?: string; componentType?: string; }
 interface PreviewRow { componentCode: string; componentName: string; componentType: string; amount: number; calculationType: string; formula: string; }
@@ -175,8 +177,16 @@ export const SalaryTemplatesTab: React.FC = () => {
 
   const columns: ColumnDef<Template>[] = [
     {
+      key: 'id',
+      header: 'ID',
+      width: '100px',
+      render: (t: Template) => (
+        <span className="text-xs font-semibold text-[var(--ink)]">SG#{String(t.id).padStart(3, '0')}</span>
+      ),
+    },
+    {
       key: 'name',
-      header: 'Template Name',
+      header: 'NAME',
       render: (t: Template) => (
         <div className="flex items-start gap-2">
           <button
@@ -201,35 +211,46 @@ export const SalaryTemplatesTab: React.FC = () => {
       ),
     },
     {
-      key: 'componentCount',
-      header: 'Components',
-      align: 'center',
+      key: 'components',
+      header: 'SALARY COMPONENTS',
       render: (t: Template) => (
-        <span className="text-xs font-semibold text-[var(--ink)] font-data">
-          {t.componentCount} items
-        </span>
+        <div className="flex flex-col gap-0.5 text-xs text-[var(--ink)] py-1">
+          {t.componentNames?.length ? t.componentNames.map((n, idx) => (
+            <span key={idx}>{idx + 1}. {n}</span>
+          )) : <span className="text-[var(--ink-muted)]">No components</span>}
+        </div>
       ),
     },
     {
-      key: 'status',
-      header: 'Status',
-      align: 'center',
+      key: 'employees',
+      header: 'EMPLOYEES',
       render: (t: Template) => (
-        <span
-          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] ${
-            t.isActive
-              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-              : 'bg-[var(--paper-subtle)] text-[var(--ink-muted)]'
-          }`}
-        >
-          {t.isActive ? 'Active' : 'Inactive'}
-        </span>
+        <div className="flex items-center -space-x-2 overflow-hidden py-1">
+          {t.employees?.map((emp) => (
+            <Avatar 
+              key={emp.id} 
+              name={emp.name} 
+              src={emp.photoPath ? `/api/employees/${emp.id}/photo` : undefined} 
+              size="sm" 
+              className="border-2 border-white dark:border-[var(--paper)] relative z-[1]"
+            />
+          ))}
+          {t.employeeCount && t.employeeCount > 5 && (
+            <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-white dark:border-[var(--paper)] bg-indigo-500 text-white text-[11px] font-bold z-[1]">
+              +{t.employeeCount - 5}
+            </div>
+          )}
+          {(!t.employees || t.employees.length === 0) && (
+            <span className="text-xs text-[var(--ink-muted)] ml-2">None</span>
+          )}
+        </div>
       ),
     },
     {
       key: 'actions',
-      header: 'Actions',
-      align: 'right',
+      header: 'ACTIONS',
+      align: 'center',
+      width: '100px',
       render: (t: Template) => (
         <RowActionMenu
           actions={[
@@ -246,7 +267,7 @@ export const SalaryTemplatesTab: React.FC = () => {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h2 className="text-base font-bold text-[var(--ink)] font-ui">Salary Structure Templates</h2>
+        <h2 className="text-base font-bold text-[var(--ink)] font-ui">Salary Groups</h2>
         <p className="text-xs text-[var(--ink-muted)] mt-0.5">
           Define CTC-based formulas (Basic=40% of CTC, HRA=50% of Basic, etc.) and assign to Pay Groups.
         </p>
@@ -256,15 +277,16 @@ export const SalaryTemplatesTab: React.FC = () => {
       <DataToolbar
         searchValue={search}
         onSearchChange={(v) => { setSearch(v); setPage(1); }}
-        searchPlaceholder="Search salary templates..."
+        searchPlaceholder="Search salary groups..."
         archiveFilter={{
           value: archiveFilter,
           onChange: (v) => { setArchiveFilter(v); setPage(1); },
         }}
         primaryAction={{
-          label: 'New Template',
+          label: 'Add Salary Groups',
           icon: <Plus size={14} />,
           onClick: openCreateTemplate,
+          className: 'bg-black text-white hover:bg-gray-800 flex items-center gap-1.5 text-[13px] py-1.5 px-4 rounded-[6px] shadow-sm transition-colors cursor-pointer font-medium'
         }}
       />
 
@@ -288,57 +310,50 @@ export const SalaryTemplatesTab: React.FC = () => {
           onPageChange: setPage,
           onPageSizeChange: (s) => { setPageSize(s); setPage(1); },
         }}
-      />
-
-      {/* Expanded Template Formula Drawer */}
-      {expandedId && (
-        <div className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] space-y-3">
-          <div className="flex items-center justify-between border-b border-[var(--rule)] pb-2">
-            <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5">
-              <Layers size={13} className="text-[var(--gold-500)]" />
-              Template Breakdown Formulas
-            </span>
-            <button
-              onClick={() => setExpandedId(null)}
-              className="text-[var(--ink-muted)] hover:text-[var(--ink)] text-xs cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-          {expandedComponents.length === 0 ? (
-            <p className="text-xs text-[var(--ink-muted)] py-2 italic">
-              No components configured yet. Click "Edit Formulas" on the action menu to add components.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-[10px] uppercase text-[var(--ink-muted)] font-bold border-b border-[var(--rule)]">
-                    <th className="pb-1.5 text-left">Component</th>
-                    <th className="pb-1.5 text-left">Type</th>
-                    <th className="pb-1.5 text-left">Formula Calculation</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--rule)]">
-                  {expandedComponents.map((c: any) => (
-                    <tr key={c.id}>
-                      <td className="py-2 font-medium text-[var(--ink)]">{c.componentName}</td>
-                      <td className="py-2 text-[var(--ink-muted)]">{c.componentType}</td>
-                      <td className="py-2 font-mono text-[var(--teal-600)]">{
-                        c.calculationType === 'FixedAmount' ? `₹${(c.value||0).toLocaleString()}/month` :
-                        c.calculationType === 'PercentOfCTC' ? `${c.value}% of Monthly CTC` :
-                        c.calculationType === 'PercentOfComponent' ? `${c.value}% of ${c.baseComponentCode}` :
-                        c.calculationType === 'Remainder' ? 'Monthly CTC − other earnings' :
-                        c.calculationType === 'Statutory' ? 'Auto (PF/ESI/PT)' : c.calculationType
-                      }</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        expandedRowKeys={expandedId ? [expandedId] : []}
+        expandedRowRender={(t) => (
+          <div className="p-4 bg-[var(--surface-sunken)] border-t border-[var(--border)] shadow-inner space-y-3 mx-4 my-2 rounded">
+            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-2">
+              <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5 font-serif uppercase tracking-tight">
+                <Layers size={13} className="text-[var(--gold-500)]" />
+                Template Breakdown Formulas
+              </span>
             </div>
-          )}
-        </div>
-      )}
+            {expandedComponents.length === 0 ? (
+              <p className="text-xs text-[var(--ink-muted)] py-2 italic font-ui">
+                No components configured yet. Click "Edit Formulas" on the action menu to add components.
+              </p>
+            ) : (
+              <div className="overflow-x-auto bg-white border border-[var(--border)] rounded shadow-xs">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-[var(--surface-sunken)] border-b border-[var(--rule)]">
+                    <tr className="text-[10px] uppercase text-[var(--ink-muted)] font-bold tracking-wider">
+                      <th className="px-4 py-2">Component</th>
+                      <th className="px-4 py-2 border-l border-[var(--rule)]">Type</th>
+                      <th className="px-4 py-2 border-l border-[var(--rule)]">Formula Calculation</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--rule)] font-ui bg-white">
+                    {expandedComponents.map((c: any) => (
+                      <tr key={c.id} className="hover:bg-[var(--surface-sunken)] transition-colors">
+                        <td className="px-4 py-2 font-medium text-[var(--ink)]">{c.componentName}</td>
+                        <td className="px-4 py-2 text-[var(--ink-muted)] border-l border-[var(--rule)]">{c.componentType}</td>
+                        <td className="px-4 py-2 font-mono text-[11px] text-[var(--teal-600)] border-l border-[var(--rule)]">{
+                          c.calculationType === 'FixedAmount' ? `₹${(c.value||0).toLocaleString()}/month` :
+                          c.calculationType === 'PercentOfCTC' ? `${c.value}% of Monthly CTC` :
+                          c.calculationType === 'PercentOfComponent' ? `${c.value}% of ${c.baseComponentCode}` :
+                          c.calculationType === 'Remainder' ? 'Monthly CTC − other earnings' :
+                          c.calculationType === 'Statutory' ? 'Auto (PF/ESI/PT)' : c.calculationType
+                        }</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      />
 
       {/* Template create/edit modal */}
       {templateModalOpen && (

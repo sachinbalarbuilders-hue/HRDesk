@@ -306,6 +306,7 @@ END;";
                 .ThenInclude(b => b!.Organization)
             .Include(e => e.Organization)
             .Include(e => e.ReportingManager)
+            .Include(e => e.PayGroup)
             .Where(predicate);
 
         if (!bypassPermission)
@@ -450,7 +451,9 @@ END;";
             roleId = activeRoleId,
             hasLoginAccess = user != null && user.IsActive,
             isFaceEnrolled = !string.IsNullOrEmpty(employee.FaceId),
-            faceId = employee.FaceId
+            faceId = employee.FaceId,
+            payGroupId = employee.PayGroupId,
+            payGroupName = employee.PayGroup != null ? employee.PayGroup.Name : null
         });
     }
 
@@ -506,14 +509,14 @@ END;";
         var empIds = employees.Select(e => e.EmployeeId).ToList();
         var ctcRecords = await _db.EmployeeCTCs
             .AsNoTracking()
-            .Include(c => c.Template)
+            .Include(c => c.PayGroup)
             .Where(c => empIds.Contains(c.EmployeeId) && c.EffectiveTo == null)
             .Select(c => new
             {
                 c.EmployeeId,
                 c.AnnualCTC,
-                c.TemplateId,
-                templateName = c.Template != null ? c.Template.Name : null,
+                c.PayGroupId,
+                payGroupName = c.PayGroup != null ? c.PayGroup.Name : null,
                 effectiveFrom = c.EffectiveFrom.ToString("yyyy-MM-dd"),
             })
             .ToListAsync();
@@ -536,8 +539,8 @@ END;";
                 e.payGroupBasis,
                 annualCTC        = ctc?.AnnualCTC,
                 monthlyCTC       = ctc != null ? (decimal?)(ctc.AnnualCTC / 12) : null,
-                templateId       = ctc?.TemplateId,
-                templateName     = ctc?.templateName,
+                ctcPayGroupId    = ctc?.PayGroupId,
+                ctcPayGroupName  = ctc?.payGroupName,
                 ctcEffectiveFrom = ctc?.effectiveFrom,
             };
         });

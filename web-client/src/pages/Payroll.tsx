@@ -8,19 +8,17 @@ import { PayrollRegister } from './payroll/PayrollRegister';
 import { TaxDeclarationsTab } from './payroll/TaxDeclarationsTab';
 import { EmployeeSalariesTab } from './settings/EmployeeSalariesTab';
 import { PayGroupsTab } from './settings/PayGroupsTab';
-import { SalaryTemplatesTab } from './settings/SalaryTemplatesTab';
 import { SalaryComponentsTab } from './settings/SalaryComponentsTab';
 import { IndianRupee, Users, Settings2, LayoutTemplate, Layers, Wrench, Calculator, Landmark } from 'lucide-react';
 
-type PayrollView = 'register' | 'declarations' | 'components' | 'salary-templates' | 'pay-groups' | 'employee-salaries';
+type PayrollView = 'register' | 'declarations' | 'components' | 'pay-groups' | 'employee-salaries';
 
-const VALID_TABS: PayrollView[] = ['register', 'declarations', 'components', 'salary-templates', 'pay-groups', 'employee-salaries'];
+const VALID_TABS: PayrollView[] = ['register', 'declarations', 'components', 'pay-groups', 'employee-salaries'];
 
 const CONFIG_TABS: { id: PayrollView; label: string; icon: React.ReactNode; description: string }[] = [
   { id: 'components',        label: '1. Salary Components', icon: <Layers size={14} />, description: 'Define earnings and deductions' },
-  { id: 'salary-templates',  label: '2. Salary Templates',  icon: <LayoutTemplate size={14} />, description: 'Group components into packages' },
-  { id: 'pay-groups',        label: '3. Pay Groups',        icon: <Settings2 size={14} />, description: 'Set payment frequencies' },
-  { id: 'employee-salaries', label: '4. Assign Salaries',   icon: <Users size={14} />, description: 'Assign CTCs to employees' },
+  { id: 'pay-groups',        label: '2. Pay Groups',        icon: <Settings2 size={14} />, description: 'Group components and set frequency' },
+  { id: 'employee-salaries', label: '3. Assign Salaries',   icon: <Users size={14} />, description: 'Assign Pay Groups and CTCs' },
 ];
 
 export const Payroll: React.FC = () => {
@@ -94,7 +92,6 @@ export const Payroll: React.FC = () => {
 
           <div className="flex-1 mt-2">
             {view === 'components'        && <SalaryComponentsTab />}
-            {view === 'salary-templates'  && <SalaryTemplatesTab />}
             {view === 'pay-groups'        && <PayGroupsTab />}
             {view === 'employee-salaries' && <EmployeeSalariesTab />}
           </div>

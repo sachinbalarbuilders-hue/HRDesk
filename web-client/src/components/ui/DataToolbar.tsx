@@ -52,6 +52,7 @@ export interface DataToolbarProps {
     label: string;
     icon?: React.ReactNode;
     onClick: () => void;
+    className?: string;
   };
 }
 
@@ -152,7 +153,7 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
             <button
               type="button"
               onClick={primaryAction.onClick}
-              className="btn-primary flex items-center gap-1.5 text-[13px] py-1.5 px-3 cursor-pointer"
+              className={primaryAction.className || "btn-primary flex items-center gap-1.5 text-[13px] py-1.5 px-3 cursor-pointer"}
             >
               {primaryAction.icon}
               <span>{primaryAction.label}</span>

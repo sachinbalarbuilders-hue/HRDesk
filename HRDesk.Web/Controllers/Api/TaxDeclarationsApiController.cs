@@ -75,7 +75,15 @@ public class TaxDeclarationsApiController : ControllerBase
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim().ToLower();
-            empQuery = empQuery.Where(e => e.EmployeeName.ToLower().Contains(s) || e.EmployeeId.ToString().Contains(s));
+            var numericPart = System.Text.RegularExpressions.Regex.Match(s, @"\d+").Value;
+            if (int.TryParse(numericPart, out var searchEmpId))
+            {
+                empQuery = empQuery.Where(e => e.EmployeeName.ToLower().Contains(s) || e.EmployeeId == searchEmpId || e.EmployeeId.ToString().Contains(s));
+            }
+            else
+            {
+                empQuery = empQuery.Where(e => e.EmployeeName.ToLower().Contains(s));
+            }
         }
 
         var employees = await empQuery
@@ -106,6 +114,30 @@ public class TaxDeclarationsApiController : ControllerBase
             .Where(c => empIds.Contains(c.EmployeeId) && c.EffectiveTo == null)
             .ToDictionaryAsync(c => c.EmployeeId, c => c.AnnualCTC);
 
+        // Load prefix settings for employee code formatting
+        var prefixSettings = await _db.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == orgId && s.SettingKey.StartsWith("Employee_Prefix_"))
+            .ToListAsync();
+
+        string FormatEmployeeCode(int empId, int? branchId)
+        {
+            var series = prefixSettings.FirstOrDefault(s => s.BranchId == branchId && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+                ?? "EMP";
+            var connector = prefixSettings.FirstOrDefault(s => s.BranchId == branchId && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+                ?? "#";
+            var padding = int.TryParse(
+                prefixSettings.FirstOrDefault(s => s.BranchId == branchId && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue
+                ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue, out var pp) ? pp : 3;
+
+            var cleanSeries = series.Trim();
+            return cleanSeries.EndsWith('#') || cleanSeries.EndsWith('-') || cleanSeries.EndsWith('_') || cleanSeries.EndsWith('/')
+                ? $"{cleanSeries}{empId.ToString($"D{padding}")}"
+                : $"{cleanSeries}{connector}{empId.ToString($"D{padding}")}";
+        }
+
         var list = employees.Select(e =>
         {
             declMap.TryGetValue(e.EmployeeId, out var decl);
@@ -120,7 +152,7 @@ public class TaxDeclarationsApiController : ControllerBase
             return new
             {
                 e.EmployeeId,
-                EmployeeCode = $"EMP-{e.EmployeeId:D4}",
+                EmployeeCode = FormatEmployeeCode(e.EmployeeId, e.BranchId),
                 e.FullName,
                 e.DepartmentName,
                 e.DesignationName,
@@ -192,7 +224,7 @@ public class TaxDeclarationsApiController : ControllerBase
         // Fetch salary structure or CTC
         var ctc = await _db.EmployeeCTCs
             .AsNoTracking()
-            .Include(c => c.Template)
+            .Include(c => c.PayGroup)
             .ThenInclude(t => t!.Components)
             .FirstOrDefaultAsync(c => c.EmployeeId == employeeId && c.EffectiveTo == null);
 
@@ -200,9 +232,9 @@ public class TaxDeclarationsApiController : ControllerBase
         decimal annualBasic = annualGross * 0.40m; // standard 40% fallback
         decimal annualHra = annualGross * 0.20m;   // standard 20% fallback
 
-        if (ctc?.Template?.Components != null && ctc.Template.Components.Any())
+        if (ctc?.PayGroup?.Components != null && ctc.PayGroup.Components.Any())
         {
-            var breakdown = SalaryTemplatesApiController.ComputeCTCBreakdown(annualGross, ctc.Template.Components.ToList());
+            var breakdown = PayGroupsApiController.ComputeCTCBreakdown(annualGross, ctc.PayGroup.Components.ToList());
             var basicItem = breakdown.FirstOrDefault(b => b.ComponentName.Contains("Basic", StringComparison.OrdinalIgnoreCase));
             if (basicItem != null) annualBasic = basicItem.Amount * 12m;
 
@@ -220,12 +252,32 @@ public class TaxDeclarationsApiController : ControllerBase
             annualHra,
             declaration);
 
+        var prefixSettings = await _db.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == orgId && s.SettingKey.StartsWith("Employee_Prefix_") && (s.BranchId == employee.BranchId || s.BranchId == null))
+            .ToListAsync();
+
+        var series = prefixSettings.FirstOrDefault(s => s.BranchId == employee.BranchId && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+            ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Series")?.SettingValue
+            ?? "EMP";
+        var connector = prefixSettings.FirstOrDefault(s => s.BranchId == employee.BranchId && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+            ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Connector")?.SettingValue
+            ?? "#";
+        var padding = int.TryParse(
+            prefixSettings.FirstOrDefault(s => s.BranchId == employee.BranchId && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue
+            ?? prefixSettings.FirstOrDefault(s => s.BranchId == null && s.SettingKey == "Employee_Prefix_Padding")?.SettingValue, out var pp) ? pp : 3;
+
+        var cleanSeries = series.Trim();
+        var formattedCode = cleanSeries.EndsWith('#') || cleanSeries.EndsWith('-') || cleanSeries.EndsWith('_') || cleanSeries.EndsWith('/')
+            ? $"{cleanSeries}{employee.EmployeeId.ToString($"D{padding}")}"
+            : $"{cleanSeries}{connector}{employee.EmployeeId.ToString($"D{padding}")}";
+
         return Ok(new
         {
             employee = new
             {
                 employee.EmployeeId,
-                EmployeeCode = $"EMP#{employee.EmployeeId:D3}",
+                EmployeeCode = formattedCode,
                 FullName = employee.EmployeeName,
                 Department = employee.Department?.DepartmentName,
                 Designation = employee.Designation?.DesignationName,
@@ -436,7 +488,7 @@ public class TaxDeclarationsApiController : ControllerBase
             ProofType = proofType,
             FileName = file.FileName,
             FilePath = relativePath,
-            ContentType = file.ContentType
+            ContentType = file.ContentType ?? ""
         };
 
         _db.EmployeeTaxDeclarationProofs.Add(proof);

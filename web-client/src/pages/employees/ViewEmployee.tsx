@@ -411,6 +411,7 @@ export const ViewEmployee: React.FC = () => {
           {profileTab === 'payroll' && (
             <EmployeePayrollTab
               employeeId={employee.employeeId}
+              employeeName={employee.employeeName}
               canEdit={canEdit || hasPermission('Payroll.ManageSalary')}
             />
           )}

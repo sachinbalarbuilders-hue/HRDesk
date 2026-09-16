@@ -33,10 +33,10 @@ public class EmployeeCTC : IMustHaveTenant
     [Column("annual_ctc", TypeName = "decimal(14,2)")]
     public decimal AnnualCTC { get; set; }
 
-    [Column("template_id")]
-    public int TemplateId { get; set; }
+    [Column("pay_group_id")]
+    public int PayGroupId { get; set; }
 
-    public SalaryStructureTemplate? Template { get; set; }
+    public PayGroup? PayGroup { get; set; }
 
     /// <summary>
     /// Optional per-employee override of the pay group's salary basis.

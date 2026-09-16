@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HRDesk.Web.Models;
 
 /// <summary>
-/// A line item in a SalaryStructureTemplate defining how one salary component's
+/// A line item in a PayGroup defining how one salary component's
 /// monthly amount is computed from the employee's annual CTC.
 ///
 /// CalculationType values:
@@ -17,16 +17,16 @@ namespace HRDesk.Web.Models;
 ///   Statutory            — auto-computed by the payroll engine (PF, ESI, PT, TDS).
 ///                          Value and BaseComponentCode are ignored.
 /// </summary>
-public class TemplateComponent : IMustHaveTenant
+public class PayGroupComponent : IMustHaveTenant
 {
     [Key]
     [Column("id")]
     public int Id { get; set; }
 
-    [Column("template_id")]
-    public int TemplateId { get; set; }
+    [Column("pay_group_id")]
+    public int PayGroupId { get; set; }
 
-    public SalaryStructureTemplate? Template { get; set; }
+    public PayGroup? PayGroup { get; set; }
 
     [Column("component_id")]
     public int ComponentId { get; set; }

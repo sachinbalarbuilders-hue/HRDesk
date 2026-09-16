@@ -5,8 +5,9 @@ import { useToast } from '../../context/ToastContext';
 import { exportToCSV } from '../../utils/csvHelper';
 import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
 import { DataToolbar } from '../../components/ui/DataToolbar';
-import { Check, UserX, ExternalLink, Settings2 } from 'lucide-react';
+import { Check, UserX, ExternalLink, Settings2, Plus, Pencil } from 'lucide-react';
 import { BulkAssignSalaryModal } from './BulkAssignSalaryModal';
+import { AssignCTCModal } from './AssignCTCModal';
 
 interface EmpRow {
   employeeId: number;
@@ -20,12 +21,10 @@ interface EmpRow {
   payGroupBasis?: string;
   annualCTC?: number;
   monthlyCTC?: number;
-  templateId?: number;
-  templateName?: string;
   ctcEffectiveFrom?: string;
 }
 
-interface PayGroup { id: number; name: string; salaryBasis: string; isActive: boolean; templateId?: number; }
+interface PayGroup { id: number; name: string; salaryBasis: string; isActive: boolean; }
 
 const BASIS_LABELS: Record<string, string> = {
   CalendarDays: 'Calendar Days', Fixed26: 'Fixed 26', Fixed30: 'Fixed 30',
@@ -50,6 +49,10 @@ export const EmployeeSalariesTab: React.FC = () => {
   // Bulk pay group assign bar
   const [modalOpen, setModalOpen] = useState(false);
   const [bulkSaving, setBulkSaving] = useState(false);
+
+  // Single CTC assign modal
+  const [singleModalOpen, setSingleModalOpen] = useState(false);
+  const [selectedSingleEmployee, setSelectedSingleEmployee] = useState<EmpRow | null>(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -108,7 +111,6 @@ export const EmployeeSalariesTab: React.FC = () => {
       'Pay Group': r.payGroupName || 'Not Assigned',
       'Annual CTC (₹)': r.annualCTC || 0,
       'Monthly CTC (₹)': r.monthlyCTC || 0,
-      'Salary Template': r.templateName || '',
       'Effective Date': r.ctcEffectiveFrom || '',
     })));
     showSuccess('Export Complete', 'Employee salaries exported to CSV.');
@@ -176,28 +178,22 @@ export const EmployeeSalariesTab: React.FC = () => {
       ),
     },
     {
-      key: 'template',
-      header: 'Template',
-      render: (row: EmpRow) => (
-        <div>
-          <span className="text-xs text-[var(--ink-muted)]">{row.templateName ?? '—'}</span>
-          {row.ctcEffectiveFrom && <p className="text-[10px] text-[var(--ink-muted)]">from {row.ctcEffectiveFrom}</p>}
-        </div>
-      ),
-    },
-    {
       key: 'action',
       header: 'Action',
       align: 'right',
       render: (row: EmpRow) => (
-        <Link
-          to={`/employees/${row.publicId}?tab=payroll`}
-          className="text-xs text-[var(--gold-500)] hover:underline inline-flex items-center gap-1 font-medium"
-          title="Open employee payroll tab"
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedSingleEmployee(row);
+            setSingleModalOpen(true);
+          }}
+          className="text-xs text-[var(--gold-500)] hover:underline inline-flex items-center gap-1 font-medium cursor-pointer"
+          title="Assign CTC for this employee"
         >
-          <ExternalLink size={11} />
+          {row.annualCTC != null ? <Pencil size={11} /> : <Plus size={11} />}
           {row.annualCTC != null ? 'Revise' : 'Set CTC'}
-        </Link>
+        </button>
       ),
     },
   ];
@@ -281,6 +277,24 @@ export const EmployeeSalariesTab: React.FC = () => {
           fetchAll();
         }} 
       />
+
+      {selectedSingleEmployee && (
+        <AssignCTCModal
+          isOpen={singleModalOpen}
+          onClose={() => {
+            setSingleModalOpen(false);
+            setSelectedSingleEmployee(null);
+          }}
+          employeeId={selectedSingleEmployee.employeeId}
+          employeeName={selectedSingleEmployee.employeeName}
+          currentAnnualCTC={selectedSingleEmployee.annualCTC}
+          currentPayGroupId={selectedSingleEmployee.payGroupId}
+          currentPayGroupName={selectedSingleEmployee.payGroupName}
+          onSuccess={() => {
+            fetchAll();
+          }}
+        />
+      )}
     </div>
   );
 };
