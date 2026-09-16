@@ -168,8 +168,7 @@ public class AuthController : ControllerBase
             .AsNoTracking()
             .Where(o => o.IsActive);
 
-        var isOrgAdmin = user.Role == "Admin" || user.Role == "SuperAdmin" || user.RoleId == 1;
-        if (!user.IsPlatformUser && !isOrgAdmin)
+        if (!user.IsPlatformUser)
         {
             orgQuery = orgQuery.Where(o => o.Id == user.OrganizationId);
         }

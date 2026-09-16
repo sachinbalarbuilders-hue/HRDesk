@@ -146,11 +146,7 @@ export const Holidays: React.FC = () => {
       fetchDepartments();
       fetchHolidays();
     };
-    window.addEventListener('hrdesk:tenant_changed', handleContextChange);
-    window.addEventListener('hrdesk:branch_changed', handleContextChange);
     return () => {
-      window.removeEventListener('hrdesk:tenant_changed', handleContextChange);
-      window.removeEventListener('hrdesk:branch_changed', handleContextChange);
     };
   }, [fetchDepartments, fetchHolidays]);
 

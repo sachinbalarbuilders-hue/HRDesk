@@ -352,12 +352,8 @@ export const Shifts: React.FC = () => {
       fetchRoster();
     };
 
-    window.addEventListener('hrdesk:tenant_changed', handleReload);
-    window.addEventListener('hrdesk:branch_changed', handleReload);
 
     return () => {
-      window.removeEventListener('hrdesk:tenant_changed', handleReload);
-      window.removeEventListener('hrdesk:branch_changed', handleReload);
     };
   }, [weekStartStr, departmentFilter, search, currentOrganization?.id, currentBranch?.id]);
 

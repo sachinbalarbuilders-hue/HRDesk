@@ -103,11 +103,7 @@ export const PayrollRegister: React.FC = () => {
 
   useEffect(() => {
     const reload = () => { setPage(1); fetchLookups(); fetchRecords(); };
-    window.addEventListener('hrdesk:tenant_changed', reload);
-    window.addEventListener('hrdesk:branch_changed', reload);
     return () => {
-      window.removeEventListener('hrdesk:tenant_changed', reload);
-      window.removeEventListener('hrdesk:branch_changed', reload);
     };
   }, [selectedMonth, search, departmentId, statusFilter, currentOrganization?.id, currentBranch?.id]);
 

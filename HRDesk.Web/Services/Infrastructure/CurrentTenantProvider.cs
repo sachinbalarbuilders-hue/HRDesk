@@ -35,18 +35,15 @@ public class CurrentTenantProvider : ICurrentTenantProvider
                 string.Equals(user!.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
             var isAdmin = isAuthenticated && (user!.IsInRole("Admin") || user.IsInRole("SuperAdmin"));
 
-            if (isPlatformUser || isAdmin)
+            if (isPlatformUser)
             {
-                // PLATFORM USER OR ADMIN: Trust X-Organization-Id header for cross-org access.
+                // PLATFORM USER: Trust X-Organization-Id header for cross-org access.
                 var headerValue = httpContext.Request.Headers["X-Organization-Id"].ToString();
                 if (!string.IsNullOrEmpty(headerValue) && int.TryParse(headerValue, out var headerOrgId) && headerOrgId > 0)
                 {
                     return headerOrgId;
                 }
-                if (isPlatformUser)
-                {
-                    return 0; // Platform user, no active org context
-                }
+                return 0; // Platform user, no active org context
             }
 
             if (isAuthenticated)

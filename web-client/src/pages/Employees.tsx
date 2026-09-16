@@ -235,12 +235,8 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       fetchEmployees(newBranchId);
     };
 
-    window.addEventListener('hrdesk:tenant_changed', handleTenantChange);
-    window.addEventListener('hrdesk:branch_changed', handleBranchChange);
 
     return () => {
-      window.removeEventListener('hrdesk:tenant_changed', handleTenantChange);
-      window.removeEventListener('hrdesk:branch_changed', handleBranchChange);
     };
   }, [fetchEmployees]);
 

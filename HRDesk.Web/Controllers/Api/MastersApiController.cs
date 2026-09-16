@@ -195,8 +195,7 @@ public class MastersController : ControllerBase
         var orgQuery = _db.Organizations.IgnoreQueryFilters().AsNoTracking().AsQueryable();
         var branchQuery = _db.Branches.IgnoreQueryFilters().AsNoTracking().AsQueryable();
 
-        var isOrgAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || isSuperAdmin;
-        if (!isOrgAdmin && userOrgId > 0)
+        if (!isSuperAdmin && userOrgId > 0)
         {
             orgQuery = orgQuery.Where(o => o.Id == userOrgId);
             branchQuery = branchQuery.Where(b => b.OrganizationId == userOrgId);
@@ -900,8 +899,10 @@ public class MastersController : ControllerBase
         var userOrgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
 
         var query = _db.Organizations.IgnoreQueryFilters().AsNoTracking().Where(o => o.IsActive);
-        var isOrgAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || isSuperAdmin;
-        if (!isOrgAdmin)
+        
+        // ONLY Platform Users (SuperAdmins) can see all organizations.
+        // Regular Org Admins can only see their own organization.
+        if (!isSuperAdmin)
         {
             query = query.Where(o => o.Id == userOrgId);
         }
@@ -983,8 +984,8 @@ public class MastersController : ControllerBase
         var org = await _db.Organizations.FirstOrDefaultAsync(o => o.PublicId == publicId);
         if (org == null) return NotFound(new { message = "Organization not found." });
 
-        bool isAdminOrSuper = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Admin");
-        if (!isAdminOrSuper && org.Id != _tenantProvider.TenantId)
+        bool isPlatformUser = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+        if (!isPlatformUser && org.Id != _tenantProvider.TenantId)
         {
             return Forbid();
         }
@@ -1185,11 +1186,10 @@ public class MastersController : ControllerBase
     public async Task<IActionResult> GetBranches([FromQuery] int? organizationId = null)
     {
         var isSuperAdmin = string.Equals(User.FindFirst("IsPlatformUser")?.Value, "true", StringComparison.OrdinalIgnoreCase);
-        var isOrgAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin") || isSuperAdmin;
         var userOrgId = organizationId ?? (_tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1);
 
         var query = _db.Branches.IgnoreQueryFilters().AsNoTracking().Where(b => b.IsActive);
-        if (!isOrgAdmin || organizationId.HasValue)
+        if (!isSuperAdmin || organizationId.HasValue)
         {
             query = query.Where(b => b.OrganizationId == userOrgId);
         }

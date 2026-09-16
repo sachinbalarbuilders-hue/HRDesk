@@ -283,12 +283,8 @@ export const Recruitment: React.FC = () => {
       if (activeTab === 'interviews') fetchInterviews();
     };
 
-    window.addEventListener('hrdesk:tenant_changed', handleReload);
-    window.addEventListener('hrdesk:branch_changed', handleReload);
 
     return () => {
-      window.removeEventListener('hrdesk:tenant_changed', handleReload);
-      window.removeEventListener('hrdesk:branch_changed', handleReload);
     };
   }, [activeTab]);
 

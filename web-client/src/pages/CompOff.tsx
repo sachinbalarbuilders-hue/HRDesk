@@ -633,13 +633,9 @@ export const CompOff: React.FC = () => {
       fetchCompOffData();
     };
 
-    window.addEventListener('hrdesk:tenant_changed', handleReload);
-    window.addEventListener('hrdesk:branch_changed', handleReload);
     window.addEventListener('hrdesk:permissions_changed', handleReload);
 
     return () => {
-      window.removeEventListener('hrdesk:tenant_changed', handleReload);
-      window.removeEventListener('hrdesk:branch_changed', handleReload);
       window.removeEventListener('hrdesk:permissions_changed', handleReload);
     };
   }, [statusFilter, search]);
