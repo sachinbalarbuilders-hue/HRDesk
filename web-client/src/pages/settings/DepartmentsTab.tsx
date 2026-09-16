@@ -152,6 +152,7 @@ export const DepartmentsTab: React.FC = () => {
       key: 'actions',
       header: 'Actions',
       align: 'right',
+      width: '100px',
       render: (item) => {
         const actions: RowAction[] = [];
 

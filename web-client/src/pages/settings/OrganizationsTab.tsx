@@ -14,7 +14,6 @@ import { Switch } from '../../components/ui/Switch';
 import {
   Building2,
   Plus,
-  MapPin,
   Edit2,
   Eye,
   Globe,
@@ -202,12 +201,7 @@ export const OrganizationsTab: React.FC = () => {
                 {org.name}
               </span>
               <div className="flex items-center gap-2 text-[10px] text-[var(--ink-muted)]">
-                {org.email ? (
-                  <span className="truncate max-w-[180px]" title={org.email}>{org.email}</span>
-                ) : (
-                  <span className="font-mono">ID: {org.publicId.slice(0, 8)}...</span>
-                )}
-                {org.phone && <span>• {org.phone}</span>}
+                <span className="font-mono">ID: {org.publicId.slice(0, 8)}...</span>
               </div>
             </div>
           </div>
@@ -229,23 +223,17 @@ export const OrganizationsTab: React.FC = () => {
     },
     {
       key: 'address',
-      header: 'Headquarters & Tax',
+      header: 'Tax Info',
       render: (org) => (
         <div className="flex flex-col gap-1 max-w-xs">
-          {org.address ? (
-            <div className="flex items-center gap-1 text-xs text-[var(--ink-muted)] truncate" title={org.address}>
-              <MapPin size={11} className="shrink-0 text-[var(--ink-muted)]" />
-              <span className="truncate">{org.address}</span>
-            </div>
-          ) : (
-            <span className="text-[var(--ink-muted)] text-xs">—</span>
-          )}
-          {org.gstin && (
+          {org.gstin ? (
             <div className="flex items-center gap-1">
               <span className="font-mono text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 GST: {org.gstin}
               </span>
             </div>
+          ) : (
+            <span className="text-[var(--ink-muted)] text-xs">—</span>
           )}
         </div>
       ),
@@ -300,8 +288,8 @@ export const OrganizationsTab: React.FC = () => {
     },
     {
       key: 'actions',
-      header: '',
-      width: '48px',
+      header: 'Actions',
+      width: '80px',
       align: 'right',
       render: (org) => {
         const canEdit = isAdmin || hasPermission('Masters.Organizations.Edit');

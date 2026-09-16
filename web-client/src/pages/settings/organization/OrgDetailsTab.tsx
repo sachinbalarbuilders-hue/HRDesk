@@ -84,9 +84,7 @@ export const OrgDetailsTab: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const endpoint = !isNew && id
-        ? `/masters/organizations/${id}/logo`
-        : `/masters/organizations/upload-logo`;
+      const endpoint = `/masters/organizations/upload-logo`;
 
       const res = await apiClient.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },

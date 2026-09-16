@@ -28,9 +28,13 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
         <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-b from-[var(--gold-500)] to-[var(--gold-600)] z-0"></div>
         {/* Top Header Logo Area */}
         <div className="pl-14 pr-6 pt-8 pb-4 z-10 flex flex-col">
-          <h2 className="text-gray-900 font-black text-2xl leading-none uppercase tracking-widest font-display">
-            {orgName}
-          </h2>
+          {currentOrganization?.logoUrl ? (
+            <img src={currentOrganization.logoUrl} alt={orgName} className="h-10 object-contain object-left mb-2" />
+          ) : (
+            <h2 className="text-gray-900 font-black text-2xl leading-none uppercase tracking-widest font-display">
+              {orgName}
+            </h2>
+          )}
           <span className="text-[var(--gold-600)] text-[9px] font-bold uppercase tracking-[0.3em] mt-1.5">Access Badge</span>
         </div>
         
@@ -130,7 +134,11 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
         </div>
         
         <div className="flex-1 p-6 z-10 flex flex-col justify-center">
-          <h2 className="text-[var(--gold-600)] font-bold text-sm tracking-[0.2em] uppercase mb-6 font-display">{orgName}</h2>
+          {currentOrganization?.logoUrl ? (
+            <img src={currentOrganization.logoUrl} alt={orgName} className="h-8 object-contain object-left mb-6" />
+          ) : (
+            <h2 className="text-[var(--gold-600)] font-bold text-sm tracking-[0.2em] uppercase mb-6 font-display">{orgName}</h2>
+          )}
           
           <h3 className="text-3xl font-black text-gray-900 leading-none tracking-tight mb-1">{employee.employeeName}</h3>
           <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-8">{employee.designation || 'Employee'}</p>
@@ -191,9 +199,13 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
         <div className="absolute inset-0 bg-gradient-to-br from-[#222] to-[#0a0a0a] z-0"></div>
         
         <div className="flex flex-col items-center pt-8 pb-6 px-6 z-10 h-full">
-          <h2 className="text-[var(--gold-500)] font-bold text-lg leading-tight uppercase tracking-[0.3em] font-display mb-8">
-            {orgName}
-          </h2>
+          {currentOrganization?.logoUrl ? (
+            <img src={currentOrganization.logoUrl} alt={orgName} className="h-10 object-contain mb-8" />
+          ) : (
+            <h2 className="text-[var(--gold-500)] font-bold text-lg leading-tight uppercase tracking-[0.3em] font-display mb-8">
+              {orgName}
+            </h2>
+          )}
           
           <div className="w-36 h-36 rounded-full overflow-hidden border-[3px] border-[var(--gold-500)] shadow-[0_0_15px_rgba(212,175,55,0.3)] bg-gray-900 mb-6 shrink-0 flex items-center justify-center p-1 relative">
             <div className="w-full h-full rounded-full overflow-hidden bg-gray-800 flex items-center justify-center">

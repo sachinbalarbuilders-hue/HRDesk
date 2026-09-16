@@ -87,7 +87,7 @@ export const RowActionMenu: React.FC<RowActionMenuProps> = ({ actions }) => {
             setOpen(false);
           }
         }}
-        className="p-1.5 rounded-[4px] hover:bg-[var(--surface-hover)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+        className="p-1.5 rounded-[4px] hover:bg-[var(--surface-hover)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer transition-colors min-w-[36px] min-h-[36px] inline-flex items-center justify-center"
         aria-label="Row actions"
         aria-haspopup="menu"
         aria-expanded={open}
