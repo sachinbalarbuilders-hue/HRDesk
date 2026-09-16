@@ -1,32 +1,68 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { useOrganization } from '../../context/CompanyContext';
-import { Mail, Server, Key, Send, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Card, CardTitle } from '../../components/ui/Card';
+import { useToast } from '../../context/ToastContext';
+import {
+  Mail,
+  Server,
+  Key,
+  Send,
+  Save,
+  RefreshCw,
+  Globe,
+  Lock,
+  Check,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
+} from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Input } from '../../components/ui/Input';
+import { Switch } from '../../components/ui/Switch';
+import { AlertBanner } from '../../components/ui/AlertBanner';
 
 type Provider = 'Smtp' | 'SendGrid';
 
+interface SmtpPreset {
+  label: string;
+  host: string;
+  port: string;
+  ssl: boolean;
+}
+
+const SMTP_PRESETS: SmtpPreset[] = [
+  { label: 'Google Workspace / Gmail', host: 'smtp.gmail.com', port: '587', ssl: true },
+  { label: 'Microsoft 365 / Outlook', host: 'smtp.office365.com', port: '587', ssl: true },
+  { label: 'Zoho Mail', host: 'smtp.zoho.com', port: '587', ssl: true },
+  { label: 'Yahoo Mail', host: 'smtp.mail.yahoo.com', port: '587', ssl: true },
+];
+
 export const EmailSettingsTab: React.FC = () => {
   const { currentOrganization, currentBranch } = useOrganization();
+  const { showSuccess, showError } = useToast();
+
   const [provider, setProvider] = useState<Provider>('Smtp');
   const [from, setFrom] = useState('');
   const [fromName, setFromName] = useState('HRDesk');
-  // SMTP
+
+  // SMTP Fields
   const [smtpHost, setSmtpHost] = useState('');
   const [smtpPort, setSmtpPort] = useState('587');
   const [smtpUsername, setSmtpUsername] = useState('');
   const [smtpPassword, setSmtpPassword] = useState('');
   const [smtpUseSsl, setSmtpUseSsl] = useState(true);
-  // SendGrid
+
+  // SendGrid Fields
   const [sendGridApiKey, setSendGridApiKey] = useState('');
 
+  // States
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testEmail, setTestEmail] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [errorBanner, setErrorBanner] = useState('');
+  const [successBanner, setSuccessBanner] = useState('');
   const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
@@ -36,11 +72,12 @@ export const EmailSettingsTab: React.FC = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
+      setErrorBanner('');
       const res = await apiClient.get('/settings/email');
       const d = res.data;
       setProvider((d.provider || 'Smtp') as Provider);
       setFrom(d.from || '');
-      setFromName(d.fromName || 'HRDesk');
+      setFromName(d.fromName || (currentOrganization?.name ? `${currentOrganization.name} HRDesk` : 'HRDesk'));
       setSmtpHost(d.smtpHost || '');
       setSmtpPort(d.smtpPort || '587');
       setSmtpUsername(d.smtpUsername || '');
@@ -49,18 +86,28 @@ export const EmailSettingsTab: React.FC = () => {
       setSendGridApiKey(d.sendGridApiKey || '');
       setIsConfigured(d.isConfigured || false);
     } catch {
-      setError('Failed to load email settings.');
+      setErrorBanner('Failed to load email configuration. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleApplyPreset = (preset: SmtpPreset) => {
+    setSmtpHost(preset.host);
+    setSmtpPort(preset.port);
+    setSmtpUseSsl(preset.ssl);
+    showSuccess('Preset Applied', `Loaded default host (${preset.host}) and port (${preset.port}).`);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setErrorBanner('');
+    setSuccessBanner('');
 
-    if (!from.trim()) { setError('From email is required.'); return; }
+    if (!from.trim()) {
+      setErrorBanner('From email address is required.');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -75,250 +122,419 @@ export const EmailSettingsTab: React.FC = () => {
         smtpUseSsl: smtpUseSsl ? 'true' : 'false',
         sendGridApiKey: sendGridApiKey,
       });
-      setSuccess('Email settings saved successfully.');
+
+      setSuccessBanner('Email configuration updated successfully.');
+      showSuccess('Saved', 'Email settings saved successfully.');
       setIsConfigured(true);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save settings.');
+      const msg = err.response?.data?.message || 'Failed to save email settings.';
+      setErrorBanner(msg);
+      showError('Save Failed', msg);
     } finally {
       setSaving(false);
     }
   };
 
   const handleSendTest = async () => {
-    if (!testEmail.trim()) { setError('Enter a test email address.'); return; }
-    setError('');
-    setSuccess('');
+    if (!testEmail.trim()) {
+      showError('Required', 'Please enter a valid recipient email address.');
+      return;
+    }
+
+    setErrorBanner('');
+    setSuccessBanner('');
     setTesting(true);
+
     try {
       const res = await apiClient.post('/settings/email/test', { toEmail: testEmail.trim() });
-      setSuccess(res.data.message || 'Test email sent!');
+      const msg = res.data.message || `Test dispatch sent successfully to ${testEmail.trim()}.`;
+      setSuccessBanner(msg);
+      showSuccess('Test Dispatch', msg);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Test email failed.');
+      const msg = err.response?.data?.message || 'Failed to send test email. Please check credentials and server logs.';
+      setErrorBanner(msg);
+      showError('Dispatch Failed', msg);
     } finally {
       setTesting(false);
     }
   };
 
   if (loading) {
-    return <div className="text-xs text-[var(--text-muted)] py-8 text-center">Loading email settings...</div>;
+    return (
+      <div className="p-12 text-center text-xs text-[var(--text-muted)] flex items-center justify-center gap-2">
+        <RefreshCw size={14} className="animate-spin text-[var(--accent)]" /> Loading email configuration...
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      {/* Status */}
-      <div className="flex items-center gap-3">
-        <Mail size={18} className="text-[var(--accent)]" />
-        <div>
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Email Configuration</h2>
-          <p className="text-xs text-[var(--text-secondary)]">Configure email delivery for password resets, notifications, and alerts.</p>
+    <div className="space-y-6 max-w-3xl font-ui">
+      {/* 1. Header & Register Stamped Status */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] text-[var(--text-primary)] border border-[var(--border)] shadow-xs">
+              <Mail size={16} />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold font-serif text-[var(--text-primary)] tracking-wide uppercase">
+                  Email Delivery Service
+                </h2>
+                <Badge variant={isConfigured ? 'success' : 'neutral'} dot>
+                  {isConfigured ? 'Configured & Active' : 'Unconfigured'}
+                </Badge>
+              </div>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                Configure outgoing mail transport for user onboarding, password resets, payslips, and administrative alerts.
+              </p>
+            </div>
+          </div>
         </div>
-        <Badge variant={isConfigured ? 'success' : 'warning'} className="ml-auto">
-          {isConfigured ? 'Configured' : 'Not Configured'}
-        </Badge>
+
+        <button
+          type="button"
+          onClick={fetchSettings}
+          disabled={loading || saving}
+          className="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+          title="Reload configuration from server"
+        >
+          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Reload
+        </button>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-5">
-        {error && (
-          <div className="p-3 rounded-[var(--radius-md)] bg-[var(--danger-light)] text-[var(--danger)] text-xs flex items-center gap-2">
-            <AlertCircle size={14} /> {error}
-          </div>
-        )}
-        {success && (
-          <div className="p-3 rounded-[var(--radius-md)] bg-[var(--success-light)] text-[var(--success)] text-xs flex items-center gap-2">
-            <CheckCircle2 size={14} /> {success}
-          </div>
-        )}
+      {/* 2. Feedback Banners */}
+      {errorBanner && (
+        <AlertBanner
+          type="error"
+          title="Email Configuration Error"
+          message={errorBanner}
+          onDismiss={() => setErrorBanner('')}
+        />
+      )}
+      {successBanner && (
+        <AlertBanner
+          type="success"
+          title="Email Configuration Saved"
+          message={successBanner}
+          onDismiss={() => setSuccessBanner('')}
+        />
+      )}
 
-        {/* Provider Selection */}
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* 3. Provider Selection (Administrative Radio Cards) */}
         <Card>
-          <CardTitle>Email Provider</CardTitle>
-          <p className="text-xs text-[var(--text-muted)] mt-1 mb-3">Select how emails are delivered from your organization.</p>
-          <div className="flex gap-3">
-            {(['Smtp', 'SendGrid'] as Provider[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setProvider(p)}
-                className={`px-4 py-2.5 rounded-[var(--radius-md)] border text-xs font-medium cursor-pointer transition-all ${
-                  provider === p
-                    ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-                    : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--accent)]'
+          <CardHeader>
+            <CardTitle>Delivery Protocol</CardTitle>
+            <CardDescription>Select the mail transport provider utilized by this organization.</CardDescription>
+          </CardHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* SMTP Card */}
+            <div
+              onClick={() => setProvider('Smtp')}
+              className={`p-4 rounded-[var(--radius-md)] border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                provider === 'Smtp'
+                  ? 'bg-[var(--surface-secondary)] border-[var(--text-primary)] shadow-xs ring-1 ring-[var(--text-primary)]'
+                  : 'bg-[var(--surface)] border-[var(--border)] hover:border-[var(--border-strong)]'
+              }`}
+            >
+              <div
+                className={`p-2 rounded-[var(--radius-sm)] shrink-0 ${
+                  provider === 'Smtp'
+                    ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)]'
+                    : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] border border-[var(--border)]'
                 }`}
               >
-                {p === 'Smtp' ? '📧 SMTP (Gmail, Outlook, Custom)' : '⚡ SendGrid'}
-              </button>
-            ))}
+                <Server size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">SMTP Server</span>
+                  {provider === 'Smtp' && (
+                    <span className="w-4 h-4 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-[10px]">
+                      <Check size={10} strokeWidth={3} />
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-1 leading-snug">
+                  Connect to Google Workspace, Microsoft 365, Zoho Mail, or custom SMTP host.
+                </p>
+              </div>
+            </div>
+
+            {/* SendGrid Card */}
+            <div
+              onClick={() => setProvider('SendGrid')}
+              className={`p-4 rounded-[var(--radius-md)] border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                provider === 'SendGrid'
+                  ? 'bg-[var(--surface-secondary)] border-[var(--text-primary)] shadow-xs ring-1 ring-[var(--text-primary)]'
+                  : 'bg-[var(--surface)] border-[var(--border)] hover:border-[var(--border-strong)]'
+              }`}
+            >
+              <div
+                className={`p-2 rounded-[var(--radius-sm)] shrink-0 ${
+                  provider === 'SendGrid'
+                    ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)]'
+                    : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] border border-[var(--border)]'
+                }`}
+              >
+                <Key size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">SendGrid API</span>
+                  {provider === 'SendGrid' && (
+                    <span className="w-4 h-4 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-[10px]">
+                      <Check size={10} strokeWidth={3} />
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-1 leading-snug">
+                  High-reliability cloud transactional email delivery through Twilio SendGrid API.
+                </p>
+              </div>
+            </div>
           </div>
         </Card>
 
-        {/* Common Settings */}
+        {/* 4. Sender Identity Card */}
         <Card>
-          <CardTitle>Sender Details</CardTitle>
-          <div className="grid grid-cols-2 gap-4 mt-3">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">From Email *</label>
-              <input
-                type="email"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-                placeholder="noreply@yourcompany.com"
-                className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">From Name</label>
-              <input
-                type="text"
-                value={fromName}
-                onChange={(e) => setFromName(e.target.value)}
-                placeholder="HRDesk"
-                className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-              />
-            </div>
+          <CardHeader>
+            <CardTitle>Sender Identity</CardTitle>
+            <CardDescription>
+              The display name and mailbox address recipients will see in their email client.
+            </CardDescription>
+          </CardHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="From Email Address"
+              type="email"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              placeholder="notifications@yourcompany.com"
+              required
+              icon={<Mail size={14} />}
+              helperText="Must be an authorized sender or verified domain."
+            />
+            <Input
+              label="From Display Name"
+              type="text"
+              value={fromName}
+              onChange={(e) => setFromName(e.target.value)}
+              placeholder="HRDesk / Setu Developers"
+              icon={<Globe size={14} />}
+              helperText="e.g. Setu Developers HR Desk"
+            />
           </div>
         </Card>
 
-        {/* SMTP Settings */}
-        {provider === 'Smtp' && (
+        {/* 5. Provider-Specific Credentials */}
+        {provider === 'Smtp' ? (
           <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <Server size={15} className="text-[var(--accent)]" />
-              <CardTitle>SMTP Server Settings</CardTitle>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">SMTP Host *</label>
-                <input
-                  type="text"
-                  value={smtpHost}
-                  onChange={(e) => setSmtpHost(e.target.value)}
-                  placeholder="smtp.gmail.com"
-                  className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                />
+            <CardHeader
+              actions={
+                <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                  <Server size={13} className="text-[var(--text-secondary)]" /> Standard Port: 587 (STARTTLS)
+                </div>
+              }
+            >
+              <CardTitle>SMTP Server Credentials</CardTitle>
+              <CardDescription>
+                Specify the outgoing SMTP relay host, port, and authentication credentials.
+              </CardDescription>
+            </CardHeader>
+
+            <div className="space-y-4">
+              {/* Presets bar */}
+              <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+                <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider block mb-2">
+                  Quick Provider Presets:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {SMTP_PRESETS.map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => handleApplyPreset(p)}
+                      className="px-2.5 py-1 text-[11px] font-medium rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all cursor-pointer shadow-xs"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Port</label>
-                <input
-                  type="text"
-                  value={smtpPort}
-                  onChange={(e) => setSmtpPort(e.target.value)}
-                  placeholder="587"
-                  className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                />
+
+              {/* Host & Port */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2">
+                  <Input
+                    label="SMTP Host"
+                    type="text"
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
+                    placeholder="smtp.gmail.com"
+                    required
+                    icon={<Server size={14} />}
+                  />
+                </div>
+                <div>
+                  <Input
+                    label="Port"
+                    type="text"
+                    value={smtpPort}
+                    onChange={(e) => setSmtpPort(e.target.value)}
+                    placeholder="587"
+                    required
+                    className="font-mono"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Username *</label>
-                <input
+
+              {/* Username & Password */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="SMTP Username / Account"
                   type="text"
                   value={smtpUsername}
                   onChange={(e) => setSmtpUsername(e.target.value)}
-                  placeholder="your@gmail.com"
-                  className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                  placeholder="admin@yourcompany.com"
+                  icon={<Mail size={14} />}
+                  helperText="Full email address used to authenticate."
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Password / App Password *</label>
-                <input
+                <Input
+                  label="SMTP Password / App Password"
                   type="password"
                   value={smtpPassword}
                   onChange={(e) => setSmtpPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                  placeholder="••••••••••••••••"
+                  icon={<Lock size={14} />}
+                  helperText="For Gmail, use a 16-character Google App Password."
+                />
+              </div>
+
+              {/* SSL / TLS Toggle */}
+              <div className="pt-2 border-t border-[var(--border)]">
+                <Switch
+                  checked={smtpUseSsl}
+                  onChange={setSmtpUseSsl}
+                  label="Enable SSL / TLS Encryption"
+                  description="Enforces encrypted channel via STARTTLS (Port 587) or SSL (Port 465). Recommended for all modern mail servers."
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-3">
-              <input
-                type="checkbox"
-                id="smtpSsl"
-                checked={smtpUseSsl}
-                onChange={(e) => setSmtpUseSsl(e.target.checked)}
-                className="w-4 h-4 rounded cursor-pointer"
-              />
-              <label htmlFor="smtpSsl" className="text-xs text-[var(--text-primary)] cursor-pointer">Enable SSL/TLS</label>
-            </div>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>SendGrid API Credentials</CardTitle>
+              <CardDescription>
+                Authenticate with your Twilio SendGrid API Key for high-volume delivery.
+              </CardDescription>
+            </CardHeader>
 
-            {/* Quick presets */}
-            <div className="mt-4 pt-3 border-t border-[var(--border)]">
-              <p className="text-[11px] text-[var(--text-muted)] mb-2">Quick presets:</p>
-              <div className="flex gap-2 flex-wrap">
-                {[
-                  { label: 'Gmail', host: 'smtp.gmail.com', port: '587' },
-                  { label: 'Outlook', host: 'smtp.office365.com', port: '587' },
-                  { label: 'Yahoo', host: 'smtp.mail.yahoo.com', port: '587' },
-                  { label: 'Zoho', host: 'smtp.zoho.com', port: '587' },
-                ].map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => { setSmtpHost(preset.host); setSmtpPort(preset.port); setSmtpUseSsl(true); }}
-                    className="px-2.5 py-1 text-[11px] rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)] cursor-pointer"
-                  >
-                    {preset.label}
-                  </button>
-                ))}
+            <div className="space-y-3">
+              <Input
+                label="SendGrid API Key"
+                type="password"
+                value={sendGridApiKey}
+                onChange={(e) => setSendGridApiKey(e.target.value)}
+                placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                required
+                icon={<Key size={14} />}
+                className="font-mono"
+                helperText="Must have 'Mail Send' full-access permission in SendGrid."
+              />
+              <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1.5 pt-1">
+                <HelpCircle size={12} />
+                <span>You can generate an API key from your{' '}</span>
+                <a
+                  href="https://app.sendgrid.com/settings/api_keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[var(--text-primary)] font-medium underline hover:text-[var(--accent)]"
+                >
+                  SendGrid Dashboard Settings → API Keys
+                </a>
               </div>
             </div>
           </Card>
         )}
 
-        {/* SendGrid Settings */}
-        {provider === 'SendGrid' && (
-          <Card>
-            <div className="flex items-center gap-2 mb-3">
-              <Key size={15} className="text-[var(--accent)]" />
-              <CardTitle>SendGrid API Key</CardTitle>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">API Key *</label>
-              <input
-                type="password"
-                value={sendGridApiKey}
-                onChange={(e) => setSendGridApiKey(e.target.value)}
-                placeholder="SG.xxxxxxxxxxxxxxxx"
-                className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-              />
-              <p className="text-[11px] text-[var(--text-muted)] mt-1.5">Get your API key from <a href="https://app.sendgrid.com/settings/api_keys" target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">SendGrid Dashboard</a></p>
-            </div>
-          </Card>
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center gap-3">
-          <button type="submit" disabled={saving} className="btn-primary px-5 py-2 text-sm font-semibold disabled:opacity-50 cursor-pointer">
-            {saving ? 'Saving...' : 'Save Settings'}
+        {/* 6. Save Action Bar */}
+        <div className="flex items-center justify-between p-4 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--border)] shadow-xs">
+          <p className="text-xs text-[var(--text-secondary)]">
+            Saved credentials are encrypted and stored per organization tenant.
+          </p>
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-primary py-2 px-5 text-xs font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            {saving ? (
+              <>
+                <RefreshCw size={13} className="animate-spin" /> Saving...
+              </>
+            ) : (
+              <>
+                <Save size={13} /> Save Configuration
+              </>
+            )}
           </button>
         </div>
       </form>
 
-      {/* Test Email Section */}
+      {/* 7. Diagnostic Test Dispatch Card */}
       <Card>
-        <div className="flex items-center gap-2 mb-3">
-          <Send size={15} className="text-[var(--accent)]" />
-          <CardTitle>Send Test Email</CardTitle>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="p-1 rounded bg-[var(--surface-secondary)] text-[var(--text-primary)] border border-[var(--border)]">
+              <Send size={13} />
+            </div>
+            <CardTitle>Send Diagnostic Test Email</CardTitle>
+          </div>
+          <CardDescription>
+            Verify server handshakes, DNS records, and authentication by dispatching a live test message.
+          </CardDescription>
+        </CardHeader>
+
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+            <div className="flex-1">
+              <Input
+                label="Recipient Email Address"
+                type="email"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="your.email@company.com"
+                icon={<Mail size={14} />}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleSendTest}
+              disabled={testing || !isConfigured}
+              className="btn-secondary py-2 px-4 text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer shrink-0"
+            >
+              {testing ? (
+                <>
+                  <RefreshCw size={13} className="animate-spin" /> Transmitting...
+                </>
+              ) : (
+                <>
+                  <Send size={13} /> Dispatch Test
+                </>
+              )}
+            </button>
+          </div>
+
+          {!isConfigured && (
+            <p className="text-[11px] text-[var(--warning)] flex items-center gap-1.5 pt-1">
+              <AlertCircle size={12} /> Please save and verify your email configuration above before executing a test dispatch.
+            </p>
+          )}
         </div>
-        <p className="text-xs text-[var(--text-muted)] mb-3">Verify your configuration by sending a test email.</p>
-        <div className="flex gap-3">
-          <input
-            type="email"
-            value={testEmail}
-            onChange={(e) => setTestEmail(e.target.value)}
-            placeholder="recipient@email.com"
-            className="flex-1 px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-          />
-          <button
-            type="button"
-            onClick={handleSendTest}
-            disabled={testing || !isConfigured}
-            className="btn-secondary px-4 py-2 text-sm font-medium disabled:opacity-50 cursor-pointer flex items-center gap-2"
-          >
-            <Send size={14} /> {testing ? 'Sending...' : 'Send Test'}
-          </button>
-        </div>
-        {!isConfigured && (
-          <p className="text-[11px] text-[var(--warning)] mt-2">Save your settings first before sending a test email.</p>
-        )}
       </Card>
     </div>
   );
