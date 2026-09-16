@@ -35,7 +35,7 @@ export const Input: React.FC<InputProps> = ({
 
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none flex items-center justify-center" aria-hidden="true">
             {icon}
           </div>
         )}
@@ -46,8 +46,8 @@ export const Input: React.FC<InputProps> = ({
           aria-describedby={describedBy}
           className={clsx(
             'register-input',
-            icon && 'pl-9',
-            suffix && 'pr-9',
+            icon && '!pl-10',
+            suffix && '!pr-10',
             error && 'border-[var(--danger)] focus:border-[var(--danger)] focus:shadow-[0_0_0_3px_rgba(220,38,38,0.15)]',
             className
           )}
@@ -55,7 +55,7 @@ export const Input: React.FC<InputProps> = ({
         />
 
         {suffix && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none flex items-center justify-center" aria-hidden="true">
             {suffix}
           </div>
         )}

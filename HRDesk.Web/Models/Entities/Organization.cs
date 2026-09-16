@@ -41,15 +41,6 @@ public class Organization
     [StringLength(500)]
     public string? Address { get; set; }
 
-    [Column("latitude")]
-    public double? Latitude { get; set; }
-
-    [Column("longitude")]
-    public double? Longitude { get; set; }
-
-    [Column("radius_meters")]
-    public double? RadiusMeters { get; set; } = 100;
-
     [Column("logo_url")]
     [StringLength(500)]
     public string? LogoUrl { get; set; }

@@ -323,9 +323,9 @@ export const EmailSettingsTab: React.FC = () => {
               type="text"
               value={fromName}
               onChange={(e) => setFromName(e.target.value)}
-              placeholder="HRDesk / Setu Developers"
+              placeholder="HRDesk Notifications"
               icon={<Globe size={14} />}
-              helperText="e.g. Setu Developers HR Desk"
+              helperText="e.g. HR Desk or Organization Name"
             />
           </div>
         </Card>

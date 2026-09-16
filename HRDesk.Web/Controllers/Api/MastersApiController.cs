@@ -47,7 +47,7 @@ public class MastersController : ControllerBase
 
     public record DepartmentDto(string DepartmentName, string? Status, int? BranchId = null);
     public record DesignationDto(string DesignationName, string? Status, int? BranchId = null);
-    public record OrganizationDto(string Name, string? Code, string? Address, string? WhatsAppGroupId, double? Latitude, double? Longitude, double? RadiusMeters, bool IsActive, string? LogoUrl = null, string? PrimaryColor = null, string? CustomDomain = null);
+    public record OrganizationDto(string Name, string? Code, string? Address, string? WhatsAppGroupId, bool IsActive, string? LogoUrl = null, string? PrimaryColor = null, string? CustomDomain = null);
     public record LeaveTypeDto(string Name, string Code, decimal DefaultYearlyQuota, bool IsPaid, bool ApplicableAfterProbation, bool AllowCarryForward, string GenderApplicability, string MaritalStatusApplicability, string? DepartmentIds, string? DesignationIds, string? RoleIds, string? Status = null, int? BranchId = null);
     public record ShiftDto(
         string Name,
@@ -250,9 +250,6 @@ public class MastersController : ControllerBase
                 code = o.Code ?? (o.Name.Length > 3 ? string.Concat(o.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(w => w[0])) : o.Name),
                 address = o.Address,
                 whatsAppGroupId = o.WhatsAppGroupId,
-                latitude = o.Latitude,
-                longitude = o.Longitude,
-                radiusMeters = o.RadiusMeters ?? 100,
                 logoUrl = o.LogoUrl,
                 primaryColor = o.PrimaryColor ?? "#D97706",
                 customDomain = o.CustomDomain,
@@ -937,9 +934,6 @@ public class MastersController : ControllerBase
             Code = dto.Code?.Trim(),
             Address = dto.Address?.Trim(),
             WhatsAppGroupId = dto.WhatsAppGroupId?.Trim(),
-            Latitude = dto.Latitude,
-            Longitude = dto.Longitude,
-            RadiusMeters = dto.RadiusMeters ?? 100,
             LogoUrl = dto.LogoUrl?.Trim(),
             PrimaryColor = string.IsNullOrWhiteSpace(dto.PrimaryColor) ? "#D97706" : dto.PrimaryColor.Trim(),
             CustomDomain = dto.CustomDomain?.Trim(),
@@ -975,9 +969,6 @@ public class MastersController : ControllerBase
         if (!string.IsNullOrWhiteSpace(dto.Code)) org.Code = dto.Code.Trim();
         org.Address = dto.Address?.Trim();
         org.WhatsAppGroupId = dto.WhatsAppGroupId?.Trim();
-        org.Latitude = dto.Latitude;
-        org.Longitude = dto.Longitude;
-        org.RadiusMeters = dto.RadiusMeters ?? 100;
         if (dto.LogoUrl != null) org.LogoUrl = string.IsNullOrWhiteSpace(dto.LogoUrl) ? null : dto.LogoUrl.Trim();
         if (!string.IsNullOrWhiteSpace(dto.PrimaryColor)) org.PrimaryColor = dto.PrimaryColor.Trim();
         if (dto.CustomDomain != null) org.CustomDomain = string.IsNullOrWhiteSpace(dto.CustomDomain) ? null : dto.CustomDomain.Trim();
