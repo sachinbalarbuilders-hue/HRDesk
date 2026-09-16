@@ -47,7 +47,21 @@ public class MastersController : ControllerBase
 
     public record DepartmentDto(string DepartmentName, string? Status, int? BranchId = null);
     public record DesignationDto(string DesignationName, string? Status, int? BranchId = null);
-    public record OrganizationDto(string Name, string? Code, string? Address, string? WhatsAppGroupId, bool IsActive, string? LogoUrl = null, string? PrimaryColor = null, string? CustomDomain = null);
+    public record OrganizationDto(
+        string Name,
+        string? Code,
+        string? Address,
+        string? Email,
+        string? Phone,
+        string? Website,
+        string? Gstin,
+        int? AdminEmployeeId,
+        string? WhatsAppGroupId,
+        bool IsActive,
+        string? LogoUrl = null,
+        string? PrimaryColor = null,
+        string? CustomDomain = null
+    );
     public record LeaveTypeDto(string Name, string Code, decimal DefaultYearlyQuota, bool IsPaid, bool ApplicableAfterProbation, bool AllowCarryForward, string GenderApplicability, string MaritalStatusApplicability, string? DepartmentIds, string? DesignationIds, string? RoleIds, string? Status = null, int? BranchId = null);
     public record ShiftDto(
         string Name,
@@ -249,6 +263,11 @@ public class MastersController : ControllerBase
                 name = o.Name,
                 code = o.Code ?? (o.Name.Length > 3 ? string.Concat(o.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(w => w[0])) : o.Name),
                 address = o.Address,
+                email = o.Email,
+                phone = o.Phone,
+                website = o.Website,
+                gstin = o.Gstin,
+                adminEmployeeId = o.AdminEmployeeId,
                 whatsAppGroupId = o.WhatsAppGroupId,
                 logoUrl = o.LogoUrl,
                 primaryColor = o.PrimaryColor ?? "#D97706",
@@ -933,6 +952,11 @@ public class MastersController : ControllerBase
             Name = dto.Name.Trim(),
             Code = dto.Code?.Trim(),
             Address = dto.Address?.Trim(),
+            Email = dto.Email?.Trim(),
+            Phone = dto.Phone?.Trim(),
+            Website = dto.Website?.Trim(),
+            Gstin = dto.Gstin?.Trim()?.ToUpperInvariant(),
+            AdminEmployeeId = dto.AdminEmployeeId > 0 ? dto.AdminEmployeeId : null,
             WhatsAppGroupId = dto.WhatsAppGroupId?.Trim(),
             LogoUrl = dto.LogoUrl?.Trim(),
             PrimaryColor = string.IsNullOrWhiteSpace(dto.PrimaryColor) ? "#D97706" : dto.PrimaryColor.Trim(),
@@ -968,6 +992,12 @@ public class MastersController : ControllerBase
         if (!string.IsNullOrWhiteSpace(dto.Name)) org.Name = dto.Name.Trim();
         if (!string.IsNullOrWhiteSpace(dto.Code)) org.Code = dto.Code.Trim();
         org.Address = dto.Address?.Trim();
+        org.Email = dto.Email?.Trim();
+        org.Phone = dto.Phone?.Trim();
+        org.Website = dto.Website?.Trim();
+        org.Gstin = dto.Gstin?.Trim()?.ToUpperInvariant();
+        org.AdminEmployeeId = dto.AdminEmployeeId > 0 ? dto.AdminEmployeeId : null;
+
         org.WhatsAppGroupId = dto.WhatsAppGroupId?.Trim();
         if (dto.LogoUrl != null) org.LogoUrl = string.IsNullOrWhiteSpace(dto.LogoUrl) ? null : dto.LogoUrl.Trim();
         if (!string.IsNullOrWhiteSpace(dto.PrimaryColor)) org.PrimaryColor = dto.PrimaryColor.Trim();
@@ -1019,6 +1049,73 @@ public class MastersController : ControllerBase
         org.IsActive = true;
         await _db.SaveChangesAsync();
         return Ok(new { message = "Organization restored." });
+    }
+
+    [HttpPost("organizations/upload-logo")]
+    public async Task<IActionResult> UploadLogo(IFormFile file, [FromServices] IWebHostEnvironment env)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No image file uploaded." });
+        }
+
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+        {
+            return BadRequest(new { message = "Invalid file type. Only PNG, JPG, WEBP, and SVG are supported." });
+        }
+
+        if (file.Length > 5 * 1024 * 1024)
+        {
+            return BadRequest(new { message = "File size cannot exceed 5MB." });
+        }
+
+        string webRoot = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+        string logosDir = Path.Combine(webRoot, "uploads", "logos");
+        if (!Directory.Exists(logosDir))
+        {
+            Directory.CreateDirectory(logosDir);
+        }
+
+        string ext = Path.GetExtension(file.FileName);
+        string fileName = $"org_logo_{Guid.NewGuid():N}{ext}";
+        string filePath = Path.Combine(logosDir, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        string logoUrl = $"/uploads/logos/{fileName}";
+        return Ok(new
+        {
+            message = "Logo uploaded successfully.",
+            logoUrl = logoUrl
+        });
+    }
+
+    [HttpGet("eligible-admins")]
+    public async Task<IActionResult> GetEligibleAdmins([FromQuery] int? organizationId = null)
+    {
+        var query = _db.Employees
+            .AsNoTracking()
+            .Where(e => e.Status == "active" && e.ArchivedAt == null);
+
+        var list = await query
+            .OrderBy(e => e.EmployeeName)
+            .Select(e => new
+            {
+                employeeId = e.EmployeeId,
+                employeeName = e.EmployeeName,
+                workEmail = e.WorkEmail ?? e.PersonalEmail,
+                department = e.Department != null ? e.Department.DepartmentName : null,
+                designation = e.Designation != null ? e.Designation.DesignationName : null,
+                branchName = e.Branch != null ? e.Branch.Name : null,
+                photoPath = e.PhotoPath != null ? $"/api/employees/{e.EmployeeId}/photo" : null
+            })
+            .ToListAsync();
+
+        return Ok(list);
     }
 
     [HttpPost("organizations/{publicId:guid}/logo")]

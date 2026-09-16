@@ -41,6 +41,25 @@ public class Organization
     [StringLength(500)]
     public string? Address { get; set; }
 
+    [Column("email")]
+    [StringLength(150)]
+    public string? Email { get; set; }
+
+    [Column("phone")]
+    [StringLength(30)]
+    public string? Phone { get; set; }
+
+    [Column("website")]
+    [StringLength(200)]
+    public string? Website { get; set; }
+
+    [Column("gstin")]
+    [StringLength(30)]
+    public string? Gstin { get; set; }
+
+    [Column("admin_employee_id")]
+    public int? AdminEmployeeId { get; set; }
+
     [Column("logo_url")]
     [StringLength(500)]
     public string? LogoUrl { get; set; }

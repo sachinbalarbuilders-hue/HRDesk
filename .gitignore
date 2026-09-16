@@ -42,6 +42,7 @@ HRDesk.Web/publish/
 HRDesk.Web/publish_temp/
 HRDesk.Web/HRDesk_SmarterASP_Deployment.zip
 HRDesk.Web/wwwroot/attendance_photos/
+HRDesk.Web/wwwroot/uploads/
 HRDesk.Web/wwwroot/assets/
 HRDesk.Web/App_Data/EmployeeDocuments/
 *.zip

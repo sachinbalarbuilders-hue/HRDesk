@@ -10,6 +10,7 @@ import { type ArchiveFilterValue } from '../../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
 import { useAuth } from '../../context/AuthContext';
+import { Switch } from '../../components/ui/Switch';
 import {
   Building2,
   Plus,
@@ -51,10 +52,12 @@ export const OrganizationsTab: React.FC = () => {
             name: o.name,
             code: o.code || (o.name.length > 3 ? o.name.split(' ').map((w: string) => w[0]).join('').toUpperCase() : o.name.toUpperCase()),
             address: o.address || '',
+            email: o.email || '',
+            phone: o.phone || '',
+            website: o.website || '',
+            gstin: o.gstin || '',
+            adminEmployeeId: o.adminEmployeeId || null,
             whatsAppGroupId: o.whatsAppGroupId || '',
-            latitude: o.latitude || 21.1702,
-            longitude: o.longitude || 72.8311,
-            radiusMeters: o.radiusMeters || 100,
             logoUrl: o.logoUrl || '',
             primaryColor: o.primaryColor && o.primaryColor !== '#D97706' ? o.primaryColor : '#4F46E5',
             customDomain: o.customDomain || '',
@@ -125,7 +128,10 @@ export const OrganizationsTab: React.FC = () => {
         const matchesCode = org.code?.toLowerCase().includes(q);
         const matchesDomain = org.customDomain?.toLowerCase().includes(q);
         const matchesAddress = org.address?.toLowerCase().includes(q);
-        if (!matchesName && !matchesCode && !matchesDomain && !matchesAddress) return false;
+        const matchesEmail = org.email?.toLowerCase().includes(q);
+        const matchesPhone = org.phone?.toLowerCase().includes(q);
+        const matchesGstin = org.gstin?.toLowerCase().includes(q);
+        if (!matchesName && !matchesCode && !matchesDomain && !matchesAddress && !matchesEmail && !matchesPhone && !matchesGstin) return false;
       }
 
       return true;
@@ -147,6 +153,12 @@ export const OrganizationsTab: React.FC = () => {
       PublicId: o.publicId,
       Name: o.name,
       Code: o.code,
+      Email: o.email || 'N/A',
+      Phone: o.phone || 'N/A',
+      Website: o.website || 'N/A',
+      GSTIN: o.gstin || 'N/A',
+      AdminEmployeeId: o.adminEmployeeId || 'N/A',
+      LogoUrl: o.logoUrl || 'N/A',
       CustomDomain: o.customDomain || 'N/A',
       Address: o.address || 'N/A',
       PrimaryColor: o.primaryColor,
@@ -189,23 +201,18 @@ export const OrganizationsTab: React.FC = () => {
               <span className="font-semibold text-xs text-[var(--ink)] group-hover:text-[var(--gold-600)] transition-colors">
                 {org.name}
               </span>
-              <span className="font-mono text-[10px] text-[var(--ink-muted)]">
-                ID: {org.publicId.slice(0, 8)}...
-              </span>
+              <div className="flex items-center gap-2 text-[10px] text-[var(--ink-muted)]">
+                {org.email ? (
+                  <span className="truncate max-w-[180px]" title={org.email}>{org.email}</span>
+                ) : (
+                  <span className="font-mono">ID: {org.publicId.slice(0, 8)}...</span>
+                )}
+                {org.phone && <span>• {org.phone}</span>}
+              </div>
             </div>
           </div>
         );
       },
-    },
-    {
-      key: 'code',
-      header: 'Code',
-      width: '100px',
-      render: (org) => (
-        <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] border border-[var(--rule)] text-[var(--ink)]">
-          {org.code || '—'}
-        </span>
-      ),
     },
     {
       key: 'customDomain',
@@ -222,16 +229,26 @@ export const OrganizationsTab: React.FC = () => {
     },
     {
       key: 'address',
-      header: 'Headquarters Address',
-      render: (org) =>
-        org.address ? (
-          <div className="flex items-center gap-1 text-xs text-[var(--ink-muted)] max-w-xs truncate" title={org.address}>
-            <MapPin size={11} className="shrink-0 text-[var(--ink-muted)]" />
-            <span className="truncate">{org.address}</span>
-          </div>
-        ) : (
-          <span className="text-[var(--ink-muted)] text-xs">—</span>
-        ),
+      header: 'Headquarters & Tax',
+      render: (org) => (
+        <div className="flex flex-col gap-1 max-w-xs">
+          {org.address ? (
+            <div className="flex items-center gap-1 text-xs text-[var(--ink-muted)] truncate" title={org.address}>
+              <MapPin size={11} className="shrink-0 text-[var(--ink-muted)]" />
+              <span className="truncate">{org.address}</span>
+            </div>
+          ) : (
+            <span className="text-[var(--ink-muted)] text-xs">—</span>
+          )}
+          {org.gstin && (
+            <div className="flex items-center gap-1">
+              <span className="font-mono text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                GST: {org.gstin}
+              </span>
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       key: 'branches',
@@ -255,17 +272,31 @@ export const OrganizationsTab: React.FC = () => {
     {
       key: 'status',
       header: 'Status',
-      width: '90px',
-      render: (org) =>
-        org.isActive !== false ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            Active
-          </span>
-        ) : (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-zinc-500/10 text-[var(--ink-muted)] border border-[var(--rule)]">
-            Archived
-          </span>
-        ),
+      width: '80px',
+      render: (org) => {
+        const canEdit = isAdmin || hasPermission('Masters.Organizations.Edit');
+        const isActive = org.isActive !== false;
+        return (
+          <div
+            className="flex items-center"
+            title={isActive ? 'Active (click to deactivate)' : 'Inactive (click to activate)'}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Switch
+              checked={isActive}
+              onChange={() => {
+                if (!canEdit) return;
+                if (isActive) {
+                  orgArchive.archive({ id: org.publicId, name: org.name, isArchived: false });
+                } else {
+                  orgArchive.restore({ id: org.publicId, name: org.name, isArchived: true });
+                }
+              }}
+              disabled={!canEdit}
+            />
+          </div>
+        );
+      },
     },
     {
       key: 'actions',

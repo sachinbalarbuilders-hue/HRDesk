@@ -8,6 +8,11 @@ export interface OrgForm {
   name: string;
   code: string;
   address: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  gstin?: string;
+  adminEmployeeId?: number | null;
   logoUrl?: string;
   primaryColor?: string;
   customDomain?: string;
@@ -76,7 +81,18 @@ export const OrganizationShell: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [orgId, setOrgId] = useState<number | null>(null);
-  const [orgForm, setOrgForm] = useState<OrgForm>({ name: '', code: '', address: '', isActive: true });
+  const [orgForm, setOrgForm] = useState<OrgForm>({
+    name: '',
+    code: '',
+    address: '',
+    email: '',
+    phone: '',
+    website: '',
+    gstin: '',
+    adminEmployeeId: null,
+    logoUrl: '',
+    isActive: true,
+  });
   const [branches, setBranches] = useState<Branch[]>([]);
   const [policyForm, setPolicyForm] = useState<PolicyForm>({
     yearStartMonth: 11,
@@ -118,6 +134,11 @@ export const OrganizationShell: React.FC = () => {
           name: org.name,
           code: org.code || '',
           address: org.address || '',
+          email: org.email || '',
+          phone: org.phone || '',
+          website: org.website || '',
+          gstin: org.gstin || '',
+          adminEmployeeId: org.adminEmployeeId ?? null,
           logoUrl: org.logoUrl || '',
           primaryColor: org.primaryColor && org.primaryColor !== '#D97706' ? org.primaryColor : '#4F46E5',
           customDomain: org.customDomain || '',

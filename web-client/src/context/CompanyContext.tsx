@@ -22,6 +22,11 @@ export interface Organization {
   name: string;
   code?: string;
   address?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  gstin?: string;
+  adminEmployeeId?: number | null;
   whatsAppGroupId?: string;
   logoUrl?: string;
   primaryColor?: string;
@@ -132,6 +137,11 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           name: o.name,
           code: o.code,
           address: o.address,
+          email: o.email,
+          phone: o.phone,
+          website: o.website,
+          gstin: o.gstin,
+          adminEmployeeId: o.adminEmployeeId,
           whatsAppGroupId: o.whatsAppGroupId,
           logoUrl: o.logoUrl,
           primaryColor: o.primaryColor && o.primaryColor !== '#D97706' ? o.primaryColor : '#4F46E5',
