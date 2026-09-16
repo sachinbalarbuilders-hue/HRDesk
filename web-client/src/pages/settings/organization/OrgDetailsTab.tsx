@@ -353,19 +353,19 @@ export const OrgDetailsTab: React.FC = () => {
         </div>
       </Card>
 
-      {/* 4. Organization Administrator (Selected from Employee List) */}
+      {/* 4. Primary Contact (Selected from Employee List) */}
       <Card>
         <CardHeader>
-          <CardTitle>Organization Administrator</CardTitle>
+          <CardTitle>Primary Contact</CardTitle>
           <CardDescription>
-            Designate an employee from the company roster as the primary authorized officer.
+            Designate an employee from the company roster as the primary contact person.
           </CardDescription>
         </CardHeader>
 
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">
-              Select Administrator from Employees
+              Select Primary Contact from Employees
             </label>
             <select
               value={orgForm.adminEmployeeId || ''}
@@ -373,7 +373,7 @@ export const OrgDetailsTab: React.FC = () => {
               disabled={loadingEmployees}
               className="register-input w-full text-xs"
             >
-              <option value="">-- No Administrator Assigned --</option>
+              <option value="">-- No Primary Contact Assigned --</option>
               {employees.map((emp) => (
                 <option key={emp.employeeId} value={emp.employeeId}>
                   {emp.employeeName} (EMP#{String(emp.employeeId).padStart(3, '0')}{emp.designation ? ` • ${emp.designation}` : ''}{emp.department ? ` • ${emp.department}` : ''})
