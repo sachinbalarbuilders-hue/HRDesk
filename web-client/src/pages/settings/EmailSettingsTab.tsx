@@ -168,7 +168,7 @@ export const EmailSettingsTab: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl font-ui">
+    <div className="max-w-3xl mx-auto space-y-6">
       {/* 1. Header & Register Stamped Status */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div className="space-y-1">
@@ -178,7 +178,7 @@ export const EmailSettingsTab: React.FC = () => {
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold font-serif text-[var(--text-primary)] tracking-wide uppercase">
+                <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                   Email Delivery Service
                 </h2>
                 <Badge variant={isConfigured ? 'success' : 'neutral'} dot>
@@ -349,7 +349,7 @@ export const EmailSettingsTab: React.FC = () => {
             <div className="space-y-4">
               {/* Presets bar */}
               <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
-                <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider block mb-2">
+                <span className="text-xs font-medium text-[var(--text-secondary)] block mb-2">
                   Quick Provider Presets:
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -387,7 +387,6 @@ export const EmailSettingsTab: React.FC = () => {
                     onChange={(e) => setSmtpPort(e.target.value)}
                     placeholder="587"
                     required
-                    className="font-mono"
                   />
                 </div>
               </div>
@@ -443,7 +442,6 @@ export const EmailSettingsTab: React.FC = () => {
                 placeholder="SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                 required
                 icon={<Key size={14} />}
-                className="font-mono"
                 helperText="Must have 'Mail Send' full-access permission in SendGrid."
               />
               <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1.5 pt-1">
