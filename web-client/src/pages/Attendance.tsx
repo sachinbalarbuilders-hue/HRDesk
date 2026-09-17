@@ -583,8 +583,8 @@ export const Attendance: React.FC = () => {
       ) : (
         <div className="card overflow-hidden">
           {/* Attendance Status Legend (Top Bar) */}
-          <div className="border-b border-[var(--rule)] px-4 py-2 bg-[var(--surface-secondary)]/40 flex items-center justify-between gap-4 text-xs overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-3 shrink-0">
+          <div className="border-b border-[var(--rule)] px-4 py-3 bg-[var(--surface-secondary)]/40 flex flex-wrap items-center justify-start gap-3 sm:gap-4 text-xs">
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
               <span className="text-xs font-normal font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Legend:</span>
               <span
                 className="flex items-center gap-1.5 text-[var(--text-primary)] font-medium shrink-0 cursor-default"
@@ -676,7 +676,7 @@ export const Attendance: React.FC = () => {
                 <span>Leave</span>
               </span>
             </div>
-            <span className="text-xs font-normal text-[var(--text-secondary)] italic shrink-0 whitespace-nowrap ml-auto">
+            <span className="text-xs font-normal text-[var(--text-secondary)] italic shrink-0 sm:ml-auto w-full sm:w-auto text-left sm:text-right">
               Click any date to inspect punch timeline
             </span>
           </div>
@@ -685,10 +685,10 @@ export const Attendance: React.FC = () => {
             <table className="ledger-table w-full text-xs">
               <thead>
                 <tr>
-                  <th className="w-12 min-w-[48px] max-w-[48px] text-center sticky left-0 z-20 bg-[var(--paper)]  text-xs font-normal uppercase tracking-wider text-[var(--text-secondary)] border-r border-[var(--rule)]">
+                  <th className="hidden sm:table-cell w-12 min-w-[48px] max-w-[48px] text-center sticky left-0 z-20 bg-[var(--paper)]  text-xs font-normal uppercase tracking-wider text-[var(--text-secondary)] border-r border-[var(--rule)]">
                     Sr.
                   </th>
-                  <th className="min-w-[190px] max-w-[220px] sticky left-[48px] z-20 bg-[var(--paper)] shadow-[2px_0_4px_rgba(0,0,0,0.06)] text-left font-semibold text-xs text-[var(--text-primary)] border-r border-[var(--rule)] px-3">
+                  <th className="min-w-[120px] sm:min-w-[190px] max-w-[120px] sm:max-w-[220px] sticky left-0 sm:left-[48px] z-20 bg-[var(--paper)] shadow-[2px_0_4px_rgba(0,0,0,0.06)] text-left font-semibold text-xs text-[var(--text-primary)] border-r border-[var(--rule)] px-3">
                     Employee Name
                   </th>
                   {Array.from({ length: data?.daysInMonth || 31 }, (_, i) => i + 1).map((d) => (
@@ -734,11 +734,11 @@ export const Attendance: React.FC = () => {
                   const empIndex = (page - 1) * pageSize + idx + 1;
                   return (
                     <tr key={row.employee.employeeId} className="hover:bg-[var(--paper-subtle)] transition-colors">
-                      <td className="w-12 min-w-[48px] max-w-[48px] sticky left-0 z-10 bg-[var(--paper)] text-center  text-xs font-normal text-[var(--text-secondary)] border-r border-[var(--rule)]">
+                      <td className="hidden sm:table-cell w-12 min-w-[48px] max-w-[48px] sticky left-0 z-10 bg-[var(--paper)] text-center  text-xs font-normal text-[var(--text-secondary)] border-r border-[var(--rule)]">
                         {empIndex}
                       </td>
-                      <td className="min-w-[190px] max-w-[220px] sticky left-[48px] z-10 bg-[var(--paper)] shadow-[2px_0_4px_rgba(0,0,0,0.06)] px-3 py-2 border-r border-[var(--rule)]">
-                        <div className="font-semibold text-xs text-[var(--text-primary)] truncate max-w-[180px]">
+                      <td className="min-w-[120px] sm:min-w-[190px] max-w-[120px] sm:max-w-[220px] sticky left-0 sm:left-[48px] z-10 bg-[var(--paper)] shadow-[2px_0_4px_rgba(0,0,0,0.06)] px-3 py-2 border-r border-[var(--rule)]">
+                        <div className="font-semibold text-xs text-[var(--text-primary)] truncate max-w-[100px] sm:max-w-[180px]">
                           {row.employee.employeeName}
                         </div>
                       </td>

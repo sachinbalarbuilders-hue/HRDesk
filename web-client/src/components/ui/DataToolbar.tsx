@@ -71,12 +71,12 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
   primaryAction,
 }) => {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4  mb-4">
+    <div className="flex flex-wrap items-start md:items-center justify-between gap-4 mb-4">
       {/* Left side: Search & Filters */}
-      <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[320px]">
+      <div className="flex flex-wrap items-center gap-3 w-full md:w-auto flex-1 min-w-[280px]">
         {/* Search Input */}
         {onSearchChange !== undefined && (
-          <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+          <div className="relative flex-1 min-w-[200px] max-w-full md:max-w-[300px]">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input
               type="text"
@@ -90,12 +90,12 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
 
         {/* Dynamic Filters */}
         {filters.map((filter) => (
-          <div key={filter.id} className="relative group">
+          <div key={filter.id} className="relative group w-full sm:w-auto">
             <select
               value={filter.value}
               onChange={(e) => filter.onChange(e.target.value)}
               aria-label={filter.ariaLabel || filter.id}
-              className={`appearance-none h-9 pl-3 pr-8 rounded-lg border text-sm font-normal focus:outline-none cursor-pointer transition-colors shadow-xs ${
+              className={`w-full sm:w-auto appearance-none h-9 pl-3 pr-8 rounded-lg border text-sm font-normal focus:outline-none cursor-pointer transition-colors shadow-xs ${
                 filter.value && filter.value !== 'all'
                   ? 'bg-[var(--accent-light)] border-[var(--accent)]/40 text-[var(--text-primary)] font-semibold'
                   : 'bg-[var(--surface)] border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)]'
@@ -121,8 +121,8 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
       </div>
 
       {/* Right side: Actions & Archive */}
-      <div className="flex flex-col items-end gap-3 ml-auto flex-shrink-0">
-        <div className="flex flex-wrap items-center gap-2 justify-end">
+      <div className="flex flex-col items-start md:items-end gap-3 w-full md:w-auto ml-0 md:ml-auto shrink-0">
+        <div className="flex flex-wrap items-center gap-2 justify-start md:justify-end w-full">
           {customActions}
 
           {onExport && (
