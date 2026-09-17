@@ -248,7 +248,7 @@ export function DataTable<T extends Record<string, any>>({
 
       {/* ── Table Container ─────────────────────────────────────────────────── */}
       <div className="w-full rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[14rem]">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-[var(--table-header-border)] bg-[var(--table-header-bg)]">
