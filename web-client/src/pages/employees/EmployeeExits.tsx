@@ -127,7 +127,7 @@ export const EmployeeExits: React.FC = () => {
       {
         key: 'sr',
         header: 'Sr.',
-        className: 'w-10 text-center font-mono text-[11px] text-[var(--ink-muted)]',
+        className: 'w-10 text-center  text-xs font-normal text-[var(--text-secondary)]',
         render: (_item: any, idx?: number) => (page - 1) * pageSize + (idx ?? 0) + 1,
       },
       {
@@ -146,11 +146,11 @@ export const EmployeeExits: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleOpenDrawer(item.id)}
-                className="font-bold text-xs text-[var(--ink)] hover:text-[var(--accent)] transition-colors block truncate text-left cursor-pointer"
+                className="font-semibold text-xs text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors block truncate text-left cursor-pointer"
               >
                 {item.employeeName}
               </button>
-              <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1.5 font-mono">
+              <div className="text-xs font-normal text-[var(--text-secondary)] flex items-center gap-1.5 ">
                 <span>{item.employeeCode}</span>
                 {item.department && <span>· {item.department}</span>}
               </div>
@@ -168,7 +168,7 @@ export const EmployeeExits: React.FC = () => {
               item.exitType === 'Termination'
                 ? 'text-[var(--err-500)]'
                 : item.exitType === 'Resignation'
-                ? 'text-[var(--ink)]'
+                ? 'text-[var(--text-primary)]'
                 : 'text-[var(--accent)]'
             }`}
           >
@@ -182,11 +182,11 @@ export const EmployeeExits: React.FC = () => {
         className: 'w-44 text-xs',
         render: (item: any) => (
           <div className="text-xs space-y-0.5">
-            <div className="flex items-center gap-1 text-[var(--ink)] font-semibold">
+            <div className="flex items-center gap-1 text-[var(--text-primary)] font-semibold">
               <Calendar size={11} className="text-[var(--accent)] shrink-0" />
               <span>LWD: {item.lastWorkingDate}</span>
             </div>
-            <div className="text-[11px] text-[var(--ink-muted)]">
+            <div className="text-xs font-normal text-[var(--text-secondary)]">
               Notice Date: {item.resignationDate}
             </div>
           </div>
@@ -199,26 +199,26 @@ export const EmployeeExits: React.FC = () => {
         render: (item: any) => {
           if (item.status === 'Completed') {
             return (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200">
+              <span className="px-2 py-0.5 rounded-full text-xs font-normal font-semibold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200">
                 Relieved
               </span>
             );
           }
           if (item.remainingDays > 0) {
             return (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <span className="px-2 py-0.5 rounded-full text-xs font-normal font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
                 {item.remainingDays}d left
               </span>
             );
           }
           if (item.status === 'InNoticePeriod' || item.status === 'ClearancePending') {
             return (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200">
+              <span className="px-2 py-0.5 rounded-full text-xs font-normal font-semibold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200">
                 LWD Due
               </span>
             );
           }
-          return <span className="text-[11px] text-[var(--ink-muted)]">—</span>;
+          return <span className="text-xs font-normal text-[var(--text-secondary)]">—</span>;
         },
       },
       {
@@ -237,7 +237,7 @@ export const EmployeeExits: React.FC = () => {
           const conf = statusMap[item.status] || { label: item.status, bg: 'bg-slate-100 text-slate-700 border-slate-200', dot: 'bg-slate-400' };
 
           return (
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${conf.bg}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border ${conf.bg}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${conf.dot}`} />
               <span>{conf.label}</span>
             </span>
@@ -251,12 +251,12 @@ export const EmployeeExits: React.FC = () => {
         render: (item: any) => {
           const docCount = [item.hasResignationDoc, item.hasRelievingDoc, item.hasExperienceDoc, item.hasClearanceDoc].filter(Boolean).length;
           return docCount > 0 ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--accent)] font-bold">
+            <span className="inline-flex items-center gap-1 text-xs font-normal  text-[var(--accent)] font-semibold">
               <FileText size={12} />
               <span>{docCount} files</span>
             </span>
           ) : (
-            <span className="text-[11px] text-[var(--ink-muted)]">None</span>
+            <span className="text-xs font-normal text-[var(--text-secondary)]">None</span>
           );
         },
       },
@@ -292,8 +292,8 @@ export const EmployeeExits: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="ledger-card p-3.5 flex items-center justify-between">
           <div>
-            <span className="text-[11px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">In Notice Period</span>
-            <div className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">{metrics.inNoticePeriod}</div>
+            <span className="text-xs font-normal uppercase font-semibold text-[var(--text-secondary)] tracking-wider">In Notice Period</span>
+            <div className="text-base font-semibold text-amber-600 dark:text-amber-400 mt-0.5">{metrics.inNoticePeriod}</div>
           </div>
           <div className="w-9 h-9 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
             <Clock size={18} />
@@ -302,8 +302,8 @@ export const EmployeeExits: React.FC = () => {
 
         <div className="ledger-card p-3.5 flex items-center justify-between">
           <div>
-            <span className="text-[11px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">Pending Approval</span>
-            <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mt-0.5">{metrics.pendingApproval}</div>
+            <span className="text-xs font-normal uppercase font-semibold text-[var(--text-secondary)] tracking-wider">Pending Approval</span>
+            <div className="text-base font-semibold text-yellow-600 dark:text-yellow-400 mt-0.5">{metrics.pendingApproval}</div>
           </div>
           <div className="w-9 h-9 rounded bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 flex items-center justify-center">
             <AlertCircle size={18} />
@@ -312,8 +312,8 @@ export const EmployeeExits: React.FC = () => {
 
         <div className="ledger-card p-3.5 flex items-center justify-between">
           <div>
-            <span className="text-[11px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">Clearance Pending</span>
-            <div className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-0.5">{metrics.clearancePending}</div>
+            <span className="text-xs font-normal uppercase font-semibold text-[var(--text-secondary)] tracking-wider">Clearance Pending</span>
+            <div className="text-base font-semibold text-blue-600 dark:text-blue-400 mt-0.5">{metrics.clearancePending}</div>
           </div>
           <div className="w-9 h-9 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
             <CheckSquare size={18} />
@@ -322,8 +322,8 @@ export const EmployeeExits: React.FC = () => {
 
         <div className="ledger-card p-3.5 flex items-center justify-between">
           <div>
-            <span className="text-[11px] uppercase font-bold text-[var(--ink-muted)] tracking-wider">Relieved This Month</span>
-            <div className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-0.5">{metrics.completedThisMonth}</div>
+            <span className="text-xs font-normal uppercase font-semibold text-[var(--text-secondary)] tracking-wider">Relieved This Month</span>
+            <div className="text-base font-semibold text-purple-600 dark:text-purple-400 mt-0.5">{metrics.completedThisMonth}</div>
           </div>
           <div className="w-9 h-9 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
             <CheckCircle2 size={18} />

@@ -98,7 +98,7 @@ export const EmployeeOnboarding: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[var(--gold-500)] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -108,10 +108,10 @@ export const EmployeeOnboarding: React.FC = () => {
       <div className="min-h-screen bg-[var(--canvas)] flex flex-col items-center justify-center p-4">
         <div className="bg-white dark:bg-[var(--paper)] p-8 rounded-lg shadow max-w-md w-full text-center border border-red-200">
           <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl font-bold">!</span>
+            <span className="text-base font-semibold">!</span>
           </div>
-          <h2 className="text-xl font-bold text-[var(--ink)] mb-2">Oops!</h2>
-          <p className="text-[var(--ink-muted)]">{error}</p>
+          <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">Oops!</h2>
+          <p className="text-[var(--text-secondary)]">{error}</p>
         </div>
       </div>
     );
@@ -122,8 +122,8 @@ export const EmployeeOnboarding: React.FC = () => {
       <div className="min-h-screen bg-[var(--canvas)] flex flex-col items-center justify-center p-4">
         <div className="bg-white dark:bg-[var(--paper)] p-8 rounded-lg shadow max-w-md w-full text-center border border-emerald-200">
           <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-[var(--ink)] mb-2">All Done!</h2>
-          <p className="text-[var(--ink-muted)]">
+          <h2 className="text-base font-semibold text-[var(--text-primary)] mb-2">All Done!</h2>
+          <p className="text-[var(--text-secondary)]">
             Your details have been submitted successfully. Welcome aboard, {employeeData?.employeeName}!
           </p>
         </div>
@@ -136,25 +136,25 @@ export const EmployeeOnboarding: React.FC = () => {
       <div className="max-w-2xl w-full">
         {/* Header */}
         <div className="bg-[var(--navy-900)] text-white p-6 rounded-t-xl">
-          <h1 className="text-2xl font-bold mb-1">Welcome to the Team, {employeeData?.employeeName}!</h1>
+          <h1 className="text-base font-semibold mb-1">Welcome to the Team, {employeeData?.employeeName}!</h1>
           <p className="text-white/70 text-sm">Please complete your profile to finalize your onboarding.</p>
           
           <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t border-white/10">
             {employeeData?.department && (
               <div className="flex items-center gap-2 text-sm text-white/80">
-                <Building size={14} className="text-[var(--gold-500)]" />
+                <Building size={14} className="text-[var(--accent)]" />
                 {employeeData.department}
               </div>
             )}
             {employeeData?.designation && (
               <div className="flex items-center gap-2 text-sm text-white/80">
-                <Briefcase size={14} className="text-[var(--gold-500)]" />
+                <Briefcase size={14} className="text-[var(--accent)]" />
                 {employeeData.designation}
               </div>
             )}
             {employeeData?.branch && (
               <div className="flex items-center gap-2 text-sm text-white/80">
-                <User size={14} className="text-[var(--gold-500)]" />
+                <User size={14} className="text-[var(--accent)]" />
                 {employeeData.branch}
               </div>
             )}
@@ -172,10 +172,10 @@ export const EmployeeOnboarding: React.FC = () => {
                   {photoPreview ? (
                     <img src={photoPreview} alt="Profile preview" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-10 h-10 text-[var(--ink-muted)]" />
+                    <User className="w-10 h-10 text-[var(--text-secondary)]" />
                   )}
                 </div>
-                <label className="absolute bottom-0 right-0 p-1.5 bg-[var(--gold-500)] rounded-full text-white cursor-pointer shadow hover:bg-[var(--gold-600)] transition-colors">
+                <label className="absolute bottom-0 right-0 p-1.5 bg-[var(--accent)] rounded-full text-white cursor-pointer shadow hover:bg-[var(--accent-hover)] transition-colors">
                   <Camera size={14} />
                   <input
                     type="file"
@@ -195,11 +195,11 @@ export const EmployeeOnboarding: React.FC = () => {
                   />
                 </label>
               </div>
-              <span className="text-xs text-[var(--ink-muted)] mt-2">Upload Profile Photo (Max 5MB)</span>
+              <span className="text-xs text-[var(--text-secondary)] mt-2">Upload Profile Photo (Max 5MB)</span>
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Personal Information</h3>
+              <h3 className="text-base font-semibold text-[var(--text-primary)] border-b pb-2 mb-4">Personal Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Date of Birth"
@@ -210,9 +210,9 @@ export const EmployeeOnboarding: React.FC = () => {
                 />
                 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Gender</label>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Gender</label>
                   <select
-                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--ink)] focus:border-indigo-500 outline-none"
+                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-indigo-500 outline-none"
                     value={form.gender}
                     onChange={(e) => setForm({ ...form, gender: e.target.value })}
                   >
@@ -223,9 +223,9 @@ export const EmployeeOnboarding: React.FC = () => {
                 </div>
                 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Blood Group</label>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Blood Group</label>
                   <select
-                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--ink)] focus:border-indigo-500 outline-none"
+                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-indigo-500 outline-none"
                     value={form.bloodGroup}
                     onChange={(e) => setForm({ ...form, bloodGroup: e.target.value })}
                   >
@@ -237,9 +237,9 @@ export const EmployeeOnboarding: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Marital Status</label>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Marital Status</label>
                   <select
-                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--ink)] focus:border-indigo-500 outline-none"
+                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-indigo-500 outline-none"
                     value={form.maritalStatus}
                     onChange={(e) => setForm({ ...form, maritalStatus: e.target.value })}
                   >
@@ -253,7 +253,7 @@ export const EmployeeOnboarding: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Contact Details</h3>
+              <h3 className="text-base font-semibold text-[var(--text-primary)] border-b pb-2 mb-4">Contact Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Phone Number"
@@ -299,9 +299,9 @@ export const EmployeeOnboarding: React.FC = () => {
                           setForm(prev => ({ ...prev, permanentAddress: prev.currentAddress }));
                         }
                       }}
-                      className="rounded border-[var(--rule)] text-[var(--gold-500)] focus:ring-[var(--gold-500)] cursor-pointer"
+                      className="rounded border-[var(--rule)] text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
                     />
-                    <label htmlFor="sameAddress" className="text-xs text-[var(--ink)] cursor-pointer select-none">
+                    <label htmlFor="sameAddress" className="text-xs text-[var(--text-primary)] cursor-pointer select-none">
                       Permanent Address is same as Current Address
                     </label>
                   </div>
@@ -318,8 +318,8 @@ export const EmployeeOnboarding: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Bank Account Details</h3>
-              <p className="text-xs text-[var(--ink-muted)] mb-4">Required for salary credit. Please provide your active bank account details.</p>
+              <h3 className="text-base font-semibold text-[var(--text-primary)] border-b pb-2 mb-4">Bank Account Details</h3>
+              <p className="text-xs text-[var(--text-secondary)] mb-4">Required for salary credit. Please provide your active bank account details.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Bank Name"
@@ -363,9 +363,9 @@ export const EmployeeOnboarding: React.FC = () => {
                   onChange={(e) => setForm({ ...form, bankAccountHolderName: e.target.value })}
                 />
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Account Type</label>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Account Type</label>
                   <select
-                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--ink)] focus:border-indigo-500 outline-none"
+                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-indigo-500 outline-none"
                     value={form.bankAccountType}
                     onChange={(e) => setForm({ ...form, bankAccountType: e.target.value })}
                   >
@@ -378,7 +378,7 @@ export const EmployeeOnboarding: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Statutory Details</h3>
+              <h3 className="text-base font-semibold text-[var(--text-primary)] border-b pb-2 mb-4">Statutory Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="PAN Number"
@@ -400,7 +400,7 @@ export const EmployeeOnboarding: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Emergency Contact</h3>
+              <h3 className="text-base font-semibold text-[var(--text-primary)] border-b pb-2 mb-4">Emergency Contact</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Input
                   label="Contact Name"
@@ -410,9 +410,9 @@ export const EmployeeOnboarding: React.FC = () => {
                   onChange={(e) => setForm({ ...form, emergencyContactName: e.target.value })}
                 />
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Relationship</label>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Relationship</label>
                   <select
-                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--ink)] focus:border-indigo-500 outline-none"
+                    className="w-full bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-indigo-500 outline-none"
                     value={form.emergencyContactRelation}
                     onChange={(e) => setForm({ ...form, emergencyContactRelation: e.target.value })}
                   >
@@ -437,7 +437,7 @@ export const EmployeeOnboarding: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Family Details</h3>
+              <h3 className="text-base font-semibold text-[var(--text-primary)] border-b pb-2 mb-4">Family Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Father's / Spouse Name"
@@ -449,14 +449,14 @@ export const EmployeeOnboarding: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-[var(--ink)] border-b pb-2 mb-4">Verification Documents</h3>
+              <h3 className="text-base font-semibold text-[var(--text-primary)] border-b pb-2 mb-4">Verification Documents</h3>
               <div className="space-y-4">
                 {documents.map((doc, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
-                    <FileText className="text-[var(--gold-500)]" size={18} />
+                    <FileText className="text-[var(--accent)]" size={18} />
                     <div className="flex-1">
-                      <p className="text-xs font-semibold text-[var(--ink)]">{doc.type}</p>
-                      <p className="text-[10px] text-[var(--ink-muted)] font-mono">{doc.file.name}</p>
+                      <p className="text-xs font-semibold text-[var(--text-primary)]">{doc.type}</p>
+                      <p className="text-xs font-normal text-[var(--text-secondary)] ">{doc.file.name}</p>
                     </div>
                     <button
                       type="button"
@@ -521,7 +521,7 @@ export const EmployeeOnboarding: React.FC = () => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-[var(--gold-500)] hover:bg-[var(--gold-600)] text-white px-6 py-2.5 rounded shadow-sm font-semibold text-sm transition-colors disabled:opacity-50"
+                className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white px-6 py-2.5 rounded shadow-sm font-semibold text-sm transition-colors disabled:opacity-50"
               >
                 {submitting ? 'Submitting...' : 'Complete Onboarding'}
               </button>
@@ -529,7 +529,7 @@ export const EmployeeOnboarding: React.FC = () => {
           </form>
         </div>
         
-        <div className="text-center mt-6 text-xs text-[var(--ink-muted)]">
+        <div className="text-center mt-6 text-xs text-[var(--text-secondary)]">
           &copy; {new Date().getFullYear()} HRDesk. Powered by Antigravity.
         </div>
       </div>

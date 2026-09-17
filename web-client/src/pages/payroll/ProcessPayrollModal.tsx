@@ -177,20 +177,20 @@ export const ProcessPayrollModal: React.FC<Props> = ({
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] shrink-0">
           <div>
-            <h3 className="text-base font-bold text-[var(--text-primary)]">Run Payroll</h3>
+            <h3 className="text-base font-semibold text-[var(--text-primary)]">Run Payroll</h3>
             <div className="flex items-center gap-2 mt-1.5">
               {(['Configure', 'Review', 'Done'] as const).map((label, i) => {
                 const s = i + 1;
                 return (
                   <div key={s} className="flex items-center gap-1.5">
-                    <div className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                    <div className={`w-5 h-5 rounded-full text-xs font-normal font-semibold flex items-center justify-center ${
                       step > s ? 'bg-[var(--success)] text-white' :
                       step === s ? 'bg-[var(--accent)] text-white' :
                       'bg-[var(--surface-secondary)] text-[var(--text-muted)]'
                     }`}>
                       {step > s ? '✓' : s}
                     </div>
-                    <span className={`text-[11px] ${step === s ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
+                    <span className={`text-xs font-normal ${step === s ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
                       {label}
                     </span>
                     {s < 3 && <div className={`w-6 h-px ml-1 ${step > s ? 'bg-[var(--success)]' : 'bg-[var(--border)]'}`} />}
@@ -212,7 +212,7 @@ export const ProcessPayrollModal: React.FC<Props> = ({
             <>
               {/* Pay Cycle */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-2">Pay Cycle</p>
+                <p className="text-xs font-normal font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-2">Pay Cycle</p>
                 <div className="grid grid-cols-3 gap-2">
                   {CYCLES.map(c => (
                     <label key={c.id} className={`flex flex-col gap-0.5 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -224,8 +224,8 @@ export const ProcessPayrollModal: React.FC<Props> = ({
                         checked={cycle === c.id} onChange={() => setCycle(c.id)}
                         className="sr-only"
                       />
-                      <span className="text-sm font-bold text-[var(--text-primary)]">{c.label}</span>
-                      <span className="text-[10px] text-[var(--text-muted)]">{c.desc}</span>
+                      <span className="text-sm font-semibold text-[var(--text-primary)]">{c.label}</span>
+                      <span className="text-xs font-normal text-[var(--text-muted)]">{c.desc}</span>
                     </label>
                   ))}
                 </div>
@@ -233,7 +233,7 @@ export const ProcessPayrollModal: React.FC<Props> = ({
 
               {/* Month */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">Month *</p>
+                <p className="text-xs font-normal font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">Month *</p>
                 <input type="month" value={month}
                   onChange={e => setMonth(e.target.value)}
                   className="register-input w-full"
@@ -242,7 +242,7 @@ export const ProcessPayrollModal: React.FC<Props> = ({
 
               {/* Department filter */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">
+                <p className="text-xs font-normal font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">
                   Department <span className="normal-case font-normal">(optional)</span>
                 </p>
                 <select value={departmentId} onChange={e => setDepartmentId(e.target.value)}
@@ -255,13 +255,13 @@ export const ProcessPayrollModal: React.FC<Props> = ({
               {/* Employee selection */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                  <p className="text-xs font-normal font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                     Employees
                     <span className="ml-1.5 normal-case font-normal text-[var(--text-muted)]">
                       ({selectedEmpIds.size} of {allEmployees.length} selected)
                     </span>
                   </p>
-                  <button onClick={toggleAll} className="text-[11px] text-[var(--accent)] hover:underline font-medium">
+                  <button onClick={toggleAll} className="text-xs font-normal text-[var(--accent)] hover:underline font-medium">
                     {allSelected ? 'Deselect all' : 'Select all'}
                   </button>
                 </div>
@@ -297,7 +297,7 @@ export const ProcessPayrollModal: React.FC<Props> = ({
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-[var(--text-primary)] truncate">{emp.employeeName}</div>
-                        {emp.department && <div className="text-[11px] text-[var(--text-muted)]">{emp.department}</div>}
+                        {emp.department && <div className="text-xs font-normal text-[var(--text-muted)]">{emp.department}</div>}
                       </div>
                     </label>
                   ))}
@@ -330,14 +330,14 @@ export const ProcessPayrollModal: React.FC<Props> = ({
                   { label: 'With Warnings', value: preview.withWarnings, color: 'text-[var(--warning)]' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="p-3 bg-[var(--surface-secondary)] rounded-lg text-center border border-[var(--border)]">
-                    <div className={`text-2xl font-bold font-data ${color}`}>{value}</div>
-                    <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{label}</div>
+                    <div className={`text-base font-semibold  ${color}`}>{value}</div>
+                    <div className="text-xs font-normal text-[var(--text-muted)] mt-0.5">{label}</div>
                   </div>
                 ))}
               </div>
 
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-2">Employee Breakdown</p>
+                <p className="text-xs font-normal font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-2">Employee Breakdown</p>
                 <div className="border border-[var(--border)] rounded-lg overflow-hidden divide-y divide-[var(--border)]">
                   {preview.employees.map(emp => (
                     <div key={emp.employeeId}
@@ -352,19 +352,19 @@ export const ProcessPayrollModal: React.FC<Props> = ({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-[var(--text-primary)] truncate">{emp.employeeName}</div>
-                        <div className="text-[11px] text-[var(--text-muted)]">
+                        <div className="text-xs font-normal text-[var(--text-muted)]">
                           {[emp.department, emp.payGroupName, emp.annualCTC ? `${fmt(emp.annualCTC)}/yr` : null]
                             .filter(Boolean).join(' · ')}
                         </div>
                         {emp.warnings.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {emp.warnings.map(w => (
-                              <span key={w} className="text-[10px] bg-[var(--warning-light)] text-[var(--warning)] px-1.5 py-0.5 rounded-[3px] font-medium">{w}</span>
+                              <span key={w} className="text-xs font-normal bg-[var(--warning-light)] text-[var(--warning)] px-1.5 py-0.5 rounded-[3px] font-medium">{w}</span>
                             ))}
                           </div>
                         )}
                         {emp.alreadyProcessed && !emp.isLocked && (
-                          <span className="text-[10px] text-[var(--info)] bg-[var(--info-light)] px-1.5 py-0.5 rounded-[3px] font-medium mt-1 inline-block">
+                          <span className="text-xs font-normal text-[var(--info)] bg-[var(--info-light)] px-1.5 py-0.5 rounded-[3px] font-medium mt-1 inline-block">
                             Will re-process ({emp.existingStatus})
                           </span>
                         )}
@@ -388,7 +388,7 @@ export const ProcessPayrollModal: React.FC<Props> = ({
                 <CheckCircle2 size={32} className="text-[var(--success)]" />
               </div>
               <div>
-                <div className="text-lg font-bold text-[var(--text-primary)]">Payroll Processed</div>
+                <div className="text-base font-semibold text-[var(--text-primary)]">Payroll Processed</div>
                 <div className="text-sm text-[var(--text-muted)] mt-1">
                   Processed <span className="font-semibold text-[var(--success)]">{processedCount}</span> employee{processedCount !== 1 ? 's' : ''} for {month}
                 </div>

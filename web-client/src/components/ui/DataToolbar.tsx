@@ -71,34 +71,34 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
   primaryAction,
 }) => {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 font-ui mb-4">
+    <div className="flex flex-wrap items-center justify-between gap-4  mb-4">
       {/* Left side: Search & Filters */}
       <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[320px]">
         {/* Search Input */}
         {onSearchChange !== undefined && (
           <div className="relative flex-1 min-w-[200px] max-w-[300px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input
               type="text"
               value={searchValue || ''}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-9 pr-4 py-2 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[13px] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] shadow-xs transition-shadow"
+              className="w-full h-9 pl-9 pr-4 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-sm font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] shadow-xs transition-all"
             />
           </div>
         )}
 
-        {/* Dynamic Filters (styled as SaaS chips) */}
+        {/* Dynamic Filters */}
         {filters.map((filter) => (
           <div key={filter.id} className="relative group">
             <select
               value={filter.value}
               onChange={(e) => filter.onChange(e.target.value)}
               aria-label={filter.ariaLabel || filter.id}
-              className={`appearance-none pl-3 pr-8 py-1.5 rounded-full border text-[13px] font-medium focus:outline-none cursor-pointer transition-colors shadow-xs ${
+              className={`appearance-none h-9 pl-3 pr-8 rounded-lg border text-sm font-normal focus:outline-none cursor-pointer transition-colors shadow-xs ${
                 filter.value && filter.value !== 'all'
-                  ? 'bg-[var(--accent-light)] border-[var(--accent)]/30 text-[var(--accent-dark)]'
-                  : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)]'
+                  ? 'bg-[var(--accent-light)] border-[var(--accent)]/40 text-[var(--text-primary)] font-semibold'
+                  : 'bg-[var(--surface)] border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)]'
               }`}
             >
               {filter.options.map((opt) => (
@@ -129,7 +129,7 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
             <button
               type="button"
               onClick={onExport}
-              className="flex items-center gap-2 text-[13px] font-medium py-1.5 px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] shadow-xs transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-sm font-semibold h-9 px-3.5 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] shadow-xs transition-colors cursor-pointer"
               title={exportLabel}
             >
               <Download size={14} />
@@ -141,7 +141,7 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
             <button
               type="button"
               onClick={onImport}
-              className="flex items-center gap-2 text-[13px] font-medium py-1.5 px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] shadow-xs transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-sm font-semibold h-9 px-3.5 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] shadow-xs transition-colors cursor-pointer"
               title={importLabel}
             >
               <Upload size={14} />
@@ -153,7 +153,7 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
             <button
               type="button"
               onClick={primaryAction.onClick}
-              className={primaryAction.className || "btn-primary flex items-center gap-1.5 text-[13px] py-1.5 px-3 cursor-pointer"}
+              className={primaryAction.className || "btn-primary flex items-center gap-1.5 text-sm font-semibold h-9 px-3.5 cursor-pointer"}
             >
               {primaryAction.icon}
               <span>{primaryAction.label}</span>

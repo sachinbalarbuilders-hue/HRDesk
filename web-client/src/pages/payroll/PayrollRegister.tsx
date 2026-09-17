@@ -172,26 +172,26 @@ export const PayrollRegister: React.FC = () => {
       key: 'employee',
       header: 'Employee',
       render: (r: any) => (
-        <span className="font-semibold text-[var(--ink)] text-xs">{r.employeeName}</span>
+        <span className="font-semibold text-[var(--text-primary)] text-xs">{r.employeeName}</span>
       ),
     },
     {
       key: 'department',
       header: 'Department',
-      render: (r: any) => <span className="text-xs text-[var(--ink-muted)]">{r.department || '—'}</span>,
+      render: (r: any) => <span className="text-xs text-[var(--text-secondary)]">{r.department || '—'}</span>,
     },
     {
       key: 'payableDays',
       header: 'Payable Days',
       align: 'center',
-      render: (r: any) => <span className="font-mono font-bold text-[var(--success)] text-xs">{r.payableDays}</span>,
+      render: (r: any) => <span className=" font-semibold text-[var(--success)] text-xs">{r.payableDays}</span>,
     },
     {
       key: 'lopDays',
       header: 'LOP',
       align: 'center',
       render: (r: any) => (
-        <span className={`font-mono font-medium text-xs ${r.lopDays > 0 ? 'text-[var(--danger)]' : 'text-[var(--ink-muted)]'}`}>
+        <span className={` font-medium text-xs ${r.lopDays > 0 ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]'}`}>
           {r.lopDays > 0 ? r.lopDays : '—'}
         </span>
       ),
@@ -200,14 +200,14 @@ export const PayrollRegister: React.FC = () => {
       key: 'grossSalary',
       header: 'Gross Pay',
       align: 'right',
-      render: (r: any) => <span className="font-mono text-xs text-[var(--ink)]">₹{fmt(r.grossSalary)}</span>,
+      render: (r: any) => <span className=" text-xs text-[var(--text-primary)]">₹{fmt(r.grossSalary)}</span>,
     },
     {
       key: 'totalDeductions',
       header: 'Deductions',
       align: 'right',
       render: (r: any) => (
-        <span className="font-mono text-xs text-[var(--danger)]">
+        <span className=" text-xs text-[var(--danger)]">
           {r.totalDeductions > 0 ? `-₹${fmt(r.totalDeductions)}` : '—'}
         </span>
       ),
@@ -216,7 +216,7 @@ export const PayrollRegister: React.FC = () => {
       key: 'netSalary',
       header: 'Net Salary',
       align: 'right',
-      render: (r: any) => <span className="font-mono font-bold text-xs text-[var(--gold-500)]">₹{fmt(r.netSalary)}</span>,
+      render: (r: any) => <span className=" font-semibold text-xs text-[var(--accent)]">₹{fmt(r.netSalary)}</span>,
     },
     {
       key: 'status',
@@ -224,7 +224,7 @@ export const PayrollRegister: React.FC = () => {
       render: (r: any) => {
         const cfg = STATUS_CONFIG[r.status];
         return cfg ? (
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${cfg.cls}`}>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal font-semibold ${cfg.cls}`}>
             {r.status === 'Approved' && <Check size={10} />}
             {cfg.label} {r.isLocked ? '🔒' : ''}
           </span>
@@ -260,18 +260,18 @@ export const PayrollRegister: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={handlePrevMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-[4px] border border-[var(--rule)] hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+            className="w-8 h-8 flex items-center justify-center rounded-[4px] border border-[var(--rule)] hover:bg-[var(--paper)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             title="Previous Month"
           >
             <ChevronLeft size={16} />
           </button>
           <div className="text-center min-w-[140px]">
-            <div className="text-xl font-bold text-[var(--ink)] font-display leading-none">{month}</div>
-            <div className="text-xs text-[var(--ink-muted)] mt-0.5">{year}</div>
+            <div className="text-base font-semibold text-[var(--text-primary)]  leading-none">{month}</div>
+            <div className="text-xs text-[var(--text-secondary)] mt-0.5">{year}</div>
           </div>
           <button
             onClick={handleNextMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-[4px] border border-[var(--rule)] hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+            className="w-8 h-8 flex items-center justify-center rounded-[4px] border border-[var(--rule)] hover:bg-[var(--paper)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             title="Next Month"
           >
             <ChevronRight size={16} />
@@ -282,7 +282,7 @@ export const PayrollRegister: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 cursor-pointer font-data"
+            className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 cursor-pointer "
           >
             <Download size={13} /> Export CSV
           </button>
@@ -313,8 +313,8 @@ export const PayrollRegister: React.FC = () => {
               {icon}
             </div>
             <div>
-              <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] font-ui">{label}</div>
-              <div className="text-lg font-bold font-data text-[var(--ink)] leading-tight">{value}</div>
+              <div className="text-xs font-normal uppercase font-semibold tracking-wider text-[var(--text-secondary)] ">{label}</div>
+              <div className="text-base font-semibold  text-[var(--text-primary)] leading-tight">{value}</div>
             </div>
           </div>
         ))}

@@ -150,11 +150,11 @@ export const TooltipProvider: React.FC<{ children: React.ReactNode }> = ({ child
           <div className="relative flex flex-col items-center">
             {/* Tooltip Content Card */}
             <div className="px-3 py-1.5 rounded-lg bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md text-slate-100 text-center shadow-xl shadow-black/30 border border-slate-700/60 dark:border-slate-800/80 min-w-max max-w-xs">
-              <div className="text-[12px] font-semibold tracking-wide flex items-center justify-center gap-1.5 leading-tight">
+              <div className="text-xs font-semibold tracking-wide flex items-center justify-center gap-1.5 leading-tight">
                 {tooltip.content}
               </div>
               {tooltip.hint && (
-                <div className="text-[10px] text-slate-400 font-medium mt-0.5 leading-tight">
+                <div className="text-xs font-normal text-slate-400 font-medium mt-0.5 leading-tight">
                   {tooltip.hint}
                 </div>
               )}

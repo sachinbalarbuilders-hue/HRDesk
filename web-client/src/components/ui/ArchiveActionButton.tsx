@@ -24,7 +24,7 @@ export const ArchiveActionButton: React.FC<ArchiveActionButtonProps> = ({
           e.stopPropagation();
           onRestore();
         }}
-        className={`p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-emerald-600 cursor-pointer transition-colors ${className}`}
+        className={`p-1 rounded hover:bg-[var(--paper)] text-[var(--text-secondary)] hover:text-emerald-600 cursor-pointer transition-colors ${className}`}
         title={`Restore ${itemName}`}
         aria-label={`Restore ${itemName}`}
       >
@@ -40,7 +40,7 @@ export const ArchiveActionButton: React.FC<ArchiveActionButtonProps> = ({
         e.stopPropagation();
         onArchive();
       }}
-      className={`p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-amber-600 cursor-pointer transition-colors ${className}`}
+      className={`p-1 rounded hover:bg-[var(--paper)] text-[var(--text-secondary)] hover:text-amber-600 cursor-pointer transition-colors ${className}`}
       title={`Archive ${itemName}`}
       aria-label={`Archive ${itemName}`}
     >

@@ -38,27 +38,27 @@
     --sidebar-text-active: #172033;
 
     /* Surfaces */
-    --bg: #F7F8FC;
+    --bg: #F4F6FA;
     --surface: #FFFFFF;
-    --surface-secondary: #F8F9FC;
-    --surface-hover: #F8F9FC;
-    --surface-sunken: #F8F9FC;
+    --surface-secondary: #F8FAFC;
+    --surface-hover: #F1F5F9;
+    --surface-sunken: #F1F5F9;
     --surface-header: #FFFFFF;
 
     /* Table Header */
-    --table-header-bg: #F8F9FC;
-    --table-header-text: #475467;
-    --table-header-border: #EAECF0;
+    --table-header-bg: #EEF2F6;
+    --table-header-text: #334155;
+    --table-header-border: #CBD5E1;
 
     /* Text */
-    --text-primary: #172033;
-    --text-secondary: #667085;
-    --text-muted: #98A2B3;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #64748B;
     --text-inverse: #FFFFFF;
 
     /* Borders */
-    --border: #EAECF0;
-    --border-strong: #D0D5DD;
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
     --ring: rgba(79, 70, 229, 0.25);
 
     /* Semantic */
@@ -133,17 +133,17 @@
     --surface-header: #05070A;
 
     /* Table Header */
-    --table-header-bg: #0E121B;
-    --table-header-text: #94A3B8;
-    --table-header-border: rgba(255, 255, 255, 0.08);
+    --table-header-bg: #141824;
+    --table-header-text: #CBD5E1;
+    --table-header-border: rgba(255, 255, 255, 0.12);
 
     --text-primary: #F8FAFC;
     --text-secondary: #94A3B8;
     --text-muted: #64748B;
     --text-inverse: #05070A;
 
-    --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.16);
+    --border: rgba(255, 255, 255, 0.09);
+    --border-strong: rgba(255, 255, 255, 0.18);
     --ring: rgba(99, 102, 241, 0.25);
 
     --success: #32D583;
@@ -249,7 +249,7 @@ html.theme-transitioning *::after {
 
 .font-display {
   font-family: 'Inter', -apple-system, sans-serif;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .font-ui {
@@ -262,7 +262,7 @@ html.theme-transitioning *::after {
 }
 
 /* ============================================
-   BUTTONS
+   BUTTONS (Rule: 14px Medium Size, 600 Semibold)
    ============================================ */
 
 .btn-primary {
@@ -270,8 +270,8 @@ html.theme-transitioning *::after {
   color: var(--btn-primary-text, #FFFFFF);
   border: 1px solid var(--btn-primary-border, #0F172A);
   border-radius: var(--radius-md);
-  padding: 8px 16px;
-  font-size: 13px;
+  padding: 7px 14px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
@@ -284,7 +284,6 @@ html.theme-transitioning *::after {
   background-color: var(--btn-primary-hover, #1E293B);
   border-color: var(--btn-primary-hover, #1E293B);
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
-  transform: translateY(-1px);
 }
 .btn-primary:active {
   transform: scale(0.98);
@@ -299,38 +298,47 @@ html.theme-transitioning *::after {
 .btn-secondary {
   background-color: var(--surface);
   color: var(--text-primary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   box-shadow: var(--shadow-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
 }
 .btn-secondary:hover {
-  background-color: var(--surface-secondary);
+  background-color: var(--surface-hover);
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
 }
 .btn-secondary:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 /* Legacy compat */
 .btn-outline {
   background-color: var(--surface);
   color: var(--text-primary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   box-shadow: var(--shadow-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
 }
 .btn-outline:hover {
-  background-color: var(--surface-secondary);
+  background-color: var(--surface-hover);
   border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 .btn-danger {
@@ -338,8 +346,8 @@ html.theme-transitioning *::after {
   color: var(--text-inverse);
   border: 1px solid var(--danger);
   border-radius: var(--radius-md);
-  padding: 8px 16px;
-  font-size: 13px;
+  padding: 7px 14px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }

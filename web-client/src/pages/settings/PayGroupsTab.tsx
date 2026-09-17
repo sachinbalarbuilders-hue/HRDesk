@@ -92,35 +92,35 @@ function renderRuleBadge(c: { calculationType?: string; value?: number | null; d
   const val = c.value != null ? c.value : c.defaultValue;
   if (type === 'PercentOfCTC') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300">
         {val ?? 0}% of CTC
       </span>
     );
   }
   if (type === 'PercentOfComponent') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300">
         {val ?? 0}% of {c.baseComponentCode || 'BASIC'}
       </span>
     );
   }
   if (type === 'FixedAmount') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
         ₹{Number(val || 0).toLocaleString('en-IN')}/mo
       </span>
     );
   }
   if (type === 'Remainder') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
         Remainder
       </span>
     );
   }
   if (type === 'Statutory') {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
         Statutory
       </span>
     );
@@ -167,7 +167,7 @@ function Avatar({ emp, size = 24 }: { emp: { employeeId: number; employeeName: s
   return (
     <div
       title={emp.employeeName}
-      className={`${avatarColor(emp.employeeId)} rounded-full flex items-center justify-center text-white font-bold border border-[var(--rule)] ring-1 ring-[var(--surface)] shrink-0`}
+      className={`${avatarColor(emp.employeeId)} rounded-full flex items-center justify-center text-white font-semibold border border-[var(--rule)] ring-1 ring-[var(--surface)] shrink-0`}
       style={{ width: px, height: px, minWidth: px, fontSize: size * 0.38 }}
     >
       {initials(emp.employeeName)}
@@ -179,7 +179,7 @@ function Avatar({ emp, size = 24 }: { emp: { employeeId: number; employeeName: s
 
 function AvatarStack({ employees, maxShow = 4 }: { employees: GroupEmployee[]; maxShow?: number }) {
   if (!employees.length) {
-    return <span className="text-[10px] text-[var(--ink-muted)] italic">—</span>;
+    return <span className="text-xs font-normal text-[var(--text-secondary)] italic">—</span>;
   }
   const shown = employees.slice(0, maxShow);
   const extra = employees.length - shown.length;
@@ -192,7 +192,7 @@ function AvatarStack({ employees, maxShow = 4 }: { employees: GroupEmployee[]; m
       ))}
       {extra > 0 && (
         <div
-          className="rounded-full bg-[var(--paper-subtle)] border border-[var(--rule)] ring-1 ring-[var(--surface)] flex items-center justify-center text-[var(--ink-muted)] font-semibold"
+          className="rounded-full bg-[var(--paper-subtle)] border border-[var(--rule)] ring-1 ring-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] font-semibold"
           style={{ width: 22, height: 22, minWidth: 22, fontSize: 9, marginLeft: -6, zIndex: 0 }}
         >
           +{extra}
@@ -282,8 +282,8 @@ function EmployeeAssignPanel({
 
   return (
     <div className="space-y-3">
-      <p className="font-bold text-[var(--ink)] text-[11px] uppercase tracking-wider border-b border-[var(--rule)] pb-2 flex items-center gap-1.5">
-        <Users size={12} className="text-[var(--gold-500)]" />
+      <p className="font-semibold text-[var(--text-primary)] text-xs font-normal uppercase tracking-wider border-b border-[var(--rule)] pb-2 flex items-center gap-1.5">
+        <Users size={12} className="text-[var(--accent)]" />
         Assigned Employees ({assigned.length})
       </p>
 
@@ -292,7 +292,7 @@ function EmployeeAssignPanel({
         <button
           type="button"
           onClick={() => { setDropOpen(o => !o); }}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink-muted)] hover:border-[var(--gold-400)] transition-colors cursor-pointer text-left"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-secondary)] hover:border-[var(--gold-400)] transition-colors cursor-pointer text-left"
         >
           <UserPlus size={12} />
           Add employee to this group…
@@ -307,12 +307,12 @@ function EmployeeAssignPanel({
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search employees…"
-                className="w-full px-2 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)]"
+                className="w-full px-2 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
               />
             </div>
             <div className="max-h-44 overflow-y-auto">
               {unassignedEmployees.length === 0 ? (
-                <p className="text-xs text-[var(--ink-muted)] p-3 text-center italic">
+                <p className="text-xs text-[var(--text-secondary)] p-3 text-center italic">
                   {search ? 'No matches' : 'All employees already assigned'}
                 </p>
               ) : (
@@ -325,9 +325,9 @@ function EmployeeAssignPanel({
                   >
                     <Avatar emp={emp} size={20} />
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-[var(--ink)] truncate">{emp.employeeName}</p>
+                      <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{emp.employeeName}</p>
                       {emp.department && (
-                        <p className="text-[10px] text-[var(--ink-muted)] truncate">{emp.department}</p>
+                        <p className="text-xs font-normal text-[var(--text-secondary)] truncate">{emp.department}</p>
                       )}
                     </div>
                   </button>
@@ -340,9 +340,9 @@ function EmployeeAssignPanel({
 
       {/* Assigned list */}
       {loading ? (
-        <p className="text-xs text-[var(--ink-muted)] italic py-2">Loading…</p>
+        <p className="text-xs text-[var(--text-secondary)] italic py-2">Loading…</p>
       ) : assigned.length === 0 ? (
-        <p className="text-xs text-[var(--ink-muted)] italic py-2">No employees assigned yet.</p>
+        <p className="text-xs text-[var(--text-secondary)] italic py-2">No employees assigned yet.</p>
       ) : (
         <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
           {assigned.map(emp => (
@@ -352,9 +352,9 @@ function EmployeeAssignPanel({
             >
               <Avatar emp={emp} size={24} />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-[var(--ink)] truncate">{emp.employeeName}</p>
+                <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{emp.employeeName}</p>
                 {(emp.department || emp.designation) && (
-                  <p className="text-[10px] text-[var(--ink-muted)] truncate">
+                  <p className="text-xs font-normal text-[var(--text-secondary)] truncate">
                     {[emp.designation, emp.department].filter(Boolean).join(' · ')}
                   </p>
                 )}
@@ -362,7 +362,7 @@ function EmployeeAssignPanel({
               <button
                 type="button"
                 onClick={() => handleRemove(emp)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--ink-muted)] hover:text-red-500 cursor-pointer p-0.5"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-secondary)] hover:text-red-500 cursor-pointer p-0.5"
                 title="Remove from group"
               >
                 <X size={12} />
@@ -572,8 +572,8 @@ export const PayGroupsTab: React.FC = () => {
       header: 'Group Name',
       render: (g: PayGroup) => (
         <div>
-          <p className="font-semibold text-[var(--ink)] text-xs">{g.name}</p>
-          {g.description && <p className="text-[10px] text-[var(--ink-muted)] mt-0.5">{g.description}</p>}
+          <p className="font-semibold text-[var(--text-primary)] text-xs">{g.name}</p>
+          {g.description && <p className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">{g.description}</p>}
         </div>
       ),
     },
@@ -581,7 +581,7 @@ export const PayGroupsTab: React.FC = () => {
       key: 'salaryBasis',
       header: 'Salary Basis',
       render: (g: PayGroup) => (
-        <span className="text-xs font-medium text-[var(--ink)]">
+        <span className="text-sm font-semibold text-[var(--text-primary)]">
           {BASIS_LABELS[g.salaryBasis] ?? g.salaryBasis}
         </span>
       ),
@@ -592,7 +592,7 @@ export const PayGroupsTab: React.FC = () => {
       render: (g: PayGroup) => {
         const count = g.componentCount ?? g.components?.length ?? 0;
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[var(--paper-subtle)] text-[var(--ink)] border border-[var(--rule)]">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-[var(--paper-subtle)] text-[var(--text-primary)] border border-[var(--rule)]">
             {count} {count === 1 ? 'component' : 'components'}
           </span>
         );
@@ -606,7 +606,7 @@ export const PayGroupsTab: React.FC = () => {
         <div className="flex items-center gap-2">
           <AvatarStack employees={groupAvatars[g.id] || []} maxShow={5} />
           {g.employeeCount > 0 && (
-            <span className="text-[10px] text-[var(--ink-muted)] font-data tabular-nums">
+            <span className="text-xs font-normal text-[var(--text-secondary)]  tabular-nums">
               {g.employeeCount}
             </span>
           )}
@@ -633,8 +633,8 @@ export const PayGroupsTab: React.FC = () => {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h2 className="text-base font-bold text-[var(--ink)] font-ui">Pay Groups</h2>
-        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+        <h2 className="text-base font-semibold text-[var(--text-primary)] ">Pay Groups</h2>
+        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
           Configure salary calculation basis, statutory deduction applicability, and link templates.
         </p>
       </div>
@@ -681,14 +681,14 @@ export const PayGroupsTab: React.FC = () => {
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex flex-shrink-0 items-center justify-between p-4 border-b border-[var(--rule)]">
               <div>
-                <h3 className="font-bold text-sm text-[var(--ink)]">
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">
                   {editId ? 'Edit Pay Group & Salary Structure' : 'New Pay Group & Salary Structure'}
                 </h3>
-                <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
+                <p className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">
                   Assign salary components and deduction rules that apply to this group of employees.
                 </p>
               </div>
-              <button onClick={() => setModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => setModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -697,39 +697,39 @@ export const PayGroupsTab: React.FC = () => {
 
                 {/* Column 1: Basic Info & Statutory Tuning */}
                 <div className="space-y-4">
-                  <p className="font-bold text-[var(--ink)] text-[11px] uppercase tracking-wider border-b border-[var(--rule)] pb-2">
+                  <p className="font-semibold text-[var(--text-primary)] text-xs font-normal uppercase tracking-wider border-b border-[var(--rule)] pb-2">
                     Group Details
                   </p>
                   <div>
-                    <label className="font-semibold text-[var(--ink)] block mb-1.5 text-xs">Group Name *</label>
+                    <label className="font-semibold text-[var(--text-primary)] block mb-1.5 text-xs">Group Name *</label>
                     <input
                       name="name"
                       value={form.name}
                       onChange={F}
                       required
                       placeholder="e.g. Corporate Staff, Factory Workers"
-                      className="w-full px-3 py-2 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                      className="w-full px-3 py-2 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] "
                     />
                   </div>
 
                   <div>
-                    <label className="font-semibold text-[var(--ink)] block mb-1.5 text-xs">Description</label>
+                    <label className="font-semibold text-[var(--text-primary)] block mb-1.5 text-xs">Description</label>
                     <input
                       name="description"
                       value={form.description}
                       onChange={F}
                       placeholder="Optional notes"
-                      className="w-full px-3 py-2 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                      className="w-full px-3 py-2 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] "
                     />
                   </div>
 
                   <div>
-                    <label className="font-semibold text-[var(--ink)] block mb-1.5 text-xs">Salary Calculation Basis</label>
+                    <label className="font-semibold text-[var(--text-primary)] block mb-1.5 text-xs">Salary Calculation Basis</label>
                     <select
                       name="salaryBasis"
                       value={form.salaryBasis}
                       onChange={F}
-                      className="w-full px-3 py-2 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui cursor-pointer"
+                      className="w-full px-3 py-2 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]  cursor-pointer"
                     >
                       {Object.entries(BASIS_LABELS).map(([k, v]) => (
                         <option key={k} value={k}>{v}</option>
@@ -740,7 +740,7 @@ export const PayGroupsTab: React.FC = () => {
                   {/* Statutory options when PF or PT components are selected */}
                   {assignedComponents.some(c => c.selected && c.componentCode.toUpperCase().includes('PF')) && (
                     <div className="pt-2 border-t border-[var(--rule)] space-y-2">
-                      <p className="font-semibold text-[var(--ink)] text-xs">PF Wage Capping</p>
+                      <p className="font-semibold text-[var(--text-primary)] text-xs">PF Wage Capping</p>
                       <Switch
                         checked={form.capEmployeePf}
                         onChange={(checked) => setForm(f => ({ ...f, capEmployeePf: checked, capEmployerPf: checked }))}
@@ -752,12 +752,12 @@ export const PayGroupsTab: React.FC = () => {
 
                   {assignedComponents.some(c => c.selected && (c.componentCode.toUpperCase() === 'PT' || c.componentCode.toUpperCase().includes('PROFESSIONAL_TAX'))) && (
                     <div className="pt-2 border-t border-[var(--rule)] space-y-1.5">
-                      <label className="font-semibold text-[var(--ink)] block text-xs">PT State Slabs</label>
+                      <label className="font-semibold text-[var(--text-primary)] block text-xs">PT State Slabs</label>
                       <select
                         name="ptState"
                         value={form.ptState}
                         onChange={F}
-                        className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui cursor-pointer"
+                        className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]  cursor-pointer"
                       >
                         {STATES.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
@@ -769,10 +769,10 @@ export const PayGroupsTab: React.FC = () => {
                 <div className="space-y-3">
                   <div className="border-b border-[var(--rule)] pb-2 flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-[var(--ink)] text-[11px] uppercase tracking-wider">Salary Components</p>
-                      <p className="text-[10px] text-[var(--ink-muted)]">Check components that apply to this group</p>
+                      <p className="font-semibold text-[var(--text-primary)] text-xs font-normal uppercase tracking-wider">Salary Components</p>
+                      <p className="text-xs font-normal text-[var(--text-secondary)]">Check components that apply to this group</p>
                     </div>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--paper-subtle)] text-[var(--ink)] border border-[var(--rule)]">
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--paper-subtle)] text-[var(--text-primary)] border border-[var(--rule)]">
                       {assignedComponents.filter(c => c.selected).length} of {assignedComponents.length} selected
                     </span>
                   </div>
@@ -780,7 +780,7 @@ export const PayGroupsTab: React.FC = () => {
                   <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
                     {/* Earnings Section */}
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-1.5">
+                      <p className="text-xs font-normal font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-1.5">
                         Earnings
                       </p>
                       <div className="space-y-1">
@@ -791,7 +791,7 @@ export const PayGroupsTab: React.FC = () => {
                               key={c.componentId}
                               className={`flex items-center justify-between p-2 rounded-[4px] border transition-all cursor-pointer ${
                                 c.selected
-                                  ? 'bg-[var(--surface-sunken)] border-[var(--gold-500)]/40 shadow-xs'
+                                  ? 'bg-[var(--surface-sunken)] border-[var(--accent)]/40 shadow-xs'
                                   : 'bg-[var(--paper)] border-[var(--rule)] opacity-60 hover:opacity-100'
                               }`}
                             >
@@ -805,11 +805,11 @@ export const PayGroupsTab: React.FC = () => {
                                       prev.map(item => item.componentId === c.componentId ? { ...item, selected: checked } : item)
                                     );
                                   }}
-                                  className="rounded border-[var(--rule)] text-[var(--gold-500)] focus:ring-[var(--gold-500)] cursor-pointer"
+                                  className="rounded border-[var(--rule)] text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
                                 />
                                 <div className="min-w-0">
-                                  <span className="text-xs font-semibold text-[var(--ink)] truncate block">{c.componentName}</span>
-                                  <code className="text-[9px] font-mono px-1 py-0.2 rounded bg-[var(--paper-subtle)] text-[var(--ink-muted)]">
+                                  <span className="text-xs font-semibold text-[var(--text-primary)] truncate block">{c.componentName}</span>
+                                  <code className="text-xs font-normal  px-1 py-0.2 rounded bg-[var(--paper-subtle)] text-[var(--text-secondary)]">
                                     {c.componentCode}
                                   </code>
                                 </div>
@@ -822,7 +822,7 @@ export const PayGroupsTab: React.FC = () => {
 
                     {/* Deductions & Statutory Section */}
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-1.5">
+                      <p className="text-xs font-normal font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-1.5">
                         Deductions & Statutory
                       </p>
                       <div className="space-y-1">
@@ -833,7 +833,7 @@ export const PayGroupsTab: React.FC = () => {
                               key={c.componentId}
                               className={`flex items-center justify-between p-2 rounded-[4px] border transition-all cursor-pointer ${
                                 c.selected
-                                  ? 'bg-[var(--surface-sunken)] border-[var(--gold-500)]/40 shadow-xs'
+                                  ? 'bg-[var(--surface-sunken)] border-[var(--accent)]/40 shadow-xs'
                                   : 'bg-[var(--paper)] border-[var(--rule)] opacity-60 hover:opacity-100'
                               }`}
                             >
@@ -847,11 +847,11 @@ export const PayGroupsTab: React.FC = () => {
                                       prev.map(item => item.componentId === c.componentId ? { ...item, selected: checked } : item)
                                     );
                                   }}
-                                  className="rounded border-[var(--rule)] text-[var(--gold-500)] focus:ring-[var(--gold-500)] cursor-pointer"
+                                  className="rounded border-[var(--rule)] text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
                                 />
                                 <div className="min-w-0">
-                                  <span className="text-xs font-semibold text-[var(--ink)] truncate block">{c.componentName}</span>
-                                  <code className="text-[9px] font-mono px-1 py-0.2 rounded bg-[var(--paper-subtle)] text-[var(--ink-muted)]">
+                                  <span className="text-xs font-semibold text-[var(--text-primary)] truncate block">{c.componentName}</span>
+                                  <code className="text-xs font-normal  px-1 py-0.2 rounded bg-[var(--paper-subtle)] text-[var(--text-secondary)]">
                                     {c.componentCode}
                                   </code>
                                 </div>
@@ -876,7 +876,7 @@ export const PayGroupsTab: React.FC = () => {
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-center gap-2 py-8">
                       <Users size={28} className="text-[var(--ink-subtle)]" />
-                      <p className="text-xs text-[var(--ink-muted)]">Save the group first,<br />then assign employees.</p>
+                      <p className="text-xs text-[var(--text-secondary)]">Save the group first,<br />then assign employees.</p>
                     </div>
                   )}
                 </div>

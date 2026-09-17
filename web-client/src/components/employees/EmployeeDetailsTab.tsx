@@ -16,9 +16,9 @@ interface Props {
 }
 
 const Field = ({ label, value, className = '', titleAttr }: { label: string; value: React.ReactNode; className?: string; titleAttr?: string }) => (
-  <div className={`p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] ${className}`}>
-    <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">{label}</span>
-    <p className="font-semibold text-[var(--ink)] mt-0.5 truncate" title={titleAttr}>{value || '-'}</p>
+  <div className={`p-4 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)] ${className}`}>
+    <span className="text-xs uppercase font-semibold text-[var(--text-secondary)]">{label}</span>
+    <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5 truncate" title={titleAttr}>{value || '-'}</p>
   </div>
 );
 
@@ -33,9 +33,9 @@ export const EmployeeDetailsTab: React.FC<Props> = ({ employee }) => {
         <Field label="Weekly Off"       value={employee.weekoff      || 'Sunday'} />
         <Field label="Employment Type"  value={employee.employmentType} />
         <Field label="Attendance Type"  value={employee.attendanceType} />
-        <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-          <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Date of Birth</span>
-          <p className="font-data font-semibold text-[var(--ink)] mt-0.5">{formatDate(employee.dateOfBirth)}</p>
+        <div className="p-4 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+          <span className="text-xs uppercase font-semibold text-[var(--text-secondary)]">Date of Birth</span>
+          <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">{formatDate(employee.dateOfBirth)}</p>
         </div>
         <Field label="Gender"         value={employee.gender} />
         <Field label="Blood Group"    value={employee.bloodGroup} />
@@ -46,46 +46,46 @@ export const EmployeeDetailsTab: React.FC<Props> = ({ employee }) => {
       </div>
 
       {/* Addresses */}
-      <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-        <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Current Address</span>
-        <p className="font-semibold text-[var(--ink)] mt-0.5 whitespace-pre-wrap">{employee.currentAddress || '-'}</p>
+      <div className="p-4 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+        <span className="text-xs uppercase font-semibold text-[var(--text-secondary)]">Current Address</span>
+        <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5 whitespace-pre-wrap">{employee.currentAddress || '-'}</p>
       </div>
-      <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-        <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Permanent Address</span>
-        <p className="font-semibold text-[var(--ink)] mt-0.5 whitespace-pre-wrap">{employee.permanentAddress || '-'}</p>
+      <div className="p-4 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+        <span className="text-xs uppercase font-semibold text-[var(--text-secondary)]">Permanent Address</span>
+        <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5 whitespace-pre-wrap">{employee.permanentAddress || '-'}</p>
       </div>
 
       {/* Probation + Branch + Contract Details */}
       <div className="grid grid-cols-2 gap-3 md:col-span-2">
-        <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-          <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Probation Details</span>
-          <p className="font-semibold text-[var(--ink)] mt-0.5">
+        <div className="p-4 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+          <span className="text-xs uppercase font-semibold text-[var(--text-secondary)]">Probation Details</span>
+          <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">
             {employee.hasProbation ? `Yes, ${employee.probationDays} days` : 'No Probation'}
           </p>
         </div>
-        <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-1.5">
+        <div className="p-4 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)] space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Assigned Branch</span>
-            <MapPin size={13} className="text-[var(--gold-500)]" />
+            <span className="text-xs uppercase font-semibold text-[var(--text-secondary)]">Assigned Branch</span>
+            <MapPin size={13} className="text-[var(--accent)]" />
           </div>
-          <p className="font-semibold text-[var(--ink)] mt-0.5">{employee.branch || 'No Branch Assigned'}</p>
+          <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">{employee.branch || 'No Branch Assigned'}</p>
         </div>
 
         {(employee.employmentType === 'Contract' || employee.employmentType === 'Intern' || employee.contractDurationMonths || employee.contractEndDate) && (
-          <div className="p-4 rounded-[4px] bg-[var(--surface-sunken)]/60 border border-[var(--gold-500)]/30 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="p-4 rounded-[var(--radius-sm)] bg-[var(--accent)]/5 border border-[var(--accent)]/30 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <span className="text-[10px] uppercase font-bold text-[var(--gold-600)] dark:text-[var(--gold-400)] font-ui">
+              <span className="text-xs uppercase font-semibold text-[var(--accent)]">
                 {employee.employmentType === 'Contract' ? 'Contract Term' : 'Internship Term'}
               </span>
-              <p className="font-semibold text-[var(--ink)] mt-0.5">
+              <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">
                 {employee.contractDurationMonths ? `${employee.contractDurationMonths} Months` : 'Fixed Term'}
               </p>
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-[var(--gold-600)] dark:text-[var(--gold-400)] font-ui">
+              <span className="text-xs uppercase font-semibold text-[var(--accent)]">
                 {employee.employmentType === 'Contract' ? 'Contract Expiry Date' : 'Completion Date'}
               </span>
-              <p className="font-data font-semibold text-[var(--ink)] mt-0.5">
+              <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">
                 {formatDate(employee.contractEndDate)}
               </p>
             </div>
@@ -94,19 +94,19 @@ export const EmployeeDetailsTab: React.FC<Props> = ({ employee }) => {
       </div>
 
       {/* Phone */}
-      <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between md:col-span-2">
+      <div className="p-4 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-between md:col-span-2">
         <div>
-          <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Phone Number</span>
-          <p className="font-data font-semibold text-[var(--ink)] mt-0.5">{employee.phone || '-'}</p>
+          <span className="text-xs uppercase font-semibold text-[var(--text-secondary)]">Phone Number</span>
+          <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">{employee.phone || '-'}</p>
         </div>
-        <Phone size={16} className="text-[var(--ink-muted)]" />
+        <Phone size={16} className="text-[var(--text-secondary)]" />
       </div>
 
       {/* Bank Account Details */}
       {(employee.bankName || employee.bankAccountNumber || employee.bankIfscCode) && (
         <div className="md:col-span-2">
-          <h3 className="text-[11px] uppercase font-bold text-[var(--ink-muted)] font-ui mb-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--teal-500)]"></span>
+          <h3 className="text-xs uppercase font-semibold text-[var(--text-secondary)] mb-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
             Bank Account
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -122,8 +122,8 @@ export const EmployeeDetailsTab: React.FC<Props> = ({ employee }) => {
       {/* Statutory / Compliance */}
       {(employee.panNumber || employee.aadhaarNumber || employee.uanNumber || employee.pfNumber || employee.esiNumber) && (
         <div className="md:col-span-2">
-          <h3 className="text-[11px] uppercase font-bold text-[var(--ink-muted)] font-ui mb-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold-500)]"></span>
+          <h3 className="text-xs uppercase font-semibold text-[var(--text-secondary)] mb-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
             Statutory Details
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -139,8 +139,8 @@ export const EmployeeDetailsTab: React.FC<Props> = ({ employee }) => {
       {/* Emergency Contact */}
       {(employee.emergencyContactName || employee.emergencyContactPhone || employee.emergencyContacts) && (
         <div className="md:col-span-2">
-          <h3 className="text-[11px] uppercase font-bold text-[var(--ink-muted)] font-ui mb-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--rose-500)]"></span>
+          <h3 className="text-xs uppercase font-semibold text-[var(--text-secondary)] mb-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--danger)]"></span>
             Emergency Contacts
           </h3>
           {(() => {
@@ -170,8 +170,8 @@ export const EmployeeDetailsTab: React.FC<Props> = ({ employee }) => {
       {/* Additional Identity */}
       {(employee.passportNumber || employee.noticePeriodDays) && (
         <div className="md:col-span-2">
-          <h3 className="text-[11px] uppercase font-bold text-[var(--ink-muted)] font-ui mb-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--ink-muted)]"></span>
+          <h3 className="text-xs uppercase font-semibold text-[var(--text-secondary)] mb-3 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)]"></span>
             Additional Information
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

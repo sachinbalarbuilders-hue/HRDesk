@@ -70,8 +70,8 @@ export const BulkAssignSalaryModal: React.FC<BulkAssignSalaryModalProps> = ({
       <div className="bg-[var(--paper)] w-full max-w-lg rounded-xl shadow-xl overflow-hidden flex flex-col max-h-full border border-[var(--rule)]">
         
         <div className="flex items-center justify-between p-4 border-b border-[var(--rule)] bg-[var(--paper-subtle)]">
-          <h2 className="text-sm font-bold text-[var(--ink)]">Bulk Assign Pay Group</h2>
-          <button onClick={onClose} className="p-1 hover:bg-[var(--rule)] rounded-md transition-colors text-[var(--ink-muted)]">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Bulk Assign Pay Group</h2>
+          <button onClick={onClose} className="p-1 hover:bg-[var(--rule)] rounded-md transition-colors text-[var(--text-secondary)]">
             <X size={16} />
           </button>
         </div>
@@ -83,17 +83,17 @@ export const BulkAssignSalaryModal: React.FC<BulkAssignSalaryModalProps> = ({
 
         <form onSubmit={handleSave} className="p-4 overflow-y-auto flex-1">
           {loading ? (
-            <div className="py-8 text-center text-xs text-[var(--ink-muted)]">Loading configuration...</div>
+            <div className="py-8 text-center text-xs text-[var(--text-secondary)]">Loading configuration...</div>
           ) : (
             <div className="space-y-5">
               <div className="space-y-3">
-                <h3 className="text-xs font-semibold text-[var(--ink)] uppercase tracking-wider flex items-center gap-1.5 opacity-80">
+                <h3 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5 opacity-80">
                   <Settings2 size={12} /> Pay Group Assignment
                 </h3>
                 <div>
-                  <label className="block text-xs font-medium text-[var(--ink-muted)] mb-1">Pay Group</label>
+                  <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1">Pay Group</label>
                   <select
-                    className="w-full h-8 text-sm border border-[var(--rule)] rounded-md bg-[var(--paper)] text-[var(--ink)] px-2 focus:border-[var(--gold-500)] outline-none"
+                    className="w-full h-8 text-sm border border-[var(--rule)] rounded-md bg-[var(--paper)] text-[var(--text-primary)] px-2 focus:border-[var(--accent)] outline-none"
                     value={payGroupId}
                     onChange={(e) => setPayGroupId(e.target.value)}
                     required
@@ -103,7 +103,7 @@ export const BulkAssignSalaryModal: React.FC<BulkAssignSalaryModalProps> = ({
                       <option key={g.id} value={g.id}>{g.name} ({g.salaryBasis})</option>
                     ))}
                   </select>
-                  <p className="text-[10px] text-[var(--ink-muted)] mt-1.5">
+                  <p className="text-xs font-normal text-[var(--text-secondary)] mt-1.5">
                     This determines the salary structure and calculation rules. You can set the individual CTC later for each employee.
                   </p>
                 </div>
@@ -116,14 +116,14 @@ export const BulkAssignSalaryModal: React.FC<BulkAssignSalaryModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-1.5 text-xs font-medium rounded-md border border-[var(--rule)] text-[var(--ink)] hover:bg-[var(--paper-subtle)]"
+              className="px-4 py-1.5 text-sm font-semibold rounded-md border border-[var(--rule)] text-[var(--text-primary)] hover:bg-[var(--paper-subtle)]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || !payGroupId}
-              className="px-4 py-1.5 text-xs font-medium rounded-md bg-[var(--gold-500)] text-white hover:bg-[var(--gold-600)] flex items-center gap-1.5 disabled:opacity-50"
+              className="px-4 py-1.5 text-sm font-semibold rounded-md bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] flex items-center gap-1.5 disabled:opacity-50"
             >
               {saving ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={14} />}
               Apply to {selectedEmployeeIds.length} Employee(s)

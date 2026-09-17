@@ -221,19 +221,19 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
     <form id="employeeForm" onSubmit={handleSubmit} className="space-y-6">
       {/* 1. Personal Details */}
       <section className="space-y-3">
-        <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">1. Personal Details</h4>
+        <h4 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">1. Personal Details</h4>
         
         {/* Auto ID - only show if not editing an existing employee or if we want to show it always */}
         <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between mb-3">
           <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-muted)] font-ui block">
+            <span className="text-xs font-normal uppercase font-semibold tracking-wider text-[var(--text-secondary)]  block">
               Employee Code &amp; ID
             </span>
-            <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
               System-generated with branch prefix
             </p>
           </div>
-          <span className="font-mono text-xs font-semibold text-[var(--accent)] px-2.5 py-1 rounded-md bg-[var(--accent-light)] border border-[var(--accent-ring)]">
+          <span className=" text-xs font-semibold text-[var(--accent)] px-2.5 py-1 rounded-md bg-[var(--accent-light)] border border-[var(--accent-ring)]">
             {(() => {
               const branch = branches?.find((b: any) => String(b.id) === String(formData.branchId || currentBranch?.id));
               const rawPrefix = branch?.code || 'EMP#';
@@ -248,15 +248,15 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Full Legal Name *</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Full Legal Name *</label>
             <input type="text" required value={formData.employeeName} onChange={(e) => setFormData({ ...formData, employeeName: e.target.value })} placeholder="e.g. Ramesh Patel" className="register-input w-full" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Date of Birth</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Date of Birth</label>
             <input type="date" value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} className="register-input w-full" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Gender</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Gender</label>
             <select value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value })} className="register-input w-full">
               <option value="">Select Gender</option>
               <option value="Male">Male</option>
@@ -267,7 +267,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Blood Group</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Blood Group</label>
             <select value={formData.bloodGroup} onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })} className="register-input w-full">
               <option value="">Select</option>
               <option value="A+">A+</option><option value="A-">A-</option>
@@ -277,7 +277,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Marital Status</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Marital Status</label>
             <select value={formData.maritalStatus} onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value })} className="register-input w-full">
               <option value="">Select Status</option>
               <option value="Single">Single</option>
@@ -289,7 +289,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             </select>
           </div>
           <div className="col-span-2">
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Nationality</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Nationality</label>
             <input type="text" value={formData.nationality} onChange={(e) => setFormData({ ...formData, nationality: e.target.value })} placeholder="e.g. Indian" className="register-input w-full" />
           </div>
         </div>
@@ -297,18 +297,18 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
       {/* 2. Contact Details */}
       <section className="space-y-3">
-        <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">2. Contact Details</h4>
+        <h4 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">2. Contact Details</h4>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Phone Number</label>
-            <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="9876543210" className="register-input w-full font-data" />
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Phone Number</label>
+            <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="9876543210" className="register-input w-full " />
           </div>
           <div></div>
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-[var(--ink)]">Work Email</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)]">Work Email</label>
               {isBasicInfoOnly && (
-                <span className="text-[10px] text-[var(--ink-muted)]">🔒 Corporate</span>
+                <span className="text-xs font-normal text-[var(--text-secondary)]">🔒 Corporate</span>
               )}
             </div>
             <input 
@@ -321,7 +321,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Personal Email</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Personal Email</label>
             <input type="email" value={formData.personalEmail} onChange={(e) => setFormData({ ...formData, personalEmail: e.target.value })} placeholder="personal@gmail.com" className="register-input w-full" />
           </div>
         </div>
@@ -329,10 +329,10 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
       {/* 2.5 Addresses */}
       <section className="space-y-3">
-        <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">3. Addresses</h4>
+        <h4 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--rule)] pb-1 mb-2">3. Addresses</h4>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Current Address</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Current Address</label>
             <textarea
               value={formData.currentAddress}
               onChange={(e) => setFormData({ ...formData, currentAddress: e.target.value })}
@@ -342,11 +342,11 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
           <div className="col-span-2">
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-[var(--ink)]">Permanent Address</label>
-              <label className="flex items-center gap-1.5 text-xs text-[var(--ink-muted)] cursor-pointer">
+              <label className="block text-xs font-semibold text-[var(--text-primary)]">Permanent Address</label>
+              <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] cursor-pointer">
                 <input 
                   type="checkbox" 
-                  className="accent-[var(--gold-500)]"
+                  className="accent-[var(--accent)]"
                   onChange={(e) => {
                     if (e.target.checked) {
                       setFormData({ ...formData, permanentAddress: formData.currentAddress });
@@ -369,22 +369,22 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       {/* 4. Job Assignment */}
       <section className="space-y-3">
         <div className="flex items-center justify-between border-b border-[var(--rule)] pb-1 mb-2">
-          <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider">4. Job Assignment</h4>
+          <h4 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">4. Job Assignment</h4>
           {isBasicInfoOnly && (
-            <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium border border-amber-500/20">
+            <span className="text-xs font-normal px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium border border-amber-500/20">
               🔒 Locked (Basic Info Edit Scope)
             </span>
           )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Branch / Site Location</label>
-            <div className="register-input w-full bg-[var(--paper)] text-[var(--ink-muted)] flex items-center">
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Branch / Site Location</label>
+            <div className="register-input w-full bg-[var(--paper)] text-[var(--text-secondary)] flex items-center">
               {currentBranch?.name || 'All / Default HQ'}
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Employment Type</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Employment Type</label>
             <select 
               disabled={isBasicInfoOnly} 
               value={formData.employmentType} 
@@ -407,12 +407,12 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                   <Clock size={14} />
                   {formData.employmentType === 'Contract' ? 'Contract Agreement Duration' : 'Internship Term Duration'}
                 </span>
-                <span className="text-[10px] text-[var(--ink-muted)]">Fixed-term arrangement</span>
+                <span className="text-xs font-normal text-[var(--text-secondary)]">Fixed-term arrangement</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                     Duration (Months)
                   </label>
                   <select
@@ -432,7 +432,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                         contractEndDate: newEndDate,
                       });
                     }}
-                    className={`register-input w-full font-data ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+                    className={`register-input w-full  ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
                   >
                     <option value="">Select Duration</option>
                     <option value="1">1 Month</option>
@@ -446,7 +446,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                     {formData.employmentType === 'Contract' ? 'Contract End Date' : 'Internship Completion Date'}
                   </label>
                   <input
@@ -454,7 +454,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
                     type="date"
                     value={formData.contractEndDate ? formData.contractEndDate.split('T')[0] : ''}
                     onChange={(e) => setFormData({ ...formData, contractEndDate: e.target.value })}
-                    className={`register-input w-full font-data ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
+                    className={`register-input w-full  ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`}
                   />
                 </div>
               </div>
@@ -462,9 +462,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           )}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-[var(--ink)]">Department</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)]">Department</label>
               {(lookups?.createScope === 'Department' || lookups?.createScope === 'Own Department' || lookups?.createScope === 'Reporting To' || lookups?.createScope === 'Reporting') && (
-                <span className="text-[10px] text-[var(--accent)] font-medium">🔒 Your Department</span>
+                <span className="text-xs font-normal text-[var(--accent)] font-medium">🔒 Your Department</span>
               )}
             </div>
             <select 
@@ -480,7 +480,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Designation</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Designation</label>
             <select 
               disabled={isBasicInfoOnly}
               value={formData.designationId} 
@@ -495,9 +495,9 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-semibold text-[var(--ink)]">Reporting Manager</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)]">Reporting Manager</label>
               {(lookups?.createScope === 'Reporting To' || lookups?.createScope === 'Reporting') && (
-                <span className="text-[10px] text-[var(--accent)] font-medium">🔒 You (Direct Reportee)</span>
+                <span className="text-xs font-normal text-[var(--accent)] font-medium">🔒 You (Direct Reportee)</span>
               )}
             </div>
             <select 
@@ -513,7 +513,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">User Role (Auto-create account)</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">User Role (Auto-create account)</label>
             <select 
               disabled={isBasicInfoOnly}
               value={formData.roleId} 
@@ -524,7 +524,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               {lookups?.roles?.map((r: any) => (<option key={r.id} value={r.id}>{r.name}</option>))}
             </select>
             {formData.roleId && (
-              <p className="text-[10px] text-[var(--accent)] mt-1 font-medium">
+              <p className="text-xs font-normal text-[var(--accent)] mt-1 font-medium">
                 ✨ Auto-creates corporate login using Work Email with initial password <code>Welcome@123</code>.
               </p>
             )}
@@ -535,26 +535,26 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       {/* 5. Employment Rules */}
       <section className="space-y-3">
         <div className="flex items-center justify-between border-b border-[var(--rule)] pb-1 mb-2">
-          <h4 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider">5. Employment Rules</h4>
+          <h4 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">5. Employment Rules</h4>
           {isBasicInfoOnly && (
-            <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium border border-amber-500/20">
+            <span className="text-xs font-normal px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium border border-amber-500/20">
               🔒 Locked (Basic Info Edit Scope)
             </span>
           )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Joining Date</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Joining Date</label>
             <input 
               disabled={isBasicInfoOnly}
               type="date" 
               value={formData.joiningDate} 
               onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })} 
-              className={`register-input w-full font-data ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`} 
+              className={`register-input w-full  ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`} 
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Weekly Off</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Weekly Off</label>
             <select 
               disabled={isBasicInfoOnly}
               value={formData.weekoff} 
@@ -571,7 +571,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
               Attendance Type <span className="text-rose-500">*</span>
             </label>
             <select 
@@ -591,43 +591,43 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               <option value="None">None</option>
             </select>
             {!formData.attendanceType && (
-              <p className="text-[11px] text-rose-500 mt-1">Attendance type is required</p>
+              <p className="text-xs font-normal text-rose-500 mt-1">Attendance type is required</p>
             )}
           </div>
           <div className="col-span-2">
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-2">Probation Period?</label>
+            <label className="block text-xs font-semibold text-[var(--text-primary)] mb-2">Probation Period?</label>
             <div className="flex gap-4 mb-2">
-              <label className={`flex items-center gap-1.5 text-xs text-[var(--ink)] ${isBasicInfoOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+              <label className={`flex items-center gap-1.5 text-xs text-[var(--text-primary)] ${isBasicInfoOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                 <input 
                   disabled={isBasicInfoOnly}
                   type="radio" 
                   checked={formData.hasProbation === true} 
                   onChange={() => setFormData({ ...formData, hasProbation: true })} 
-                  className="accent-[var(--gold-500)]" 
+                  className="accent-[var(--accent)]" 
                 />
                 Yes
               </label>
-              <label className={`flex items-center gap-1.5 text-xs text-[var(--ink)] ${isBasicInfoOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
+              <label className={`flex items-center gap-1.5 text-xs text-[var(--text-primary)] ${isBasicInfoOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                 <input 
                   disabled={isBasicInfoOnly}
                   type="radio" 
                   checked={formData.hasProbation === false} 
                   onChange={() => setFormData({ ...formData, hasProbation: false })} 
-                  className="accent-[var(--gold-500)]" 
+                  className="accent-[var(--accent)]" 
                 />
                 No
               </label>
             </div>
             {formData.hasProbation && (
               <div className="w-1/2">
-                <label className="block text-xs font-semibold text-[var(--ink-muted)] mb-1">Probation Length (Days)</label>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">Probation Length (Days)</label>
                 <input 
                   disabled={isBasicInfoOnly}
                   type="number" 
                   min="0" 
                   value={formData.probationDays} 
                   onChange={(e) => setFormData({ ...formData, probationDays: Number(e.target.value) })} 
-                  className={`register-input w-full font-data ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`} 
+                  className={`register-input w-full  ${isBasicInfoOnly ? 'opacity-60 cursor-not-allowed bg-[var(--surface-sunken)]' : ''}`} 
                 />
               </div>
             )}
@@ -638,7 +638,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       {/* 5. Bank Account Details — only shown when editing (not during initial creation) */}
       {isEditing && (
       <section className="space-y-3">
-        <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Bank Account</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]  border-b border-[var(--rule)] pb-2">Bank Account</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="register-label">Bank Name</label>
@@ -646,18 +646,18 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
           </div>
           <div>
             <label className="register-label">Account Number</label>
-            <input value={formData.bankAccountNumber} onChange={(e) => setFormData({ ...formData, bankAccountNumber: e.target.value })} placeholder="e.g. 1234567890123" className="register-input w-full font-data" />
+            <input value={formData.bankAccountNumber} onChange={(e) => setFormData({ ...formData, bankAccountNumber: e.target.value })} placeholder="e.g. 1234567890123" className="register-input w-full " />
           </div>
           <div>
             <label className="register-label">Re-enter Account Number</label>
-            <input value={confirmAccountNumber} onChange={(e) => setConfirmAccountNumber(e.target.value)} placeholder="Re-enter to confirm" className={`register-input w-full font-data ${confirmAccountNumber && formData.bankAccountNumber && confirmAccountNumber !== formData.bankAccountNumber ? 'border-red-400 focus:border-red-500' : ''}`} />
+            <input value={confirmAccountNumber} onChange={(e) => setConfirmAccountNumber(e.target.value)} placeholder="Re-enter to confirm" className={`register-input w-full  ${confirmAccountNumber && formData.bankAccountNumber && confirmAccountNumber !== formData.bankAccountNumber ? 'border-red-400 focus:border-red-500' : ''}`} />
             {confirmAccountNumber && formData.bankAccountNumber && confirmAccountNumber !== formData.bankAccountNumber && (
-              <p className="text-[10px] text-red-500 mt-1 font-semibold">Account numbers do not match</p>
+              <p className="text-xs font-normal text-red-500 mt-1 font-semibold">Account numbers do not match</p>
             )}
           </div>
           <div>
             <label className="register-label">IFSC Code</label>
-            <input value={formData.bankIfscCode} onChange={(e) => setFormData({ ...formData, bankIfscCode: e.target.value.toUpperCase() })} placeholder="e.g. SBIN0001234" maxLength={11} className="register-input w-full font-data uppercase" />
+            <input value={formData.bankIfscCode} onChange={(e) => setFormData({ ...formData, bankIfscCode: e.target.value.toUpperCase() })} placeholder="e.g. SBIN0001234" maxLength={11} className="register-input w-full  uppercase" />
           </div>
           <div>
             <label className="register-label">Account Holder Name</label>
@@ -679,27 +679,27 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       {/* 6. Statutory Details — only shown when editing */}
       {isEditing && (
       <section className="space-y-3">
-        <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Statutory & Compliance</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]  border-b border-[var(--rule)] pb-2">Statutory & Compliance</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="register-label">PAN Number</label>
-            <input value={formData.panNumber} onChange={(e) => setFormData({ ...formData, panNumber: e.target.value.toUpperCase() })} placeholder="e.g. ABCDE1234F" maxLength={10} className="register-input w-full font-data uppercase" />
+            <input value={formData.panNumber} onChange={(e) => setFormData({ ...formData, panNumber: e.target.value.toUpperCase() })} placeholder="e.g. ABCDE1234F" maxLength={10} className="register-input w-full  uppercase" />
           </div>
           <div>
             <label className="register-label">Aadhaar Number</label>
-            <input value={formData.aadhaarNumber} onChange={(e) => setFormData({ ...formData, aadhaarNumber: e.target.value.replace(/\D/g, '') })} placeholder="e.g. 123456789012" maxLength={12} className="register-input w-full font-data" />
+            <input value={formData.aadhaarNumber} onChange={(e) => setFormData({ ...formData, aadhaarNumber: e.target.value.replace(/\D/g, '') })} placeholder="e.g. 123456789012" maxLength={12} className="register-input w-full " />
           </div>
           <div>
             <label className="register-label">UAN (Universal Account Number)</label>
-            <input value={formData.uanNumber} onChange={(e) => setFormData({ ...formData, uanNumber: e.target.value })} placeholder="e.g. 100123456789" className="register-input w-full font-data" />
+            <input value={formData.uanNumber} onChange={(e) => setFormData({ ...formData, uanNumber: e.target.value })} placeholder="e.g. 100123456789" className="register-input w-full " />
           </div>
           <div>
             <label className="register-label">PF Number</label>
-            <input value={formData.pfNumber} onChange={(e) => setFormData({ ...formData, pfNumber: e.target.value })} placeholder="e.g. BGBNG/12345/0001234" className="register-input w-full font-data" />
+            <input value={formData.pfNumber} onChange={(e) => setFormData({ ...formData, pfNumber: e.target.value })} placeholder="e.g. BGBNG/12345/0001234" className="register-input w-full " />
           </div>
           <div>
             <label className="register-label">ESI Number</label>
-            <input value={formData.esiNumber} onChange={(e) => setFormData({ ...formData, esiNumber: e.target.value })} placeholder="e.g. 3100123456" className="register-input w-full font-data" />
+            <input value={formData.esiNumber} onChange={(e) => setFormData({ ...formData, esiNumber: e.target.value })} placeholder="e.g. 3100123456" className="register-input w-full " />
           </div>
         </div>
       </section>
@@ -708,7 +708,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       {/* 7. Emergency Contact — only shown when editing */}
       {isEditing && (
       <section className="space-y-3">
-        <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Emergency Contacts</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]  border-b border-[var(--rule)] pb-2">Emergency Contacts</h3>
         <div className="space-y-3">
           {emergencyContacts.map((contact, idx) => (
             <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
@@ -731,7 +731,7 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
               </div>
               <div>
                 <label className="register-label">Phone</label>
-                <input value={contact.phone} onChange={(e) => updateEmergencyContact(idx, 'phone', e.target.value)} placeholder="+91 9876543210" className="register-input w-full font-data" />
+                <input value={contact.phone} onChange={(e) => updateEmergencyContact(idx, 'phone', e.target.value)} placeholder="+91 9876543210" className="register-input w-full " />
               </div>
               <div>
                 {emergencyContacts.length > 1 && (
@@ -750,15 +750,15 @@ export const EmployeeForm: React.FC<EmployeeFormProps> = ({
       {/* 8. Additional Info — only shown when editing */}
       {isEditing && (
       <section className="space-y-3">
-        <h3 className="text-sm font-bold text-[var(--ink)] font-ui border-b border-[var(--rule)] pb-2">Additional Information</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]  border-b border-[var(--rule)] pb-2">Additional Information</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="register-label">Passport Number</label>
-            <input value={formData.passportNumber} onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value.toUpperCase() })} placeholder="e.g. A1234567" className="register-input w-full font-data uppercase" />
+            <input value={formData.passportNumber} onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value.toUpperCase() })} placeholder="e.g. A1234567" className="register-input w-full  uppercase" />
           </div>
           <div>
             <label className="register-label">Notice Period (days)</label>
-            <input type="number" min="0" value={formData.noticePeriodDays || ''} onChange={(e) => setFormData({ ...formData, noticePeriodDays: e.target.value ? Number(e.target.value) : undefined })} placeholder="e.g. 30" className="register-input w-full font-data" />
+            <input type="number" min="0" value={formData.noticePeriodDays || ''} onChange={(e) => setFormData({ ...formData, noticePeriodDays: e.target.value ? Number(e.target.value) : undefined })} placeholder="e.g. 30" className="register-input w-full " />
           </div>
         </div>
       </section>

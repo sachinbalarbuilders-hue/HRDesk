@@ -445,10 +445,10 @@ export const Loans: React.FC = () => {
                 fetchPrefixSettings();
                 setPrefixModalOpen(true);
               }}
-              className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]"
+              className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer border-[var(--rule)] hover:border-[var(--accent)] text-[var(--text-primary)]"
               title="Configure Loan Application Number Prefix"
             >
-              <Sliders size={13} className="text-[var(--gold-500)]" />
+              <Sliders size={13} className="text-[var(--accent)]" />
               <span>Prefix Setup</span>
             </button>
           ) : undefined
@@ -474,12 +474,12 @@ export const Loans: React.FC = () => {
               <div>
                 <button
                   onClick={() => navigate(`/loans/${l.id}`)}
-                  className="font-mono font-semibold text-[var(--accent)] hover:underline cursor-pointer text-left"
+                  className=" font-semibold text-[var(--accent)] hover:underline cursor-pointer text-left"
                   title="View payment summary"
                 >
                   {l.appNumber}
                 </button>
-                <div className="text-[10px] text-[var(--ink-muted)] font-normal mt-0.5">{l.appDate}</div>
+                <div className="text-xs font-normal text-[var(--text-secondary)] font-normal mt-0.5">{l.appDate}</div>
               </div>
             ),
           },
@@ -488,8 +488,8 @@ export const Loans: React.FC = () => {
             header: 'Employee',
             render: (l) => (
               <div>
-                <div className="font-semibold text-[var(--ink)]">{l.employeeName}</div>
-                <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
+                <div className="font-semibold text-[var(--text-primary)]">{l.employeeName}</div>
+                <div className="text-xs font-normal text-[var(--text-secondary)] flex items-center gap-1 mt-0.5">
                   <Building2 className="w-3 h-3" />
                   <span>{l.department}</span>
                 </div>
@@ -499,13 +499,13 @@ export const Loans: React.FC = () => {
           {
             key: 'loanType',
             header: 'Type',
-            render: (l) => <span className="font-medium text-[var(--ink)]">{l.loanType}</span>,
+            render: (l) => <span className="font-medium text-[var(--text-primary)]">{l.loanType}</span>,
           },
           {
             key: 'principalAmount',
             header: 'Principal',
             render: (l) => (
-              <span className="font-mono font-bold text-[var(--ink)]">
+              <span className=" font-semibold text-[var(--text-primary)]">
                 ₹{l.principalAmount.toLocaleString()}
               </span>
             ),
@@ -514,7 +514,7 @@ export const Loans: React.FC = () => {
             key: 'monthlyEmi',
             header: 'Monthly EMI',
             render: (l) => (
-              <span className="font-mono text-indigo-600 font-semibold">
+              <span className=" text-indigo-600 font-semibold">
                 ₹{l.monthlyEmi.toLocaleString()} / mo
               </span>
             ),
@@ -523,7 +523,7 @@ export const Loans: React.FC = () => {
             key: 'remainingAmount',
             header: 'Remaining',
             render: (l) => (
-              <span className="font-mono font-bold text-amber-700 dark:text-amber-300">
+              <span className=" font-semibold text-amber-700 dark:text-amber-300">
                 ₹{l.remainingAmount.toLocaleString()}
               </span>
             ),
@@ -534,41 +534,41 @@ export const Loans: React.FC = () => {
             render: (l) => {
               if (l.status === 'Pending')
                 return (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                     Pending
                   </span>
                 );
               if (l.status === 'Manager Approved')
                 return (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200">
                     <Check className="w-3 h-3 text-indigo-600" />
                     Mgr Approved
                   </span>
                 );
               if (l.status === 'Approved')
                 return (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
                     <Check className="w-3 h-3 text-blue-600" />
                     HR Approved
                   </span>
                 );
               if (l.status === 'Disbursed')
                 return (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
                     <CheckCircle className="w-3 h-3 text-emerald-600" />
                     Disbursed
                   </span>
                 );
               if (l.status === 'Closed')
                 return (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
                     Closed
                   </span>
                 );
               if (l.status === 'Rejected')
                 return (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
                     <X className="w-3 h-3 text-rose-600" />
                     Rejected
                   </span>
@@ -639,17 +639,17 @@ export const Loans: React.FC = () => {
           <div className="w-full max-w-[480px] bg-[var(--surface)] h-full p-6 shadow-2xl overflow-y-auto space-y-5 border-l border-[var(--rule)]">
             <div className="flex items-start justify-between pb-3 border-b border-[var(--rule)]">
               <div>
-                <span className="text-[10px] uppercase font-semibold text-[var(--gold-500)] font-data">
+                <span className="text-xs font-normal uppercase font-semibold text-[var(--accent)] ">
                   Finance & Advances
                 </span>
-                <h2 className="font-display text-2xl font-semibold text-[var(--ink)] mt-0.5">
+                <h2 className=" text-base font-semibold text-[var(--text-primary)] mt-0.5">
                   Apply Loan / Advance
                 </h2>
-                <p className="text-xs text-[var(--ink-muted)]">Configure repayment tenure and automated monthly EMI deduction.</p>
+                <p className="text-xs text-[var(--text-secondary)]">Configure repayment tenure and automated monthly EMI deduction.</p>
               </div>
               <button
                 onClick={() => setApplyModalOpen(false)}
-                className="p-1 rounded-[4px] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="p-1 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -657,7 +657,7 @@ export const Loans: React.FC = () => {
 
             <form onSubmit={handleApplySubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Select Employee *</label>
+                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Select Employee *</label>
                 <select
                   value={form.employeeId || (employees.length > 0 ? employees[0].employeeId : 0)}
                   onChange={(e) => setForm({ ...form, employeeId: parseInt(e.target.value) || 0 })}
@@ -678,7 +678,7 @@ export const Loans: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Loan / Advance Type *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Loan / Advance Type *</label>
                   <select
                     value={form.loanTypeId || (loanTypes.length > 0 ? loanTypes[0].id : 1)}
                     onChange={(e) => setForm({ ...form, loanTypeId: parseInt(e.target.value) || 1 })}
@@ -696,12 +696,12 @@ export const Loans: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Principal Amount (₹) *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Principal Amount (₹) *</label>
                   <input
                     type="number"
                     value={form.principalAmount}
                     onChange={(e) => setForm({ ...form, principalAmount: parseFloat(e.target.value) || 0 })}
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                     min={1000}
                     step={500}
                     required
@@ -711,24 +711,24 @@ export const Loans: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Repayment Tenure (Months) *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Repayment Tenure (Months) *</label>
                   <input
                     type="number"
                     value={form.tenureMonths}
                     onChange={(e) => setForm({ ...form, tenureMonths: parseInt(e.target.value) || 1 })}
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                     min={1}
                     max={60}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Deduction Start Date *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Deduction Start Date *</label>
                   <input
                     type="date"
                     value={form.startDate}
                     onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                     required
                   />
                 </div>
@@ -736,14 +736,14 @@ export const Loans: React.FC = () => {
 
               {/* Calculated EMI preview */}
               <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between text-xs">
-                <span className="text-[var(--ink-muted)]">Calculated Monthly EMI:</span>
-                <span className="text-sm font-bold font-data text-[var(--gold-500)]">
+                <span className="text-[var(--text-secondary)]">Calculated Monthly EMI:</span>
+                <span className="text-sm font-semibold  text-[var(--accent)]">
                   ₹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
                 </span>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Purpose / Reason *</label>
+                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Purpose / Reason *</label>
                 <textarea
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
@@ -781,17 +781,17 @@ export const Loans: React.FC = () => {
           <div className="w-full max-w-[480px] bg-[var(--surface)] h-full p-6 shadow-2xl overflow-y-auto space-y-5 border-l border-[var(--rule)]">
             <div className="flex items-start justify-between pb-3 border-b border-[var(--rule)]">
               <div>
-                <span className="text-[10px] uppercase font-semibold text-[var(--gold-500)] font-data">
+                <span className="text-xs font-normal uppercase font-semibold text-[var(--accent)] ">
                   Edit Loan
                 </span>
-                <h2 className="font-display text-2xl font-semibold text-[var(--ink)] mt-0.5">
+                <h2 className=" text-base font-semibold text-[var(--text-primary)] mt-0.5">
                   Update Application
                 </h2>
-                <p className="text-xs text-[var(--ink-muted)]">Modify loan details before approval.</p>
+                <p className="text-xs text-[var(--text-secondary)]">Modify loan details before approval.</p>
               </div>
               <button
                 onClick={() => setEditModalOpen(false)}
-                className="p-1 rounded-[4px] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="p-1 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -800,7 +800,7 @@ export const Loans: React.FC = () => {
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Loan / Advance Type *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Loan / Advance Type *</label>
                   <select
                     value={form.loanTypeId}
                     onChange={(e) => setForm({ ...form, loanTypeId: parseInt(e.target.value) || 1 })}
@@ -812,12 +812,12 @@ export const Loans: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Principal Amount (₹) *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Principal Amount (₹) *</label>
                   <input
                     type="number"
                     value={form.principalAmount}
                     onChange={(e) => setForm({ ...form, principalAmount: parseFloat(e.target.value) || 0 })}
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                     min={1000}
                     step={500}
                     required
@@ -827,38 +827,38 @@ export const Loans: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Repayment Tenure (Months) *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Repayment Tenure (Months) *</label>
                   <input
                     type="number"
                     value={form.tenureMonths}
                     onChange={(e) => setForm({ ...form, tenureMonths: parseInt(e.target.value) || 1 })}
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                     min={1}
                     max={60}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Deduction Start Date *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Deduction Start Date *</label>
                   <input
                     type="date"
                     value={form.startDate}
                     onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                     required
                   />
                 </div>
               </div>
 
               <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between text-xs">
-                <span className="text-[var(--ink-muted)]">Calculated Monthly EMI:</span>
-                <span className="text-sm font-bold font-data text-[var(--gold-500)]">
+                <span className="text-[var(--text-secondary)]">Calculated Monthly EMI:</span>
+                <span className="text-sm font-semibold  text-[var(--accent)]">
                   ₹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
                 </span>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Purpose / Reason *</label>
+                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Purpose / Reason *</label>
                 <textarea
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
@@ -894,10 +894,10 @@ export const Loans: React.FC = () => {
       {rejectModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[1px] p-4">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-sm w-full p-4 space-y-3">
-            <h3 className="font-display font-bold text-base text-[var(--err-600)] flex items-center gap-1.5">
+            <h3 className=" font-semibold text-base text-[var(--err-600)] flex items-center gap-1.5">
               <XCircle className="w-5 h-5" /> Reject Loan Application
             </h3>
-            <p className="text-xs text-[var(--ink-muted)]">
+            <p className="text-xs text-[var(--text-secondary)]">
               Specify the reason for rejecting this loan request.
             </p>
             <textarea
@@ -948,16 +948,16 @@ export const Loans: React.FC = () => {
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-start justify-between pb-3 border-b border-[var(--rule)]">
               <div>
-                <h3 className="font-display font-semibold text-sm text-[var(--ink)]">
+                <h3 className=" font-semibold text-sm text-[var(--text-primary)]">
                   Loan Application # Prefix Setup
                 </h3>
-                <p className="text-[11px] text-[var(--ink-muted)]">
+                <p className="text-xs font-normal text-[var(--text-secondary)]">
                   Configure how loan application numbers are generated for {currentBranch?.name || 'this workspace'}.
                 </p>
               </div>
               <button
                 onClick={() => setPrefixModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -967,7 +967,7 @@ export const Loans: React.FC = () => {
               {/* Series Code */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Series Code *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Series Code *</label>
                   <input
                     type="text"
                     required
@@ -976,18 +976,18 @@ export const Loans: React.FC = () => {
                       setPrefixForm({ ...prefixForm, seriesCode: e.target.value.toUpperCase() })
                     }
                     placeholder="e.g. LN, ADV, LOAN"
-                    className="register-input w-full font-mono text-xs font-bold uppercase tracking-wider"
+                    className="register-input w-full  text-xs font-semibold uppercase tracking-wider"
                   />
-                  <span className="text-[10px] text-[var(--ink-muted)] block mt-0.5">e.g. LN, ADV, LOAN</span>
+                  <span className="text-xs font-normal text-[var(--text-secondary)] block mt-0.5">e.g. LN, ADV, LOAN</span>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Connector</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Connector</label>
                   <input
                     type="text"
                     value={prefixForm.connector}
                     onChange={(e) => setPrefixForm({ ...prefixForm, connector: e.target.value })}
                     placeholder="e.g. -, #, /"
-                    className="register-input w-full font-mono text-xs font-bold text-center"
+                    className="register-input w-full  text-xs font-semibold text-center"
                   />
                   <div className="flex items-center gap-1 mt-1">
                     {['-', '#', '/', '_', '.'].map((sym) => (
@@ -995,10 +995,10 @@ export const Loans: React.FC = () => {
                         type="button"
                         key={sym}
                         onClick={() => setPrefixForm({ ...prefixForm, connector: sym })}
-                        className={`px-1.5 py-0.5 rounded-[2px] border text-[10px] font-mono font-bold cursor-pointer transition-colors ${
+                        className={`px-1.5 py-0.5 rounded-[2px] border text-xs font-normal  font-semibold cursor-pointer transition-colors ${
                           prefixForm.connector === sym
-                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-bold shadow-xs'
-                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--accent)]'
+                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-semibold shadow-xs'
+                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--text-primary)] hover:border-[var(--accent)]'
                         }`}
                       >
                         {sym}
@@ -1007,10 +1007,10 @@ export const Loans: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setPrefixForm({ ...prefixForm, connector: '' })}
-                      className={`px-1.5 py-0.5 rounded-[2px] border text-[9px] font-ui cursor-pointer transition-colors ${
+                      className={`px-1.5 py-0.5 rounded-[2px] border text-xs font-normal  cursor-pointer transition-colors ${
                         prefixForm.connector === ''
                           ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-semibold shadow-xs'
-                          : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink-muted)] hover:border-[var(--accent)]'
+                          : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--text-secondary)] hover:border-[var(--accent)]'
                       }`}
                     >
                       none
@@ -1022,7 +1022,7 @@ export const Loans: React.FC = () => {
               {/* Padding & Start Sequence */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Padding Digits</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Padding Digits</label>
                   <input
                     type="number"
                     min="1"
@@ -1035,7 +1035,7 @@ export const Loans: React.FC = () => {
                         paddingDigits: Math.max(1, Math.min(8, parseInt(e.target.value) || 1)),
                       })
                     }
-                    className="register-input w-full font-data text-center"
+                    className="register-input w-full  text-center"
                   />
                   <div className="flex items-center gap-1.5 flex-wrap mt-1">
                     {[
@@ -1047,10 +1047,10 @@ export const Loans: React.FC = () => {
                         type="button"
                         key={item.len}
                         onClick={() => setPrefixForm({ ...prefixForm, paddingDigits: item.len })}
-                        className={`px-2 py-0.5 rounded-[2px] border text-[10px] font-mono cursor-pointer transition-colors ${
+                        className={`px-2 py-0.5 rounded-[2px] border text-xs font-normal  cursor-pointer transition-colors ${
                           prefixForm.paddingDigits === item.len
-                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-bold shadow-xs'
-                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--accent)]'
+                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-semibold shadow-xs'
+                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--text-primary)] hover:border-[var(--accent)]'
                         }`}
                       >
                         {item.label}
@@ -1059,7 +1059,7 @@ export const Loans: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Start Sequence</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Start Sequence</label>
                   <input
                     type="number"
                     min="1"
@@ -1068,7 +1068,7 @@ export const Loans: React.FC = () => {
                     onChange={(e) =>
                       setPrefixForm({ ...prefixForm, startSequence: Math.max(1, parseInt(e.target.value) || 1) })
                     }
-                    className="register-input w-full font-data text-center"
+                    className="register-input w-full  text-center"
                   />
                 </div>
               </div>
@@ -1076,14 +1076,14 @@ export const Loans: React.FC = () => {
               {/* Live Preview */}
               <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-[var(--ink-muted)]">Next Generated #:</span>
-                  <span className="font-mono text-base font-bold text-[var(--accent)] tracking-wide">
+                  <span className="text-xs text-[var(--text-secondary)]">Next Generated #:</span>
+                  <span className=" text-base font-semibold text-[var(--accent)] tracking-wide">
                     {prefixForm.seriesCode || 'LN'}{prefixForm.connector}{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-[var(--ink-muted)] font-data">
+                <div className="flex items-center justify-between text-xs font-normal text-[var(--text-secondary)] ">
                   <span>Series Samples:</span>
-                  <span className="font-bold text-[var(--ink)]">
+                  <span className="font-semibold text-[var(--text-primary)]">
                     {prefixForm.seriesCode || 'LN'}{prefixForm.connector}{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}&nbsp;&rarr;&nbsp;
                     {prefixForm.seriesCode || 'LN'}{prefixForm.connector}{String(prefixForm.startSequence + 1).padStart(prefixForm.paddingDigits, '0')}&nbsp;&rarr;&nbsp;
                     {prefixForm.seriesCode || 'LN'}{prefixForm.connector}{String(prefixForm.startSequence + 2).padStart(prefixForm.paddingDigits, '0')}

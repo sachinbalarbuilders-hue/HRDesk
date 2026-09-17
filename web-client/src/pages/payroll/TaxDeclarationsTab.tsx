@@ -164,7 +164,7 @@ export const TaxDeclarationsTab: React.FC = () => {
       render: (row) => (
         <div>
           <div className="font-semibold text-xs text-[var(--text-primary)]">{row.fullName}</div>
-          <div className="text-[10px] font-mono text-[var(--text-muted)]">{row.employeeCode}</div>
+          <div className="text-xs font-normal  text-[var(--text-muted)]">{row.employeeCode}</div>
         </div>
       ),
     },
@@ -174,7 +174,7 @@ export const TaxDeclarationsTab: React.FC = () => {
       render: (row) => (
         <div>
           <div className="text-xs text-[var(--text-primary)]">{row.departmentName || '—'}</div>
-          <div className="text-[10px] text-[var(--text-muted)]">{row.designationName || '—'}</div>
+          <div className="text-xs font-normal text-[var(--text-muted)]">{row.designationName || '—'}</div>
         </div>
       ),
     },
@@ -183,7 +183,7 @@ export const TaxDeclarationsTab: React.FC = () => {
       header: 'Annual CTC',
       align: 'right',
       render: (row) => (
-        <span className="font-mono text-xs font-semibold text-[var(--text-primary)]">
+        <span className=" text-xs font-semibold text-[var(--text-primary)]">
           {formatCurrency(row.annualCTC)}
         </span>
       ),
@@ -194,7 +194,7 @@ export const TaxDeclarationsTab: React.FC = () => {
       align: 'center',
       render: (row) => (
         <span
-          className={`inline-flex px-2 py-0.5 rounded text-[10px] font-medium font-mono ${
+          className={`inline-flex px-2 py-0.5 rounded text-xs font-normal font-medium  ${
             row.taxRegime === 'Old'
               ? 'bg-[var(--surface-secondary)] text-[var(--text-primary)] border border-[var(--border)]'
               : 'bg-[var(--accent-light)] text-[var(--accent)] border border-[var(--accent)]/30'
@@ -209,7 +209,7 @@ export const TaxDeclarationsTab: React.FC = () => {
       header: '80C Declared',
       align: 'right',
       render: (row) => (
-        <span className={`font-mono text-xs ${row.total80CDeclared > 0 ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
+        <span className={` text-xs ${row.total80CDeclared > 0 ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
           {formatCurrency(row.total80CDeclared)}
         </span>
       ),
@@ -219,12 +219,12 @@ export const TaxDeclarationsTab: React.FC = () => {
       header: 'Rent / Sec 24',
       align: 'right',
       render: (row) => (
-        <div className="text-right font-mono text-xs">
+        <div className="text-right  text-xs">
           <div className={row.annualRentPaid > 0 ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-muted)]'}>
             Rent: {formatCurrency(row.annualRentPaid)}
           </div>
           {row.homeLoanInterest > 0 && (
-            <div className="text-[10px] text-[var(--success)] font-medium">
+            <div className="text-xs font-normal text-[var(--success)] font-medium">
               Int: {formatCurrency(row.homeLoanInterest)}
             </div>
           )}
@@ -242,7 +242,7 @@ export const TaxDeclarationsTab: React.FC = () => {
 
         return (
           <span
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium ${
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-normal font-medium ${
               isApproved
                 ? 'bg-[var(--success-light)] text-[var(--success)]'
                 : isSubmitted
@@ -289,7 +289,7 @@ export const TaxDeclarationsTab: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-5 font-ui">
+    <div className="space-y-5 ">
       {/* Top Controls Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface)] p-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs">
         <div className="flex items-center gap-3">
@@ -298,7 +298,7 @@ export const TaxDeclarationsTab: React.FC = () => {
             <select
               value={financialYear}
               onChange={e => { setFinancialYear(e.target.value); setPage(1); }}
-              className="register-input h-8 py-1 px-2.5 w-auto text-xs font-medium font-mono cursor-pointer"
+              className="register-input h-8 py-1 px-2.5 w-auto text-sm font-semibold  cursor-pointer"
             >
               <option value="2024-2025">FY 2024-2025</option>
               <option value="2025-2026">FY 2025-2026</option>
@@ -313,7 +313,7 @@ export const TaxDeclarationsTab: React.FC = () => {
           <select
             value={selectedDept || ''}
             onChange={e => { setSelectedDept(e.target.value ? Number(e.target.value) : undefined); setPage(1); }}
-            className="register-input h-8 py-1 px-2.5 w-auto text-xs font-medium cursor-pointer"
+            className="register-input h-8 py-1 px-2.5 w-auto text-sm font-semibold cursor-pointer"
           >
             <option value="">All Departments</option>
             {departments.map(d => (
@@ -356,20 +356,20 @@ export const TaxDeclarationsTab: React.FC = () => {
       {/* KPI Metric Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-[var(--surface)] p-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-secondary)] block">Total Employees</span>
-          <span className="text-xl font-bold font-mono text-[var(--text-primary)] mt-1 block">{metrics.total}</span>
+          <span className="text-xs font-normal uppercase tracking-wider font-semibold text-[var(--text-secondary)] block">Total Employees</span>
+          <span className="text-base font-semibold  text-[var(--text-primary)] mt-1 block">{metrics.total}</span>
         </div>
         <div className="bg-[var(--surface)] p-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--success)] block">Approved</span>
-          <span className="text-xl font-bold font-mono text-[var(--success)] mt-1 block">{metrics.approved}</span>
+          <span className="text-xs font-normal uppercase tracking-wider font-semibold text-[var(--success)] block">Approved</span>
+          <span className="text-base font-semibold  text-[var(--success)] mt-1 block">{metrics.approved}</span>
         </div>
         <div className="bg-[var(--surface)] p-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--warning)] block">Submitted (Pending)</span>
-          <span className="text-xl font-bold font-mono text-[var(--warning)] mt-1 block">{metrics.submitted}</span>
+          <span className="text-xs font-normal uppercase tracking-wider font-semibold text-[var(--warning)] block">Submitted (Pending)</span>
+          <span className="text-base font-semibold  text-[var(--warning)] mt-1 block">{metrics.submitted}</span>
         </div>
         <div className="bg-[var(--surface)] p-3.5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block">Draft / Not Started</span>
-          <span className="text-xl font-bold font-mono text-[var(--text-primary)] mt-1 block">{metrics.draft + metrics.notStarted}</span>
+          <span className="text-xs font-normal uppercase tracking-wider font-semibold text-[var(--text-muted)] block">Draft / Not Started</span>
+          <span className="text-base font-semibold  text-[var(--text-primary)] mt-1 block">{metrics.draft + metrics.notStarted}</span>
         </div>
       </div>
 
@@ -381,7 +381,7 @@ export const TaxDeclarationsTab: React.FC = () => {
             <button
               key={status}
               onClick={() => { setStatusFilter(status); setPage(1); }}
-              className={`px-3 py-1.5 text-xs font-medium border-b-2 -mb-px transition-all cursor-pointer ${
+              className={`px-3 py-1.5 text-sm font-semibold border-b-2 -mb-px transition-all cursor-pointer ${
                 isActive
                   ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
                   : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'

@@ -87,7 +87,7 @@ export const RowActionMenu: React.FC<RowActionMenuProps> = ({ actions }) => {
             setOpen(false);
           }
         }}
-        className="p-1.5 rounded-[4px] hover:bg-[var(--surface-hover)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer transition-colors min-w-[36px] min-h-[36px] inline-flex items-center justify-center"
+        className="p-1.5 rounded-[4px] hover:bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors min-w-[36px] min-h-[36px] inline-flex items-center justify-center"
         aria-label="Row actions"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -98,14 +98,14 @@ export const RowActionMenu: React.FC<RowActionMenuProps> = ({ actions }) => {
       {open && position.top !== 0 && createPortal(
         <div
           ref={menuRef}
-          className="fixed z-[9999] min-w-[170px] bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl py-1"
+          className="fixed z-[9999] min-w-[170px] bg-[var(--surface)] border border-[var(--border)] rounded-[4px] shadow-xl py-1"
           style={{ top: position.top, left: position.left }}
           role="menu"
         >
           {visibleActions.map((action, idx) => (
             <React.Fragment key={idx}>
               {action.dividerBefore && idx > 0 && (
-                <div className="border-t border-[var(--rule)] my-1" />
+                <div className="border-t border-[var(--border)] my-1" />
               )}
               <button
                 type="button"
@@ -116,16 +116,16 @@ export const RowActionMenu: React.FC<RowActionMenuProps> = ({ actions }) => {
                   setOpen(false);
                   action.onClick();
                 }}
-                className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed ${
+                className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors min-h-[36px] disabled:opacity-40 disabled:cursor-not-allowed ${
                   action.variant === 'danger'
-                    ? 'text-[var(--err-600)] hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                    ? 'text-[var(--danger)] hover:bg-[var(--danger-light)]'
                     : action.variant === 'success'
-                    ? 'text-[var(--ok-600)] hover:bg-emerald-50 dark:hover:bg-emerald-950/30'
-                    : 'text-[var(--ink)] hover:bg-[var(--surface-hover)]'
+                    ? 'text-[var(--success)] hover:bg-[var(--success-light)]'
+                    : 'text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'
                 }`}
               >
                 {action.icon && <span className="flex-shrink-0" aria-hidden="true">{action.icon}</span>}
-                <span className="font-medium">{action.label}</span>
+                <span className="font-normal">{action.label}</span>
               </button>
             </React.Fragment>
           ))}

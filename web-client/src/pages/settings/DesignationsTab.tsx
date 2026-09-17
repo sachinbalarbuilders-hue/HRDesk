@@ -122,8 +122,8 @@ export const DesignationsTab: React.FC = () => {
       header: 'Designation Title',
       render: (item) => (
         <div className="flex items-center gap-2">
-          <Award size={14} className="text-[var(--gold-500)]" />
-          <span className="font-semibold text-xs text-[var(--ink)]">{item.title}</span>
+          <Award size={14} className="text-[var(--accent)]" />
+          <span className="font-semibold text-xs text-[var(--text-primary)]">{item.title}</span>
         </div>
       ),
     },
@@ -132,11 +132,11 @@ export const DesignationsTab: React.FC = () => {
       header: 'Status',
       render: (item) =>
         item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived' ? (
-          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
             Active
           </span>
         ) : (
-          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
             Archived
           </span>
         ),
@@ -236,18 +236,18 @@ export const DesignationsTab: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
-                <Award size={16} className="text-[var(--gold-500)]" />
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <Award size={16} className="text-[var(--accent)]" />
                 <span>{editingDesigId ? 'Edit Designation' : 'Create Designation'}</span>
               </h3>
-              <button onClick={() => { setDesigModalOpen(false); setEditingDesigId(null); }} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => { setDesigModalOpen(false); setEditingDesigId(null); }} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleAddDesignation} className="space-y-3 text-xs">
               <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Designation Title *</label>
+                <label className="block font-medium text-[var(--text-primary)] mb-1">Designation Title *</label>
                 <input
                   type="text"
                   value={newDesignation.title}

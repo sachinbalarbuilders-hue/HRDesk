@@ -169,9 +169,9 @@ export const ViewEmployee: React.FC = () => {
       {/* Sidebar Navigation */}
       <div className="w-72 border-r border-[var(--rule)] bg-[var(--surface)] hidden md:flex flex-col shrink-0 z-10">
         <div className="p-4 border-b border-[var(--rule)]">
-          <h2 className="font-display font-semibold text-[var(--ink)] mb-3">Directory</h2>
+          <h2 className=" font-semibold text-[var(--text-primary)] mb-3">Directory</h2>
           <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-2.5 text-[var(--ink-muted)]" />
+            <Search size={14} className="absolute left-2.5 top-2.5 text-[var(--text-secondary)]" />
             <input 
               type="text" 
               placeholder="Search employees..." 
@@ -203,18 +203,18 @@ export const ViewEmployee: React.FC = () => {
                     alt={emp.employeeName} 
                     className="w-8 h-8 rounded-full object-cover shrink-0" 
                     fallbackInitial={emp.employeeName.charAt(0)}
-                    fallbackClassName="w-8 h-8 rounded-full font-display text-xs shrink-0"
+                    fallbackClassName="w-8 h-8 rounded-full  text-xs shrink-0"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-[#312E81] text-white font-display text-xs flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#312E81] text-white  text-xs flex items-center justify-center shrink-0">
                     {emp.employeeName.charAt(0)}
                   </div>
                 )}
                 <div className="overflow-hidden">
-                  <p className={`text-sm font-semibold truncate ${isSelected ? 'text-[#4F46E5]' : 'text-[var(--ink)]'}`}>
+                  <p className={`text-sm font-semibold truncate ${isSelected ? 'text-[#4F46E5]' : 'text-[var(--text-primary)]'}`}>
                     {emp.employeeName}
                   </p>
-                  <p className="text-[10px] text-[var(--ink-muted)] truncate">{emp.designation ? `${emp.designation} • ` : ''}{emp.employeeCode || `EMP#${String(emp.employeeId).padStart(3, '0')}`}</p>
+                  <p className="text-xs font-normal text-[var(--text-secondary)] truncate">{emp.designation ? `${emp.designation} • ` : ''}{emp.employeeCode || `EMP#${String(emp.employeeId).padStart(3, '0')}`}</p>
                 </div>
               </Link>
             );
@@ -227,7 +227,7 @@ export const ViewEmployee: React.FC = () => {
           )}
           
           {!loadingSidebar && allEmployees.length === 0 && (
-            <div className="p-4 text-center text-xs text-[var(--ink-muted)]">
+            <div className="p-4 text-center text-xs text-[var(--text-secondary)]">
               No employees found.
             </div>
           )}
@@ -240,13 +240,13 @@ export const ViewEmployee: React.FC = () => {
           <div className="flex items-center gap-4">
             <button 
               onClick={() => navigate('/employees')}
-              className="p-2 rounded-full hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+              className="p-2 rounded-full hover:bg-[var(--surface-sunken)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 className="font-display text-2xl font-bold text-[var(--ink)]">Employee Profile</h1>
-              <p className="text-sm text-[var(--ink-muted)] font-ui mt-1">Viewing details for {employee.employeeName}</p>
+              <h1 className=" text-base font-semibold text-[var(--text-primary)]">Employee Profile</h1>
+              <p className="text-sm text-[var(--text-secondary)]  mt-1">Viewing details for {employee.employeeName}</p>
             </div>
           </div>
 
@@ -265,10 +265,10 @@ export const ViewEmployee: React.FC = () => {
                   alt={employee.employeeName} 
                   className={`w-16 h-16 rounded-full object-cover bg-[var(--paper)] border border-[var(--rule)] ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`} 
                   fallbackInitial={employee.employeeName.charAt(0)}
-                  fallbackClassName={`w-16 h-16 rounded-full font-display text-2xl shrink-0 ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`}
+                  fallbackClassName={`w-16 h-16 rounded-full  text-base shrink-0 ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`}
                 />
               ) : (
-                <div className={`w-16 h-16 rounded-full bg-[#312E81] text-white font-display text-2xl flex items-center justify-center shrink-0 ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`}>
+                <div className={`w-16 h-16 rounded-full bg-[#312E81] text-white  text-base flex items-center justify-center shrink-0 ${canEdit ? 'group-hover:opacity-75' : ''} transition-opacity`}>
                   {employee.employeeName.charAt(0)}
                 </div>
               )}
@@ -295,13 +295,13 @@ export const ViewEmployee: React.FC = () => {
               )}
             </div>
             <div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#EEF2FF] font-mono text-[11px] font-semibold text-[#4338CA] tracking-wide mb-1">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#EEF2FF]  text-xs font-semibold text-[#4338CA] tracking-wide mb-1">
                 {employee.employeeCode || `EMP#${String(employee.employeeId).padStart(3, '0')}`}
               </span>
-              <h2 className="font-display text-2xl font-semibold text-[var(--ink)] mt-0.5">
+              <h2 className=" text-base font-semibold text-[var(--text-primary)] mt-0.5">
                 {employee.employeeName}
               </h2>
-              <p className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wide font-semibold mt-1 flex items-center justify-center sm:justify-start gap-1.5 opacity-80 font-ui">
+              <p className="text-xs font-normal text-[var(--text-secondary)] uppercase tracking-wide font-semibold mt-1 flex items-center justify-center sm:justify-start gap-1.5 opacity-80 ">
                 {employee.designation ? `${employee.designation} | ` : ''}Joined: {formatDate(employee.joiningDate)}
               </p>
             </div>
@@ -321,13 +321,13 @@ export const ViewEmployee: React.FC = () => {
         </div>
 
         {/* Profile Tabs */}
-        <div className="flex items-center gap-1 border-b border-[var(--rule)] px-6 pt-3 bg-[var(--surface-sunken)] text-xs font-ui">
+        <div className="flex items-center gap-1 border-b border-[var(--rule)] px-6 pt-3 bg-[var(--surface-sunken)] text-xs ">
           <button
             onClick={() => setProfileTab('details')}
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'details'
                 ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             Details
@@ -337,7 +337,7 @@ export const ViewEmployee: React.FC = () => {
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'attendance'
                 ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             Attendance Summary
@@ -347,7 +347,7 @@ export const ViewEmployee: React.FC = () => {
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'leaves'
                 ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             Leaves
@@ -357,7 +357,7 @@ export const ViewEmployee: React.FC = () => {
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'records'
                 ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             Documents
@@ -367,7 +367,7 @@ export const ViewEmployee: React.FC = () => {
             className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
               profileTab === 'idcard'
                 ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             ID Card
@@ -378,7 +378,7 @@ export const ViewEmployee: React.FC = () => {
               className={`pb-2 px-4 font-semibold transition-colors cursor-pointer ${
                 profileTab === 'payroll'
                   ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Payroll / CTC

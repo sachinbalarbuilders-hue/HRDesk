@@ -70,7 +70,7 @@ export const ForgotPassword: React.FC = () => {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--accent)] text-white mb-2">
             <Building2 size={24} />
           </div>
-          <h1 className="text-xl font-bold text-[var(--text-primary)]">
+          <h1 className="text-base font-semibold text-[var(--text-primary)]">
             {step === 'done' ? 'Password Reset!' : 'Reset Password'}
           </h1>
           <p className="text-sm text-[var(--text-secondary)]">
@@ -97,7 +97,7 @@ export const ForgotPassword: React.FC = () => {
           {step === 'email' && (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Work Email</label>
+                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">Work Email</label>
                 <div className="relative">
                   <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input
@@ -120,7 +120,7 @@ export const ForgotPassword: React.FC = () => {
           {step === 'otp' && (
             <form onSubmit={handleResetPassword} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Verification Code</label>
+                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">Verification Code</label>
                 <div className="relative">
                   <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input
@@ -129,13 +129,13 @@ export const ForgotPassword: React.FC = () => {
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="6-digit code"
                     maxLength={6}
-                    className="w-full pl-10 pr-3 py-2.5 text-sm font-mono tracking-widest rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                    className="w-full pl-10 pr-3 py-2.5 text-sm  tracking-widest rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                     required
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">New Password</label>
+                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">New Password</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input
@@ -152,7 +152,7 @@ export const ForgotPassword: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Confirm Password</label>
+                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">Confirm Password</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                   <input

@@ -251,7 +251,7 @@ export const Attendance: React.FC = () => {
 
   const getStatusBadge = (code: string) => {
     if (!code || code === '-' || code.trim() === '') {
-      return <span className="text-[var(--ink-muted)] opacity-30 text-xs font-mono select-none">—</span>;
+      return <span className="text-[var(--text-secondary)] opacity-30 text-xs  select-none">—</span>;
     }
 
     const c = code.trim().toUpperCase();
@@ -262,7 +262,7 @@ export const Attendance: React.FC = () => {
       case 'CLOCKED IN':
       case 'IN PROGRESS':
         return (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-sky-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-sky-500 text-white font-semibold shadow-xs hover:brightness-110 transition-all select-none">
             <Clock size={13} strokeWidth={2.5} />
           </span>
         );
@@ -274,7 +274,7 @@ export const Attendance: React.FC = () => {
       case 'MI':
       case 'MISSING IN':
         return (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none" data-tooltip="Single Punch">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white font-semibold shadow-xs hover:brightness-110 transition-all select-none" data-tooltip="Single Punch">
             <Clock size={13} strokeWidth={2.5} />
           </span>
         );
@@ -282,7 +282,7 @@ export const Attendance: React.FC = () => {
       case 'P':
       case 'PRESENT':
         return (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-500 text-white font-semibold shadow-xs hover:brightness-110 transition-all select-none">
             <Check size={14} strokeWidth={3.5} />
           </span>
         );
@@ -290,7 +290,7 @@ export const Attendance: React.FC = () => {
       case 'A':
       case 'ABSENT':
         return (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-rose-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-rose-500 text-white font-semibold shadow-xs hover:brightness-110 transition-all select-none">
             <X size={14} strokeWidth={3.5} />
           </span>
         );
@@ -299,7 +299,7 @@ export const Attendance: React.FC = () => {
       case 'WO':
       case 'WEEKOFF':
         return (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-600 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-600 text-white font-semibold shadow-xs hover:brightness-110 transition-all select-none">
             <Calendar size={13} strokeWidth={2.5} />
           </span>
         );
@@ -307,7 +307,7 @@ export const Attendance: React.FC = () => {
       case 'W/OP':
       case 'WOP':
         return (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-500 text-white ring-2 ring-amber-400 font-extrabold text-[9px] shadow-xs hover:brightness-110 transition-all select-none">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-emerald-500 text-white ring-2 ring-amber-400 font-extrabold text-xs font-normal shadow-xs hover:brightness-110 transition-all select-none">
             WO+
           </span>
         );
@@ -315,7 +315,7 @@ export const Attendance: React.FC = () => {
       case 'W/OHF':
       case 'WOHF':
         return (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white ring-2 ring-emerald-400 font-extrabold text-[9px] shadow-xs hover:brightness-110 transition-all select-none">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white ring-2 ring-emerald-400 font-extrabold text-xs font-normal shadow-xs hover:brightness-110 transition-all select-none">
             WO½
           </span>
         );
@@ -324,7 +324,7 @@ export const Attendance: React.FC = () => {
       case 'HOLIDAY':
       case 'H':
         return (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-purple-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-purple-500 text-white font-semibold shadow-xs hover:brightness-110 transition-all select-none">
             <Sparkles size={13} strokeWidth={2.5} />
           </span>
         );
@@ -377,7 +377,7 @@ export const Attendance: React.FC = () => {
       case 'CASUAL LEAVE':
       case 'UNPAID LEAVE':
         return (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-teal-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-teal-500 text-white font-semibold shadow-xs hover:brightness-110 transition-all select-none">
             <Umbrella size={13} strokeWidth={2.5} />
           </span>
         );
@@ -393,14 +393,14 @@ export const Attendance: React.FC = () => {
       case 'HALF DAY':
       case 'HALFDAY':
         return (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white font-bold shadow-xs hover:brightness-110 transition-all select-none">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white font-semibold shadow-xs hover:brightness-110 transition-all select-none">
             <LeftHalfStar size={15} />
           </span>
         );
 
       default:
         return (
-          <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1 rounded-md bg-blue-600 text-white font-bold font-mono text-[9px] shadow-xs select-none">
+          <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-1 rounded-md bg-blue-600 text-white font-semibold  text-xs font-normal shadow-xs select-none">
             {code}
           </span>
         );
@@ -557,17 +557,17 @@ export const Attendance: React.FC = () => {
         <div className="flex items-center gap-1.5 bg-[var(--paper)] border border-[var(--rule)] rounded-lg p-1">
           <button
             onClick={handlePrevMonth}
-            className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors cursor-pointer"
+            className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--text-primary)] transition-colors cursor-pointer"
             title="Previous Month"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="font-serif font-bold text-xs px-2 text-[var(--ink)] whitespace-nowrap min-w-[130px] text-center">
+          <span className=" font-semibold text-xs px-2 text-[var(--text-primary)] whitespace-nowrap min-w-[130px] text-center">
             {monthNames[month - 1]} {year}
           </span>
           <button
             onClick={handleNextMonth}
-            className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors cursor-pointer"
+            className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--text-primary)] transition-colors cursor-pointer"
             title="Next Month"
           >
             <ChevronRight className="w-4 h-4" />
@@ -585,9 +585,9 @@ export const Attendance: React.FC = () => {
           {/* Attendance Status Legend (Top Bar) */}
           <div className="border-b border-[var(--rule)] px-4 py-2 bg-[var(--surface-secondary)]/40 flex items-center justify-between gap-4 text-xs overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-3 shrink-0">
-              <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">Legend:</span>
+              <span className="text-xs font-normal font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Legend:</span>
               <span
-                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                className="flex items-center gap-1.5 text-[var(--text-primary)] font-medium shrink-0 cursor-default"
                 data-tooltip="Present"
                 data-tooltip-hint="Full day present with valid punches"
               >
@@ -597,7 +597,7 @@ export const Attendance: React.FC = () => {
                 <span>Present</span>
               </span>
               <span
-                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                className="flex items-center gap-1.5 text-[var(--text-primary)] font-medium shrink-0 cursor-default"
                 data-tooltip="Clocked In"
                 data-tooltip-hint="Punched in today; shift currently in progress"
               >
@@ -607,7 +607,7 @@ export const Attendance: React.FC = () => {
                 <span>Clocked In</span>
               </span>
               <span
-                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                className="flex items-center gap-1.5 text-[var(--text-primary)] font-medium shrink-0 cursor-default"
                 data-tooltip="Absent"
                 data-tooltip-hint="Loss of Pay (LOP)"
               >
@@ -617,7 +617,7 @@ export const Attendance: React.FC = () => {
                 <span>Absent</span>
               </span>
               <span
-                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                className="flex items-center gap-1.5 text-[var(--text-primary)] font-medium shrink-0 cursor-default"
                 data-tooltip="Week Off"
               >
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-blue-600 text-white shadow-2xs">
@@ -626,7 +626,7 @@ export const Attendance: React.FC = () => {
                 <span>Week Off</span>
               </span>
               <span
-                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                className="flex items-center gap-1.5 text-[var(--text-primary)] font-medium shrink-0 cursor-default"
                 data-tooltip="Holiday"
                 data-tooltip-hint="Public or company gazetted holiday"
               >
@@ -636,7 +636,7 @@ export const Attendance: React.FC = () => {
                 <span>Holiday</span>
               </span>
               <span
-                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                className="flex items-center gap-1.5 text-[var(--text-primary)] font-medium shrink-0 cursor-default"
                 data-tooltip="1st Half Leave"
                 data-tooltip-hint="Half day approved leave (morning session)"
               >
@@ -646,7 +646,7 @@ export const Attendance: React.FC = () => {
                 <span>1st Half Leave</span>
               </span>
               <span
-                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                className="flex items-center gap-1.5 text-[var(--text-primary)] font-medium shrink-0 cursor-default"
                 data-tooltip="2nd Half Leave"
                 data-tooltip-hint="Half day approved leave (afternoon session)"
               >
@@ -656,7 +656,7 @@ export const Attendance: React.FC = () => {
                 <span>2nd Half Leave</span>
               </span>
               <span
-                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                className="flex items-center gap-1.5 text-[var(--text-primary)] font-medium shrink-0 cursor-default"
                 data-tooltip="Single Punch"
                 data-tooltip-hint="Only one punch recorded today (requires regularization)"
               >
@@ -666,7 +666,7 @@ export const Attendance: React.FC = () => {
                 <span>Single Punch</span>
               </span>
               <span
-                className="flex items-center gap-1.5 text-[var(--ink)] font-medium shrink-0 cursor-default"
+                className="flex items-center gap-1.5 text-[var(--text-primary)] font-medium shrink-0 cursor-default"
                 data-tooltip="Leave"
                 data-tooltip-hint="Approved full-day leave / comp-off"
               >
@@ -676,7 +676,7 @@ export const Attendance: React.FC = () => {
                 <span>Leave</span>
               </span>
             </div>
-            <span className="text-[11px] text-[var(--ink-muted)] italic shrink-0 whitespace-nowrap ml-auto">
+            <span className="text-xs font-normal text-[var(--text-secondary)] italic shrink-0 whitespace-nowrap ml-auto">
               Click any date to inspect punch timeline
             </span>
           </div>
@@ -685,43 +685,43 @@ export const Attendance: React.FC = () => {
             <table className="ledger-table w-full text-xs">
               <thead>
                 <tr>
-                  <th className="w-12 min-w-[48px] max-w-[48px] text-center sticky left-0 z-20 bg-[var(--paper)] font-mono text-[11px] uppercase tracking-wider text-[var(--ink-muted)] border-r border-[var(--rule)]">
+                  <th className="w-12 min-w-[48px] max-w-[48px] text-center sticky left-0 z-20 bg-[var(--paper)]  text-xs font-normal uppercase tracking-wider text-[var(--text-secondary)] border-r border-[var(--rule)]">
                     Sr.
                   </th>
-                  <th className="min-w-[190px] max-w-[220px] sticky left-[48px] z-20 bg-[var(--paper)] shadow-[2px_0_4px_rgba(0,0,0,0.06)] text-left font-semibold text-xs text-[var(--ink)] border-r border-[var(--rule)] px-3">
+                  <th className="min-w-[190px] max-w-[220px] sticky left-[48px] z-20 bg-[var(--paper)] shadow-[2px_0_4px_rgba(0,0,0,0.06)] text-left font-semibold text-xs text-[var(--text-primary)] border-r border-[var(--rule)] px-3">
                     Employee Name
                   </th>
                   {Array.from({ length: data?.daysInMonth || 31 }, (_, i) => i + 1).map((d) => (
                     <th
                       key={d}
-                      className="w-9 min-w-[34px] max-w-[36px] text-center p-1 font-data text-[11px] text-[var(--ink-muted)] border-r border-[var(--rule)]/40"
+                      className="w-9 min-w-[34px] max-w-[36px] text-center p-1  text-xs font-normal text-[var(--text-secondary)] border-r border-[var(--rule)]/40"
                     >
                       {d}
                     </th>
                   ))}
                   <th
-                    className="w-14 text-center font-data text-xs border-l-2 border-[var(--rule)] text-[var(--ok-600)] cursor-help"
+                    className="w-14 text-center  text-xs border-l-2 border-[var(--rule)] text-[var(--ok-600)] cursor-help"
                     data-tooltip="Present Days"
                     data-tooltip-hint="Total count of days worked this month"
                   >
                     P
                   </th>
                   <th
-                    className="w-14 text-center font-data text-xs text-[var(--err-600)] cursor-help"
+                    className="w-14 text-center  text-xs text-[var(--err-600)] cursor-help"
                     data-tooltip="Absent Days"
                     data-tooltip-hint="Total count of unexcused absences (LOP)"
                   >
                     A
                   </th>
                   <th
-                    className="w-14 text-center font-data text-xs text-[var(--ink-muted)] cursor-help"
+                    className="w-14 text-center  text-xs text-[var(--text-secondary)] cursor-help"
                     data-tooltip="Week Off Days"
                     data-tooltip-hint="Scheduled weekend & compensatory rest days"
                   >
                     WO
                   </th>
                   <th
-                    className="w-16 text-center font-data text-xs font-bold text-[var(--accent)] bg-[var(--paper-subtle)] cursor-help"
+                    className="w-16 text-center  text-xs font-semibold text-[var(--accent)] bg-[var(--paper-subtle)] cursor-help"
                     data-tooltip="Total Payable Days"
                     data-tooltip-hint="Present + Leaves + Holidays + Week Offs"
                   >
@@ -734,11 +734,11 @@ export const Attendance: React.FC = () => {
                   const empIndex = (page - 1) * pageSize + idx + 1;
                   return (
                     <tr key={row.employee.employeeId} className="hover:bg-[var(--paper-subtle)] transition-colors">
-                      <td className="w-12 min-w-[48px] max-w-[48px] sticky left-0 z-10 bg-[var(--paper)] text-center font-mono text-[11px] text-[var(--ink-muted)] border-r border-[var(--rule)]">
+                      <td className="w-12 min-w-[48px] max-w-[48px] sticky left-0 z-10 bg-[var(--paper)] text-center  text-xs font-normal text-[var(--text-secondary)] border-r border-[var(--rule)]">
                         {empIndex}
                       </td>
                       <td className="min-w-[190px] max-w-[220px] sticky left-[48px] z-10 bg-[var(--paper)] shadow-[2px_0_4px_rgba(0,0,0,0.06)] px-3 py-2 border-r border-[var(--rule)]">
-                        <div className="font-semibold text-xs text-[var(--ink)] truncate max-w-[180px]">
+                        <div className="font-semibold text-xs text-[var(--text-primary)] truncate max-w-[180px]">
                           {row.employee.employeeName}
                         </div>
                       </td>
@@ -783,7 +783,7 @@ export const Attendance: React.FC = () => {
                             data-tooltip={tooltipContent}
                             data-tooltip-hint={tooltipHint}
                             onClick={isClickable ? () => handleOpenDayActivity(row, d) : undefined}
-                            className={`w-9 min-w-[34px] max-w-[36px] text-center p-1 font-data text-xs border-r border-[var(--rule)]/40 select-none ${
+                            className={`w-9 min-w-[34px] max-w-[36px] text-center p-1  text-xs border-r border-[var(--rule)]/40 select-none ${
                               isClickable
                                 ? 'cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:outline hover:outline-1 hover:outline-[var(--accent)] transition-all'
                                 : 'cursor-default'
@@ -793,16 +793,16 @@ export const Attendance: React.FC = () => {
                           </td>
                         );
                       })}
-                      <td className="border-l-2 border-[var(--rule)] text-center font-data font-bold text-[var(--ok-600)] px-2">
+                      <td className="border-l-2 border-[var(--rule)] text-center  font-semibold text-[var(--ok-600)] px-2">
                         {row.summary?.presentDays || 0}
                       </td>
-                      <td className="text-center font-data font-bold text-[var(--err-600)] px-2">
+                      <td className="text-center  font-semibold text-[var(--err-600)] px-2">
                         {row.summary?.absentDays || 0}
                       </td>
-                      <td className="text-center font-data text-[var(--ink-muted)] px-2">
+                      <td className="text-center  text-[var(--text-secondary)] px-2">
                         {row.summary?.weekoffDays || 0}
                       </td>
-                      <td className="text-center font-data font-bold text-[var(--accent)] bg-[var(--paper-subtle)] px-2">
+                      <td className="text-center  font-semibold text-[var(--accent)] bg-[var(--paper-subtle)] px-2">
                         {row.summary?.payableDays || 0}
                       </td>
                     </tr>
@@ -810,7 +810,7 @@ export const Attendance: React.FC = () => {
                 })}
                 {(!data?.items || data.items.length === 0) && (
                   <tr>
-                    <td colSpan={data?.daysInMonth ? data.daysInMonth + 6 : 37} className="py-12 text-center text-xs text-[var(--ink-muted)]">
+                    <td colSpan={data?.daysInMonth ? data.daysInMonth + 6 : 37} className="py-12 text-center text-xs text-[var(--text-secondary)]">
                       No attendance records found for this period.
                     </td>
                   </tr>

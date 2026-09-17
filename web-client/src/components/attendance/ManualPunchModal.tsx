@@ -154,7 +154,7 @@ export const ManualPunchModal: React.FC<ManualPunchModalProps> = ({ isOpen, onCl
         {/* Row 1: Department + Employee */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-[var(--ink)] mb-1">Department</label>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Department</label>
             <SearchableSelect
               options={[{ value: '', label: 'All Departments' }, ...departments]}
               value={departmentId}
@@ -164,7 +164,7 @@ export const ManualPunchModal: React.FC<ManualPunchModalProps> = ({ isOpen, onCl
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[var(--ink)] mb-1">
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
               Employee <span className="text-red-500">*</span>
             </label>
             <SearchableSelect
@@ -191,12 +191,12 @@ export const ManualPunchModal: React.FC<ManualPunchModalProps> = ({ isOpen, onCl
 
         {/* Row 3: Reason */}
         <div>
-          <label className="block text-sm font-medium text-[var(--ink)] mb-1">Reason / Remarks</label>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Reason / Remarks</label>
           <textarea
             value={reason}
             onChange={e => setReason(e.target.value)}
             placeholder="E.g., Forgot ID card, biometric machine down..."
-            className="w-full px-3 py-2 bg-[var(--paper)] border border-[var(--rule)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--accent)] text-[var(--ink)] text-sm resize-none"
+            className="w-full px-3 py-2 bg-[var(--paper)] border border-[var(--rule)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--accent)] text-[var(--text-primary)] text-sm resize-none"
             rows={2}
           />
         </div>
@@ -205,7 +205,7 @@ export const ManualPunchModal: React.FC<ManualPunchModalProps> = ({ isOpen, onCl
           <button
             type="button"
             onClick={handleClose}
-            className="px-4 py-2 text-sm font-medium text-[var(--ink)] bg-[var(--paper-subtle)] border border-[var(--rule)] rounded-md hover:brightness-95 transition-all"
+            className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--paper-subtle)] border border-[var(--rule)] rounded-md hover:brightness-95 transition-all"
             disabled={isSubmitting}
           >
             Cancel

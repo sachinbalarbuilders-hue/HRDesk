@@ -110,8 +110,8 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
 
   if (loading) {
     return (
-      <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex justify-center py-8">
-        <Loader2 className="animate-spin text-[var(--ink-muted)]" size={24} />
+      <div className="p-4 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)] flex justify-center py-8">
+        <Loader2 className="animate-spin text-[var(--text-secondary)]" size={24} />
       </div>
     );
   }
@@ -119,11 +119,11 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
   return (
     <div className="space-y-4">
       {/* Upload Form */}
-      <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-        <h4 className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui mb-2">Upload Document</h4>
+      <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+        <h4 className="text-xs uppercase font-semibold text-[var(--text-secondary)] mb-2">Upload Document</h4>
         <form onSubmit={handleUpload} className="flex items-end gap-2">
           <div className="flex-1">
-            <label className="block text-[10px] text-[var(--ink-muted)] mb-1">Type</label>
+            <label className="block text-xs font-normal text-[var(--text-secondary)] mb-1">Type</label>
             <select
               value={docType}
               onChange={(e) => setDocType(e.target.value)}
@@ -143,7 +143,7 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
             </select>
           </div>
           <div className="flex-1">
-            <label className="block text-[10px] text-[var(--ink-muted)] mb-1">File</label>
+            <label className="block text-xs font-normal text-[var(--text-secondary)] mb-1">File</label>
             <input
               type="file"
               onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
@@ -161,7 +161,7 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
           </button>
         </form>
         {error && (
-          <div className="mt-2 text-[10px] text-red-500 flex items-center gap-1 bg-red-50 p-2 rounded">
+          <div className="mt-2 text-xs font-normal text-[var(--danger)] flex items-center gap-1 bg-[var(--danger)]/10 p-2 rounded-[var(--radius-sm)]">
             <AlertCircle size={12} />
             {error}
           </div>
@@ -169,45 +169,45 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
       </div>
 
       {/* Document List */}
-      <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-2">
-        <div className="flex items-center gap-2 font-semibold text-[var(--ink)] border-b border-[var(--rule)] pb-2">
+      <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)] space-y-2">
+        <div className="flex items-center gap-2 font-semibold text-[var(--text-primary)] border-b border-[var(--border)] pb-2">
           <FileText size={14} className="text-[var(--accent)]" />
-          <span className="text-xs">Employee Documents ({documents.length})</span>
+          <span className="text-sm">Employee Documents ({documents.length})</span>
         </div>
         
         {documents.length === 0 ? (
-          <p className="text-[var(--ink-muted)] font-data text-xs text-center py-4">
+          <p className="text-[var(--text-secondary)] text-sm font-normal text-center py-4">
             No electronic documents uploaded.
           </p>
         ) : (
           <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
             {documents.map((doc) => (
-              <div key={doc.documentId} className="flex items-center justify-between p-2 hover:bg-[var(--background)] rounded border border-transparent hover:border-[var(--rule)] transition-colors group">
+              <div key={doc.documentId} className="flex items-center justify-between p-2 hover:bg-[var(--surface)] rounded-[var(--radius-sm)] border border-transparent hover:border-[var(--border)] transition-colors group">
                 <div className="flex items-center gap-2 overflow-hidden">
-                  <FileText size={16} className="text-[var(--ink-muted)] flex-shrink-0" />
+                  <FileText size={16} className="text-[var(--text-secondary)] flex-shrink-0" />
                   <div className="truncate">
-                    <p className="text-xs font-semibold text-[var(--ink)] truncate" title={doc.fileName}>{doc.fileName}</p>
-                    <p className="text-[10px] text-[var(--ink-muted)]">{doc.documentType} • {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate" title={doc.fileName}>{doc.fileName}</p>
+                    <p className="text-xs font-normal text-[var(--text-secondary)]">{doc.documentType} • {new Date(doc.uploadedAt).toLocaleDateString()}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => handleView(doc)}
-                    className="p-1.5 text-[var(--ink-muted)] hover:text-[var(--gold-600)] hover:bg-[var(--gold-100)] rounded transition-colors"
+                    className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-[var(--radius-sm)] transition-colors cursor-pointer"
                     title="View Document"
                   >
                     <Eye size={14} />
                   </button>
                   <button
                     onClick={() => handleDownload(doc)}
-                    className="p-1.5 text-[var(--ink-muted)] hover:text-[var(--gold-600)] hover:bg-[var(--gold-100)] rounded transition-colors"
+                    className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 rounded-[var(--radius-sm)] transition-colors cursor-pointer"
                     title="Download Document"
                   >
                     <Download size={14} />
                   </button>
                   <button
                     onClick={() => docArchive.archive({ id: doc.documentId, name: doc.fileName, isArchived: false })}
-                    className="p-1.5 text-[var(--ink-muted)] hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                    className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-[var(--radius-sm)] transition-colors cursor-pointer"
                     title="Delete"
                   >
                     <Trash2 size={14} />

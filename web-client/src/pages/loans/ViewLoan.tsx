@@ -77,7 +77,7 @@ const StepNode: React.FC<{
     : isCompleted
     ? 'w-8 h-8 rounded-full border-2 border-[var(--ok-600)] bg-[var(--ok-600)] flex items-center justify-center'
     : isActive
-    ? 'w-8 h-8 rounded-full border-2 border-[var(--gold-500)] bg-[var(--surface)] flex items-center justify-center animate-pulse'
+    ? 'w-8 h-8 rounded-full border-2 border-[var(--accent)] bg-[var(--surface)] flex items-center justify-center animate-pulse'
     : 'w-8 h-8 rounded-full border-2 border-[var(--rule)] bg-[var(--surface)] flex items-center justify-center';
 
   return (
@@ -85,11 +85,11 @@ const StepNode: React.FC<{
       <div className={dotClass}>
         {isRejected && <XCircle size={14} className="text-white" />}
         {isCompleted && !isRejected && <CheckCircle size={14} className="text-white" />}
-        {isActive && !isCompleted && !isRejected && <span className="w-2 h-2 rounded-full bg-[var(--gold-500)]" />}
+        {isActive && !isCompleted && !isRejected && <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />}
       </div>
-      <span className="text-[11px] font-semibold text-[var(--ink)] mt-2">{label}</span>
-      {person && <span className="text-[10px] text-[var(--ink-muted)] mt-0.5">{person}</span>}
-      {sublabel && <span className="text-[10px] font-data text-[var(--ink-muted)]">{sublabel}</span>}
+      <span className="text-xs font-semibold text-[var(--text-primary)] mt-2">{label}</span>
+      {person && <span className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">{person}</span>}
+      {sublabel && <span className="text-xs font-normal  text-[var(--text-secondary)]">{sublabel}</span>}
     </div>
   );
 };
@@ -161,7 +161,7 @@ export const ViewLoan: React.FC = () => {
 
   if (!loan) {
     return (
-      <div className="p-8 text-center text-sm text-[var(--ink-muted)]">
+      <div className="p-8 text-center text-sm text-[var(--text-secondary)]">
         Loan not found or access denied.
       </div>
     );
@@ -176,19 +176,19 @@ export const ViewLoan: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/loans')}
-            className="p-1.5 rounded-[4px] hover:bg-[var(--surface-hover)] text-[var(--ink-muted)] cursor-pointer"
+            className="p-1.5 rounded-[4px] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] cursor-pointer"
             title="Back to Loans"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <span className="text-[10px] uppercase font-semibold text-[var(--gold-500)] font-data">
+            <span className="text-xs font-normal uppercase font-semibold text-[var(--accent)] ">
               Loan Details & Payment Summary
             </span>
-            <h1 className="font-display text-2xl font-bold text-[var(--ink)] mt-0.5">
+            <h1 className=" text-base font-semibold text-[var(--text-primary)] mt-0.5">
               {loan.applicationNumber}
             </h1>
-            <p className="text-xs text-[var(--ink-muted)]">
+            <p className="text-xs text-[var(--text-secondary)]">
               {loan.employeeName} &middot; {loan.department} &middot; {loan.loanType}
             </p>
           </div>
@@ -207,7 +207,7 @@ export const ViewLoan: React.FC = () => {
 
       {/* Approval Flow Stepper */}
       <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-5">
-        <h3 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider mb-5">
+        <h3 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-5">
           Approval Flow
         </h3>
         <div className="flex items-start justify-between relative">
@@ -263,103 +263,103 @@ export const ViewLoan: React.FC = () => {
 
       {/* Loan Info Grid */}
       <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-5">
-        <h3 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider mb-4 flex items-center gap-2">
-          <FileText size={14} className="text-[var(--gold-500)]" />
+        <h3 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider mb-4 flex items-center gap-2">
+          <FileText size={14} className="text-[var(--accent)]" />
           Application Details
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-xs">
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Application #</span>
-            <span className="font-data font-bold text-[var(--ink)]">{loan.applicationNumber}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Application #</span>
+            <span className=" font-semibold text-[var(--text-primary)]">{loan.applicationNumber}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Application Date</span>
-            <span className="font-data text-[var(--ink)]">{loan.applicationDate}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Application Date</span>
+            <span className=" text-[var(--text-primary)]">{loan.applicationDate}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Employee</span>
-            <span className="font-semibold text-[var(--ink)] flex items-center gap-1">
+            <span className="text-[var(--text-secondary)] block mb-0.5">Employee</span>
+            <span className="font-semibold text-[var(--text-primary)] flex items-center gap-1">
               <User size={12} /> {loan.employeeName} (#{loan.employeeId})
             </span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Department</span>
-            <span className="text-[var(--ink)] flex items-center gap-1">
+            <span className="text-[var(--text-secondary)] block mb-0.5">Department</span>
+            <span className="text-[var(--text-primary)] flex items-center gap-1">
               <Building2 size={12} /> {loan.department}
             </span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Loan Type</span>
-            <span className="font-semibold text-[var(--ink)]">{loan.loanType}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Loan Type</span>
+            <span className="font-semibold text-[var(--text-primary)]">{loan.loanType}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Principal Amount</span>
-            <span className="font-data font-bold text-[var(--ink)]">₹{loan.loanAmount.toLocaleString()}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Principal Amount</span>
+            <span className=" font-semibold text-[var(--text-primary)]">₹{loan.loanAmount.toLocaleString()}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Monthly EMI</span>
-            <span className="font-data font-bold text-[var(--ink)]">₹{loan.installmentAmount.toLocaleString()}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Monthly EMI</span>
+            <span className=" font-semibold text-[var(--text-primary)]">₹{loan.installmentAmount.toLocaleString()}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Tenure</span>
-            <span className="font-data text-[var(--ink)]">{loan.totalInstallments} months</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Tenure</span>
+            <span className=" text-[var(--text-primary)]">{loan.totalInstallments} months</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">EMI Start Date</span>
-            <span className="font-data text-[var(--ink)]">{loan.startDate}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">EMI Start Date</span>
+            <span className=" text-[var(--text-primary)]">{loan.startDate}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Status</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Status</span>
             <span className={`font-semibold ${
               loan.status === 'Disbursed' ? 'text-[var(--ok-600)]' :
               loan.status === 'Pending' ? 'text-[var(--warn-600)]' :
               loan.status === 'Rejected' ? 'text-[var(--err-600)]' :
-              'text-[var(--ink)]'
+              'text-[var(--text-primary)]'
             }`}>{loan.status}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Remaining Amount</span>
-            <span className="font-data font-bold text-[var(--warn-600)]">₹{loan.remainingAmount.toLocaleString()}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Remaining Amount</span>
+            <span className=" font-semibold text-[var(--warn-600)]">₹{loan.remainingAmount.toLocaleString()}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Remaining EMIs</span>
-            <span className="font-data text-[var(--ink)]">{loan.remainingInstallments}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Remaining EMIs</span>
+            <span className=" text-[var(--text-primary)]">{loan.remainingInstallments}</span>
           </div>
           <div className="col-span-2">
-            <span className="text-[var(--ink-muted)] block mb-0.5">Purpose / Reason</span>
-            <span className="text-[var(--ink)]">{loan.reason || '—'}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Purpose / Reason</span>
+            <span className="text-[var(--text-primary)]">{loan.reason || '—'}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Manager Approved By</span>
-            <span className="text-[var(--ink)]">{loan.managerApprovedBy || '—'}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Manager Approved By</span>
+            <span className="text-[var(--text-primary)]">{loan.managerApprovedBy || '—'}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Manager Approved Date</span>
-            <span className="font-data text-[var(--ink)]">{loan.managerApprovedDate || '—'}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Manager Approved Date</span>
+            <span className=" text-[var(--text-primary)]">{loan.managerApprovedDate || '—'}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">HR/Admin Approved By</span>
-            <span className="text-[var(--ink)]">{loan.approvedBy || '—'}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">HR/Admin Approved By</span>
+            <span className="text-[var(--text-primary)]">{loan.approvedBy || '—'}</span>
           </div>
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">HR/Admin Approved Date</span>
-            <span className="font-data text-[var(--ink)]">{loan.approvedDate || '—'}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">HR/Admin Approved Date</span>
+            <span className=" text-[var(--text-primary)]">{loan.approvedDate || '—'}</span>
           </div>
           {loan.foreclosureRemark && (
             <div className="col-span-2">
-              <span className="text-[var(--ink-muted)] block mb-0.5">Foreclosure Remark</span>
-              <span className="text-[var(--ink)]">{loan.foreclosureRemark}</span>
+              <span className="text-[var(--text-secondary)] block mb-0.5">Foreclosure Remark</span>
+              <span className="text-[var(--text-primary)]">{loan.foreclosureRemark}</span>
             </div>
           )}
           {loan.startingPaidInstallments > 0 && (
             <div>
-              <span className="text-[var(--ink-muted)] block mb-0.5">Pre-Migrated Paid EMIs</span>
-              <span className="font-data text-[var(--ink)]">{loan.startingPaidInstallments}</span>
+              <span className="text-[var(--text-secondary)] block mb-0.5">Pre-Migrated Paid EMIs</span>
+              <span className=" text-[var(--text-primary)]">{loan.startingPaidInstallments}</span>
             </div>
           )}
           <div>
-            <span className="text-[var(--ink-muted)] block mb-0.5">Created At</span>
-            <span className="font-data text-[var(--ink-muted)]">{loan.createdAt}</span>
+            <span className="text-[var(--text-secondary)] block mb-0.5">Created At</span>
+            <span className=" text-[var(--text-secondary)]">{loan.createdAt}</span>
           </div>
         </div>
       </div>
@@ -367,21 +367,21 @@ export const ViewLoan: React.FC = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-4">
-          <div className="flex items-center gap-2 text-[var(--ink-muted)] mb-1">
+          <div className="flex items-center gap-2 text-[var(--text-secondary)] mb-1">
             <IndianRupee size={14} />
-            <span className="text-[10px] uppercase font-semibold font-data">Loan Amount</span>
+            <span className="text-xs font-normal uppercase font-semibold ">Loan Amount</span>
           </div>
-          <div className="font-data text-lg font-bold text-[var(--ink)]">
+          <div className=" text-base font-semibold text-[var(--text-primary)]">
             ₹{loan.loanAmount.toLocaleString()}
           </div>
         </div>
 
         <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-4">
-          <div className="flex items-center gap-2 text-[var(--ink-muted)] mb-1">
+          <div className="flex items-center gap-2 text-[var(--text-secondary)] mb-1">
             <CalendarDays size={14} />
-            <span className="text-[10px] uppercase font-semibold font-data">Monthly EMI</span>
+            <span className="text-xs font-normal uppercase font-semibold ">Monthly EMI</span>
           </div>
-          <div className="font-data text-lg font-bold text-[var(--ink)]">
+          <div className=" text-base font-semibold text-[var(--text-primary)]">
             ₹{loan.installmentAmount.toLocaleString()}
           </div>
         </div>
@@ -389,12 +389,12 @@ export const ViewLoan: React.FC = () => {
         <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-4">
           <div className="flex items-center gap-2 text-[var(--ok-600)] mb-1">
             <CheckCircle size={14} />
-            <span className="text-[10px] uppercase font-semibold font-data">Total Recovered</span>
+            <span className="text-xs font-normal uppercase font-semibold ">Total Recovered</span>
           </div>
-          <div className="font-data text-lg font-bold text-[var(--ok-600)]">
+          <div className=" text-base font-semibold text-[var(--ok-600)]">
             ₹{summary?.totalPaid.toLocaleString() ?? 0}
           </div>
-          <div className="text-[10px] text-[var(--ink-muted)] font-data mt-0.5">
+          <div className="text-xs font-normal text-[var(--text-secondary)]  mt-0.5">
             {summary?.paidCount} of {summary?.totalCount} EMIs
           </div>
         </div>
@@ -402,12 +402,12 @@ export const ViewLoan: React.FC = () => {
         <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-4">
           <div className="flex items-center gap-2 text-[var(--warn-600)] mb-1">
             <Clock size={14} />
-            <span className="text-[10px] uppercase font-semibold font-data">Outstanding</span>
+            <span className="text-xs font-normal uppercase font-semibold ">Outstanding</span>
           </div>
-          <div className="font-data text-lg font-bold text-[var(--warn-600)]">
+          <div className=" text-base font-semibold text-[var(--warn-600)]">
             ₹{loan.remainingAmount.toLocaleString()}
           </div>
-          <div className="text-[10px] text-[var(--ink-muted)] font-data mt-0.5">
+          <div className="text-xs font-normal text-[var(--text-secondary)]  mt-0.5">
             {loan.remainingInstallments} EMIs remaining
           </div>
         </div>
@@ -416,8 +416,8 @@ export const ViewLoan: React.FC = () => {
       {/* Progress Bar */}
       <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-[var(--ink)]">Repayment Progress</span>
-          <span className="font-data text-xs font-bold text-[var(--gold-500)]">{progressPercent}%</span>
+          <span className="text-xs font-semibold text-[var(--text-primary)]">Repayment Progress</span>
+          <span className=" text-xs font-semibold text-[var(--accent)]">{progressPercent}%</span>
         </div>
         <div className="w-full h-2 rounded-full bg-[var(--rule)] overflow-hidden">
           <div
@@ -430,8 +430,8 @@ export const ViewLoan: React.FC = () => {
       {/* Installment Ledger Table */}
       <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] overflow-hidden">
         <div className="p-4 border-b border-[var(--rule)] bg-[var(--surface-header)]">
-          <h3 className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider flex items-center gap-2">
-            <CreditCard size={14} className="text-[var(--gold-500)]" />
+          <h3 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+            <CreditCard size={14} className="text-[var(--accent)]" />
             Installment Ledger
           </h3>
         </div>
@@ -439,7 +439,7 @@ export const ViewLoan: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-[var(--rule)] bg-[var(--surface-header)] text-[var(--ink-muted)] font-data text-[11px] uppercase tracking-wider">
+              <tr className="border-b border-[var(--rule)] bg-[var(--surface-header)] text-[var(--text-secondary)]  text-xs font-normal uppercase tracking-wider">
                 <th className="p-3 font-semibold w-12 text-center">Sr.</th>
                 <th className="p-3 font-semibold">Due Month</th>
                 <th className="p-3 font-semibold">EMI Amount</th>
@@ -453,45 +453,45 @@ export const ViewLoan: React.FC = () => {
             <tbody className="divide-y divide-[var(--rule)]">
               {installments.map((inst) => (
                 <tr key={inst.id} className="hover:bg-[var(--surface-hover)] transition-colors">
-                  <td className="p-3 font-data font-mono text-center text-xs text-[var(--ink-muted)]">
+                  <td className="p-3   text-center text-xs text-[var(--text-secondary)]">
                     {inst.installmentNumber}
                   </td>
-                  <td className="p-3 font-data text-[var(--ink)]">
+                  <td className="p-3  text-[var(--text-primary)]">
                     {inst.dueMonth}
                   </td>
-                  <td className="p-3 font-data font-semibold text-[var(--ink)]">
+                  <td className="p-3  font-semibold text-[var(--text-primary)]">
                     ₹{inst.amount.toLocaleString()}
                   </td>
-                  <td className="p-3 font-data font-semibold text-[var(--ok-600)]">
+                  <td className="p-3  font-semibold text-[var(--ok-600)]">
                     {inst.paidAmount > 0 ? `₹${inst.paidAmount.toLocaleString()}` : '—'}
                   </td>
-                  <td className="p-3 font-data text-[var(--ink-muted)]">
+                  <td className="p-3  text-[var(--text-secondary)]">
                     {inst.paidDate || '—'}
                   </td>
                   <td className="p-3">
                     {inst.status === 'Paid' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
                         <CheckCircle size={10} /> Paid
                       </span>
                     )}
                     {inst.status === 'Settled' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
                         <CheckCircle size={10} /> Settled
                       </span>
                     )}
                     {inst.status === 'Pending' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
                         <Clock size={10} /> Pending
                       </span>
                     )}
                     {!['Paid', 'Settled', 'Pending'].includes(inst.status) && (
-                      <span className="text-[10px] text-[var(--ink-muted)]">{inst.status}</span>
+                      <span className="text-xs font-normal text-[var(--text-secondary)]">{inst.status}</span>
                     )}
                   </td>
-                  <td className="p-3 font-data text-[var(--ink-muted)]">
+                  <td className="p-3  text-[var(--text-secondary)]">
                     {inst.payrollId ? `#${inst.payrollId}` : '—'}
                   </td>
-                  <td className="p-3 text-[var(--ink-muted)] max-w-[160px] truncate" title={inst.remarks}>
+                  <td className="p-3 text-[var(--text-secondary)] max-w-[160px] truncate" title={inst.remarks}>
                     {inst.remarks || '—'}
                   </td>
                 </tr>
@@ -505,15 +505,15 @@ export const ViewLoan: React.FC = () => {
       {foreclosureOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[1px] p-4">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-sm w-full p-5 space-y-4">
-            <h3 className="font-display font-bold text-base text-[var(--err-600)] flex items-center gap-1.5">
+            <h3 className=" font-semibold text-base text-[var(--err-600)] flex items-center gap-1.5">
               <XCircle size={18} /> Foreclose Loan
             </h3>
-            <p className="text-xs text-[var(--ink-muted)]">
+            <p className="text-xs text-[var(--text-secondary)]">
               This will settle all pending installments and mark the loan as Closed. This action cannot be undone.
             </p>
 
             <div>
-              <label className="block text-xs font-semibold text-[var(--ink)] mb-1">Foreclosure Remark *</label>
+              <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Foreclosure Remark *</label>
               <textarea
                 value={foreclosureRemark}
                 onChange={(e) => setForeclosureRemark(e.target.value)}
@@ -524,7 +524,7 @@ export const ViewLoan: React.FC = () => {
               />
             </div>
 
-            <label className="flex items-center gap-2 text-xs text-[var(--ink)] cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-[var(--text-primary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={includeCurrentMonth}

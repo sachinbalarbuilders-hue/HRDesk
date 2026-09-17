@@ -65,7 +65,7 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
 
   if (row.status === 'Approved') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
         <span className="w-2 h-2 rounded-full bg-emerald-500" />
         <span>Approved</span>
       </span>
@@ -74,7 +74,7 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
 
   if (row.status === 'Rejected') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
         <span className="w-2 h-2 rounded-full bg-rose-500" />
         <span>Rejected</span>
       </span>
@@ -83,7 +83,7 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
 
   if (row.status === 'Cancelled') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gray-500/10 text-gray-500 dark:text-gray-400 border border-gray-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-500/10 text-gray-500 dark:text-gray-400 border border-gray-500/20">
         <span className="w-2 h-2 rounded-full bg-gray-400" />
         <span>Cancelled</span>
       </span>
@@ -92,7 +92,7 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
 
   if (row.status === 'Archived') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
         <span className="w-2 h-2 rounded-full bg-slate-400" />
         <span>Archived</span>
       </span>
@@ -102,7 +102,7 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
   // Pending Status
   if (!canApprove && !canCancel) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
         <span className="w-2 h-2 rounded-full bg-amber-500" />
         <span>Pending</span>
       </span>
@@ -114,13 +114,13 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center justify-between gap-2 px-2.5 py-1 rounded-md text-xs font-medium border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--ink)] shadow-2xs cursor-pointer transition-all hover:border-[var(--gold-500)]"
+        className="inline-flex items-center justify-between gap-2 px-2.5 py-1 rounded-md text-sm font-semibold border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--text-primary)] shadow-2xs cursor-pointer transition-all hover:border-[var(--accent)]"
       >
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-amber-500" />
           <span className="font-semibold">Pending</span>
         </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-[var(--ink-muted)] transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-[var(--text-secondary)] transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
@@ -525,13 +525,13 @@ export const Leaves: React.FC = () => {
           {
             key: 'employee',
             header: 'Employee',
-            render: (app) => <span className="font-semibold text-[var(--ink)]">{app.employeeName}</span>,
+            render: (app) => <span className="font-semibold text-[var(--text-primary)]">{app.employeeName}</span>,
           },
           {
             key: 'leaveType',
             header: 'Type',
             render: (app) => (
-              <span className="font-data text-xs text-[var(--ink-muted)]">
+              <span className=" text-xs text-[var(--text-secondary)]">
                 {app.leaveTypeCode || app.leaveTypeName}
               </span>
             ),
@@ -540,7 +540,7 @@ export const Leaves: React.FC = () => {
             key: 'period',
             header: 'Period',
             render: (app) => (
-              <span className="text-xs font-data text-[var(--ink)]">
+              <span className="text-xs  text-[var(--text-primary)]">
                 {app.startDate} to {app.endDate}
               </span>
             ),
@@ -549,7 +549,7 @@ export const Leaves: React.FC = () => {
             key: 'duration',
             header: 'Days',
             render: (app) => (
-              <span className="font-data text-xs text-[var(--ink)]">
+              <span className=" text-xs text-[var(--text-primary)]">
                 {app.totalDays}d ({app.dayType})
               </span>
             ),
@@ -558,7 +558,7 @@ export const Leaves: React.FC = () => {
             key: 'reason',
             header: 'Reason',
             render: (app) => (
-              <span className="text-xs text-[var(--ink-muted)] max-w-xs truncate block" title={app.reason || ''}>
+              <span className="text-xs text-[var(--text-secondary)] max-w-xs truncate block" title={app.reason || ''}>
                 {app.reason || '-'}
               </span>
             ),
@@ -610,7 +610,7 @@ export const Leaves: React.FC = () => {
                   ]}
                 />
               ) : (
-                <span className="font-data text-xs text-[var(--ink-muted)]">
+                <span className=" text-xs text-[var(--text-secondary)]">
                   {app.approvedBy ? `by ${app.approvedBy}` : '—'}
                 </span>
               );
@@ -642,18 +642,18 @@ export const Leaves: React.FC = () => {
           <div className="w-full max-w-[480px] bg-[var(--surface)] h-full p-6 shadow-2xl overflow-y-auto space-y-5 border-l border-[var(--rule)]">
             <div className="flex items-start justify-between pb-3 border-b border-[var(--rule)]">
               <div>
-                <span className="text-[10px] uppercase font-semibold text-[var(--gold-500)] font-data">
+                <span className="text-xs font-normal uppercase font-semibold text-[var(--accent)] ">
                   Leave Application
                 </span>
-                <h2 className="font-display text-2xl font-semibold text-[var(--ink)] mt-0.5">
+                <h2 className=" text-base font-semibold text-[var(--text-primary)] mt-0.5">
                   {editingId ? 'Edit Leave Application' : 'Apply for Leave'}
                 </h2>
-                <p className="text-xs text-[var(--ink-muted)]">Submit time-off request for manager approval</p>
+                <p className="text-xs text-[var(--text-secondary)]">Submit time-off request for manager approval</p>
               </div>
 
               <button
                 onClick={() => { setApplyPanelOpen(false); setEditingId(null); }}
-                className="p-1 rounded text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -662,14 +662,14 @@ export const Leaves: React.FC = () => {
             <form onSubmit={handleApplyLeave} className="space-y-4">
               {/* Employee Selection */}
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                   Employee *
                 </label>
                 <select
                   required
                   value={applyForm.employeeId}
                   onChange={(e) => handleEmployeeChange(e.target.value)}
-                  className={`register-input w-full font-ui ${applyScope === 'Own' || editingId !== null ? 'opacity-70 bg-gray-50 dark:bg-gray-900 cursor-not-allowed' : ''}`}
+                  className={`register-input w-full  ${applyScope === 'Own' || editingId !== null ? 'opacity-70 bg-gray-50 dark:bg-gray-900 cursor-not-allowed' : ''}`}
                   disabled={applyScope === 'Own' || editingId !== null}
                 >
                   <option value="">-- Select Employee --</option>
@@ -684,7 +684,7 @@ export const Leaves: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                   Leave Type *
                 </label>
                 <select
@@ -704,7 +704,7 @@ export const Leaves: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                     Start Date
                   </label>
                   <input
@@ -712,11 +712,11 @@ export const Leaves: React.FC = () => {
                     required
                     value={applyForm.startDate}
                     onChange={(e) => setApplyForm({ ...applyForm, startDate: e.target.value })}
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                     End Date
                   </label>
                   <input
@@ -724,20 +724,20 @@ export const Leaves: React.FC = () => {
                     required
                     value={applyForm.endDate}
                     onChange={(e) => setApplyForm({ ...applyForm, endDate: e.target.value })}
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-2">
+                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-2">
                   Duration
                 </label>
                 <div className="flex items-center gap-2">
                   {['Full Day', 'First Half', 'Second Half'].map((opt) => (
                     <label
                       key={opt}
-                      className={`flex-1 text-center py-2 px-3 rounded-[var(--radius-md)] border cursor-pointer text-xs font-medium transition-colors ${
+                      className={`flex-1 text-center py-2 px-3 rounded-[var(--radius-md)] border cursor-pointer text-sm font-semibold transition-colors ${
                         applyForm.dayType === opt
                           ? 'border-[var(--accent)] bg-[var(--accent-light)] text-[var(--accent)]'
                           : 'border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:bg-[var(--surface-secondary)]'
@@ -758,7 +758,7 @@ export const Leaves: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                   Reason *
                 </label>
                 <textarea
@@ -773,7 +773,7 @@ export const Leaves: React.FC = () => {
 
               {/* Document Upload */}
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
                   Supporting Document
                 </label>
                 <div className="border border-dashed border-[var(--border)] rounded-[var(--radius-md)] p-4 text-center hover:border-[var(--accent)] hover:bg-[var(--surface-secondary)] cursor-pointer transition-colors">
@@ -790,7 +790,7 @@ export const Leaves: React.FC = () => {
                     ) : (
                       <>
                         <div className="text-sm text-[var(--text-secondary)]">Click to upload proof</div>
-                        <div className="text-[11px] text-[var(--text-muted)] mt-0.5">PDF, JPG, PNG (max 5MB)</div>
+                        <div className="text-xs font-normal text-[var(--text-muted)] mt-0.5">PDF, JPG, PNG (max 5MB)</div>
                       </>
                     )}
                   </label>

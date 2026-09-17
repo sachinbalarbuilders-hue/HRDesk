@@ -65,13 +65,13 @@ export const AddEmployee: React.FC = () => {
       <div className="flex items-center gap-4">
         <button 
           onClick={() => navigate('/employees')}
-          className="p-2 rounded-full hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+          className="p-2 rounded-full hover:bg-[var(--surface-sunken)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="font-display text-2xl font-bold text-[var(--ink)]">Add New Employee</h1>
-          <p className="text-sm text-[var(--ink-muted)] font-ui mt-1">Enter details to onboard a new team member.</p>
+          <h1 className=" text-base font-semibold text-[var(--text-primary)]">Add New Employee</h1>
+          <p className="text-sm text-[var(--text-secondary)]  mt-1">Enter details to onboard a new team member.</p>
         </div>
       </div>
 

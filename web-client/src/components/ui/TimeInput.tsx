@@ -117,10 +117,10 @@ function ScrollColumn<T extends number>({
             key={v}
             onClick={() => { onSelect(v); scrollToIndex(items.indexOf(v)); }}
             style={{ height: ITEM_H, scrollSnapAlign: 'center' }}
-            className={`flex items-center justify-center text-sm font-mono cursor-pointer select-none transition-all rounded-lg mx-1 ${
+            className={`flex items-center justify-center text-sm  cursor-pointer select-none transition-all rounded-lg mx-1 ${
               v === selected
-                ? 'bg-[var(--accent)] text-white font-bold'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--rule)]/30'
+                ? 'bg-[var(--accent)] text-white font-semibold'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--rule)]/30'
             }`}
           >
             {format(v)}
@@ -171,7 +171,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({ label, value, onChange, re
   return (
     <div ref={containerRef} className="relative">
       {label && (
-        <label className="block text-sm font-medium text-[var(--ink)] mb-1">
+        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
           {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
@@ -190,10 +190,10 @@ export const TimeInput: React.FC<TimeInputProps> = ({ label, value, onChange, re
             : 'border-[var(--rule)] hover:border-[var(--accent)]/50'
         }`}
       >
-        <span className={`flex-1 text-left font-mono tabular-nums tracking-wide ${value ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)]'}`}>
+        <span className={`flex-1 text-left  tabular-nums tracking-wide ${value ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
           {value ? formatDisplay(value) : '--:-- --'}
         </span>
-        <Clock size={14} className="text-[var(--ink-muted)] shrink-0" aria-hidden="true" />
+        <Clock size={14} className="text-[var(--text-secondary)] shrink-0" aria-hidden="true" />
       </button>
 
       {/* Dropdown — fixed so it escapes modal overflow clipping */}
@@ -217,7 +217,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({ label, value, onChange, re
               format={v => String(v).padStart(2, '0')}
             />
 
-            <span className="text-[var(--ink-muted)] font-bold text-xl pb-1 select-none px-0.5" aria-hidden="true">:</span>
+            <span className="text-[var(--text-secondary)] font-semibold text-base pb-1 select-none px-0.5" aria-hidden="true">:</span>
 
             {/* Minutes */}
             <ScrollColumn
@@ -234,10 +234,10 @@ export const TimeInput: React.FC<TimeInputProps> = ({ label, value, onChange, re
                   key={p}
                   type="button"
                   onClick={() => togglePeriod(p)}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold tracking-widest transition-colors ${
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold tracking-widest transition-colors ${
                     period === p
                       ? 'bg-[var(--accent)] text-white shadow-sm'
-                      : 'text-[var(--ink-muted)] hover:bg-[var(--paper-subtle)] hover:text-[var(--ink)]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--paper-subtle)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   {p}
@@ -248,7 +248,7 @@ export const TimeInput: React.FC<TimeInputProps> = ({ label, value, onChange, re
 
           {/* Footer */}
           <div className="border-t border-[var(--rule)] px-3 py-2 flex justify-between items-center mt-1">
-            <span className="text-xs text-[var(--ink-muted)] font-mono tabular-nums">
+            <span className="text-xs text-[var(--text-secondary)]  tabular-nums">
               {value ? formatDisplay(value) : 'No time set'}
             </span>
             <button

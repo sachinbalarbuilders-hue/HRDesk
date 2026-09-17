@@ -30,8 +30,8 @@ export const OrgBranchesTab: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-sm text-[var(--ink)]">Branches</h3>
-          <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+          <h3 className="font-semibold text-sm text-[var(--text-primary)]">Branches</h3>
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
             Sites and offices under this organization. Open a branch to edit details and attendance policy.
           </p>
         </div>
@@ -47,13 +47,13 @@ export const OrgBranchesTab: React.FC = () => {
       </div>
 
       {visibleBranches.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 py-10 text-xs text-[var(--ink-muted)] border border-dashed border-[var(--rule)] rounded-md">
+        <div className="flex flex-col items-center justify-center gap-2 py-10 text-xs text-[var(--text-secondary)] border border-dashed border-[var(--rule)] rounded-md">
           <MapPin size={20} className="text-indigo-300" />
           <span>{archiveFilter === 'archived' ? 'No archived branches.' : <>No branches under <strong>{orgForm.name}</strong> yet.</>}</span>
           {archiveFilter === 'active' && (
             <button
               onClick={() => navigate(`/settings/organizations/${id}/branches/add`)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] bg-indigo-600 text-white text-[11px] font-semibold hover:bg-indigo-700 cursor-pointer transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[2px] bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 cursor-pointer transition-colors"
             >
               <Plus size={11} />Add First Branch
             </button>
@@ -72,16 +72,16 @@ export const OrgBranchesTab: React.FC = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm text-[var(--ink)]">{branch.name}</span>
+                  <span className="font-semibold text-sm text-[var(--text-primary)]">{branch.name}</span>
                   {!isRowArchived(branch)
-                    ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--ok-600)]"><span className="status-dot-ok" /> Active</span>
-                    : <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--warn-600)]"><span className="status-dot-warn" /> Archived</span>
+                    ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--ok-600)]"><span className="status-dot-ok" /> Active</span>
+                    : <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--warn-600)]"><span className="status-dot-warn" /> Archived</span>
                   }
                 </div>
-                <div className="flex items-center gap-3 mt-0.5 text-[10px] text-[var(--ink-muted)]">
+                <div className="flex items-center gap-3 mt-0.5 text-xs font-normal text-[var(--text-secondary)]">
                   {branch.city && <span>{branch.city}{branch.state ? ', ' + branch.state : ''}</span>}
                   {branch.address && <span className="truncate max-w-xs">{branch.address}</span>}
-                  {branch.latitude && <span className="font-data flex items-center gap-0.5"><MapPin size={9} className="text-indigo-400" />{Number(branch.latitude).toFixed(4)}, {Number(branch.longitude).toFixed(4)} ({branch.radiusMeters}m)</span>}
+                  {branch.latitude && <span className=" flex items-center gap-0.5"><MapPin size={9} className="text-indigo-400" />{Number(branch.latitude).toFixed(4)}, {Number(branch.longitude).toFixed(4)} ({branch.radiusMeters}m)</span>}
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>

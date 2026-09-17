@@ -46,7 +46,7 @@ export const BranchPermissions: React.FC = () => {
   }, [orgPublicId, branchPublicId]);
 
   if (loading) {
-    return <div className="p-8 text-center text-[var(--ink-muted)] text-xs font-data">Loading branch permissions...</div>;
+    return <div className="p-8 text-center text-[var(--text-secondary)] text-xs ">Loading branch permissions...</div>;
   }
 
   return (
@@ -54,21 +54,21 @@ export const BranchPermissions: React.FC = () => {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(orgPublicId ? `/settings/organizations/${orgPublicId}/branches` : '/settings/organizations')}
-          className="p-1.5 rounded-md hover:bg-[var(--surface)] text-[var(--ink-muted)] transition-colors cursor-pointer"
+          className="p-1.5 rounded-md hover:bg-[var(--surface)] text-[var(--text-secondary)] transition-colors cursor-pointer"
         >
           <ArrowLeft size={18} />
         </button>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-display font-semibold text-[var(--ink)] flex items-center gap-2">
-              <Shield className="text-[var(--gold-500)]" size={22} />
+            <h1 className="text-base  font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <Shield className="text-[var(--accent)]" size={22} />
               {branchName}
             </h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/60">
+            <span className="text-xs font-normal font-semibold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/60">
               Branch • {orgName || 'Organization'}
             </span>
           </div>
-          <p className="text-xs text-[var(--ink-muted)] mt-1">
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
             Branch-level Roles, Custom Profiles & Granular Data Scopes
           </p>
         </div>

@@ -90,24 +90,24 @@ export const AuditLogsTab: React.FC = () => {
     switch (action) {
       case 'CREATE':
         return (
-          <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+          <span className="px-2 py-0.5 text-xs font-normal font-semibold uppercase rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
             CREATE
           </span>
         );
       case 'UPDATE':
         return (
-          <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+          <span className="px-2 py-0.5 text-xs font-normal font-semibold uppercase rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
             UPDATE
           </span>
         );
       case 'DELETE':
         return (
-          <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+          <span className="px-2 py-0.5 text-xs font-normal font-semibold uppercase rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
             DELETE
           </span>
         );
       default:
-        return <span className="px-2 py-0.5 text-[10px] rounded bg-[var(--surface-sunken)]">{action}</span>;
+        return <span className="px-2 py-0.5 text-xs font-normal rounded bg-[var(--surface-sunken)]">{action}</span>;
     }
   };
 
@@ -125,11 +125,11 @@ export const AuditLogsTab: React.FC = () => {
       {/* Header & Description */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--rule)] pb-4">
         <div>
-          <h3 className="font-display text-lg font-bold text-[var(--ink)] flex items-center gap-2">
-            <History size={20} className="text-[var(--gold-500)]" />
+          <h3 className=" text-base font-semibold text-[var(--text-primary)] flex items-center gap-2">
+            <History size={20} className="text-[var(--accent)]" />
             Enterprise Audit Trail Ledger
           </h3>
-          <p className="text-xs text-[var(--ink-muted)] font-ui">
+          <p className="text-xs text-[var(--text-secondary)] ">
             Immutable compliance record of all database modifications, actor IDs, and field-level diffs.
           </p>
         </div>
@@ -152,7 +152,7 @@ export const AuditLogsTab: React.FC = () => {
       >
         {/* Search Input */}
         <div className="md:col-span-2 relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" />
           <input
             type="text"
             value={search}
@@ -239,7 +239,7 @@ export const AuditLogsTab: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-[var(--rule)] bg-[var(--surface-sunken)] font-ui text-[11px] uppercase tracking-wider text-[var(--ink-muted)]">
+              <tr className="border-b border-[var(--rule)] bg-[var(--surface-sunken)]  text-xs font-normal uppercase tracking-wider text-[var(--text-secondary)]">
                 <th className="py-3 px-4 w-12 text-center">Sr.</th>
                 <th className="py-3 px-4">Timestamp</th>
                 <th className="py-3 px-4">Actor / User</th>
@@ -253,16 +253,16 @@ export const AuditLogsTab: React.FC = () => {
             <tbody className="divide-y divide-[var(--rule)]">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[var(--ink-muted)]">
+                  <td colSpan={8} className="py-12 text-center text-[var(--text-secondary)]">
                     <div className="flex items-center justify-center gap-2">
-                      <Loader2 size={16} className="animate-spin text-[var(--gold-500)]" />
+                      <Loader2 size={16} className="animate-spin text-[var(--accent)]" />
                       <span>Loading audit records...</span>
                     </div>
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[var(--ink-muted)] font-ui">
+                  <td colSpan={8} className="py-12 text-center text-[var(--text-secondary)] ">
                     <FileText size={24} className="mx-auto mb-2 opacity-40" />
                     <span>No audit log records found for the selected criteria.</span>
                   </td>
@@ -270,37 +270,37 @@ export const AuditLogsTab: React.FC = () => {
               ) : (
                 logs.map((log, idx) => (
                   <tr key={log.id} className="hover:bg-[var(--surface-sunken)]/50 transition-colors">
-                    <td className="py-3 px-4 font-mono text-center text-xs text-[var(--ink-muted)] w-12">
+                    <td className="py-3 px-4  text-center text-xs text-[var(--text-secondary)] w-12">
                       {(page - 1) * PAGE_SIZE + idx + 1}
                     </td>
-                    <td className="py-3 px-4 font-mono text-[11px] text-[var(--ink)] whitespace-nowrap">
+                    <td className="py-3 px-4  text-xs font-normal text-[var(--text-primary)] whitespace-nowrap">
                       {new Date(log.timestamp).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 font-semibold text-[var(--ink)]">
+                    <td className="py-3 px-4 font-semibold text-[var(--text-primary)]">
                       <div className="flex items-center gap-1.5">
-                        <User size={13} className="text-[var(--ink-muted)] shrink-0" />
+                        <User size={13} className="text-[var(--text-secondary)] shrink-0" />
                         <span>{log.userName || 'System'}</span>
                       </div>
                     </td>
                     <td className="py-3 px-4">{renderActionBadge(log.action)}</td>
-                    <td className="py-3 px-4 font-semibold text-[var(--ink)]">
+                    <td className="py-3 px-4 font-semibold text-[var(--text-primary)]">
                       <span>{log.entityName}</span>
                       {log.primaryKey && (
-                        <span className="ml-1 text-[10px] font-mono text-[var(--ink-muted)]">
+                        <span className="ml-1 text-xs font-normal  text-[var(--text-secondary)]">
                           #{log.primaryKey}
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-[var(--ink-muted)] max-w-xs truncate" title={log.changedColumns}>
+                    <td className="py-3 px-4 text-[var(--text-secondary)] max-w-xs truncate" title={log.changedColumns}>
                       {log.changedColumns || (log.action === 'CREATE' ? 'New record created' : 'Record deleted')}
                     </td>
-                    <td className="py-3 px-4 font-mono text-[11px] text-[var(--ink-muted)]">
+                    <td className="py-3 px-4  text-xs font-normal text-[var(--text-secondary)]">
                       {log.ipAddress || 'Internal / Local'}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <button
                         onClick={() => setInspectLog(log)}
-                        className="p-1.5 rounded hover:bg-[var(--paper)] text-[var(--gold-600)] dark:text-[var(--gold-400)] transition-colors cursor-pointer"
+                        className="p-1.5 rounded hover:bg-[var(--paper)] text-[var(--accent-hover)] dark:text-[var(--gold-400)] transition-colors cursor-pointer"
                         title="View Field-by-Field Diff"
                       >
                         <Eye size={15} />
@@ -314,27 +314,27 @@ export const AuditLogsTab: React.FC = () => {
         </div>
 
         {/* Pagination Bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--rule)] bg-[var(--surface-sunken)] text-xs font-ui">
-          <span className="text-[var(--ink-muted)]">
-            Showing <strong className="text-[var(--ink)]">{logs.length}</strong> of{' '}
-            <strong className="text-[var(--ink)]">{totalCount}</strong> total events
+        <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--rule)] bg-[var(--surface-sunken)] text-xs ">
+          <span className="text-[var(--text-secondary)]">
+            Showing <strong className="text-[var(--text-primary)]">{logs.length}</strong> of{' '}
+            <strong className="text-[var(--text-primary)]">{totalCount}</strong> total events
           </span>
 
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1 || loading}
-              className="p-1.5 rounded border border-[var(--rule)] bg-[var(--surface)] text-[var(--ink)] disabled:opacity-40 hover:bg-[var(--paper)] cursor-pointer"
+              className="p-1.5 rounded border border-[var(--rule)] bg-[var(--surface)] text-[var(--text-primary)] disabled:opacity-40 hover:bg-[var(--paper)] cursor-pointer"
             >
               <ChevronLeft size={14} />
             </button>
-            <span className="px-2 font-mono text-xs">
+            <span className="px-2  text-xs">
               Page {page} of {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages || loading}
-              className="p-1.5 rounded border border-[var(--rule)] bg-[var(--surface)] text-[var(--ink)] disabled:opacity-40 hover:bg-[var(--paper)] cursor-pointer"
+              className="p-1.5 rounded border border-[var(--rule)] bg-[var(--surface)] text-[var(--text-primary)] disabled:opacity-40 hover:bg-[var(--paper)] cursor-pointer"
             >
               <ChevronRight size={14} />
             </button>
@@ -349,15 +349,15 @@ export const AuditLogsTab: React.FC = () => {
             {/* Modal Header */}
             <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--surface-sunken)]">
               <div className="flex items-center gap-2 min-w-0">
-                <History size={18} className="text-[var(--gold-500)] shrink-0" />
-                <h4 className="font-display font-bold text-base text-[var(--ink)] truncate">
+                <History size={18} className="text-[var(--accent)] shrink-0" />
+                <h4 className=" font-semibold text-base text-[var(--text-primary)] truncate">
                   Audit Diff: {inspectLog.entityName} #{inspectLog.primaryKey || inspectLog.id}
                 </h4>
                 {renderActionBadge(inspectLog.action)}
               </div>
               <button
                 onClick={() => setInspectLog(null)}
-                className="p-1.5 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] cursor-pointer shrink-0"
+                className="p-1.5 rounded hover:bg-[var(--paper)] text-[var(--text-secondary)] cursor-pointer shrink-0"
               >
                 <X size={16} />
               </button>
@@ -368,26 +368,26 @@ export const AuditLogsTab: React.FC = () => {
               {/* Event Metadata */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-[var(--paper)] p-3.5 rounded border border-[var(--rule)]">
                 <div className="min-w-0">
-                  <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-semibold block mb-0.5">Actor</span>
-                  <strong className="text-[var(--ink)] block truncate font-medium text-xs" title={inspectLog.userName || 'System'}>
+                  <span className="text-xs font-normal text-[var(--text-secondary)] uppercase tracking-wider font-semibold block mb-0.5">Actor</span>
+                  <strong className="text-[var(--text-primary)] block truncate font-medium text-xs" title={inspectLog.userName || 'System'}>
                     {inspectLog.userName || 'System'}
                   </strong>
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-semibold block mb-0.5">Timestamp</span>
-                  <span className="text-[var(--ink)] block truncate font-mono text-[11px]" title={new Date(inspectLog.timestamp).toLocaleString()}>
+                  <span className="text-xs font-normal text-[var(--text-secondary)] uppercase tracking-wider font-semibold block mb-0.5">Timestamp</span>
+                  <span className="text-[var(--text-primary)] block truncate  text-xs font-normal" title={new Date(inspectLog.timestamp).toLocaleString()}>
                     {new Date(inspectLog.timestamp).toLocaleString()}
                   </span>
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-semibold block mb-0.5">IP Address</span>
-                  <span className="text-[var(--ink)] font-mono text-[11px] block truncate">
+                  <span className="text-xs font-normal text-[var(--text-secondary)] uppercase tracking-wider font-semibold block mb-0.5">IP Address</span>
+                  <span className="text-[var(--text-primary)]  text-xs font-normal block truncate">
                     {inspectLog.ipAddress || 'Local'}
                   </span>
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] text-[var(--ink-muted)] uppercase tracking-wider font-semibold block mb-0.5">Audit ID</span>
-                  <span className="text-[var(--ink)] font-mono text-[11px] font-bold block">
+                  <span className="text-xs font-normal text-[var(--text-secondary)] uppercase tracking-wider font-semibold block mb-0.5">Audit ID</span>
+                  <span className="text-[var(--text-primary)]  text-xs font-normal font-semibold block">
                     #{inspectLog.id}
                   </span>
                 </div>
@@ -397,7 +397,7 @@ export const AuditLogsTab: React.FC = () => {
               <div className="border border-[var(--rule)] rounded overflow-hidden">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] text-[10px] uppercase tracking-wider text-[var(--ink-muted)]">
+                    <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] text-xs font-normal uppercase tracking-wider text-[var(--text-secondary)]">
                       <th className="py-2.5 px-3">Field Name</th>
                       {inspectLog.action !== 'CREATE' && <th className="py-2.5 px-3">Previous Value (Old)</th>}
                       {inspectLog.action !== 'DELETE' && <th className="py-2.5 px-3">New Value</th>}
@@ -412,7 +412,7 @@ export const AuditLogsTab: React.FC = () => {
                       if (allKeys.length === 0) {
                         return (
                           <tr>
-                            <td colSpan={3} className="py-6 text-center text-[var(--ink-muted)]">
+                            <td colSpan={3} className="py-6 text-center text-[var(--text-secondary)]">
                               No explicit field diffs recorded.
                             </td>
                           </tr>
@@ -426,17 +426,17 @@ export const AuditLogsTab: React.FC = () => {
 
                         return (
                           <tr key={key} className={isChanged ? 'bg-amber-500/5' : ''}>
-                            <td className="py-2 px-3 font-semibold text-[var(--ink)] font-mono text-[11px]">
+                            <td className="py-2 px-3 font-semibold text-[var(--text-primary)]  text-xs font-normal">
                               {key}
                             </td>
                             {inspectLog.action !== 'CREATE' && (
-                              <td className="py-2 px-3 font-mono text-[11px] text-rose-600 dark:text-rose-400 bg-rose-500/5">
-                                {oldVal !== undefined && oldVal !== null ? String(oldVal) : <span className="text-[var(--ink-muted)] italic">null</span>}
+                              <td className="py-2 px-3  text-xs font-normal text-rose-600 dark:text-rose-400 bg-rose-500/5">
+                                {oldVal !== undefined && oldVal !== null ? String(oldVal) : <span className="text-[var(--text-secondary)] italic">null</span>}
                               </td>
                             )}
                             {inspectLog.action !== 'DELETE' && (
-                              <td className="py-2 px-3 font-mono text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/5">
-                                {newVal !== undefined && newVal !== null ? String(newVal) : <span className="text-[var(--ink-muted)] italic">null</span>}
+                              <td className="py-2 px-3  text-xs font-normal text-emerald-600 dark:text-emerald-400 bg-emerald-500/5">
+                                {newVal !== undefined && newVal !== null ? String(newVal) : <span className="text-[var(--text-secondary)] italic">null</span>}
                               </td>
                             )}
                           </tr>

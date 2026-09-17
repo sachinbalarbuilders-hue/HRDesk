@@ -270,30 +270,30 @@ export const GuardScanner: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 font-ui">
+    <div className="max-w-6xl mx-auto space-y-6 ">
       {/* TERMINAL HEADER BANNER */}
       <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-md)] p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--gold-500)]/10 text-[var(--gold-600)] dark:text-[var(--gold-400)] flex items-center justify-center font-bold border border-[var(--gold-500)]/20 shadow-xs">
+          <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--accent)]/10 text-[var(--accent-hover)] dark:text-[var(--gold-400)] flex items-center justify-center font-semibold border border-[var(--accent)]/20 shadow-xs">
             <Camera size={20} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-display font-bold text-base text-[var(--ink)] tracking-tight">
+              <h1 className=" font-semibold text-base text-[var(--text-primary)] tracking-tight">
                 Security Gate Badge Terminal
               </h1>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-normal font-semibold uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                 Live Active
               </span>
             </div>
 
             {/* Company & Branch Text Indicator */}
-            <p className="text-xs text-[var(--ink-muted)] flex items-center gap-2 mt-1">
-              <span className="font-semibold text-[var(--ink)]">{currentOrganization?.name || 'Main Organization'}</span>
+            <p className="text-xs text-[var(--text-secondary)] flex items-center gap-2 mt-1">
+              <span className="font-semibold text-[var(--text-primary)]">{currentOrganization?.name || 'Main Organization'}</span>
               <span>•</span>
               <span className="flex items-center gap-1">
-                <MapPin size={11} className="text-[var(--gold-500)]" />
+                <MapPin size={11} className="text-[var(--accent)]" />
                 {currentBranch?.name || 'Gate Entrance'}
               </span>
             </p>
@@ -302,8 +302,8 @@ export const GuardScanner: React.FC = () => {
 
         {/* Right side live clock & Fullscreen Toggle */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--surface-sunken)] border border-[var(--rule)] font-mono text-xs font-bold text-[var(--ink)]">
-            <Clock size={13} className="text-[var(--gold-500)]" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--surface-sunken)] border border-[var(--rule)]  text-xs font-semibold text-[var(--text-primary)]">
+            <Clock size={13} className="text-[var(--accent)]" />
             <span>{currentTime}</span>
           </div>
 
@@ -328,12 +328,12 @@ export const GuardScanner: React.FC = () => {
               <div className="p-6 flex flex-col items-center justify-center space-y-5">
                 <div className="w-full max-w-sm mx-auto relative">
                   {/* Glowing Radar Target Framing */}
-                  <div className="relative rounded-[var(--radius-lg)] overflow-hidden border-2 border-[var(--gold-500)] shadow-lg bg-black min-h-[280px] flex items-center justify-center">
+                  <div className="relative rounded-[var(--radius-lg)] overflow-hidden border-2 border-[var(--accent)] shadow-lg bg-black min-h-[280px] flex items-center justify-center">
                     <div id="qr-reader" className="w-full" />
                   </div>
 
-                  <p className="text-center text-xs text-[var(--ink-muted)] mt-4 font-medium flex items-center justify-center gap-1.5">
-                    <Sparkles size={13} className="text-[var(--gold-500)]" />
+                  <p className="text-center text-xs text-[var(--text-secondary)] mt-4 font-medium flex items-center justify-center gap-1.5">
+                    <Sparkles size={13} className="text-[var(--accent)]" />
                     Point camera directly at the employee QR badge
                   </p>
                 </div>
@@ -358,7 +358,7 @@ export const GuardScanner: React.FC = () => {
                       <ShieldAlert size={28} className="text-rose-600 shrink-0" />
                     )}
                     <div>
-                      <h2 className="font-display font-bold text-base uppercase tracking-wider">
+                      <h2 className=" font-semibold text-base uppercase tracking-wider">
                         {scanResult.isActive ? 'Access Granted' : 'Access Denied'}
                       </h2>
                       <p className="text-xs opacity-90">
@@ -367,7 +367,7 @@ export const GuardScanner: React.FC = () => {
                     </div>
                   </div>
 
-                  <span className="font-mono text-xs font-bold px-2.5 py-1 rounded bg-[var(--surface)] shadow-xs border border-[var(--rule)] text-[var(--ink)]">
+                  <span className=" text-xs font-semibold px-2.5 py-1 rounded bg-[var(--surface)] shadow-xs border border-[var(--rule)] text-[var(--text-primary)]">
                     {currentTime}
                   </span>
                 </div>
@@ -386,7 +386,7 @@ export const GuardScanner: React.FC = () => {
                         }}
                       />
                     ) : (
-                      <UserIcon size={36} className="text-[var(--ink-muted)]" />
+                      <UserIcon size={36} className="text-[var(--text-secondary)]" />
                     )}
                   </div>
 
@@ -394,37 +394,37 @@ export const GuardScanner: React.FC = () => {
                   <div className="flex-1 text-center sm:text-left space-y-3 min-w-0">
                     <div>
                       <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap mb-1">
-                        <span className="inline-flex items-center gap-1 font-bold text-[11px] px-2 py-0.5 rounded bg-[var(--gold-500)]/10 text-[var(--gold-600)] dark:text-[var(--gold-400)] border border-[var(--gold-500)]/20">
+                        <span className="inline-flex items-center gap-1 font-semibold text-xs font-normal px-2 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent-hover)] dark:text-[var(--gold-400)] border border-[var(--accent)]/20">
                           <Building2 size={12} />
                           {scanResult.organizationName || currentOrganization?.name}
                         </span>
                         {scanResult.branch && (
-                          <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)]">
+                          <span className="inline-flex items-center gap-1 text-xs font-normal px-2 py-0.5 rounded bg-[var(--surface)] border border-[var(--rule)] text-[var(--text-primary)]">
                             <MapPin size={11} />
                             {scanResult.branch}
                           </span>
                         )}
                       </div>
 
-                      <h3 className="font-display font-bold text-lg text-[var(--ink)] truncate">
+                      <h3 className=" font-semibold text-base text-[var(--text-primary)] truncate">
                         {scanResult.employeeName}
                       </h3>
                       <div className="flex items-center justify-center sm:justify-start gap-2 mt-0.5">
-                        <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)]">
+                        <span className=" text-xs font-semibold px-2 py-0.5 rounded bg-[var(--surface)] border border-[var(--rule)] text-[var(--text-primary)]">
                           {scanResult.employeeCode}
                         </span>
-                        <span className="text-xs text-[var(--ink-muted)]">ID: #{scanResult.employeeId}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">ID: #{scanResult.employeeId}</span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
-                      <div className="flex items-center gap-2 text-[var(--ink)] bg-[var(--surface)] p-2 rounded border border-[var(--rule)]">
-                        <Briefcase size={14} className="text-[var(--gold-500)] shrink-0" />
+                      <div className="flex items-center gap-2 text-[var(--text-primary)] bg-[var(--surface)] p-2 rounded border border-[var(--rule)]">
+                        <Briefcase size={14} className="text-[var(--accent)] shrink-0" />
                         <span className="truncate">{scanResult.designation || 'Staff'}</span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-[var(--ink)] bg-[var(--surface)] p-2 rounded border border-[var(--rule)]">
-                        <Building2 size={14} className="text-[var(--gold-500)] shrink-0" />
+                      <div className="flex items-center gap-2 text-[var(--text-primary)] bg-[var(--surface)] p-2 rounded border border-[var(--rule)]">
+                        <Building2 size={14} className="text-[var(--accent)] shrink-0" />
                         <span className="truncate">{scanResult.department || 'General'}</span>
                       </div>
                     </div>
@@ -434,7 +434,7 @@ export const GuardScanner: React.FC = () => {
                 {/* Reset Next Scan Button */}
                 <button
                   onClick={resetScanner}
-                  className="btn-primary w-full py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                  className="btn-primary w-full py-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
                 >
                   <RefreshCw size={14} />
                   <span>Scan Next Employee Badge</span>
@@ -449,7 +449,7 @@ export const GuardScanner: React.FC = () => {
                   <ShieldAlert size={32} />
                 </div>
                 <div>
-                  <h2 className="font-display font-bold text-lg text-[var(--ink)] uppercase tracking-tight">
+                  <h2 className=" font-semibold text-base text-[var(--text-primary)] uppercase tracking-tight">
                     Security Alert: Verification Failed
                   </h2>
                   <p className="text-xs text-rose-600 mt-1 max-w-md mx-auto bg-rose-500/5 p-3 rounded border border-rose-500/20">
@@ -459,7 +459,7 @@ export const GuardScanner: React.FC = () => {
 
                 <button
                   onClick={resetScanner}
-                  className="btn-primary py-2.5 px-6 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer shadow-xs"
+                  className="btn-primary py-2.5 px-6 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 cursor-pointer shadow-xs"
                 >
                   <RefreshCw size={14} />
                   <span>Try Scanning Again</span>
@@ -473,33 +473,33 @@ export const GuardScanner: React.FC = () => {
             onSubmit={handleManualVerify}
             className="bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-md)] p-4 shadow-xs space-y-2.5"
           >
-            <label className="block font-semibold text-xs text-[var(--ink)]">
+            <label className="block font-semibold text-xs text-[var(--text-primary)]">
               Manual Badge / Employee Code Search
             </label>
 
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                 <input
                   type="text"
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
                   placeholder="Enter Employee Code (e.g. EMP#001, EMP#213) or ID..."
-                  className="register-input !pl-9 py-2 text-xs w-full font-mono font-semibold"
+                  className="register-input !pl-9 py-2 text-xs w-full  font-semibold"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={manualLoading || !manualCode.trim()}
-                className="btn-primary text-xs px-5 py-2 font-bold whitespace-nowrap cursor-pointer disabled:opacity-50 shadow-xs"
+                className="btn-primary text-xs px-5 py-2 font-semibold whitespace-nowrap cursor-pointer disabled:opacity-50 shadow-xs"
               >
                 {manualLoading ? 'Verifying...' : 'Verify Badge'}
               </button>
             </div>
 
-            <p className="text-[11px] text-[var(--ink-muted)]">
-              Accepts standard employee codes (e.g. <code className="font-mono font-bold text-[var(--ink)]">EMP#001</code>, <code className="font-mono font-bold text-[var(--ink)]">EMP#213</code>) or numeric ID.
+            <p className="text-xs font-normal text-[var(--text-secondary)]">
+              Accepts standard employee codes (e.g. <code className=" font-semibold text-[var(--text-primary)]">EMP#001</code>, <code className=" font-semibold text-[var(--text-primary)]">EMP#213</code>) or numeric ID.
             </p>
           </form>
         </div>
@@ -510,20 +510,20 @@ export const GuardScanner: React.FC = () => {
             {/* Feed Header */}
             <div className="p-3.5 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--surface-sunken)]/50">
               <div className="flex items-center gap-2">
-                <ShieldCheck size={16} className="text-[var(--gold-500)]" />
-                <h3 className="font-display font-bold text-xs text-[var(--ink)] uppercase tracking-wider">
+                <ShieldCheck size={16} className="text-[var(--accent)]" />
+                <h3 className=" font-semibold text-xs text-[var(--text-primary)] uppercase tracking-wider">
                   Gate Activity Feed
                 </h3>
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 font-mono text-[10px] text-[var(--ink-muted)]">
+                <span className="inline-flex items-center gap-1  text-xs font-normal text-[var(--text-secondary)]">
                   <Database size={11} className="text-emerald-600" />
                   {recentLogs.length > 0 ? `${recentLogs.length} of ${logTotalCount}` : 'Database Synced'}
                 </span>
                 <button
                   type="button"
                   onClick={() => loadLogs(1, false)}
-                  className="p-1 hover:bg-[var(--surface-sunken)] rounded text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                  className="p-1 hover:bg-[var(--surface-sunken)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
                   title="Refresh activity feed from database"
                 >
                   <RefreshCw size={12} className={loadingLogs ? 'animate-spin' : ''} />
@@ -534,7 +534,7 @@ export const GuardScanner: React.FC = () => {
             {/* Filter & Search Bar */}
             <div className="p-2.5 bg-[var(--surface-sunken)]/30 border-b border-[var(--rule)] flex items-center justify-between gap-2 text-xs">
               {/* Status Filter Pills */}
-              <div className="inline-flex rounded-[3px] border border-[var(--rule)] bg-[var(--paper)] p-0.5 font-ui text-[11px]">
+              <div className="inline-flex rounded-[3px] border border-[var(--rule)] bg-[var(--paper)] p-0.5  text-xs font-normal">
                 {(['all', 'granted', 'denied'] as const).map((st) => (
                   <button
                     key={st}
@@ -549,7 +549,7 @@ export const GuardScanner: React.FC = () => {
                           : st === 'denied'
                           ? 'bg-rose-600 text-white shadow-2xs'
                           : 'bg-[var(--accent)] text-white shadow-2xs'
-                        : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     {st}
@@ -559,7 +559,7 @@ export const GuardScanner: React.FC = () => {
 
               {/* Mini Log Search */}
               <div className="relative flex-1 max-w-[180px]">
-                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                 <input
                   type="text"
                   value={logSearch}
@@ -567,7 +567,7 @@ export const GuardScanner: React.FC = () => {
                     setLogSearch(e.target.value);
                   }}
                   placeholder="Filter logs..."
-                  className="register-input !pl-7 !pr-2 py-1 text-[11px] w-full font-mono"
+                  className="register-input !pl-7 !pr-2 py-1 text-xs font-normal w-full "
                 />
               </div>
             </div>
@@ -579,10 +579,10 @@ export const GuardScanner: React.FC = () => {
               className="divide-y divide-[var(--rule)] max-h-[480px] overflow-y-auto min-h-[240px]"
             >
               {recentLogs.length === 0 ? (
-                <div className="p-8 text-center text-xs text-[var(--ink-muted)] font-data">
+                <div className="p-8 text-center text-xs text-[var(--text-secondary)] ">
                   {loadingLogs ? (
                     <div className="flex items-center justify-center gap-2">
-                      <Loader2 size={16} className="animate-spin text-[var(--gold-500)]" />
+                      <Loader2 size={16} className="animate-spin text-[var(--accent)]" />
                       <span>Loading gate activity...</span>
                     </div>
                   ) : (
@@ -600,13 +600,13 @@ export const GuardScanner: React.FC = () => {
                           <XCircle size={16} className="text-rose-600 shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <div className="font-semibold text-[var(--ink)] truncate">
+                          <div className="font-semibold text-[var(--text-primary)] truncate">
                             {log.employeeName}
                           </div>
-                          <div className="font-mono text-[10px] text-[var(--ink-muted)] flex items-center gap-1.5 flex-wrap">
-                            <span className="font-bold">{log.employeeCode}</span>
+                          <div className=" text-xs font-normal text-[var(--text-secondary)] flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold">{log.employeeCode}</span>
                             {log.scanMode && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-[var(--surface-sunken)] border border-[var(--rule)]">
+                              <span className="text-xs font-normal px-1.5 py-0.2 rounded bg-[var(--surface-sunken)] border border-[var(--rule)]">
                                 {log.scanMode === 'Camera_QR' ? 'QR Scan' : 'Manual'}
                               </span>
                             )}
@@ -617,11 +617,11 @@ export const GuardScanner: React.FC = () => {
                       </div>
 
                       <div className="text-right shrink-0">
-                        <span className="font-mono text-[10px] font-semibold text-[var(--ink-muted)] block bg-[var(--surface-sunken)] px-1.5 py-0.5 rounded border border-[var(--rule)]">
+                        <span className=" text-xs font-semibold text-[var(--text-secondary)] block bg-[var(--surface-sunken)] px-1.5 py-0.5 rounded border border-[var(--rule)]">
                           {log.timestamp}
                         </span>
                         {log.date && (
-                          <span className="font-mono text-[9px] text-[var(--ink-muted)] block mt-0.5">
+                          <span className=" text-xs font-normal text-[var(--text-secondary)] block mt-0.5">
                             {log.date}
                           </span>
                         )}
@@ -630,14 +630,14 @@ export const GuardScanner: React.FC = () => {
                   ))}
 
                   {loadingMore && (
-                    <div className="p-3 text-center text-xs text-[var(--ink-muted)] flex items-center justify-center gap-2 bg-[var(--surface-sunken)]/20">
-                      <Loader2 size={14} className="animate-spin text-[var(--gold-500)]" />
+                    <div className="p-3 text-center text-xs text-[var(--text-secondary)] flex items-center justify-center gap-2 bg-[var(--surface-sunken)]/20">
+                      <Loader2 size={14} className="animate-spin text-[var(--accent)]" />
                       <span>Loading older activity logs...</span>
                     </div>
                   )}
 
                   {!loadingMore && logTotalCount > 0 && logPage >= logTotalPages && (
-                    <div className="py-2.5 text-center text-[10px] text-[var(--ink-muted)] opacity-60 font-mono border-t border-[var(--rule)] bg-[var(--surface-sunken)]/20">
+                    <div className="py-2.5 text-center text-xs font-normal text-[var(--text-secondary)] opacity-60  border-t border-[var(--rule)] bg-[var(--surface-sunken)]/20">
                       End of activity history ({logTotalCount} total records)
                     </div>
                   )}
@@ -646,9 +646,9 @@ export const GuardScanner: React.FC = () => {
             </div>
 
             {/* Bottom Status Bar */}
-            <div className="px-3.5 py-2 border-t border-[var(--rule)] bg-[var(--surface-header)] flex items-center justify-between text-[11px] text-[var(--ink-muted)] font-ui">
+            <div className="px-3.5 py-2 border-t border-[var(--rule)] bg-[var(--surface-header)] flex items-center justify-between text-xs font-normal text-[var(--text-secondary)] ">
               <span>Scroll down to load older records automatically</span>
-              <span className="font-mono font-semibold text-[var(--ink)]">
+              <span className=" font-semibold text-[var(--text-primary)]">
                 {recentLogs.length} / {logTotalCount} Scans
               </span>
             </div>

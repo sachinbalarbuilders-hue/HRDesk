@@ -81,7 +81,7 @@ export const SlidePanel: React.FC<SlidePanelProps> = ({
                 <h2 id="slide-panel-title" className="text-base font-semibold text-[var(--text-primary)] text-balance">{title}</h2>
               )}
               {description && (
-                <p id="slide-panel-desc" className="text-xs text-[var(--text-secondary)] mt-1 text-pretty">{description}</p>
+                <p id="slide-panel-desc" className="text-sm font-normal text-[var(--text-secondary)] mt-1 text-pretty">{description}</p>
               )}
             </div>
             <button

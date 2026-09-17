@@ -169,15 +169,15 @@ export const SalaryComponentsTab: React.FC = () => {
       header: '#',
       width: '45px',
       align: 'center',
-      render: (c) => <span className="font-mono text-xs text-[var(--ink-muted)]">{c.displayOrder}</span>,
+      render: (c) => <span className=" text-xs text-[var(--text-secondary)]">{c.displayOrder}</span>,
     },
     {
       key: 'componentName',
       header: 'Component',
       render: (c) => (
         <div>
-          <span className="font-semibold text-[var(--ink)] text-xs block">{c.componentName}</span>
-          <span className={`inline-block px-1.5 py-0.2 rounded-[2px] text-[9px] font-bold ${TYPE_COLORS[c.componentType]}`}>
+          <span className="font-semibold text-[var(--text-primary)] text-xs block">{c.componentName}</span>
+          <span className={`inline-block px-1.5 py-0.2 rounded-[2px] text-xs font-normal font-semibold ${TYPE_COLORS[c.componentType]}`}>
             {c.componentType}
           </span>
         </div>
@@ -187,7 +187,7 @@ export const SalaryComponentsTab: React.FC = () => {
       key: 'componentCode',
       header: 'Code',
       render: (c) => (
-        <code className="text-xs font-mono px-1.5 py-0.5 rounded bg-[var(--paper-subtle)] text-[var(--teal-600)]">
+        <code className="text-xs  px-1.5 py-0.5 rounded bg-[var(--paper-subtle)] text-[var(--teal-600)]">
           {c.componentCode}
         </code>
       ),
@@ -198,40 +198,40 @@ export const SalaryComponentsTab: React.FC = () => {
       render: (c) => {
         if (c.calculationType === 'PercentOfCTC') {
           return (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300">
               {c.defaultValue ?? 0}% of CTC
             </span>
           );
         }
         if (c.calculationType === 'PercentOfComponent') {
           return (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300">
               {c.defaultValue ?? 0}% of {c.baseComponentCode || 'BASIC'}
             </span>
           );
         }
         if (c.calculationType === 'FixedAmount') {
           return (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
               ₹{Number(c.defaultValue || 0).toLocaleString('en-IN')} / mo
             </span>
           );
         }
         if (c.calculationType === 'Remainder') {
           return (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
               Remainder
             </span>
           );
         }
         if (c.calculationType === 'Statutory') {
           return (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
               Statutory
             </span>
           );
         }
-        return <span className="text-xs text-[var(--ink-muted)]">—</span>;
+        return <span className="text-xs text-[var(--text-secondary)]">—</span>;
       },
     },
     {
@@ -240,10 +240,10 @@ export const SalaryComponentsTab: React.FC = () => {
       align: 'center',
       render: (c) => (
         <span
-          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] ${
+          className={`text-xs font-normal font-semibold px-1.5 py-0.5 rounded-[2px] ${
             c.isActive
               ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-              : 'bg-[var(--paper-subtle)] text-[var(--ink-muted)]'
+              : 'bg-[var(--paper-subtle)] text-[var(--text-secondary)]'
           }`}
         >
           {c.isActive ? 'Active' : 'Inactive'}
@@ -270,8 +270,8 @@ export const SalaryComponentsTab: React.FC = () => {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h2 className="text-base font-bold text-[var(--ink)] font-ui">Salary Components</h2>
-        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+        <h2 className="text-base font-semibold text-[var(--text-primary)] ">Salary Components</h2>
+        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
           Define earnings, deductions, and informational items available in salary templates.
         </p>
       </div>
@@ -343,8 +343,8 @@ export const SalaryComponentsTab: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-[var(--rule)]">
-              <h3 className="font-bold text-sm text-[var(--ink)] font-ui">{editId ? 'Edit Component' : 'New Salary Component'}</h3>
-              <button onClick={() => setModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)] ">{editId ? 'Edit Component' : 'New Salary Component'}</h3>
+              <button onClick={() => setModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -352,32 +352,32 @@ export const SalaryComponentsTab: React.FC = () => {
               {/* Name + Code */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider block mb-1.5">Component Name *</label>
+                  <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">Component Name *</label>
                   <input
                     name="componentName"
                     value={form.componentName}
                     onChange={F}
                     required
                     placeholder="e.g. Basic Salary, HRA"
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all shadow-sm font-ui"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all shadow-sm "
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider block mb-1.5">Code * (UPPERCASE)</label>
+                  <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">Code * (UPPERCASE)</label>
                   <input
                     name="componentCode"
                     value={form.componentCode}
                     onChange={F}
                     required
                     placeholder="e.g. BASIC, HRA, PF"
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm font-mono text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all shadow-sm"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm  text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all shadow-sm"
                   />
                 </div>
               </div>
 
               {/* Type */}
               <div>
-                <label className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider block mb-1.5">Component Type</label>
+                <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">Component Type</label>
                 <SearchableSelect
                   value={form.componentType}
                   options={COMPONENT_TYPES}
@@ -390,20 +390,20 @@ export const SalaryComponentsTab: React.FC = () => {
               {/* Calculation & Default Value Section */}
               <div className="p-3.5 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)] space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[var(--ink)] uppercase tracking-wider">
+                  <span className="text-xs font-normal font-semibold text-[var(--text-primary)] uppercase tracking-wider">
                     Calculation & Value Type
                   </span>
-                  <span className="text-[10px] text-[var(--ink-muted)]">Default calculation rule</span>
+                  <span className="text-xs font-normal text-[var(--text-secondary)]">Default calculation rule</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-semibold text-[var(--ink-muted)] block mb-1">Value Type *</label>
+                    <label className="text-xs font-semibold text-[var(--text-secondary)] block mb-1">Value Type *</label>
                     <select
                       name="calculationType"
                       value={form.calculationType}
                       onChange={F}
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all font-ui cursor-pointer"
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all  cursor-pointer"
                     >
                       {CALCULATION_TYPES.map(t => (
                         <option key={t.value} value={t.value}>{t.label}</option>
@@ -413,12 +413,12 @@ export const SalaryComponentsTab: React.FC = () => {
 
                   {form.calculationType === 'PercentOfComponent' && (
                     <div>
-                      <label className="text-[11px] font-semibold text-[var(--ink-muted)] block mb-1">Base Component *</label>
+                      <label className="text-xs font-semibold text-[var(--text-secondary)] block mb-1">Base Component *</label>
                       <select
                         name="baseComponentCode"
                         value={form.baseComponentCode}
                         onChange={F}
-                        className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all font-ui cursor-pointer"
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all  cursor-pointer"
                       >
                         {components
                           .filter(c => c.componentType === 'Earning' && c.id !== editId)
@@ -436,7 +436,7 @@ export const SalaryComponentsTab: React.FC = () => {
 
                   {['PercentOfCTC', 'PercentOfComponent', 'FixedAmount'].includes(form.calculationType) && (
                     <div>
-                      <label className="text-[11px] font-semibold text-[var(--ink-muted)] block mb-1">
+                      <label className="text-xs font-semibold text-[var(--text-secondary)] block mb-1">
                         {form.calculationType === 'FixedAmount' ? 'Monthly Rupee Value (₹) *' : 'Percentage Value (%) *'}
                       </label>
                       <div className="relative">
@@ -448,9 +448,9 @@ export const SalaryComponentsTab: React.FC = () => {
                           step={form.calculationType === 'FixedAmount' ? '1' : '0.01'}
                           min="0"
                           placeholder={form.calculationType === 'FixedAmount' ? 'e.g. 1600' : 'e.g. 40 or 50'}
-                          className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all font-ui pr-8"
+                          className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all  pr-8"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[var(--ink-muted)]">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[var(--text-secondary)]">
                           {form.calculationType === 'FixedAmount' ? '₹' : '%'}
                         </span>
                       </div>
@@ -459,13 +459,13 @@ export const SalaryComponentsTab: React.FC = () => {
                 </div>
 
                 {form.calculationType === 'Remainder' && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2 rounded border border-amber-200 dark:border-amber-900/50">
+                  <p className="text-xs font-normal text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2 rounded border border-amber-200 dark:border-amber-900/50">
                     💡 <strong>Remainder:</strong> This component automatically absorbs whatever monthly CTC remains after all other earnings are deducted, keeping CTC exact.
                   </p>
                 )}
 
                 {form.calculationType === 'Statutory' && (
-                  <p className="text-[11px] text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 p-2 rounded border border-slate-200 dark:border-slate-700">
+                  <p className="text-xs font-normal text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 p-2 rounded border border-slate-200 dark:border-slate-700">
                     ⚖️ <strong>Statutory:</strong> This component is auto-calculated at payroll time according to PF, ESI, PT, or TDS rules and wage limits.
                   </p>
                 )}
@@ -473,7 +473,7 @@ export const SalaryComponentsTab: React.FC = () => {
 
               {/* Display Order */}
               <div>
-                <label className="text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider block mb-1.5">Display Order (lower numbers appear first on payslip)</label>
+                <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">Display Order (lower numbers appear first on payslip)</label>
                 <input
                   type="number"
                   name="displayOrder"
@@ -481,7 +481,7 @@ export const SalaryComponentsTab: React.FC = () => {
                   onChange={F}
                   min={1}
                   max={999}
-                  className="w-24 px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--gold-500)]/30 focus:border-[var(--gold-500)] transition-all shadow-sm font-ui"
+                  className="w-24 px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all shadow-sm "
                 />
               </div>
 
@@ -499,14 +499,14 @@ export const SalaryComponentsTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-5 py-2 text-sm font-medium rounded-lg border border-[var(--rule)] hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors shadow-sm"
+                  className="px-5 py-2 text-sm font-medium rounded-lg border border-[var(--rule)] hover:bg-[var(--paper-subtle)] text-[var(--text-primary)] transition-colors shadow-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 text-sm font-medium rounded-lg bg-[var(--gold-500)] hover:bg-[var(--gold-600)] text-white shadow-sm transition-colors flex items-center justify-center min-w-[140px]"
+                  className="px-5 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white shadow-sm transition-colors flex items-center justify-center min-w-[140px]"
                 >
                   {saving ? 'Saving...' : editId ? 'Update Component' : 'Create Component'}
                 </button>

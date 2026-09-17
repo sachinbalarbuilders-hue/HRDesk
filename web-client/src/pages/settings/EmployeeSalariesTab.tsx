@@ -122,8 +122,8 @@ export const EmployeeSalariesTab: React.FC = () => {
       header: 'Employee',
       render: (row: EmpRow) => (
         <div>
-          <p className="font-semibold text-[var(--ink)] text-xs">{row.employeeName}</p>
-          {row.employeeCode && <p className="text-[10px] font-mono text-[var(--ink-muted)]">{row.employeeCode}</p>}
+          <p className="font-semibold text-[var(--text-primary)] text-xs">{row.employeeName}</p>
+          {row.employeeCode && <p className="text-xs font-normal  text-[var(--text-secondary)]">{row.employeeCode}</p>}
         </div>
       ),
     },
@@ -132,8 +132,8 @@ export const EmployeeSalariesTab: React.FC = () => {
       header: 'Department',
       render: (row: EmpRow) => (
         <div>
-          <span className="text-xs text-[var(--ink-muted)]">{row.department ?? '—'}</span>
-          {row.designation && <p className="text-[10px] text-[var(--ink-muted)]">{row.designation}</p>}
+          <span className="text-xs text-[var(--text-secondary)]">{row.department ?? '—'}</span>
+          {row.designation && <p className="text-xs font-normal text-[var(--text-secondary)]">{row.designation}</p>}
         </div>
       ),
     },
@@ -143,15 +143,15 @@ export const EmployeeSalariesTab: React.FC = () => {
       render: (row: EmpRow) =>
         row.payGroupName ? (
           <div>
-            <span className="text-xs font-medium text-[var(--ink)]">{row.payGroupName}</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">{row.payGroupName}</span>
             {row.payGroupBasis && (
-              <span className="text-[10px] text-[var(--ink-muted)] block">
+              <span className="text-xs font-normal text-[var(--text-secondary)] block">
                 {BASIS_LABELS[row.payGroupBasis] ?? row.payGroupBasis}
               </span>
             )}
           </div>
         ) : (
-          <span className="text-[10px] px-2 py-0.5 rounded-[2px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">
+          <span className="text-xs font-normal px-2 py-0.5 rounded-[2px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">
             Not assigned
           </span>
         ),
@@ -161,9 +161,9 @@ export const EmployeeSalariesTab: React.FC = () => {
       header: 'Annual CTC',
       render: (row: EmpRow) =>
         row.annualCTC != null ? (
-          <span className="text-xs font-semibold text-[var(--ink)] font-mono">₹{fmt(row.annualCTC)}</span>
+          <span className="text-xs font-semibold text-[var(--text-primary)] ">₹{fmt(row.annualCTC)}</span>
         ) : (
-          <span className="text-[10px] px-2 py-0.5 rounded-[2px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">
+          <span className="text-xs font-normal px-2 py-0.5 rounded-[2px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">
             Not set
           </span>
         ),
@@ -172,7 +172,7 @@ export const EmployeeSalariesTab: React.FC = () => {
       key: 'monthlyCTC',
       header: 'Monthly',
       render: (row: EmpRow) => (
-        <span className="text-xs font-mono text-[var(--ink-muted)]">
+        <span className="text-xs  text-[var(--text-secondary)]">
           {row.monthlyCTC != null ? `₹${fmt(row.monthlyCTC)}` : '—'}
         </span>
       ),
@@ -188,7 +188,7 @@ export const EmployeeSalariesTab: React.FC = () => {
             setSelectedSingleEmployee(row);
             setSingleModalOpen(true);
           }}
-          className="text-xs text-[var(--gold-500)] hover:underline inline-flex items-center gap-1 font-medium cursor-pointer"
+          className="text-xs text-[var(--accent)] hover:underline inline-flex items-center gap-1 font-medium cursor-pointer"
           title="Assign CTC for this employee"
         >
           {row.annualCTC != null ? <Pencil size={11} /> : <Plus size={11} />}
@@ -202,8 +202,8 @@ export const EmployeeSalariesTab: React.FC = () => {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h2 className="text-base font-bold text-[var(--ink)] font-ui">Employee Salaries</h2>
-        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+        <h2 className="text-base font-semibold text-[var(--text-primary)] ">Employee Salaries</h2>
+        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
           Assign pay groups and CTC structures to employees in bulk.
         </p>
       </div>

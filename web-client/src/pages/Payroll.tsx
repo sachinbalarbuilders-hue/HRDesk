@@ -75,11 +75,11 @@ export const Payroll: React.FC = () => {
                 onClick={() => setView(t.id)}
                 className={`flex flex-col items-start gap-1 p-3 rounded-lg border text-left transition-all ${
                   view === t.id
-                    ? 'border-[var(--gold-500)] bg-[var(--gold-50)] dark:bg-[var(--gold-950)] text-[var(--gold-700)] dark:text-[var(--gold-300)]'
-                    : 'border-[var(--rule)] bg-[var(--paper)] text-[var(--ink-muted)] hover:border-[var(--gold-300)]'
+                    ? 'border-[var(--accent)] bg-[var(--gold-50)] dark:bg-[var(--gold-950)] text-[var(--gold-700)] dark:text-[var(--gold-300)]'
+                    : 'border-[var(--rule)] bg-[var(--paper)] text-[var(--text-secondary)] hover:border-[var(--gold-300)]'
                 }`}
               >
-                <div className="flex items-center gap-2 font-semibold text-sm text-[var(--ink)]">
+                <div className="flex items-center gap-2 font-semibold text-sm text-[var(--text-primary)]">
                   <div className={`p-1.5 rounded-md ${view === t.id ? 'bg-[var(--gold-100)] text-[var(--gold-700)] dark:bg-[var(--gold-900)]' : 'bg-[var(--paper-subtle)]'}`}>
                     {t.icon}
                   </div>

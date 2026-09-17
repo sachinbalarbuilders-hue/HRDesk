@@ -71,13 +71,13 @@ export const EditEmployee: React.FC = () => {
       <div className="flex items-center gap-4">
         <button 
           onClick={() => navigate(`/employees/${id}`)}
-          className="p-2 rounded-full hover:bg-[var(--surface-sunken)] text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+          className="p-2 rounded-full hover:bg-[var(--surface-sunken)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="font-display text-2xl font-bold text-[var(--ink)]">Edit Employee</h1>
-          <p className="text-sm text-[var(--ink-muted)] font-ui mt-1">Updating profile for {employee.employeeName}</p>
+          <h1 className=" text-base font-semibold text-[var(--text-primary)]">Edit Employee</h1>
+          <p className="text-sm text-[var(--text-secondary)]  mt-1">Updating profile for {employee.employeeName}</p>
         </div>
       </div>
 

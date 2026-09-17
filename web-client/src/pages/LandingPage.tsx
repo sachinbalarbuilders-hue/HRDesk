@@ -311,7 +311,7 @@ export const LandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)] font-ui selection:bg-[var(--accent)] selection:text-white">
+    <div className="min-h-screen bg-[var(--canvas)] text-[var(--text-primary)]  selection:bg-[var(--accent)] selection:text-white">
       {/* ═══════════════════════════════════════════
           1. STICKY TOP NAVBAR (Rippling/Deel Clean Bar)
       ═══════════════════════════════════════════ */}
@@ -322,44 +322,44 @@ export const LandingPage: React.FC = () => {
             className="flex items-center gap-3 cursor-pointer"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
-            <div className="w-9 h-9 rounded bg-[var(--accent)] text-white flex items-center justify-center font-bold shadow-xs">
+            <div className="w-9 h-9 rounded bg-[var(--accent)] text-white flex items-center justify-center font-semibold shadow-xs">
               <Building2 size={20} />
             </div>
             <div>
-              <span className="font-display font-bold text-lg tracking-tight text-[var(--ink)]">
-                HRDesk<span className="text-[var(--gold-500)]">.</span>
+              <span className=" font-semibold text-lg tracking-tight text-[var(--text-primary)]">
+                HRDesk<span className="text-[var(--accent)]">.</span>
               </span>
-              <span className="hidden sm:inline-block ml-2 px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-[var(--gold-500)]/10 text-[var(--gold-600)] dark:text-[var(--gold-400)] border border-[var(--gold-500)]/20">
+              <span className="hidden sm:inline-block ml-2 px-1.5 py-0.5 text-xs font-normal font-semibold uppercase rounded bg-[var(--accent)]/10 text-[var(--accent-hover)] dark:text-[var(--gold-400)] border border-[var(--accent)]/20">
                 Workforce OS
               </span>
             </div>
           </div>
 
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-[var(--ink-muted)]">
+          <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-[var(--text-secondary)]">
             <a
               href="#interactive-demo"
-              className="hover:text-[var(--ink)] transition-colors text-[var(--gold-600)] dark:text-[var(--gold-400)] font-bold flex items-center gap-1"
+              className="hover:text-[var(--text-primary)] transition-colors text-[var(--accent-hover)] dark:text-[var(--gold-400)] font-semibold flex items-center gap-1"
             >
               <Sparkles size={13} />
               <span>Interactive Studio</span>
             </a>
-            <a href="#pipeline" className="hover:text-[var(--ink)] transition-colors">
+            <a href="#pipeline" className="hover:text-[var(--text-primary)] transition-colors">
               How It Works
             </a>
-            <a href="#comparison" className="hover:text-[var(--ink)] transition-colors">
+            <a href="#comparison" className="hover:text-[var(--text-primary)] transition-colors">
               Why HRDesk
             </a>
-            <a href="#use-cases" className="hover:text-[var(--ink)] transition-colors">
+            <a href="#use-cases" className="hover:text-[var(--text-primary)] transition-colors">
               Solutions
             </a>
-            <a href="#roi-calculator" className="hover:text-[var(--ink)] transition-colors">
+            <a href="#roi-calculator" className="hover:text-[var(--text-primary)] transition-colors">
               ROI Calculator
             </a>
-            <a href="#pricing" className="hover:text-[var(--ink)] transition-colors">
+            <a href="#pricing" className="hover:text-[var(--text-primary)] transition-colors">
               Pricing
             </a>
-            <a href="#faq" className="hover:text-[var(--ink)] transition-colors">
+            <a href="#faq" className="hover:text-[var(--text-primary)] transition-colors">
               FAQ
             </a>
           </nav>
@@ -369,7 +369,7 @@ export const LandingPage: React.FC = () => {
             {user ? (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="btn-primary text-xs py-2 px-4 font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                className="btn-primary text-xs py-2 px-4 font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 <span>Open Dashboard</span>
                 <ArrowRight size={13} />
@@ -378,13 +378,13 @@ export const LandingPage: React.FC = () => {
               <>
                 <button
                   onClick={() => navigate('/auth/sign-in')}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-[var(--ink)] hover:text-[var(--gold-600)] transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:text-[var(--accent-hover)] transition-colors cursor-pointer"
                 >
                   Sign In
                 </button>
                 <button
                   onClick={() => navigate('/register')}
-                  className="btn-primary text-xs py-2 px-4 font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="btn-primary text-xs py-2 px-4 font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <span>Start Free Trial</span>
                   <ArrowRight size={13} />
@@ -400,12 +400,12 @@ export const LandingPage: React.FC = () => {
       ═══════════════════════════════════════════ */}
       <section className="relative pt-16 pb-20 overflow-hidden border-b border-[var(--rule)]">
         {/* Modern Ambient Mesh Glows (Rippling style) */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[750px] h-[360px] bg-[var(--gold-500)]/12 blur-[140px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[750px] h-[360px] bg-[var(--accent)]/12 blur-[140px] rounded-full pointer-events-none" />
         <div className="absolute top-1/3 right-10 w-[420px] h-[260px] bg-emerald-500/10 blur-[130px] rounded-full pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-7">
           {/* Live Pulsing Activity Ticker (Deel style) */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--gold-500)]/10 text-[var(--gold-600)] dark:text-[var(--gold-400)] border border-[var(--gold-500)]/25 text-xs font-semibold shadow-xs">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent-hover)] dark:text-[var(--gold-400)] border border-[var(--accent)]/25 text-xs font-semibold shadow-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
             <span>
               ⚡ <strong>{livePunchesCount.toLocaleString()}</strong> Punches verified today across 18 locations • 99.4% On-Time
@@ -413,12 +413,12 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Main Headline */}
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[var(--ink)] max-w-4xl mx-auto leading-[1.12]">
+          <h1 className=" text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-[var(--text-primary)] max-w-4xl mx-auto leading-[1.12]">
             The All-In-One Workforce & Payroll Platform for Modern Companies
           </h1>
 
           {/* Subtitle */}
-          <p className="text-sm sm:text-base text-[var(--ink-muted)] max-w-2xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed">
             Eliminate attendance disputes and spreadsheet errors. Employees clock in via mobile selfie Face ID or biometric machines, salaries calculate automatically in 1 click, and password-protected PDF payslips send directly to WhatsApp.
           </p>
 
@@ -427,7 +427,7 @@ export const LandingPage: React.FC = () => {
             {user ? (
               <button
                 onClick={() => navigate('/dashboard')}
-                className="btn-primary text-sm py-3.5 px-8 font-bold flex items-center gap-2 cursor-pointer shadow-lg w-full sm:w-auto justify-center hover:scale-[1.02] transition-transform"
+                className="btn-primary text-sm py-3.5 px-8 font-semibold flex items-center gap-2 cursor-pointer shadow-lg w-full sm:w-auto justify-center hover:scale-[1.02] transition-transform"
               >
                 <span>Go to Your Workspace</span>
                 <ArrowRight size={16} />
@@ -435,7 +435,7 @@ export const LandingPage: React.FC = () => {
             ) : (
               <button
                 onClick={() => navigate('/register')}
-                className="btn-primary text-sm py-3.5 px-8 font-bold flex items-center gap-2 cursor-pointer shadow-lg w-full sm:w-auto justify-center hover:scale-[1.02] transition-transform"
+                className="btn-primary text-sm py-3.5 px-8 font-semibold flex items-center gap-2 cursor-pointer shadow-lg w-full sm:w-auto justify-center hover:scale-[1.02] transition-transform"
               >
                 <span>Start 14-Day Free Trial</span>
                 <ArrowRight size={16} />
@@ -447,12 +447,12 @@ export const LandingPage: React.FC = () => {
               className="btn-secondary text-sm py-3.5 px-8 font-semibold flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center hover:bg-[var(--surface-sunken)] transition-colors"
             >
               <span>Explore Interactive Studio</span>
-              <Sparkles size={15} className="text-[var(--gold-500)]" />
+              <Sparkles size={15} className="text-[var(--accent)]" />
             </a>
           </div>
 
           {/* Value Badges */}
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-6 text-xs text-[var(--ink-muted)]">
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-6 text-xs text-[var(--text-secondary)]">
             <span className="flex items-center gap-1.5">
               <CheckCircle2 size={14} className="text-emerald-600" />
               <span>Instant 60-Second Setup</span>
@@ -469,8 +469,8 @@ export const LandingPage: React.FC = () => {
 
           {/* ⭐ HERO INTERACTIVE SCANNER (Hands-On Product Sandbox) */}
           <div className="pt-8 max-w-4xl mx-auto">
-            <div className="bg-[var(--surface)] border-2 border-[var(--gold-500)]/40 rounded-[var(--radius-xl)] shadow-2xl p-5 sm:p-7 grid grid-cols-1 md:grid-cols-12 gap-6 items-center text-left relative overflow-hidden">
-              <div className="absolute top-3 right-4 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[10px] font-bold flex items-center gap-1">
+            <div className="bg-[var(--surface)] border-2 border-[var(--accent)]/40 rounded-[var(--radius-xl)] shadow-2xl p-5 sm:p-7 grid grid-cols-1 md:grid-cols-12 gap-6 items-center text-left relative overflow-hidden">
+              <div className="absolute top-3 right-4 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-xs font-normal font-semibold flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Live Interactive Sandbox</span>
               </div>
@@ -481,24 +481,24 @@ export const LandingPage: React.FC = () => {
                   <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_rgba(16,185,129,0.8)] top-0 animate-bounce transition-all z-20" />
                 )}
 
-                <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-emerald-500/20 to-[var(--gold-500)]/20 border-2 border-dashed border-emerald-500 flex items-center justify-center relative">
+                <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-emerald-500/20 to-[var(--accent)]/20 border-2 border-dashed border-emerald-500 flex items-center justify-center relative">
                   <div className="w-16 h-16 rounded-full bg-emerald-600/30 flex items-center justify-center">
                     <Users size={28} className="text-emerald-500" />
                   </div>
-                  <span className="absolute -bottom-2 px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-600 text-white shadow-xs">
+                  <span className="absolute -bottom-2 px-2 py-0.5 rounded text-xs font-normal font-semibold bg-emerald-600 text-white shadow-xs">
                     {isScanning ? 'Scanning Face...' : scanSuccess ? 'Verified ✓' : 'Ready'}
                   </span>
                 </div>
 
                 <div>
-                  <div className="text-xs font-bold text-[var(--ink)]">Aarav Sharma</div>
-                  <div className="text-[10px] text-[var(--ink-muted)]">Designation: Senior Architect • ID #1042</div>
+                  <div className="text-xs font-semibold text-[var(--text-primary)]">Aarav Sharma</div>
+                  <div className="text-xs font-normal text-[var(--text-secondary)]">Designation: Senior Architect • ID #1042</div>
                 </div>
 
                 <button
                   onClick={handleSimulatePunch}
                   disabled={isScanning}
-                  className={`w-full py-2 px-3 rounded text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm ${
+                  className={`w-full py-2 px-3 rounded text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm ${
                     isScanning
                       ? 'bg-amber-500 text-white animate-pulse'
                       : 'bg-emerald-600 hover:bg-emerald-700 text-white'
@@ -521,33 +521,33 @@ export const LandingPage: React.FC = () => {
               {/* Right Live Punch Telemetry (7 cols) */}
               <div className="md:col-span-7 space-y-3">
                 <div className="flex items-center justify-between border-b border-[var(--rule)] pb-2">
-                  <span className="text-xs font-bold text-[var(--ink)]">Live Punch Telemetry</span>
-                  <span className="font-mono text-[10px] text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">Live Punch Telemetry</span>
+                  <span className=" text-xs font-normal text-emerald-600 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded">
                     Status: {scanSuccess ? 'Present (On Time)' : 'Awaiting Check-In'}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="p-2.5 rounded bg-[var(--surface-sunken)] border border-[var(--rule)]">
-                    <span className="text-[10px] text-[var(--ink-muted)] block">Face AI Match Score</span>
-                    <strong className="text-xs font-bold text-emerald-600 font-data">
+                    <span className="text-xs font-normal text-[var(--text-secondary)] block">Face AI Match Score</span>
+                    <strong className="text-xs font-semibold text-emerald-600 ">
                       {isScanning ? 'Calculating...' : 'Cosine: 0.948 (94.8%)'}
                     </strong>
                   </div>
                   <div className="p-2.5 rounded bg-[var(--surface-sunken)] border border-[var(--rule)]">
-                    <span className="text-[10px] text-[var(--ink-muted)] block">GPS Geofence Distance</span>
-                    <strong className="text-xs font-bold text-[var(--ink)] font-data">
+                    <span className="text-xs font-normal text-[var(--text-secondary)] block">GPS Geofence Distance</span>
+                    <strong className="text-xs font-semibold text-[var(--text-primary)] ">
                       12m from Office Center (Allowed &lt; 100m)
                     </strong>
                   </div>
                 </div>
 
                 <div className="p-2.5 rounded bg-[var(--surface-sunken)] border border-[var(--rule)] flex items-center justify-between text-xs">
-                  <span className="text-[var(--ink-muted)]">Last Recorded Punch:</span>
-                  <strong className="text-emerald-600 font-data">{lastPunchTime}</strong>
+                  <span className="text-[var(--text-secondary)]">Last Recorded Punch:</span>
+                  <strong className="text-emerald-600 ">{lastPunchTime}</strong>
                 </div>
 
-                <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed">
+                <p className="text-xs font-normal text-[var(--text-secondary)] leading-relaxed">
                   Every verified punch instantly updates the 31-day team muster roll and automatically recalculates payable days.
                 </p>
               </div>
@@ -562,13 +562,13 @@ export const LandingPage: React.FC = () => {
       <section id="pipeline" className="py-20 border-b border-[var(--rule)] bg-[var(--surface)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center space-y-3 max-w-3xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--gold-600)] dark:text-[var(--gold-400)]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-hover)] dark:text-[var(--gold-400)]">
               Unified Single Source of Truth
             </span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--ink)]">
+            <h2 className=" text-3xl sm:text-4xl font-semibold text-[var(--text-primary)]">
               How Attendance Automatically Powers Payroll
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--ink-muted)]">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
               No manual exports or Excel formulas. Every stage is connected in a continuous real-time flow.
             </p>
           </div>
@@ -576,44 +576,44 @@ export const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Step 1 */}
             <div className="p-5 rounded-[var(--radius-lg)] bg-[var(--surface-sunken)]/60 border border-[var(--rule)] space-y-3 relative">
-              <span className="w-7 h-7 rounded-full bg-[var(--accent)] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+              <span className="w-7 h-7 rounded-full bg-[var(--accent)] text-white font-semibold text-xs flex items-center justify-center shadow-xs">
                 1
               </span>
-              <h3 className="font-display text-sm font-bold text-[var(--ink)]">Mobile Selfie / Biometric Punch</h3>
-              <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+              <h3 className=" text-sm font-semibold text-[var(--text-primary)]">Mobile Selfie / Biometric Punch</h3>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Employees clock in with selfie Face ID & GPS radius or hardware biometric machines.
               </p>
             </div>
 
             {/* Step 2 */}
             <div className="p-5 rounded-[var(--radius-lg)] bg-[var(--surface-sunken)]/60 border border-[var(--rule)] space-y-3 relative">
-              <span className="w-7 h-7 rounded-full bg-[var(--accent)] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+              <span className="w-7 h-7 rounded-full bg-[var(--accent)] text-white font-semibold text-xs flex items-center justify-center shadow-xs">
                 2
               </span>
-              <h3 className="font-display text-sm font-bold text-[var(--ink)]">31-Day Muster Calculation</h3>
-              <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+              <h3 className=" text-sm font-semibold text-[var(--text-primary)]">31-Day Muster Calculation</h3>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Automatically logs present days, approved leaves, comp-offs (COHF), and late-in marks.
               </p>
             </div>
 
             {/* Step 3 */}
             <div className="p-5 rounded-[var(--radius-lg)] bg-[var(--surface-sunken)]/60 border border-[var(--rule)] space-y-3 relative">
-              <span className="w-7 h-7 rounded-full bg-[var(--accent)] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+              <span className="w-7 h-7 rounded-full bg-[var(--accent)] text-white font-semibold text-xs flex items-center justify-center shadow-xs">
                 3
               </span>
-              <h3 className="font-display text-sm font-bold text-[var(--ink)]">1-Click Salary Ledger</h3>
-              <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+              <h3 className=" text-sm font-semibold text-[var(--text-primary)]">1-Click Salary Ledger</h3>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Exact gross-to-net payroll computed with automatic LOP and salary advance EMI deductions.
               </p>
             </div>
 
             {/* Step 4 */}
             <div className="p-5 rounded-[var(--radius-lg)] bg-[var(--surface-sunken)]/60 border border-[var(--rule)] space-y-3 relative">
-              <span className="w-7 h-7 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
+              <span className="w-7 h-7 rounded-full bg-emerald-600 text-white font-semibold text-xs flex items-center justify-center">
                 4
               </span>
-              <h3 className="font-display text-sm font-bold text-[var(--ink)]">WhatsApp PDF Delivery</h3>
-              <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+              <h3 className=" text-sm font-semibold text-[var(--text-primary)]">WhatsApp PDF Delivery</h3>
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Instant bulk dispatch of password-protected PDF salary slips straight to employee phones.
               </p>
             </div>
@@ -627,13 +627,13 @@ export const LandingPage: React.FC = () => {
       <section id="comparison" className="py-20 border-b border-[var(--rule)] bg-[var(--surface-sunken)]/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center space-y-3 max-w-3xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--gold-600)] dark:text-[var(--gold-400)]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-hover)] dark:text-[var(--gold-400)]">
               Before vs After
             </span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--ink)]">
+            <h2 className=" text-3xl sm:text-4xl font-semibold text-[var(--text-primary)]">
               Why Teams Switch from Spreadsheets to HRDesk
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--ink-muted)]">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
               See how modern automation replaces manual guesswork and salary calculation headaches.
             </p>
           </div>
@@ -641,25 +641,25 @@ export const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* The Old Way */}
             <div className="p-7 rounded-[var(--radius-xl)] bg-[var(--surface)] border-2 border-rose-500/20 shadow-xs space-y-5">
-              <div className="flex items-center gap-2 text-rose-600 font-bold text-sm">
+              <div className="flex items-center gap-2 text-rose-600 font-semibold text-sm">
                 <XCircle size={18} />
                 <span>The Traditional Spreadsheet Way</span>
               </div>
-              <ul className="space-y-3.5 text-xs text-[var(--ink-muted)]">
+              <ul className="space-y-3.5 text-xs text-[var(--text-secondary)]">
                 <li className="flex items-start gap-2.5">
-                  <span className="text-rose-500 font-bold">✕</span>
+                  <span className="text-rose-500 font-semibold">✕</span>
                   <span><strong>3 to 4 days</strong> spent manually compiling punch logs from machines and WhatsApp messages.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <span className="text-rose-500 font-bold">✕</span>
+                  <span className="text-rose-500 font-semibold">✕</span>
                   <span>Frequent employee disputes over late marks, half-days, and forgotten comp-off approvals.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <span className="text-rose-500 font-bold">✕</span>
+                  <span className="text-rose-500 font-semibold">✕</span>
                   <span>Printing and distributing physical salary slips that get misplaced or leaked.</span>
                 </li>
                 <li className="flex items-start gap-2.5">
-                  <span className="text-rose-500 font-bold">✕</span>
+                  <span className="text-rose-500 font-semibold">✕</span>
                   <span>Buddy punching and proxy check-ins draining thousands of rupees in unverified payroll leakage.</span>
                 </li>
               </ul>
@@ -668,15 +668,15 @@ export const LandingPage: React.FC = () => {
             {/* The HRDesk Way */}
             <div className="p-7 rounded-[var(--radius-xl)] bg-[var(--surface)] border-2 border-emerald-500/40 shadow-md space-y-5 relative">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
+                <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
                   <CheckCircle2 size={18} />
                   <span>The HRDesk Automated Way</span>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600">
+                <span className="px-2 py-0.5 rounded text-xs font-normal font-semibold bg-emerald-500/10 text-emerald-600">
                   Zero Error
                 </span>
               </div>
-              <ul className="space-y-3.5 text-xs text-[var(--ink)]">
+              <ul className="space-y-3.5 text-xs text-[var(--text-primary)]">
                 <li className="flex items-start gap-2.5">
                   <Check size={15} className="text-emerald-600 shrink-0 mt-0.5" />
                   <span><strong>10 minutes</strong> total to run full month payroll directly from verified attendance logs.</span>
@@ -706,14 +706,14 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           {/* Header */}
           <div className="text-center space-y-3 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--gold-500)]/15 text-[var(--gold-600)] dark:text-[var(--gold-400)] text-xs font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--accent)]/15 text-[var(--accent-hover)] dark:text-[var(--gold-400)] text-xs font-semibold uppercase tracking-wider">
               <Sparkles size={13} />
               <span>Interactive Product Explorer</span>
             </div>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--ink)]">
+            <h2 className=" text-3xl sm:text-4xl font-semibold text-[var(--text-primary)]">
               Experience the Real Platform in Action
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--ink-muted)]">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
               Select any tab below to test live shift schedules, 31-day team muster roll, salary calculation, and WhatsApp delivery.
             </p>
           </div>
@@ -722,7 +722,7 @@ export const LandingPage: React.FC = () => {
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-xl)] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12">
             {/* Left Nav (4 cols) */}
             <div className="lg:col-span-4 p-5 bg-[var(--surface-sunken)]/60 border-b lg:border-b-0 lg:border-r border-[var(--rule)] space-y-2">
-              <span className="text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider px-2 block mb-3">
+              <span className="text-xs font-normal uppercase font-semibold text-[var(--text-secondary)] tracking-wider px-2 block mb-3">
                 Live Interactive Engines
               </span>
 
@@ -771,25 +771,25 @@ export const LandingPage: React.FC = () => {
                     onClick={() => setActiveTab(tab.id)}
                     className={`w-full p-3.5 rounded-[var(--radius-md)] text-left transition-all cursor-pointer border flex flex-col gap-1.5 relative ${
                       isSelected
-                        ? 'bg-[var(--surface)] border-[var(--gold-500)] shadow-sm text-[var(--ink)]'
-                        : 'bg-transparent border-transparent hover:bg-[var(--surface)]/60 text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                        ? 'bg-[var(--surface)] border-[var(--accent)] shadow-sm text-[var(--text-primary)]'
+                        : 'bg-transparent border-transparent hover:bg-[var(--surface)]/60 text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Icon
                           size={16}
-                          className={isSelected ? 'text-[var(--gold-500)]' : 'text-[var(--ink-muted)]'}
+                          className={isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}
                         />
-                        <span className={`text-xs font-bold ${isSelected ? 'text-[var(--ink)]' : ''}`}>
+                        <span className={`text-xs font-semibold ${isSelected ? 'text-[var(--text-primary)]' : ''}`}>
                           {tab.title}
                         </span>
                       </div>
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] border border-[var(--rule)] text-emerald-600">
+                      <span className="text-xs font-normal font-semibold px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] border border-[var(--rule)] text-emerald-600">
                         {tab.badge}
                       </span>
                     </div>
-                    <p className="text-[11px] text-[var(--ink-muted)] leading-relaxed pl-6">{tab.desc}</p>
+                    <p className="text-xs font-normal text-[var(--text-secondary)] leading-relaxed pl-6">{tab.desc}</p>
                   </button>
                 );
               })}
@@ -802,19 +802,19 @@ export const LandingPage: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between border-b border-[var(--rule)] pb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold">
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center font-semibold">
                         <ScanLine size={20} />
                       </div>
                       <div>
-                        <h4 className="font-display text-base font-bold text-[var(--ink)]">
+                        <h4 className=" text-base font-semibold text-[var(--text-primary)]">
                           Mobile Selfie Attendance Check-In
                         </h4>
-                        <span className="text-xs text-[var(--ink-muted)]">
+                        <span className="text-xs text-[var(--text-secondary)]">
                           Instant Facial Recognition • GPS Geofenced Office Area
                         </span>
                       </div>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
                       <CheckCircle2 size={13} />
                       <span>Punch Verified (On Time)</span>
                     </span>
@@ -823,19 +823,19 @@ export const LandingPage: React.FC = () => {
                   {/* Face Camera Simulation Card */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-4 rounded-[var(--radius-md)] bg-[var(--surface-sunken)] border border-[var(--rule)] space-y-3 text-center relative overflow-hidden">
-                      <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-emerald-500/20 to-[var(--gold-500)]/20 border-2 border-dashed border-emerald-500 flex items-center justify-center relative">
+                      <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-emerald-500/20 to-[var(--accent)]/20 border-2 border-dashed border-emerald-500 flex items-center justify-center relative">
                         <div className="w-16 h-16 rounded-full bg-emerald-600/30 flex items-center justify-center">
                           <Users size={28} className="text-emerald-500" />
                         </div>
-                        <span className="absolute -bottom-2 px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-600 text-white shadow-xs">
+                        <span className="absolute -bottom-2 px-2 py-0.5 rounded text-xs font-normal font-semibold bg-emerald-600 text-white shadow-xs">
                           Face Matched ✓
                         </span>
                       </div>
                       <div className="space-y-0.5">
-                        <div className="text-xs font-bold text-[var(--ink)]">Rajesh Sharma</div>
-                        <div className="text-[11px] text-[var(--ink-muted)]">Employee ID #1042 • Sales Team</div>
+                        <div className="text-xs font-semibold text-[var(--text-primary)]">Rajesh Sharma</div>
+                        <div className="text-xs font-normal text-[var(--text-secondary)]">Employee ID #1042 • Sales Team</div>
                       </div>
-                      <div className="p-2 rounded bg-[var(--surface)] text-[10px] text-emerald-600 font-mono border border-emerald-500/20 flex items-center justify-between">
+                      <div className="p-2 rounded bg-[var(--surface)] text-xs font-normal text-emerald-600  border border-emerald-500/20 flex items-center justify-between">
                         <span>Photo Check: Real Live Person</span>
                         <span>Match: 94% ✓</span>
                       </div>
@@ -844,26 +844,26 @@ export const LandingPage: React.FC = () => {
                     {/* Geofence Check */}
                     <div className="p-4 rounded-[var(--radius-md)] bg-[var(--surface-sunken)] border border-[var(--rule)] space-y-3 flex flex-col justify-between">
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)]">
+                        <span className="text-xs font-normal font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
                           GPS Location Verification
                         </span>
                         <div className="flex items-center gap-2">
-                          <MapPin size={18} className="text-[var(--gold-500)] shrink-0" />
+                          <MapPin size={18} className="text-[var(--accent)] shrink-0" />
                           <div>
-                            <div className="text-xs font-bold text-[var(--ink)]">Main Branch — Mumbai Office</div>
-                            <div className="text-[10px] text-[var(--ink-muted)]">Within 15 meters of office perimeter</div>
+                            <div className="text-xs font-semibold text-[var(--text-primary)]">Main Branch — Mumbai Office</div>
+                            <div className="text-xs font-normal text-[var(--text-secondary)]">Within 15 meters of office perimeter</div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="space-y-1 text-[11px]">
+                      <div className="space-y-1 text-xs font-normal">
                         <div className="flex justify-between py-1 border-b border-[var(--rule)]">
-                          <span className="text-[var(--ink-muted)]">Punch Time:</span>
-                          <strong className="text-[var(--ink)] font-data">09:28 AM (On Time)</strong>
+                          <span className="text-[var(--text-secondary)]">Punch Time:</span>
+                          <strong className="text-[var(--text-primary)] ">09:28 AM (On Time)</strong>
                         </div>
                         <div className="flex justify-between py-1">
-                          <span className="text-[var(--ink-muted)]">Status:</span>
-                          <strong className="text-emerald-600 font-data">Present (Full Day)</strong>
+                          <span className="text-[var(--text-secondary)]">Status:</span>
+                          <strong className="text-emerald-600 ">Present (Full Day)</strong>
                         </div>
                       </div>
                     </div>
@@ -876,18 +876,18 @@ export const LandingPage: React.FC = () => {
                 <div className="space-y-5">
                   <div className="flex items-center justify-between border-b border-[var(--rule)] pb-4">
                     <div>
-                      <h4 className="font-display text-base font-bold text-[var(--ink)]">
+                      <h4 className=" text-base font-semibold text-[var(--text-primary)]">
                         Interactive Shift Roster Visualizer
                       </h4>
-                      <span className="text-xs text-[var(--ink-muted)]">
+                      <span className="text-xs text-[var(--text-secondary)]">
                         Select a shift profile to see how grace periods and overtime rules apply
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 p-1 rounded bg-[var(--surface-sunken)] border border-[var(--rule)] text-xs font-bold">
+                    <div className="flex items-center gap-1.5 p-1 rounded bg-[var(--surface-sunken)] border border-[var(--rule)] text-xs font-semibold">
                       <button
                         onClick={() => setActiveShiftType('day')}
                         className={`px-2.5 py-1 rounded cursor-pointer transition-all ${
-                          activeShiftType === 'day' ? 'bg-[var(--accent)] text-white shadow-xs' : 'text-[var(--ink-muted)]'
+                          activeShiftType === 'day' ? 'bg-[var(--accent)] text-white shadow-xs' : 'text-[var(--text-secondary)]'
                         }`}
                       >
                         Day
@@ -895,7 +895,7 @@ export const LandingPage: React.FC = () => {
                       <button
                         onClick={() => setActiveShiftType('night')}
                         className={`px-2.5 py-1 rounded cursor-pointer transition-all ${
-                          activeShiftType === 'night' ? 'bg-[var(--accent)] text-white shadow-xs' : 'text-[var(--ink-muted)]'
+                          activeShiftType === 'night' ? 'bg-[var(--accent)] text-white shadow-xs' : 'text-[var(--text-secondary)]'
                         }`}
                       >
                         Night
@@ -903,7 +903,7 @@ export const LandingPage: React.FC = () => {
                       <button
                         onClick={() => setActiveShiftType('rotational')}
                         className={`px-2.5 py-1 rounded cursor-pointer transition-all ${
-                          activeShiftType === 'rotational' ? 'bg-[var(--accent)] text-white shadow-xs' : 'text-[var(--ink-muted)]'
+                          activeShiftType === 'rotational' ? 'bg-[var(--accent)] text-white shadow-xs' : 'text-[var(--text-secondary)]'
                         }`}
                       >
                         Rotational
@@ -913,26 +913,26 @@ export const LandingPage: React.FC = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                     <div className="p-3 rounded bg-[var(--surface-sunken)] border border-[var(--rule)] space-y-1">
-                      <span className="text-[10px] text-[var(--ink-muted)] block">Shift Hours</span>
-                      <strong className="font-data text-sm font-bold text-[var(--ink)]">
+                      <span className="text-xs font-normal text-[var(--text-secondary)] block">Shift Hours</span>
+                      <strong className=" text-sm font-semibold text-[var(--text-primary)]">
                         {activeShiftType === 'day' ? '09:30 AM – 06:30 PM' : activeShiftType === 'night' ? '09:00 PM – 06:00 AM' : 'Custom Weekly Rotas'}
                       </strong>
                     </div>
                     <div className="p-3 rounded bg-[var(--surface-sunken)] border border-[var(--rule)] space-y-1">
-                      <span className="text-[10px] text-[var(--ink-muted)] block">Grace Period Buffer</span>
-                      <strong className="font-data text-sm font-bold text-emerald-600">
+                      <span className="text-xs font-normal text-[var(--text-secondary)] block">Grace Period Buffer</span>
+                      <strong className=" text-sm font-semibold text-emerald-600">
                         15 Mins (Late-in after 09:45)
                       </strong>
                     </div>
                     <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/20 space-y-1">
-                      <span className="text-[10px] text-emerald-600 block font-bold">Overtime Multiplier</span>
-                      <strong className="font-data text-sm font-bold text-emerald-600">
+                      <span className="text-xs font-normal text-emerald-600 block font-semibold">Overtime Multiplier</span>
+                      <strong className=" text-sm font-semibold text-emerald-600">
                         {activeShiftType === 'night' ? '1.5x Hourly Rate' : '1.25x Hourly Rate'}
                       </strong>
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded bg-[var(--surface-sunken)]/60 border border-[var(--rule)] text-xs text-[var(--ink-muted)] flex items-center justify-between">
+                  <div className="p-3.5 rounded bg-[var(--surface-sunken)]/60 border border-[var(--rule)] text-xs text-[var(--text-secondary)] flex items-center justify-between">
                     <span>Shift swap requests can be filed by employees on mobile and approved by branch managers instantly.</span>
                   </div>
                 </div>
@@ -943,20 +943,20 @@ export const LandingPage: React.FC = () => {
                 <div className="space-y-5">
                   <div className="flex items-center justify-between border-b border-[var(--rule)] pb-4">
                     <div>
-                      <h4 className="font-display text-base font-bold text-[var(--ink)]">
+                      <h4 className=" text-base font-semibold text-[var(--text-primary)]">
                         Monthly Team Attendance Muster Sheet
                       </h4>
-                      <span className="text-xs text-[var(--ink-muted)]">
+                      <span className="text-xs text-[var(--text-secondary)]">
                         Real-time daily records • Auto-calculated payable days
                       </span>
                     </div>
-                    <span className="text-xs font-mono text-[var(--gold-600)] font-bold bg-[var(--gold-500)]/10 px-2.5 py-1 rounded">
+                    <span className="text-xs  text-[var(--accent-hover)] font-semibold bg-[var(--accent)]/10 px-2.5 py-1 rounded">
                       Current Month
                     </span>
                   </div>
 
                   <div className="border border-[var(--rule)] rounded-[var(--radius-md)] overflow-hidden text-xs">
-                    <div className="bg-[var(--surface-sunken)] p-2.5 font-bold flex items-center justify-between border-b border-[var(--rule)] text-[11px]">
+                    <div className="bg-[var(--surface-sunken)] p-2.5 font-semibold flex items-center justify-between border-b border-[var(--rule)] text-xs font-normal">
                       <span>Employee Name</span>
                       <div className="flex items-center gap-4">
                         <span>Punches (Days 1–7)</span>
@@ -974,8 +974,8 @@ export const LandingPage: React.FC = () => {
                         className="p-2.5 flex items-center justify-between border-b border-[var(--rule)]/60 hover:bg-[var(--surface-sunken)]/40 transition-colors"
                       >
                         <div>
-                          <div className="font-bold text-[var(--ink)]">{row.name}</div>
-                          <div className="text-[10px] text-[var(--ink-muted)]">{row.role}</div>
+                          <div className="font-semibold text-[var(--text-primary)]">{row.name}</div>
+                          <div className="text-xs font-normal text-[var(--text-secondary)]">{row.role}</div>
                         </div>
 
                         <div className="flex items-center gap-4">
@@ -983,7 +983,7 @@ export const LandingPage: React.FC = () => {
                             {row.p.map((status, si) => (
                               <span
                                 key={si}
-                                className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[9px] ${
+                                className={`w-5 h-5 rounded flex items-center justify-center font-semibold text-xs font-normal ${
                                   status === 'P'
                                     ? 'bg-emerald-500/15 text-emerald-600'
                                     : status === 'A'
@@ -997,7 +997,7 @@ export const LandingPage: React.FC = () => {
                               </span>
                             ))}
                           </div>
-                          <span className="font-mono font-bold text-[var(--ink)] w-16 text-right">{row.payable}</span>
+                          <span className=" font-semibold text-[var(--text-primary)] w-16 text-right">{row.payable}</span>
                         </div>
                       </div>
                     ))}
@@ -1015,45 +1015,45 @@ export const LandingPage: React.FC = () => {
                 <div className="space-y-5">
                   <div className="flex items-center justify-between border-b border-[var(--rule)] pb-4">
                     <div>
-                      <h4 className="font-display text-base font-bold text-[var(--ink)]">
+                      <h4 className=" text-base font-semibold text-[var(--text-primary)]">
                         1-Click Exact Salary Calculation
                       </h4>
-                      <span className="text-xs text-[var(--ink-muted)]">
+                      <span className="text-xs text-[var(--text-secondary)]">
                         Directly linked to attendance — never overpay or underpay
                       </span>
                     </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                    <span className="px-2 py-0.5 rounded text-xs font-normal font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
                       Auto-Calculated
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="p-3 rounded bg-[var(--surface-sunken)] border border-[var(--rule)]">
-                      <span className="text-[10px] text-[var(--ink-muted)] block">Gross Monthly Salary</span>
-                      <strong className="text-base font-bold text-[var(--ink)] font-data">{'\u20B9'}35,000</strong>
+                      <span className="text-xs font-normal text-[var(--text-secondary)] block">Gross Monthly Salary</span>
+                      <strong className="text-base font-semibold text-[var(--text-primary)] ">{'\u20B9'}35,000</strong>
                     </div>
                     <div className="p-3 rounded bg-[var(--surface-sunken)] border border-[var(--rule)]">
-                      <span className="text-[10px] text-rose-600 block">Absence LOP (1.0 Day)</span>
-                      <strong className="text-base font-bold text-rose-600 font-data">-{'\u20B9'}1,129</strong>
+                      <span className="text-xs font-normal text-rose-600 block">Absence LOP (1.0 Day)</span>
+                      <strong className="text-base font-semibold text-rose-600 ">-{'\u20B9'}1,129</strong>
                     </div>
                     <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/20">
-                      <span className="text-[10px] text-emerald-600 font-bold block">Net Payable Salary</span>
-                      <strong className="text-base font-bold text-emerald-600 font-data">{'\u20B9'}33,871</strong>
+                      <span className="text-xs font-normal text-emerald-600 font-semibold block">Net Payable Salary</span>
+                      <strong className="text-base font-semibold text-emerald-600 ">{'\u20B9'}33,871</strong>
                     </div>
                   </div>
 
                   <div className="p-3.5 rounded-[var(--radius-md)] border border-[var(--rule)] bg-[var(--surface-sunken)]/50 space-y-2 text-xs">
                     <div className="flex justify-between py-1 border-b border-[var(--rule)]">
-                      <span className="text-[var(--ink-muted)]">Approved Comp-Off Credit Added:</span>
-                      <strong className="text-emerald-600 font-data">+0.5 Day (+{'\u20B9'}565)</strong>
+                      <span className="text-[var(--text-secondary)]">Approved Comp-Off Credit Added:</span>
+                      <strong className="text-emerald-600 ">+0.5 Day (+{'\u20B9'}565)</strong>
                     </div>
                     <div className="flex justify-between py-1 border-b border-[var(--rule)]">
-                      <span className="text-[var(--ink-muted)]">Salary Advance EMI Deducted:</span>
-                      <strong className="text-[var(--ink)] font-data">-{'\u20B9'}2,000 (Advance #ADV-102)</strong>
+                      <span className="text-[var(--text-secondary)]">Salary Advance EMI Deducted:</span>
+                      <strong className="text-[var(--text-primary)] ">-{'\u20B9'}2,000 (Advance #ADV-102)</strong>
                     </div>
                     <div className="flex justify-between py-1">
-                      <span className="text-[var(--ink-muted)]">Final Bank Transfer Amount:</span>
-                      <strong className="text-emerald-600 font-bold font-data">{'\u20B9'}32,436</strong>
+                      <span className="text-[var(--text-secondary)]">Final Bank Transfer Amount:</span>
+                      <strong className="text-emerald-600 font-semibold ">{'\u20B9'}32,436</strong>
                     </div>
                   </div>
                 </div>
@@ -1064,10 +1064,10 @@ export const LandingPage: React.FC = () => {
                 <div className="space-y-5">
                   <div className="flex items-center justify-between border-b border-[var(--rule)] pb-4">
                     <div>
-                      <h4 className="font-display text-base font-bold text-[var(--ink)]">
+                      <h4 className=" text-base font-semibold text-[var(--text-primary)]">
                         Interactive WhatsApp Payslip Simulator
                       </h4>
-                      <span className="text-xs text-[var(--ink-muted)]">
+                      <span className="text-xs text-[var(--text-secondary)]">
                         Pick a salary below to generate a real-time WhatsApp delivery preview
                       </span>
                     </div>
@@ -1076,8 +1076,8 @@ export const LandingPage: React.FC = () => {
                         <button
                           key={sal}
                           onClick={() => handleRegeneratePayslip(sal)}
-                          className={`px-2 py-1 rounded text-[10px] font-bold cursor-pointer transition-all ${
-                            payslipSalary === sal ? 'bg-emerald-600 text-white' : 'bg-[var(--surface-sunken)] text-[var(--ink)]'
+                          className={`px-2 py-1 rounded text-xs font-normal font-semibold cursor-pointer transition-all ${
+                            payslipSalary === sal ? 'bg-emerald-600 text-white' : 'bg-[var(--surface-sunken)] text-[var(--text-primary)]'
                           }`}
                         >
                           {'\u20B9'}{(sal / 1000)}k
@@ -1087,8 +1087,8 @@ export const LandingPage: React.FC = () => {
                   </div>
 
                   <div className="p-4 rounded-[var(--radius-lg)] bg-[var(--surface-sunken)] border border-[var(--rule)] max-w-md mx-auto space-y-3">
-                    <div className="flex items-center justify-between text-[11px] text-[var(--ink-muted)] border-b border-[var(--rule)] pb-2">
-                      <span className="font-bold text-[var(--ink)] flex items-center gap-1.5">
+                    <div className="flex items-center justify-between text-xs font-normal text-[var(--text-secondary)] border-b border-[var(--rule)] pb-2">
+                      <span className="font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
                         <MessageSquare size={14} className="text-emerald-600" />
                         HRDesk Automated Payroll
                       </span>
@@ -1096,28 +1096,28 @@ export const LandingPage: React.FC = () => {
                     </div>
 
                     {isSendingWhatsApp ? (
-                      <div className="p-6 text-center text-xs text-[var(--ink-muted)] space-y-2">
+                      <div className="p-6 text-center text-xs text-[var(--text-secondary)] space-y-2">
                         <RefreshCw size={18} className="animate-spin text-emerald-600 mx-auto" />
                         <span>Compiling encrypted salary slip PDF...</span>
                       </div>
                     ) : (
                       <div className="p-3.5 rounded-xl bg-emerald-600/10 border border-emerald-500/25 space-y-2 text-xs animate-fade-in">
-                        <p className="text-[var(--ink)] leading-relaxed">
+                        <p className="text-[var(--text-primary)] leading-relaxed">
                           Hello <strong>Pooja</strong>, your salary slip for this month has been processed.
                         </p>
                         <div className="p-2.5 rounded bg-[var(--surface)] border border-[var(--rule)] flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="text-base">📄</span>
                             <div>
-                              <div className="font-bold text-xs text-[var(--ink)]">Salary_Slip_Pooja.pdf</div>
-                              <div className="text-[10px] text-[var(--ink-muted)]">Password: DDMM (Your DOB)</div>
+                              <div className="font-semibold text-xs text-[var(--text-primary)]">Salary_Slip_Pooja.pdf</div>
+                              <div className="text-xs font-normal text-[var(--text-secondary)]">Password: DDMM (Your DOB)</div>
                             </div>
                           </div>
-                          <span className="px-2.5 py-1 rounded bg-emerald-600 text-white text-[10px] font-bold">
+                          <span className="px-2.5 py-1 rounded bg-emerald-600 text-white text-xs font-normal font-semibold">
                             Download
                           </span>
                         </div>
-                        <div className="flex justify-between items-center text-[10px] text-emerald-600 pt-1">
+                        <div className="flex justify-between items-center text-xs font-normal text-emerald-600 pt-1">
                           <span>Net Transferred: {'\u20B9'}{(payslipSalary - 1800).toLocaleString('en-IN')}</span>
                           <span className="flex items-center gap-0.5">
                             <CheckCheck size={12} /> Delivered
@@ -1139,13 +1139,13 @@ export const LandingPage: React.FC = () => {
       <section id="use-cases" className="py-20 border-b border-[var(--rule)] bg-[var(--surface-sunken)]/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center space-y-3 max-w-3xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--gold-600)] dark:text-[var(--gold-400)]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-hover)] dark:text-[var(--gold-400)]">
               Universal Solution
             </span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--ink)]">
+            <h2 className=" text-3xl sm:text-4xl font-semibold text-[var(--text-primary)]">
               Tailored for Every Type of Organization
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--ink-muted)]">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
               From compact offices and retail outlets to 500-employee multi-location enterprises, HRDesk fits your exact operational workflow.
             </p>
           </div>
@@ -1156,22 +1156,22 @@ export const LandingPage: React.FC = () => {
               return (
                 <div
                   key={idx}
-                  className="bg-[var(--surface)] p-6 rounded-[var(--radius-xl)] border border-[var(--rule)] hover:border-[var(--gold-500)]/60 transition-all space-y-3 shadow-xs hover:shadow-md group"
+                  className="bg-[var(--surface)] p-6 rounded-[var(--radius-xl)] border border-[var(--rule)] hover:border-[var(--accent)]/60 transition-all space-y-3 shadow-xs hover:shadow-md group"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--gold-500)]/15 text-[var(--gold-600)] dark:text-[var(--gold-400)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--accent)]/15 text-[var(--accent-hover)] dark:text-[var(--gold-400)] flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Icon size={20} />
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[var(--surface-sunken)] text-[var(--ink-muted)] border border-[var(--rule)]">
+                    <span className="text-xs font-normal font-semibold px-2 py-0.5 rounded bg-[var(--surface-sunken)] text-[var(--text-secondary)] border border-[var(--rule)]">
                       {uc.badge}
                     </span>
                   </div>
 
-                  <h3 className="font-display text-base font-bold text-[var(--ink)] group-hover:text-[var(--gold-600)] dark:group-hover:text-[var(--gold-400)] transition-colors">
+                  <h3 className=" text-base font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-hover)] dark:group-hover:text-[var(--gold-400)] transition-colors">
                     {uc.title}
                   </h3>
 
-                  <p className="text-xs text-[var(--ink-muted)] leading-relaxed">{uc.desc}</p>
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{uc.desc}</p>
                 </div>
               );
             })}
@@ -1189,10 +1189,10 @@ export const LandingPage: React.FC = () => {
               <DollarSign size={13} />
               <span>Instant Savings Calculator</span>
             </div>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--ink)]">
+            <h2 className=" text-3xl sm:text-4xl font-semibold text-[var(--text-primary)]">
               See How Much Time & Money You Save Monthly
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--ink-muted)]">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
               Move the sliders to match your employee headcount and see how much time and salary leakage HRDesk prevents.
             </p>
           </div>
@@ -1203,10 +1203,10 @@ export const LandingPage: React.FC = () => {
               {/* Slider 1: Employees */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
+                  <label className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">
                     Total Active Employees
                   </label>
-                  <span className="text-lg font-bold font-data text-[var(--gold-600)] dark:text-[var(--gold-400)] px-3 py-1 bg-[var(--surface)] rounded border border-[var(--rule)]">
+                  <span className="text-lg font-semibold  text-[var(--accent-hover)] dark:text-[var(--gold-400)] px-3 py-1 bg-[var(--surface)] rounded border border-[var(--rule)]">
                     {employeeCount} Employees
                   </span>
                 </div>
@@ -1217,9 +1217,9 @@ export const LandingPage: React.FC = () => {
                   step="5"
                   value={employeeCount}
                   onChange={(e) => setEmployeeCount(Number(e.target.value))}
-                  className="w-full accent-[var(--gold-500)] cursor-pointer h-2 bg-[var(--surface-sunken)] rounded-lg"
+                  className="w-full accent-[var(--accent)] cursor-pointer h-2 bg-[var(--surface-sunken)] rounded-lg"
                 />
-                <div className="flex justify-between text-[10px] text-[var(--ink-muted)] font-mono">
+                <div className="flex justify-between text-xs font-normal text-[var(--text-secondary)] ">
                   <span>5 Employees</span>
                   <span>150 Employees</span>
                   <span>300+ Employees</span>
@@ -1229,10 +1229,10 @@ export const LandingPage: React.FC = () => {
               {/* Slider 2: Branches */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-[var(--ink)] uppercase tracking-wider">
+                  <label className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">
                     Office / Branch Locations
                   </label>
-                  <span className="text-lg font-bold font-data text-emerald-600 px-3 py-1 bg-[var(--surface)] rounded border border-[var(--rule)]">
+                  <span className="text-lg font-semibold  text-emerald-600 px-3 py-1 bg-[var(--surface)] rounded border border-[var(--rule)]">
                     {branchCount} {branchCount === 1 ? 'Location' : 'Locations'}
                   </span>
                 </div>
@@ -1245,14 +1245,14 @@ export const LandingPage: React.FC = () => {
                   onChange={(e) => setBranchCount(Number(e.target.value))}
                   className="w-full accent-emerald-500 cursor-pointer h-2 bg-[var(--surface-sunken)] rounded-lg"
                 />
-                <div className="flex justify-between text-[10px] text-[var(--ink-muted)] font-mono">
+                <div className="flex justify-between text-xs font-normal text-[var(--text-secondary)] ">
                   <span>1 Location</span>
                   <span>8 Locations</span>
                   <span>15 Locations</span>
                 </div>
               </div>
 
-              <div className="p-4 rounded bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--ink-muted)] flex items-center gap-3">
+              <div className="p-4 rounded bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--text-secondary)] flex items-center gap-3">
                 <Flame size={18} className="text-amber-500 shrink-0" />
                 <span>
                   HRDesk eliminates hours spent manually cross-checking attendance registers, leaves, and salary slips.
@@ -1263,41 +1263,41 @@ export const LandingPage: React.FC = () => {
             {/* Right Live Computed Results (6 cols) */}
             <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-6 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--rule)] space-y-2">
-                <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">Time Saved Every Month</span>
-                <div className="font-display text-3xl sm:text-4xl font-bold text-[var(--gold-500)]">
+                <span className="text-xs font-normal font-semibold text-[var(--text-secondary)] uppercase">Time Saved Every Month</span>
+                <div className=" text-3xl sm:text-4xl font-semibold text-[var(--accent)]">
                   ~{roiCalculations.hoursSavedPerMonth} hrs
                 </div>
-                <p className="text-[11px] text-[var(--ink-muted)]">No more manual Excel calculations.</p>
+                <p className="text-xs font-normal text-[var(--text-secondary)]">No more manual Excel calculations.</p>
               </div>
 
               <div className="p-6 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--rule)] space-y-2">
-                <span className="text-[11px] font-bold text-emerald-600 uppercase">Salary Leakage Saved</span>
-                <div className="font-display text-3xl sm:text-4xl font-bold text-emerald-600 font-data">
+                <span className="text-xs font-normal font-semibold text-emerald-600 uppercase">Salary Leakage Saved</span>
+                <div className=" text-3xl sm:text-4xl font-semibold text-emerald-600 ">
                   {'\u20B9'}{roiCalculations.leakagePrevented.toLocaleString('en-IN')}
                 </div>
-                <p className="text-[11px] text-[var(--ink-muted)]">From unrecorded absences & half-days.</p>
+                <p className="text-xs font-normal text-[var(--text-secondary)]">From unrecorded absences & half-days.</p>
               </div>
 
               <div className="p-6 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--rule)] space-y-2">
-                <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase">WhatsApp Salary Slips</span>
-                <div className="font-display text-3xl sm:text-4xl font-bold text-[var(--ink)] font-data">
+                <span className="text-xs font-normal font-semibold text-[var(--text-secondary)] uppercase">WhatsApp Salary Slips</span>
+                <div className=" text-3xl sm:text-4xl font-semibold text-[var(--text-primary)] ">
                   {roiCalculations.payslipsAutomated} / mo
                 </div>
-                <p className="text-[11px] text-[var(--ink-muted)]">Delivered in 1 click to employee phones.</p>
+                <p className="text-xs font-normal text-[var(--text-secondary)]">Delivered in 1 click to employee phones.</p>
               </div>
 
-              <div className="p-6 rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--gold-500)]/15 to-emerald-500/15 border border-[var(--gold-500)]/30 space-y-2 flex flex-col justify-between">
+              <div className="p-6 rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--accent)]/15 to-emerald-500/15 border border-[var(--accent)]/30 space-y-2 flex flex-col justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-[var(--gold-600)] dark:text-[var(--gold-400)] uppercase">
+                  <span className="text-xs font-normal font-semibold text-[var(--accent-hover)] dark:text-[var(--gold-400)] uppercase">
                     Estimated ROI Multiplier
                   </span>
-                  <div className="font-display text-3xl sm:text-4xl font-bold text-[var(--ink)]">
+                  <div className=" text-3xl sm:text-4xl font-semibold text-[var(--text-primary)]">
                     {roiCalculations.roiMultiplier}x
                   </div>
                 </div>
                 <button
                   onClick={() => navigate('/register')}
-                  className="btn-primary text-xs py-2.5 px-3 font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  className="btn-primary text-xs py-2.5 px-3 font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <span>Start Saving Today</span>
                   <ArrowRight size={13} />
@@ -1314,44 +1314,44 @@ export const LandingPage: React.FC = () => {
       <section id="modules" className="py-20 border-b border-[var(--rule)] bg-[var(--surface-sunken)]/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center space-y-3 max-w-3xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--gold-600)] dark:text-[var(--gold-400)]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-hover)] dark:text-[var(--gold-400)]">
               All-In-One Platform
             </span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--ink)]">
+            <h2 className=" text-3xl sm:text-4xl font-semibold text-[var(--text-primary)]">
               Everything Needed to Run Your Workforce
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--ink-muted)]">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
               Manage daily attendance, leaves, loan advances, and salary slips without juggling multiple apps or Excel files.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Feature 1 */}
-            <div className="bg-[var(--surface)] p-8 rounded-[var(--radius-xl)] border border-[var(--rule)] space-y-5 hover:border-[var(--gold-500)]/60 transition-colors shadow-xs">
+            <div className="bg-[var(--surface)] p-8 rounded-[var(--radius-xl)] border border-[var(--rule)] space-y-5 hover:border-[var(--accent)]/60 transition-colors shadow-xs">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-[var(--radius-md)] bg-[var(--gold-500)]/15 text-[var(--gold-600)] dark:text-[var(--gold-400)] flex items-center justify-center">
+                <div className="w-12 h-12 rounded-[var(--radius-md)] bg-[var(--accent)]/15 text-[var(--accent-hover)] dark:text-[var(--gold-400)] flex items-center justify-center">
                   <Clock size={24} />
                 </div>
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-[var(--surface-sunken)] text-[var(--ink-muted)] border border-[var(--rule)]">
+                <span className="text-xs font-normal font-semibold px-2.5 py-1 rounded bg-[var(--surface-sunken)] text-[var(--text-secondary)] border border-[var(--rule)]">
                   Attendance
                 </span>
               </div>
-              <h3 className="font-display text-xl font-bold text-[var(--ink)]">
+              <h3 className=" text-xl font-semibold text-[var(--text-primary)]">
                 Mobile Selfie & Biometric Check-In
               </h3>
-              <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Employees can clock in with a quick selfie on their phone or through standard fingerprint/face machines. Location boundaries ensure they only punch when physically at the work site.
               </p>
               <ul className="space-y-2 text-xs">
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>GPS location radius verification (Geofencing)</span>
                 </li>
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>31-Day team muster roll with late marks & half-days</span>
                 </li>
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>Employees can request missed punch regularizations in 1 tap</span>
                 </li>
@@ -1359,31 +1359,31 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-[var(--surface)] p-8 rounded-[var(--radius-xl)] border border-[var(--rule)] space-y-5 hover:border-[var(--gold-500)]/60 transition-colors shadow-xs">
+            <div className="bg-[var(--surface)] p-8 rounded-[var(--radius-xl)] border border-[var(--rule)] space-y-5 hover:border-[var(--accent)]/60 transition-colors shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="w-12 h-12 rounded-[var(--radius-md)] bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
                   <Receipt size={24} />
                 </div>
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-[var(--surface-sunken)] text-[var(--ink-muted)] border border-[var(--rule)]">
+                <span className="text-xs font-normal font-semibold px-2.5 py-1 rounded bg-[var(--surface-sunken)] text-[var(--text-secondary)] border border-[var(--rule)]">
                   Salary & WhatsApp
                 </span>
               </div>
-              <h3 className="font-display text-xl font-bold text-[var(--ink)]">
+              <h3 className=" text-xl font-semibold text-[var(--text-primary)]">
                 Automatic Payroll & WhatsApp Payslips
               </h3>
-              <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Click one button to calculate monthly salaries based on real attendance. Automatically deducts unpaid leaves (LOP) and sends password-protected PDF salary slips straight to employee WhatsApp.
               </p>
               <ul className="space-y-2 text-xs">
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>Exact payable days & Loss of Pay (LOP) auto-calculation</span>
                 </li>
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>Bulk 1-click WhatsApp PDF salary slip dispatch</span>
                 </li>
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>Salary advance & loan EMI tracker with monthly deduction</span>
                 </li>
@@ -1391,31 +1391,31 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-[var(--surface)] p-8 rounded-[var(--radius-xl)] border border-[var(--rule)] space-y-5 hover:border-[var(--gold-500)]/60 transition-colors shadow-xs">
+            <div className="bg-[var(--surface)] p-8 rounded-[var(--radius-xl)] border border-[var(--rule)] space-y-5 hover:border-[var(--accent)]/60 transition-colors shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="w-12 h-12 rounded-[var(--radius-md)] bg-blue-500/15 text-blue-600 flex items-center justify-center">
                   <Building2 size={24} />
                 </div>
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-[var(--surface-sunken)] text-[var(--ink-muted)] border border-[var(--rule)]">
+                <span className="text-xs font-normal font-semibold px-2.5 py-1 rounded bg-[var(--surface-sunken)] text-[var(--text-secondary)] border border-[var(--rule)]">
                   Locations & Shifts
                 </span>
               </div>
-              <h3 className="font-display text-xl font-bold text-[var(--ink)]">
+              <h3 className=" text-xl font-semibold text-[var(--text-primary)]">
                 Multi-Branch & Shift Management
               </h3>
-              <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Manage multiple shop branches, project sites, or offices under one account. Set individual work shift hours, night shifts, and local holiday calendars for each branch.
               </p>
               <ul className="space-y-2 text-xs">
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>Separate office and branch locations with GPS radius</span>
                 </li>
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>Day, evening, and night rotational shift schedules</span>
                 </li>
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>Branch manager access permissions (Only see own branch)</span>
                 </li>
@@ -1423,31 +1423,31 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Feature 4 */}
-            <div className="bg-[var(--surface)] p-8 rounded-[var(--radius-xl)] border border-[var(--rule)] space-y-5 hover:border-[var(--gold-500)]/60 transition-colors shadow-xs">
+            <div className="bg-[var(--surface)] p-8 rounded-[var(--radius-xl)] border border-[var(--rule)] space-y-5 hover:border-[var(--accent)]/60 transition-colors shadow-xs">
               <div className="flex items-center justify-between">
                 <div className="w-12 h-12 rounded-[var(--radius-md)] bg-purple-500/15 text-purple-600 flex items-center justify-center">
                   <Calendar size={24} />
                 </div>
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-[var(--surface-sunken)] text-[var(--ink-muted)] border border-[var(--rule)]">
+                <span className="text-xs font-normal font-semibold px-2.5 py-1 rounded bg-[var(--surface-sunken)] text-[var(--text-secondary)] border border-[var(--rule)]">
                   Leaves & Directory
                 </span>
               </div>
-              <h3 className="font-display text-xl font-bold text-[var(--ink)]">
+              <h3 className=" text-xl font-semibold text-[var(--text-primary)]">
                 Leave Approvals & Employee Records
               </h3>
-              <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                 Track employee leave quotas (paid leaves, sick leaves, comp-offs), approve leave requests with one click, and store employee Aadhaar, PAN, and appointment letters securely.
               </p>
               <ul className="space-y-2 text-xs">
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>1-Tap leave applications and manager approval flow</span>
                 </li>
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>Digital employee directory and encrypted document vault</span>
                 </li>
-                <li className="flex items-center gap-2 text-[var(--ink)]">
+                <li className="flex items-center gap-2 text-[var(--text-primary)]">
                   <Check size={14} className="text-emerald-600 shrink-0" />
                   <span>Auto-generated experience and relieving letters</span>
                 </li>
@@ -1463,13 +1463,13 @@ export const LandingPage: React.FC = () => {
       <section className="py-20 border-b border-[var(--rule)] bg-[var(--surface)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--gold-600)] dark:text-[var(--gold-400)]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-hover)] dark:text-[var(--gold-400)]">
               Customer Experiences
             </span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--ink)]">
+            <h2 className=" text-3xl sm:text-4xl font-semibold text-[var(--text-primary)]">
               Loved by Business Leaders & Teams
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--ink-muted)]">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
               See why companies across retail, services, and construction choose HRDesk to manage their workforce.
             </p>
           </div>
@@ -1486,24 +1486,24 @@ export const LandingPage: React.FC = () => {
                       <Star key={i} size={14} fill="currentColor" />
                     ))}
                   </div>
-                  <p className="text-xs text-[var(--ink)] leading-relaxed italic">"{t.quote}"</p>
+                  <p className="text-xs text-[var(--text-primary)] leading-relaxed italic">"{t.quote}"</p>
                 </div>
 
                 <div className="pt-4 border-t border-[var(--rule)] space-y-3">
                   <div className="p-2.5 rounded bg-[var(--surface)] border border-[var(--rule)] flex items-center justify-between text-xs">
-                    <span className="text-[10px] text-[var(--ink-muted)] font-medium">{t.metricLabel}</span>
-                    <strong className="font-bold text-emerald-600 font-data">{t.metric}</strong>
+                    <span className="text-xs font-normal text-[var(--text-secondary)] font-medium">{t.metricLabel}</span>
+                    <strong className="font-semibold text-emerald-600 ">{t.metric}</strong>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-9 h-9 rounded-full ${t.avatarBg} text-white font-bold flex items-center justify-center text-xs shrink-0`}
+                      className={`w-9 h-9 rounded-full ${t.avatarBg} text-white font-semibold flex items-center justify-center text-xs shrink-0`}
                     >
                       {t.author.charAt(0)}
                     </div>
                     <div>
-                      <div className="font-bold text-xs text-[var(--ink)]">{t.author}</div>
-                      <div className="text-[10px] text-[var(--ink-muted)]">
+                      <div className="font-semibold text-xs text-[var(--text-primary)]">{t.author}</div>
+                      <div className="text-xs font-normal text-[var(--text-secondary)]">
                         {t.role} • {t.company}
                       </div>
                     </div>
@@ -1521,13 +1521,13 @@ export const LandingPage: React.FC = () => {
       <section id="pricing" className="py-20 border-b border-[var(--rule)] bg-[var(--surface-sunken)]/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center space-y-4 max-w-2xl mx-auto">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--gold-600)] dark:text-[var(--gold-400)]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-hover)] dark:text-[var(--gold-400)]">
               Simple, Affordable Pricing
             </span>
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-[var(--ink)]">
+            <h2 className=" text-3xl sm:text-4xl font-semibold text-[var(--text-primary)]">
               Choose the Plan That Fits Your Team
             </h2>
-            <p className="text-xs sm:text-sm text-[var(--ink-muted)]">
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
               Every plan includes a 14-day free trial. No credit card required to start.
             </p>
 
@@ -1535,24 +1535,24 @@ export const LandingPage: React.FC = () => {
             <div className="inline-flex items-center p-1 rounded-full bg-[var(--surface)] border border-[var(--rule)] mt-2 shadow-xs">
               <button
                 onClick={() => setBillingCycle('monthly')}
-                className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
+                className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
                   billingCycle === 'monthly'
-                    ? 'bg-[var(--surface-sunken)] text-[var(--ink)] shadow-xs'
-                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                    ? 'bg-[var(--surface-sunken)] text-[var(--text-primary)] shadow-xs'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 Monthly Billing
               </button>
               <button
                 onClick={() => setBillingCycle('yearly')}
-                className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer flex items-center gap-1.5 ${
                   billingCycle === 'yearly'
                     ? 'bg-[var(--accent)] text-white shadow-xs'
-                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <span>Annual Billing</span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-600 text-white font-bold">15% OFF</span>
+                <span className="px-1.5 py-0.2 rounded text-xs font-normal bg-emerald-600 text-white font-semibold">15% OFF</span>
               </button>
             </div>
           </div>
@@ -1571,40 +1571,40 @@ export const LandingPage: React.FC = () => {
                   }`}
                 >
                   {p.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-xs font-normal font-semibold uppercase tracking-wider shadow-xs">
                       {p.badge ?? 'Most Popular'}
                     </div>
                   )}
 
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-display text-lg font-bold text-[var(--ink)]">{p.name}</h3>
-                      <p className="text-[11px] text-[var(--ink-muted)] mt-1 min-h-[32px]">{p.tagline}</p>
+                      <h3 className=" text-lg font-semibold text-[var(--text-primary)]">{p.name}</h3>
+                      <p className="text-xs font-normal text-[var(--text-secondary)] mt-1 min-h-[32px]">{p.tagline}</p>
                     </div>
 
                     <div className="py-3 border-y border-[var(--rule)]">
                       <div className="flex items-baseline gap-1">
-                        <span className="font-display text-3xl font-bold text-[var(--ink)]">
+                        <span className=" text-3xl font-semibold text-[var(--text-primary)]">
                           {price === 0 ? 'Free' : `\u20B9${price.toLocaleString('en-IN')}`}
                         </span>
-                        {price > 0 && <span className="text-[10px] text-[var(--ink-muted)]">/ mo</span>}
+                        {price > 0 && <span className="text-xs font-normal text-[var(--text-secondary)]">/ mo</span>}
                       </div>
                       {billingCycle === 'yearly' && p.priceYearly > 0 && (
-                        <span className="text-[10px] text-emerald-600 block mt-0.5 font-medium">
+                        <span className="text-xs font-normal text-emerald-600 block mt-0.5 font-medium">
                           Billed annually at {'\u20B9'}{p.priceYearly.toLocaleString('en-IN')}/yr
                         </span>
                       )}
                     </div>
 
-                    <div className="space-y-1.5 text-xs text-[var(--ink)]">
+                    <div className="space-y-1.5 text-xs text-[var(--text-primary)]">
                       <div className="flex items-center gap-2">
-                        <Users size={14} className="text-[var(--gold-500)]" />
+                        <Users size={14} className="text-[var(--accent)]" />
                         <span>
                           <strong>{p.maxEmployees}</strong> Active Employees
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Building2 size={14} className="text-[var(--gold-500)]" />
+                        <Building2 size={14} className="text-[var(--accent)]" />
                         <span>
                           <strong>{p.maxBranches}</strong> {p.maxBranches === 1 ? 'Location' : 'Locations'}
                         </span>
@@ -1612,12 +1612,12 @@ export const LandingPage: React.FC = () => {
                     </div>
 
                     <div className="space-y-2 pt-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-muted)] block">
+                      <span className="text-xs font-normal font-semibold uppercase tracking-wider text-[var(--text-secondary)] block">
                         Included Features
                       </span>
                       <ul className="space-y-2 text-xs">
                         {p.features.map((feat: string, fi: number) => (
-                          <li key={fi} className="flex items-start gap-2 text-[var(--ink)]">
+                          <li key={fi} className="flex items-start gap-2 text-[var(--text-primary)]">
                             <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
                             <span>{feat}</span>
                           </li>
@@ -1631,10 +1631,10 @@ export const LandingPage: React.FC = () => {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                       navigate(`/register?plan=${p.code}`);
                     }}
-                    className={`w-full py-3 px-4 text-xs font-bold rounded cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-8 ${
+                    className={`w-full py-3 px-4 text-xs font-semibold rounded cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-8 ${
                       p.popular
                         ? 'btn-primary shadow-sm'
-                        : 'border border-[var(--rule)] bg-[var(--surface-sunken)] hover:bg-[var(--surface)] text-[var(--ink)]'
+                        : 'border border-[var(--rule)] bg-[var(--surface-sunken)] hover:bg-[var(--surface)] text-[var(--text-primary)]'
                     }`}
                   >
                     <span>Start 14-Day Free Trial</span>
@@ -1653,10 +1653,10 @@ export const LandingPage: React.FC = () => {
       <section id="faq" className="py-20 border-b border-[var(--rule)] bg-[var(--surface)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="text-center space-y-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--gold-600)] dark:text-[var(--gold-400)]">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-hover)] dark:text-[var(--gold-400)]">
               Got Questions?
             </span>
-            <h2 className="font-display text-3xl font-bold text-[var(--ink)]">
+            <h2 className=" text-3xl font-semibold text-[var(--text-primary)]">
               Frequently Asked Questions
             </h2>
           </div>
@@ -1669,13 +1669,13 @@ export const LandingPage: React.FC = () => {
               >
                 <button
                   onClick={() => toggleFaq(i)}
-                  className="w-full p-4 text-left flex items-center justify-between text-xs font-bold text-[var(--ink)] hover:text-[var(--gold-600)] cursor-pointer"
+                  className="w-full p-4 text-left flex items-center justify-between text-xs font-semibold text-[var(--text-primary)] hover:text-[var(--accent-hover)] cursor-pointer"
                 >
                   <span className="pr-4">{f.q}</span>
                   {expandedFaq === i ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
                 {expandedFaq === i && (
-                  <div className="px-4 pb-4 text-xs text-[var(--ink-muted)] leading-relaxed border-t border-[var(--rule)]/50 pt-3">
+                  <div className="px-4 pb-4 text-xs text-[var(--text-secondary)] leading-relaxed border-t border-[var(--rule)]/50 pt-3">
                     {f.a}
                   </div>
                 )}
@@ -1690,10 +1690,10 @@ export const LandingPage: React.FC = () => {
       ═══════════════════════════════════════════ */}
       <section className="py-20 text-center relative overflow-hidden bg-[var(--surface-sunken)]/60">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 relative z-10">
-          <h2 className="font-display text-3xl sm:text-5xl font-bold text-[var(--ink)] tracking-tight">
+          <h2 className=" text-3xl sm:text-5xl font-semibold text-[var(--text-primary)] tracking-tight">
             Ready to Automate Your Workforce Attendance & Payroll?
           </h2>
-          <p className="text-xs sm:text-sm text-[var(--ink-muted)] max-w-xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)] max-w-xl mx-auto leading-relaxed">
             Create your company workspace in 60 seconds and experience automatic attendance, salary calculations, and WhatsApp payslips.
           </p>
           <div className="pt-2">
@@ -1702,7 +1702,7 @@ export const LandingPage: React.FC = () => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 navigate('/register');
               }}
-              className="btn-primary text-sm py-4 px-9 font-bold flex items-center gap-2 cursor-pointer shadow-xl mx-auto hover:scale-[1.02] transition-transform"
+              className="btn-primary text-sm py-4 px-9 font-semibold flex items-center gap-2 cursor-pointer shadow-xl mx-auto hover:scale-[1.02] transition-transform"
             >
               <span>Create Your Free Account Now</span>
               <ArrowRight size={16} />
@@ -1714,44 +1714,44 @@ export const LandingPage: React.FC = () => {
       {/* ═══════════════════════════════════════════
           13. CLEAN FOOTER
       ═══════════════════════════════════════════ */}
-      <footer className="bg-[var(--surface)] border-t border-[var(--rule)] py-12 text-xs text-[var(--ink-muted)]">
+      <footer className="bg-[var(--surface)] border-t border-[var(--rule)] py-12 text-xs text-[var(--text-secondary)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded bg-[var(--accent)] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+            <div className="w-7 h-7 rounded bg-[var(--accent)] text-white flex items-center justify-center font-semibold text-xs shadow-xs">
               <Building2 size={15} />
             </div>
-            <span className="font-display font-bold text-sm text-[var(--ink)]">HRDesk Platform</span>
-            <span className="text-[10px] text-[var(--ink-muted)] ml-2">
+            <span className=" font-semibold text-sm text-[var(--text-primary)]">HRDesk Platform</span>
+            <span className="text-xs font-normal text-[var(--text-secondary)] ml-2">
               © {new Date().getFullYear()} All rights reserved.
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-medium">
-            <a href="#interactive-demo" className="hover:text-[var(--ink)]">
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-semibold">
+            <a href="#interactive-demo" className="hover:text-[var(--text-primary)]">
               Interactive Studio
             </a>
-            <a href="#pipeline" className="hover:text-[var(--ink)]">
+            <a href="#pipeline" className="hover:text-[var(--text-primary)]">
               How It Works
             </a>
-            <a href="#comparison" className="hover:text-[var(--ink)]">
+            <a href="#comparison" className="hover:text-[var(--text-primary)]">
               Why HRDesk
             </a>
-            <a href="#use-cases" className="hover:text-[var(--ink)]">
+            <a href="#use-cases" className="hover:text-[var(--text-primary)]">
               Solutions
             </a>
-            <a href="#roi-calculator" className="hover:text-[var(--ink)]">
+            <a href="#roi-calculator" className="hover:text-[var(--text-primary)]">
               ROI Calculator
             </a>
-            <a href="#modules" className="hover:text-[var(--ink)]">
+            <a href="#modules" className="hover:text-[var(--text-primary)]">
               Features
             </a>
-            <a href="#pricing" className="hover:text-[var(--ink)]">
+            <a href="#pricing" className="hover:text-[var(--text-primary)]">
               Pricing
             </a>
-            <Link to="/auth/sign-in" className="hover:text-[var(--ink)]">
+            <Link to="/auth/sign-in" className="hover:text-[var(--text-primary)]">
               Sign In
             </Link>
-            <Link to="/register" className="hover:text-[var(--ink)] font-semibold text-[var(--gold-600)]">
+            <Link to="/register" className="hover:text-[var(--text-primary)] font-semibold text-[var(--accent-hover)]">
               Start Free Trial
             </Link>
           </div>

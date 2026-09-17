@@ -31,10 +31,10 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange, className
             aria-selected={isActive}
             onClick={() => onChange(tab.id)}
             className={clsx(
-              'relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium cursor-pointer rounded-t-[var(--radius-md)] transition-colors whitespace-nowrap flex-shrink-0',
+              'relative flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer rounded-t-[var(--radius-md)] transition-colors whitespace-nowrap flex-shrink-0',
               isActive
-                ? 'text-[var(--accent)] bg-[var(--surface)]'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)]'
+                ? 'text-[var(--accent)] bg-[var(--surface)] font-semibold'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] font-normal'
             )}
           >
             {tab.icon && <span className="flex-shrink-0" aria-hidden="true">{tab.icon}</span>}
@@ -42,7 +42,7 @@ export const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange, className
             {tab.count !== undefined && (
               <span
                 className={clsx(
-                  'px-1.5 py-0.5 text-[10px] font-semibold rounded-[var(--radius-full)] tabular-nums',
+                  'px-1.5 py-0.5 text-xs font-semibold rounded-[var(--radius-full)] tabular-nums',
                   isActive
                     ? 'bg-[var(--accent-light)] text-[var(--accent)]'
                     : 'bg-[var(--surface-secondary)] text-[var(--text-muted)]'

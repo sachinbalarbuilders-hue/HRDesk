@@ -72,28 +72,28 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         }}
         className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg border transition-colors duration-150 text-left cursor-pointer ${
           disabled
-            ? 'opacity-50 bg-[var(--paper)]/50 text-[var(--ink-muted)] border-[var(--rule)]/60 cursor-not-allowed'
+            ? 'opacity-50 bg-[var(--paper)]/50 text-[var(--text-secondary)] border-[var(--rule)]/60 cursor-not-allowed'
             : isOpen
-            ? 'bg-[var(--card)] border-[var(--gold-500)] shadow-sm ring-2 ring-[var(--gold-500)]/30 text-[var(--ink)]'
-            : 'bg-[var(--paper)] border-[var(--rule)] hover:border-[var(--gold-400)] text-[var(--ink)] shadow-sm'
+            ? 'bg-[var(--card)] border-[var(--accent)] shadow-sm ring-2 ring-[var(--accent)]/30 text-[var(--text-primary)]'
+            : 'bg-[var(--paper)] border-[var(--rule)] hover:border-[var(--gold-400)] text-[var(--text-primary)] shadow-sm'
         } ${className}`}
       >
         <span className="truncate font-medium">
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronsUpDown size={14} className="text-[var(--ink-muted)] shrink-0" aria-hidden="true" />
+        <ChevronsUpDown size={14} className="text-[var(--text-secondary)] shrink-0" aria-hidden="true" />
       </button>
 
       {isOpen && (
         <div
           role="listbox"
           aria-label={placeholder}
-          className="absolute left-0 z-50 mt-1 min-w-[220px] w-full bg-[var(--card)] text-[var(--ink)] rounded-lg shadow-2xl border border-[var(--rule)] py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 ease-out backdrop-blur-sm"
+          className="absolute left-0 z-50 mt-1 min-w-[220px] w-full bg-[var(--card)] text-[var(--text-primary)] rounded-lg shadow-2xl border border-[var(--rule)] py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100 ease-out backdrop-blur-sm"
         >
           {/* Search Box */}
           {searchable && (
             <div className="px-2.5 py-1.5 border-b border-[var(--rule)] flex items-center gap-2 bg-[var(--paper)]/40">
-              <Search size={14} className="text-[var(--ink-muted)] shrink-0" aria-hidden="true" />
+              <Search size={14} className="text-[var(--text-secondary)] shrink-0" aria-hidden="true" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -101,7 +101,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
-                className="w-full text-xs bg-transparent border-none outline-none text-[var(--ink)] placeholder-[var(--ink-muted)]"
+                className="w-full text-xs bg-transparent border-none outline-none text-[var(--text-primary)] placeholder-[var(--text-secondary)]"
               />
             </div>
           )}
@@ -109,7 +109,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           {/* Option List */}
           <div className="max-h-52 overflow-y-auto py-1 divide-y divide-[var(--rule)]/20">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-[var(--ink-muted)] italic text-center">
+              <div className="px-3 py-2 text-xs text-[var(--text-secondary)] italic text-center">
                 No matching options
               </div>
             ) : (
@@ -127,13 +127,13 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     }}
                     className={`w-full flex items-center justify-between px-3 py-1.5 text-sm text-left cursor-pointer transition-colors ${
                       isSelected
-                        ? 'bg-[var(--gold-500)]/15 text-[var(--gold-600)] dark:text-[var(--gold-400)] font-semibold'
-                        : 'text-[var(--ink)] hover:bg-[var(--paper)]'
+                        ? 'bg-[var(--accent)]/15 text-[var(--accent-hover)] dark:text-[var(--gold-400)] font-semibold'
+                        : 'text-[var(--text-primary)] hover:bg-[var(--paper)]'
                     }`}
                   >
                     <span className="truncate">{option.label}</span>
                     {isSelected && (
-                      <Check size={14} className="text-[var(--gold-600)] dark:text-[var(--gold-400)] shrink-0 ml-2" aria-hidden="true" />
+                      <Check size={14} className="text-[var(--accent-hover)] dark:text-[var(--gold-400)] shrink-0 ml-2" aria-hidden="true" />
                     )}
                   </button>
                 );

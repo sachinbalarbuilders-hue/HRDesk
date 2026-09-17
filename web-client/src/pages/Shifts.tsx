@@ -486,11 +486,11 @@ export const Shifts: React.FC = () => {
               onClick={() => setActiveMainTab('roster')}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all cursor-pointer ${
                 activeMainTab === 'roster'
-                  ? 'bg-[var(--surface)] text-[var(--ink)] shadow-2xs border border-[var(--rule)] font-bold'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-2xs border border-[var(--rule)] font-semibold'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              <Layers size={14} className={activeMainTab === 'roster' ? 'text-[var(--gold-500)]' : 'opacity-60'} />
+              <Layers size={14} className={activeMainTab === 'roster' ? 'text-[var(--accent)]' : 'opacity-60'} />
               <span>Shift Roster Matrix</span>
             </button>
           )}
@@ -504,14 +504,14 @@ export const Shifts: React.FC = () => {
               }}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold transition-all cursor-pointer ${
                 activeMainTab === 'requests'
-                  ? 'bg-[var(--surface)] text-[var(--ink)] shadow-2xs border border-[var(--rule)] font-bold'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-2xs border border-[var(--rule)] font-semibold'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              <Clock size={14} className={activeMainTab === 'requests' ? 'text-[var(--gold-500)]' : 'opacity-60'} />
+              <Clock size={14} className={activeMainTab === 'requests' ? 'text-[var(--accent)]' : 'opacity-60'} />
               <span>Shift Change Requests</span>
               {requests.filter(r => r.status?.toLowerCase() === 'pending').length > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-data font-bold animate-pulse">
+                <span className="ml-1 px-1.5 py-0.2 rounded-full text-xs font-normal bg-amber-500 text-white  font-semibold animate-pulse">
                   {requests.filter(r => r.status?.toLowerCase() === 'pending').length}
                 </span>
               )}
@@ -561,17 +561,17 @@ export const Shifts: React.FC = () => {
             <div className="flex items-center gap-1.5 bg-[var(--paper)] border border-[var(--rule)] rounded-lg p-1">
               <button
                 onClick={handlePrevWeek}
-                className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors cursor-pointer"
+                className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--text-primary)] transition-colors cursor-pointer"
                 title="Previous Week"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="font-serif font-bold text-xs px-2 text-[var(--ink)] whitespace-nowrap">
+              <span className=" font-semibold text-xs px-2 text-[var(--text-primary)] whitespace-nowrap">
                 {weekDays[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {weekDays[6].toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
               <button
                 onClick={handleNextWeek}
-                className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--ink)] transition-colors cursor-pointer"
+                className="p-1 rounded hover:bg-[var(--paper-subtle)] text-[var(--text-primary)] transition-colors cursor-pointer"
                 title="Next Week"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -580,19 +580,19 @@ export const Shifts: React.FC = () => {
           </DataToolbar>
 
           {/* 3. Shifts Master Legend */}
-          <div className="flex items-center gap-2 flex-wrap text-[11px] p-3 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)] mb-4">
-            <span className="font-mono text-[var(--ink-muted)] uppercase tracking-wider font-semibold">Configured Shifts:</span>
+          <div className="flex items-center gap-2 flex-wrap text-xs font-normal p-3 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)] mb-4">
+            <span className=" text-[var(--text-secondary)] uppercase tracking-wider font-semibold">Configured Shifts:</span>
             {shifts.map((s) => (
-              <span key={s.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-medium border border-[var(--rule)] bg-[var(--paper)]">
+              <span key={s.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs  font-medium border border-[var(--rule)] bg-[var(--paper)]">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.colorCode || '#4e73df' }} />
-                <span className="font-bold text-[var(--ink)]">{s.shiftCode}</span>
-                <span className="text-[var(--ink-muted)] text-[10px]">({s.startTime}-{s.endTime})</span>
+                <span className="font-semibold text-[var(--text-primary)]">{s.shiftCode}</span>
+                <span className="text-[var(--text-secondary)] text-xs font-normal">({s.startTime}-{s.endTime})</span>
               </span>
             ))}
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-medium border border-[var(--rule)] bg-[var(--paper)]">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs  font-medium border border-[var(--rule)] bg-[var(--paper)]">
               <span className="w-2 h-2 rounded-full bg-gray-400" />
-              <span className="font-bold text-[var(--ink)]">W/O</span>
-              <span className="text-[var(--ink-muted)] text-[10px]">(Weekly Off)</span>
+              <span className="font-semibold text-[var(--text-primary)]">W/O</span>
+              <span className="text-[var(--text-secondary)] text-xs font-normal">(Weekly Off)</span>
             </span>
           </div>
 
@@ -603,16 +603,16 @@ export const Shifts: React.FC = () => {
                 <TableSkeleton rows={8} />
               </div>
             ) : roster.length === 0 ? (
-              <div className="p-12 text-center text-xs text-[var(--ink-muted)]">
-                <Building2 className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
-                <div className="font-semibold text-sm text-[var(--ink)]">No Shift Rosters Found</div>
+              <div className="p-12 text-center text-xs text-[var(--text-secondary)]">
+                <Building2 className="w-8 h-8 mx-auto mb-2 text-[var(--text-secondary)] opacity-50" />
+                <div className="font-semibold text-sm text-[var(--text-primary)]">No Shift Rosters Found</div>
                 <p className="mt-1">No employee shift schedules found for this week.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--text-secondary)] text-[11px] uppercase tracking-wider">
+                    <tr className="border-b border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--text-secondary)] text-xs font-normal uppercase tracking-wider">
                       <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
                       <th className="p-3.5 font-semibold min-w-[200px] text-left">Employee</th>
                       {weekDays.map((d, i) => {
@@ -621,7 +621,7 @@ export const Shifts: React.FC = () => {
                         return (
                           <th key={i} className={`p-3.5 text-center font-semibold ${isToday ? 'bg-[var(--accent-light)]' : ''} ${isSunday ? 'text-[var(--danger)]' : ''}`}>
                             <div>{d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}</div>
-                            <div className="text-[10px] font-data font-normal mt-0.5">{d.getDate()}</div>
+                            <div className="text-xs font-normal  font-normal mt-0.5">{d.getDate()}</div>
                           </th>
                         );
                       })}
@@ -630,12 +630,12 @@ export const Shifts: React.FC = () => {
                   <tbody className="divide-y divide-[var(--border)]">
                     {roster.map((r, idx) => (
                       <tr key={r.employeeId} className="hover:bg-[var(--surface-hover)]">
-                        <td className="p-3.5 font-mono text-center text-xs text-[var(--text-muted)] w-12">
+                        <td className="p-3.5  text-center text-xs text-[var(--text-muted)] w-12">
                           {(page - 1) * pageSize + idx + 1}
                         </td>
                         <td className="p-3.5">
                           <div className="font-semibold text-sm text-[var(--text-primary)]">{r.employeeName}</div>
-                          <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
+                          <div className="text-xs font-normal text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
                             <Building2 className="w-3 h-3" />
                             <span>{r.department} • {r.designation}</span>
                           </div>
@@ -650,7 +650,7 @@ export const Shifts: React.FC = () => {
                           return (
                             <td key={i} className={`p-2 text-center ${isToday ? 'bg-[var(--accent-light)]/30' : ''}`}>
                               <span
-                                className={`inline-flex items-center justify-center px-2.5 py-1 rounded-[var(--radius-md)] text-[11px] font-semibold min-w-[48px] ${
+                                className={`inline-flex items-center justify-center px-2.5 py-1 rounded-[var(--radius-md)] text-xs font-semibold min-w-[48px] ${
                                   isWo
                                     ? 'bg-[var(--surface-secondary)] text-[var(--text-muted)] border border-[var(--border)]'
                                     : ''
@@ -730,9 +730,9 @@ export const Shifts: React.FC = () => {
                 <TableSkeleton rows={5} />
               </div>
             ) : filteredRequests.length === 0 ? (
-              <div className="p-12 text-center text-xs text-[var(--ink-muted)]">
-                <Clock className="w-8 h-8 mx-auto mb-2 text-[var(--ink-muted)] opacity-50" />
-                <div className="font-semibold text-sm text-[var(--ink)]">
+              <div className="p-12 text-center text-xs text-[var(--text-secondary)]">
+                <Clock className="w-8 h-8 mx-auto mb-2 text-[var(--text-secondary)] opacity-50" />
+                <div className="font-semibold text-sm text-[var(--text-primary)]">
                   {archiveFilter === 'archived' ? 'No Archived Shift Requests' : 'No Shift Requests Found'}
                 </div>
                 <p className="mt-1">
@@ -745,7 +745,7 @@ export const Shifts: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--text-secondary)] text-[11px] uppercase tracking-wider">
+                    <tr className="border-b border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--text-secondary)] text-xs font-normal uppercase tracking-wider">
                       <th className="p-3.5 font-semibold w-12 text-center">Sr.</th>
                       <th className="p-3.5 font-semibold min-w-[180px]">Employee</th>
                       <th className="p-3.5 font-semibold min-w-[120px]">Target Date</th>
@@ -764,22 +764,22 @@ export const Shifts: React.FC = () => {
 
                       return (
                         <tr key={req.id} className="hover:bg-[var(--surface-hover)] transition-colors">
-                          <td className="p-3.5 font-mono text-center text-xs text-[var(--ink-muted)] w-12">
+                          <td className="p-3.5  text-center text-xs text-[var(--text-secondary)] w-12">
                             {idx + 1}
                           </td>
                           <td className="p-3.5">
-                            <div className="font-semibold text-xs text-[var(--ink)]">{req.employeeName}</div>
-                            <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
-                              {req.employeeCode && <span className="font-mono font-medium">[{req.employeeCode}]</span>}
+                            <div className="font-semibold text-xs text-[var(--text-primary)]">{req.employeeName}</div>
+                            <div className="text-xs font-normal text-[var(--text-secondary)] flex items-center gap-1 mt-0.5">
+                              {req.employeeCode && <span className=" font-medium">[{req.employeeCode}]</span>}
                               {req.departmentName && <span>{req.departmentName}</span>}
                             </div>
                           </td>
 
                           <td className="p-3.5 whitespace-nowrap">
-                            <div className="font-semibold text-xs text-[var(--ink)]">
+                            <div className="font-semibold text-xs text-[var(--text-primary)]">
                               {new Date(req.requestDate).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                             </div>
-                            <div className="text-[10px] text-[var(--ink-muted)] mt-0.5 font-mono">
+                            <div className="text-xs font-normal text-[var(--text-secondary)] mt-0.5 ">
                               Req: {new Date(req.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                             </div>
                           </td>
@@ -787,7 +787,7 @@ export const Shifts: React.FC = () => {
                           <td className="p-3.5">
                             <div className="flex items-center gap-2">
                               {/* Current Shift Badge */}
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border shadow-2xs whitespace-nowrap ${
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-sm font-semibold border shadow-2xs whitespace-nowrap ${
                                 req.isCurrentWeekOff
                                   ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
                                   : 'bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700'
@@ -795,7 +795,7 @@ export const Shifts: React.FC = () => {
                                 {req.isCurrentWeekOff ? '☕ W/O' : req.currentShiftName}
                               </span>
 
-                              <ArrowRight size={13} className="text-[var(--ink-muted)] flex-shrink-0" />
+                              <ArrowRight size={13} className="text-[var(--text-secondary)] flex-shrink-0" />
 
                               {/* Requested Shift Badge */}
                               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold border shadow-2xs whitespace-nowrap ${
@@ -827,17 +827,17 @@ export const Shifts: React.FC = () => {
                             </span>
                           </td>
 
-                          <td className="p-3.5 text-xs text-[var(--ink-muted)]">
+                          <td className="p-3.5 text-xs text-[var(--text-secondary)]">
                             {req.reviewedBy ? (
                               <div>
-                                <div className="font-medium text-[var(--ink)]">By {req.reviewedBy}</div>
+                                <div className="font-medium text-[var(--text-primary)]">By {req.reviewedBy}</div>
                                 {req.reviewedAt && <div>{new Date(req.reviewedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</div>}
                                 {req.rejectionReason && (
-                                  <div className="text-[11px] text-rose-500 italic mt-0.5 line-clamp-1">"{req.rejectionReason}"</div>
+                                  <div className="text-xs font-normal text-rose-500 italic mt-0.5 line-clamp-1">"{req.rejectionReason}"</div>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-[11px] italic text-[var(--ink-muted)]">Awaiting review</span>
+                              <span className="text-xs font-normal italic text-[var(--text-secondary)]">Awaiting review</span>
                             )}
                           </td>
 
@@ -894,16 +894,16 @@ export const Shifts: React.FC = () => {
                                   </>
                                 )}
                                 {isPending && !canApproveRequest && (
-                                  <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Pending Review</span>
+                                  <span className="text-xs font-normal text-amber-600 dark:text-amber-400 font-medium">Pending Review</span>
                                 )}
                                 {!isPending && (
-                                  <span className="text-[11px] text-[var(--ink-muted)] italic mr-1">Completed</span>
+                                  <span className="text-xs font-normal text-[var(--text-secondary)] italic mr-1">Completed</span>
                                 )}
                                 {canDeleteRequest && (
                                   <button
                                     type="button"
                                     onClick={() => requestsArchive.archive({ id: req.id, name: `${req.employeeName}'s Shift Request`, isArchived: false })}
-                                    className="p-1.5 rounded-md hover:bg-rose-500/10 text-[var(--ink-muted)] hover:text-rose-600 transition-colors cursor-pointer"
+                                    className="p-1.5 rounded-md hover:bg-rose-500/10 text-[var(--text-secondary)] hover:text-rose-600 transition-colors cursor-pointer"
                                     title="Archive shift request"
                                   >
                                     <Trash2 size={13} />
@@ -969,7 +969,7 @@ export const Shifts: React.FC = () => {
 
               {/* Department Selector */}
               <div>
-                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Department Filter</label>
+                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Department Filter</label>
                 <div className="flex gap-2">
                   <select
                     value={assignDeptFilter}
@@ -1008,7 +1008,7 @@ export const Shifts: React.FC = () => {
 
               {/* Employee Selection */}
               <div>
-                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Select Employees *</label>
+                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Select Employees *</label>
                 <EmployeeMultiSelect
                   selectedIds={assignForm.employeeIds}
                   selectedEmployees={selectedEmployeesState}
@@ -1022,7 +1022,7 @@ export const Shifts: React.FC = () => {
                   }}
                   branchId={currentBranch?.id ? parseInt(currentBranch.id) : undefined}
                 />
-                <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                <p className="text-xs font-normal text-[var(--text-muted)] mt-1">
                   {assignForm.employeeIds.length} employee(s) selected
                 </p>
               </div>
@@ -1031,29 +1031,29 @@ export const Shifts: React.FC = () => {
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Start Date *</label>
+                      <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Start Date *</label>
                       <input
                         type="date"
                         value={assignForm.startDate}
                         onChange={(e) => setAssignForm({ ...assignForm, startDate: e.target.value })}
-                        className="register-input font-data"
+                        className="register-input "
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">End Date *</label>
+                      <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">End Date *</label>
                       <input
                         type="date"
                         value={assignForm.endDate}
                         onChange={(e) => setAssignForm({ ...assignForm, endDate: e.target.value })}
-                        className="register-input font-data"
+                        className="register-input "
                         required
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Shift Assignment</label>
+                    <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Shift Assignment</label>
                     <div className="space-y-2">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
@@ -1098,7 +1098,7 @@ export const Shifts: React.FC = () => {
               ) : (
                 <>
                   <div>
-                    <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Select Rotation Cycle *</label>
+                    <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Select Rotation Cycle *</label>
                     {cycles.length === 0 ? (
                       <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded border border-amber-500/20">
                         No shift cycles found. Please create a shift cycle in Settings &gt; Work Shifts tab first.
@@ -1122,26 +1122,26 @@ export const Shifts: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Cycle Start Date (Day 1) *</label>
+                      <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Cycle Start Date (Day 1) *</label>
                       <input
                         type="date"
                         value={cycleForm.cycleStartDate}
                         onChange={(e) => setCycleForm({ ...cycleForm, cycleStartDate: e.target.value })}
-                        className="register-input font-data"
+                        className="register-input "
                         required
                       />
-                      <p className="text-[10px] text-[var(--text-muted)] mt-1">Calendar date that maps to Slot 1.</p>
+                      <p className="text-xs font-normal text-[var(--text-muted)] mt-1">Calendar date that maps to Slot 1.</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Generate Roster Until *</label>
+                      <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Generate Roster Until *</label>
                       <input
                         type="date"
                         value={cycleForm.generateUntil}
                         onChange={(e) => setCycleForm({ ...cycleForm, generateUntil: e.target.value })}
-                        className="register-input font-data"
+                        className="register-input "
                         required
                       />
-                      <p className="text-[10px] text-[var(--text-muted)] mt-1">Auto-repeats until this date.</p>
+                      <p className="text-xs font-normal text-[var(--text-muted)] mt-1">Auto-repeats until this date.</p>
                     </div>
                   </div>
 
@@ -1198,9 +1198,9 @@ export const Shifts: React.FC = () => {
             <form onSubmit={handleCreateChangeRequest} className="flex-1 overflow-y-auto p-5 space-y-4 text-sm">
               {/* Employee Selection */}
               <div>
-                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Employee *</label>
+                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Employee *</label>
                 {isOwnOnlyApply && user?.employeeId ? (
-                  <div className="p-2.5 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)] font-semibold text-xs text-[var(--ink)]">
+                  <div className="p-2.5 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)] font-semibold text-xs text-[var(--text-primary)]">
                     {user?.employeeName || user?.fullName || user?.username || `Employee #${user.employeeId}`}
                   </div>
                 ) : (
@@ -1226,7 +1226,7 @@ export const Shifts: React.FC = () => {
 
               {/* Target Date */}
               <div>
-                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Target Date *</label>
+                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Target Date *</label>
                 <input
                   type="date"
                   value={changeRequestForm.requestDate}
@@ -1235,7 +1235,7 @@ export const Shifts: React.FC = () => {
                     setChangeRequestForm(prev => ({ ...prev, requestDate: date }));
                     lookupDateShift(changeRequestForm.employeeId, date);
                   }}
-                  className="register-input font-data"
+                  className="register-input "
                   required
                 />
               </div>
@@ -1243,16 +1243,16 @@ export const Shifts: React.FC = () => {
               {/* Current Shift Display */}
               {changeRequestForm.currentShiftInfo && (
                 <div className="p-3 rounded-lg bg-[var(--paper-subtle)] border border-[var(--rule)]">
-                  <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Currently Scheduled on this Date:</div>
+                  <div className="text-xs font-normal  uppercase text-[var(--text-secondary)]">Currently Scheduled on this Date:</div>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="font-bold text-sm text-[var(--ink)]">
+                    <span className="font-semibold text-sm text-[var(--text-primary)]">
                       {changeRequestForm.currentShiftInfo.shiftName}
                     </span>
-                    <span className="text-xs font-mono text-[var(--ink-muted)]">
+                    <span className="text-xs  text-[var(--text-secondary)]">
                       ({changeRequestForm.currentShiftInfo.shiftCode})
                     </span>
                     {changeRequestForm.currentShiftInfo.timing && (
-                      <span className="text-xs text-[var(--ink-muted)] font-data">
+                      <span className="text-xs text-[var(--text-secondary)] ">
                         [{changeRequestForm.currentShiftInfo.timing}]
                       </span>
                     )}
@@ -1262,7 +1262,7 @@ export const Shifts: React.FC = () => {
 
               {/* Requested Shift Selection */}
               <div>
-                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Requested Shift Assignment</label>
+                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Requested Shift Assignment</label>
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -1296,7 +1296,7 @@ export const Shifts: React.FC = () => {
 
               {/* Reason */}
               <div>
-                <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Reason for Request</label>
+                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Reason for Request</label>
                 <textarea
                   value={changeRequestForm.reason}
                   onChange={(e) => setChangeRequestForm(prev => ({ ...prev, reason: e.target.value }))}
@@ -1332,7 +1332,7 @@ export const Shifts: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="bg-[var(--surface)] max-w-md w-full rounded-xl shadow-xl border border-[var(--border)] p-6 space-y-4 animate-scale-in">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-[var(--text-primary)]">Reject Shift Change Request</h3>
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Reject Shift Change Request</h3>
               <button
                 onClick={() => setRejectModalOpen(false)}
                 className="p-1 rounded hover:bg-[var(--surface-secondary)] text-[var(--text-muted)] cursor-pointer"

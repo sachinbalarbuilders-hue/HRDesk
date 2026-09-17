@@ -68,13 +68,13 @@ export const OrgPolicyTab: React.FC = () => {
   return (
     <form onSubmit={handleSavePolicy} className="space-y-4 max-w-3xl text-sm">
       <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
-        <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Company Year</h4>
-        <p className="text-[var(--ink-muted)] mb-4">
+        <h4 className="font-semibold text-[var(--text-primary)] mb-2 text-base">Company Year</h4>
+        <p className="text-[var(--text-secondary)] mb-4">
           Set the company year cycle used across this organization for rest, payroll, and other company-wide rules.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Year Start Month</label>
+            <label className="block font-medium text-[var(--text-primary)] mb-1.5 text-xs">Year Start Month</label>
             <select
               value={policyForm.yearStartMonth}
               onChange={(e) => {
@@ -89,7 +89,7 @@ export const OrgPolicyTab: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="block font-medium text-[var(--ink)] mb-1.5 text-xs">Year End Month</label>
+            <label className="block font-medium text-[var(--text-primary)] mb-1.5 text-xs">Year End Month</label>
             <select
               value={policyForm.yearEndMonth}
               onChange={(e) => {
@@ -104,50 +104,50 @@ export const OrgPolicyTab: React.FC = () => {
             </select>
           </div>
         </div>
-        <p className="text-xs text-[var(--ink-muted)] mt-3">
-          Company year runs from <span className="font-medium text-[var(--ink)]">1 {monthLabel(policyForm.yearStartMonth)}</span>
+        <p className="text-xs text-[var(--text-secondary)] mt-3">
+          Company year runs from <span className="font-medium text-[var(--text-primary)]">1 {monthLabel(policyForm.yearStartMonth)}</span>
           {' '}to{' '}
-          <span className="font-medium text-[var(--ink)]">{lastDayOfMonth(policyForm.yearEndMonth)} {monthLabel(policyForm.yearEndMonth)}</span>.
+          <span className="font-medium text-[var(--text-primary)]">{lastDayOfMonth(policyForm.yearEndMonth)} {monthLabel(policyForm.yearEndMonth)}</span>.
         </p>
       </div>
 
       <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
-        <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Leave Application Rules</h4>
-        <p className="text-[var(--ink-muted)] mb-4">Configure global constraints for employee leave applications across this organization.</p>
+        <h4 className="font-semibold text-[var(--text-primary)] mb-2 text-base">Leave Application Rules</h4>
+        <p className="text-[var(--text-secondary)] mb-4">Configure global constraints for employee leave applications across this organization.</p>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="font-medium text-[var(--ink)] block">Advance Notice Required</span>
-              <span className="text-xs text-[var(--ink-muted)] block">Minimum days in advance an employee must apply for leave.</span>
+              <span className="font-medium text-[var(--text-primary)] block">Advance Notice Required</span>
+              <span className="text-xs text-[var(--text-secondary)] block">Minimum days in advance an employee must apply for leave.</span>
             </div>
             <input
               type="number"
               min={0}
               value={policyForm.advanceNoticeDays}
               onChange={(e) => setPolicyForm({ ...policyForm, advanceNoticeDays: Number(e.target.value) })}
-              className="register-input w-24 text-center font-data"
+              className="register-input w-24 text-center "
             />
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="font-medium text-[var(--ink)] block">Max Consecutive Leaves</span>
-              <span className="text-xs text-[var(--ink-muted)] block">Maximum number of days an employee can take continuously.</span>
+              <span className="font-medium text-[var(--text-primary)] block">Max Consecutive Leaves</span>
+              <span className="text-xs text-[var(--text-secondary)] block">Maximum number of days an employee can take continuously.</span>
             </div>
             <input
               type="number"
               min={1}
               value={policyForm.maxConsecutiveLeaves}
               onChange={(e) => setPolicyForm({ ...policyForm, maxConsecutiveLeaves: Number(e.target.value) })}
-              className="register-input w-24 text-center font-data"
+              className="register-input w-24 text-center "
             />
           </div>
         </div>
       </div>
 
       <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
-        <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Sandwich Leave Rule</h4>
-        <p className="text-[var(--ink-muted)] mb-4">
+        <h4 className="font-semibold text-[var(--text-primary)] mb-2 text-base">Sandwich Leave Rule</h4>
+        <p className="text-[var(--text-secondary)] mb-4">
           When enabled, if an employee takes leave on both sides of a weekoff (e.g., Friday &amp; Monday),
           the weekoff days in between are automatically counted as leave instead of regular days off.
         </p>
@@ -158,47 +158,47 @@ export const OrgPolicyTab: React.FC = () => {
             onChange={(e) => setPolicyForm({ ...policyForm, sandwichRuleEnabled: e.target.checked })}
             className="rounded border-[var(--rule)] w-4 h-4"
           />
-          <span className="font-medium text-[var(--ink)]">Enforce Sandwich Leave Rule</span>
+          <span className="font-medium text-[var(--text-primary)]">Enforce Sandwich Leave Rule</span>
         </label>
       </div>
 
       <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
-        <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Probation & Confirmation</h4>
+        <h4 className="font-semibold text-[var(--text-primary)] mb-2 text-base">Probation & Confirmation</h4>
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="font-medium text-[var(--ink)] block">Default Probation Period (Days)</span>
-              <span className="text-xs text-[var(--ink-muted)] block">Standard probation length for new hires.</span>
+              <span className="font-medium text-[var(--text-primary)] block">Default Probation Period (Days)</span>
+              <span className="text-xs text-[var(--text-secondary)] block">Standard probation length for new hires.</span>
             </div>
             <input
               type="number"
               min={0}
               value={policyForm.defaultProbationDays}
               onChange={(e) => setPolicyForm({ ...policyForm, defaultProbationDays: Number(e.target.value) })}
-              className="register-input w-24 text-center font-data"
+              className="register-input w-24 text-center "
             />
           </div>
         </div>
       </div>
 
       <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
-        <h4 className="font-semibold text-[var(--ink)] mb-2 text-base">Compensatory Off (Comp-Off) Policy</h4>
-        <p className="text-[var(--ink-muted)] mb-4">
+        <h4 className="font-semibold text-[var(--text-primary)] mb-2 text-base">Compensatory Off (Comp-Off) Policy</h4>
+        <p className="text-[var(--text-secondary)] mb-4">
           Configure credit validity duration, past claim calendar window, and expiration rules for off-day duties.
         </p>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="font-medium text-[var(--ink)] block">Credit Validity / Expiry (Days)</span>
-              <span className="text-xs text-[var(--ink-muted)] block">
+              <span className="font-medium text-[var(--text-primary)] block">Credit Validity / Expiry (Days)</span>
+              <span className="text-xs text-[var(--text-secondary)] block">
                 Number of days an approved Comp-Off balance remains active. Stamped from the <strong>Worked Date</strong>.
               </span>
             </div>
             <select
               value={policyForm.compOffValidityDays}
               onChange={(e) => setPolicyForm({ ...policyForm, compOffValidityDays: Number(e.target.value) })}
-              className="register-input w-36 text-sm font-data"
+              className="register-input w-36 text-sm "
             >
               <option value={15}>15 Days</option>
               <option value={30}>30 Days (1 Mo)</option>
@@ -211,15 +211,15 @@ export const OrgPolicyTab: React.FC = () => {
 
           <div className="flex items-center justify-between gap-4">
             <div>
-              <span className="font-medium text-[var(--ink)] block">Past Claim Window (Days)</span>
-              <span className="text-xs text-[var(--ink-muted)] block">
+              <span className="font-medium text-[var(--text-primary)] block">Past Claim Window (Days)</span>
+              <span className="text-xs text-[var(--text-secondary)] block">
                 How far back in the calendar employees can look to submit off-day claims.
               </span>
             </div>
             <select
               value={policyForm.compOffClaimDays}
               onChange={(e) => setPolicyForm({ ...policyForm, compOffClaimDays: Number(e.target.value) })}
-              className="register-input w-36 text-sm font-data"
+              className="register-input w-36 text-sm "
             >
               <option value={15}>15 Days</option>
               <option value={30}>30 Days</option>

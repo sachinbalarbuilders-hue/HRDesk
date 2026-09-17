@@ -17,8 +17,8 @@ export const PayrollMetrics: React.FC<Props> = ({ metrics, totalCount }) => (
         <DollarSign className="w-5 h-5" />
       </div>
       <div>
-        <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Total Gross CTC</div>
-        <div className="text-lg font-bold font-data text-[var(--ink)]">₹{(metrics.totalGross || 0).toLocaleString()}</div>
+        <div className="text-xs font-normal  uppercase text-[var(--text-secondary)]">Total Gross CTC</div>
+        <div className="text-base font-semibold  text-[var(--text-primary)]">₹{(metrics.totalGross || 0).toLocaleString()}</div>
       </div>
     </div>
 
@@ -27,8 +27,8 @@ export const PayrollMetrics: React.FC<Props> = ({ metrics, totalCount }) => (
         <CheckCircle2 className="w-5 h-5" />
       </div>
       <div>
-        <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Net Disbursable</div>
-        <div className="text-lg font-bold font-data text-[var(--success)]">₹{(metrics.totalNet || 0).toLocaleString()}</div>
+        <div className="text-xs font-normal  uppercase text-[var(--text-secondary)]">Net Disbursable</div>
+        <div className="text-base font-semibold  text-[var(--success)]">₹{(metrics.totalNet || 0).toLocaleString()}</div>
       </div>
     </div>
 
@@ -37,8 +37,8 @@ export const PayrollMetrics: React.FC<Props> = ({ metrics, totalCount }) => (
         <TrendingDown className="w-5 h-5" />
       </div>
       <div>
-        <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Total Deductions</div>
-        <div className="text-lg font-bold font-data text-[var(--danger)]">₹{(metrics.totalDeductions || 0).toLocaleString()}</div>
+        <div className="text-xs font-normal  uppercase text-[var(--text-secondary)]">Total Deductions</div>
+        <div className="text-base font-semibold  text-[var(--danger)]">₹{(metrics.totalDeductions || 0).toLocaleString()}</div>
       </div>
     </div>
 
@@ -47,8 +47,8 @@ export const PayrollMetrics: React.FC<Props> = ({ metrics, totalCount }) => (
         <CreditCard className="w-5 h-5" />
       </div>
       <div>
-        <div className="text-[11px] font-mono uppercase text-[var(--ink-muted)]">Processed Roster</div>
-        <div className="text-lg font-bold font-data text-[var(--ink)]">{totalCount} Employees</div>
+        <div className="text-xs font-normal  uppercase text-[var(--text-secondary)]">Processed Roster</div>
+        <div className="text-base font-semibold  text-[var(--text-primary)]">{totalCount} Employees</div>
       </div>
     </div>
   </div>

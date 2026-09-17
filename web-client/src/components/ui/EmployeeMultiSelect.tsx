@@ -153,7 +153,7 @@ export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
   return (
     <div ref={containerRef} className="relative">
       {label && (
-        <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">
+        <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">
           {label}
           {required && <span className="text-[var(--danger)] ml-0.5">*</span>}
         </label>
@@ -169,7 +169,7 @@ export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
             {selectedCache.slice(0, 3).map(emp => (
               <span
                 key={emp.employeeId}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-full)] bg-[var(--accent-light)] text-[var(--accent)] text-xs font-medium"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-full)] bg-[var(--accent-light)] text-[var(--accent)] text-sm font-semibold"
               >
                 {emp.employeeName.split(' ')[0]}
                 <button
@@ -206,7 +206,7 @@ export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
               autoFocus
             />
             {selectedIds.length > 0 && (
-              <span className="text-[11px] text-[var(--accent)] font-medium">{selectedIds.length} selected</span>
+              <span className="text-xs font-normal text-[var(--accent)] font-medium">{selectedIds.length} selected</span>
             )}
           </div>
 
@@ -228,12 +228,12 @@ export const EmployeeMultiSelect: React.FC<EmployeeMultiSelectProps> = ({
                     className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-[var(--surface-secondary)] ${isSelected ? 'bg-[var(--accent-light)]' : ''}`}
                   >
                     <div className="w-5 flex items-center justify-center flex-shrink-0">
-                      {isSelected && <span className="text-[var(--accent)] font-bold">✓</span>}
+                      {isSelected && <span className="text-[var(--accent)] font-semibold">✓</span>}
                     </div>
                     <Avatar name={emp.employeeName} size="sm" src={emp.photoPath ? `/api/Thumbnail?employeeId=${emp.employeeId}` : null} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[var(--text-primary)] truncate">{emp.employeeName}</p>
-                      <p className="text-[11px] text-[var(--text-muted)]">EMP#{String(emp.employeeId).padStart(3, '0')}</p>
+                      <p className="text-xs font-normal text-[var(--text-muted)]">EMP#{String(emp.employeeId).padStart(3, '0')}</p>
                     </div>
                   </div>
                 );

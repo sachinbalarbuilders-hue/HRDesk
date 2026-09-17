@@ -36,7 +36,7 @@ export const EmployeeAttendanceTab: React.FC<EmployeeAttendanceTabProps> = ({ em
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 font-semibold text-[var(--ink)] text-xs">
+        <div className="flex items-center gap-2 font-semibold text-[var(--text-primary)] text-sm">
           <Calendar size={14} className="text-[var(--accent)]" />
           <span>Monthly Summary</span>
         </div>
@@ -66,42 +66,42 @@ export const EmployeeAttendanceTab: React.FC<EmployeeAttendanceTabProps> = ({ em
       </div>
 
       {loading ? (
-        <div className="flex justify-center p-6 border border-[var(--rule)] rounded-[4px] bg-[var(--paper)]">
-          <Loader2 className="animate-spin text-[var(--ink-muted)]" size={24} />
+        <div className="flex justify-center p-6 border border-[var(--border)] rounded-[var(--radius-sm)] bg-[var(--surface-secondary)]">
+          <Loader2 className="animate-spin text-[var(--text-secondary)]" size={24} />
         </div>
       ) : error ? (
-        <div className="p-4 border border-[var(--gold-300)] bg-[var(--gold-50)] text-[var(--gold-700)] rounded-[4px] text-xs">
+        <div className="p-4 border border-[var(--danger)]/50 bg-[var(--danger)]/10 text-[var(--danger)] rounded-[var(--radius-sm)] text-sm font-normal">
           {error}
         </div>
       ) : summary ? (
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-            <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui flex items-center gap-1.5"><CheckCircle size={12}/> Present Days</span>
-            <p className="font-data font-semibold text-[var(--ink)] mt-1 text-lg">{summary.presentCount}</p>
+        <div className="grid grid-cols-2 gap-3 text-sm font-normal">
+          <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+            <span className="text-xs uppercase font-semibold text-[var(--text-secondary)] flex items-center gap-1.5"><CheckCircle size={12}/> Present Days</span>
+            <p className="font-semibold text-[var(--text-primary)] mt-1 text-base">{summary.presentCount}</p>
           </div>
-          <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-            <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui flex items-center gap-1.5"><XCircle size={12}/> Absent Days</span>
-            <p className="font-data font-semibold text-[var(--red-600)] mt-1 text-lg">{summary.absentCount}</p>
+          <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+            <span className="text-xs uppercase font-semibold text-[var(--text-secondary)] flex items-center gap-1.5"><XCircle size={12}/> Absent Days</span>
+            <p className="font-semibold text-[var(--danger)] mt-1 text-base">{summary.absentCount}</p>
           </div>
-          <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-            <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui flex items-center gap-1.5"><Clock size={12}/> Half Days</span>
-            <p className="font-data font-semibold text-[var(--ink)] mt-1 text-lg">{summary.halfDayCount}</p>
+          <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+            <span className="text-xs uppercase font-semibold text-[var(--text-secondary)] flex items-center gap-1.5"><Clock size={12}/> Half Days</span>
+            <p className="font-semibold text-[var(--text-primary)] mt-1 text-base">{summary.halfDayCount}</p>
           </div>
-          <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-            <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui flex items-center gap-1.5"><Calendar size={12}/> Paid Leaves</span>
-            <p className="font-data font-semibold text-[var(--ink)] mt-1 text-lg">{summary.leaveCount}</p>
+          <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+            <span className="text-xs uppercase font-semibold text-[var(--text-secondary)] flex items-center gap-1.5"><Calendar size={12}/> Paid Leaves</span>
+            <p className="font-semibold text-[var(--text-primary)] mt-1 text-base">{summary.leaveCount}</p>
           </div>
-          <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-            <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Weekoffs / Holidays</span>
-            <p className="font-data font-semibold text-[var(--ink)] mt-1 text-lg">{summary.weekoffCount + summary.holidayCount}</p>
+          <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+            <span className="text-xs uppercase font-semibold text-[var(--text-secondary)]">Weekoffs / Holidays</span>
+            <p className="font-semibold text-[var(--text-primary)] mt-1 text-base">{summary.weekoffCount + summary.holidayCount}</p>
           </div>
-          <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-            <span className="text-[10px] uppercase font-semibold text-[var(--ink-muted)] font-ui">Unpaid Leaves</span>
-            <p className="font-data font-semibold text-[var(--ink)] mt-1 text-lg">{summary.unpaidLeaveCount}</p>
+          <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
+            <span className="text-xs uppercase font-semibold text-[var(--text-secondary)]">Unpaid Leaves</span>
+            <p className="font-semibold text-[var(--text-primary)] mt-1 text-base">{summary.unpaidLeaveCount}</p>
           </div>
-          <div className="col-span-2 p-3 rounded-[4px] bg-[var(--gold-50)] border border-[var(--gold-300)]">
-            <span className="text-[10px] uppercase font-semibold text-[var(--gold-700)] font-ui flex items-center gap-1.5"><AlertCircle size={12}/> Total Payable Days</span>
-            <p className="font-data font-semibold text-[var(--gold-700)] mt-1 text-xl">{summary.payableDays}</p>
+          <div className="col-span-2 p-3 rounded-[var(--radius-sm)] bg-[var(--accent)]/10 border border-[var(--accent)]">
+            <span className="text-xs uppercase font-semibold text-[var(--accent)] flex items-center gap-1.5"><AlertCircle size={12}/> Total Payable Days</span>
+            <p className="font-semibold text-[var(--accent)] mt-1 text-base">{summary.payableDays}</p>
           </div>
         </div>
       ) : null}

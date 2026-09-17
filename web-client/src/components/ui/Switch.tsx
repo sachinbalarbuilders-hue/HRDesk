@@ -44,12 +44,12 @@ export const Switch: React.FC<SwitchProps> = ({
       {(label || description) && (
         <div className="flex flex-col">
           {label && (
-            <span className={`text-sm font-medium transition-colors ${checked ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)] group-hover:text-[var(--ink)]'}`}>
+            <span className={`text-sm font-medium transition-colors ${checked ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
               {label}
             </span>
           )}
           {description && (
-            <span className="text-xs text-[var(--ink-muted)]">
+            <span className="text-xs text-[var(--text-secondary)]">
               {description}
             </span>
           )}

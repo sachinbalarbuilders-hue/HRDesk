@@ -53,7 +53,7 @@ export const ChangePasswordTab: React.FC = () => {
         )}
 
         <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Current Password</label>
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">Current Password</label>
           <div className="relative">
             <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input
@@ -70,7 +70,7 @@ export const ChangePasswordTab: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">New Password</label>
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">New Password</label>
           <div className="relative">
             <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input
@@ -88,7 +88,7 @@ export const ChangePasswordTab: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Confirm New Password</label>
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">Confirm New Password</label>
           <div className="relative">
             <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input

@@ -188,7 +188,7 @@ export const NotificationDropdown: React.FC = () => {
       case 'celebration':
         return <Sparkles size={15} className="text-pink-500" />;
       default:
-        return <Info size={15} className="text-[var(--gold-500)]" />;
+        return <Info size={15} className="text-[var(--accent)]" />;
     }
   };
 
@@ -210,9 +210,9 @@ export const NotificationDropdown: React.FC = () => {
         }`}
         title={unreadCount > 0 ? `${unreadCount} Unread Notifications` : 'Notifications & Alerts'}
       >
-        <Bell size={19} className={unreadCount > 0 ? 'text-[var(--gold-500)]' : ''} aria-hidden="true" />
+        <Bell size={19} className={unreadCount > 0 ? 'text-[var(--accent)]' : ''} aria-hidden="true" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-extrabold font-mono tabular-nums text-white bg-rose-600 rounded-full ring-2 ring-[var(--surface)] shadow-md animate-pulse pointer-events-none">
+          <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-xs font-normal font-extrabold  tabular-nums text-white bg-rose-600 rounded-full ring-2 ring-[var(--surface)] shadow-md animate-pulse pointer-events-none">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -224,14 +224,14 @@ export const NotificationDropdown: React.FC = () => {
           role="dialog"
           aria-modal="true"
           aria-label="Notifications"
-          className="absolute right-0 mt-2 w-[340px] sm:w-[380px] bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-md)] shadow-2xl z-50 overflow-hidden flex flex-col font-ui animate-in fade-in zoom-in-95 duration-100 ease-out text-xs"
+          className="absolute right-0 mt-2 w-[340px] sm:w-[380px] bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-md)] shadow-2xl z-50 overflow-hidden flex flex-col  animate-in fade-in zoom-in-95 duration-100 ease-out text-xs"
         >
           {/* Header */}
           <div className="p-3.5 border-b border-[var(--rule)] bg-[var(--surface-sunken)]/60 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h3 className="font-display font-bold text-sm text-[var(--ink)] text-balance">Notifications</h3>
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] text-balance">Notifications</h3>
               {unreadCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 font-mono text-[10px] font-bold tabular-nums">
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600  text-xs font-normal font-semibold tabular-nums">
                   {unreadCount} new
                 </span>
               )}
@@ -243,7 +243,7 @@ export const NotificationDropdown: React.FC = () => {
                   type="button"
                   onClick={handleMarkAllAsRead}
                   disabled={markingAll}
-                  className="px-2 py-1 rounded hover:bg-[var(--paper)] text-[11px] font-semibold text-[var(--gold-600)] dark:text-[var(--gold-400)] flex items-center gap-1 cursor-pointer transition-colors"
+                  className="px-2 py-1 rounded hover:bg-[var(--paper)] text-xs font-semibold text-[var(--accent-hover)] dark:text-[var(--gold-400)] flex items-center gap-1 cursor-pointer transition-colors"
                   title="Mark all as read"
                   aria-label="Mark all as read"
                 >
@@ -256,7 +256,7 @@ export const NotificationDropdown: React.FC = () => {
                 type="button"
                 onClick={() => fetchNotifications()}
                 aria-label="Refresh notifications"
-                className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="p-1 rounded hover:bg-[var(--paper)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
                 title="Refresh"
               >
                 <RefreshCw size={13} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
@@ -269,10 +269,10 @@ export const NotificationDropdown: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('all')}
-              className={`px-2.5 py-1 rounded-[3px] font-semibold transition-colors cursor-pointer text-[11px] ${
+              className={`px-2.5 py-1 rounded-[3px] font-semibold transition-colors cursor-pointer text-xs font-normal ${
                 activeTab === 'all'
                   ? 'bg-[var(--accent)] text-white shadow-2xs'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               All ({notifications.length})
@@ -280,10 +280,10 @@ export const NotificationDropdown: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('unread')}
-              className={`px-2.5 py-1 rounded-[3px] font-semibold transition-colors cursor-pointer text-[11px] ${
+              className={`px-2.5 py-1 rounded-[3px] font-semibold transition-colors cursor-pointer text-xs font-normal ${
                 activeTab === 'unread'
                   ? 'bg-[var(--accent)] text-white shadow-2xs'
-                  : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Unread ({unreadCount})
@@ -293,15 +293,15 @@ export const NotificationDropdown: React.FC = () => {
           {/* Notifications Scroll List */}
           <div className="divide-y divide-[var(--rule)] max-h-[360px] overflow-y-auto min-h-[160px]">
             {loading && notifications.length === 0 ? (
-              <div className="p-8 text-center text-[var(--ink-muted)] flex items-center justify-center gap-2">
-                <Loader2 size={16} className="animate-spin text-[var(--gold-500)]" />
+              <div className="p-8 text-center text-[var(--text-secondary)] flex items-center justify-center gap-2">
+                <Loader2 size={16} className="animate-spin text-[var(--accent)]" />
                 <span>Loading notifications...</span>
               </div>
             ) : displayedNotifications.length === 0 ? (
-              <div className="p-8 text-center text-[var(--ink-muted)] space-y-1">
-                <Bell size={24} className="mx-auto opacity-30 text-[var(--ink-muted)] mb-2" />
-                <p className="font-semibold text-xs text-[var(--ink)]">All caught up!</p>
-                <p className="text-[11px]">
+              <div className="p-8 text-center text-[var(--text-secondary)] space-y-1">
+                <Bell size={24} className="mx-auto opacity-30 text-[var(--text-secondary)] mb-2" />
+                <p className="font-semibold text-xs text-[var(--text-primary)]">All caught up!</p>
+                <p className="text-xs font-normal">
                   {activeTab === 'unread'
                     ? 'No unread notifications pending.'
                     : 'No notifications recorded yet.'}
@@ -314,7 +314,7 @@ export const NotificationDropdown: React.FC = () => {
                   onClick={() => handleItemClick(item)}
                   className={`p-3.5 transition-colors flex items-start justify-between gap-3 text-xs cursor-pointer group ${
                     !item.isRead
-                      ? 'bg-[var(--gold-500)]/5 hover:bg-[var(--gold-500)]/10'
+                      ? 'bg-[var(--accent)]/5 hover:bg-[var(--accent)]/10'
                       : 'hover:bg-[var(--surface-sunken)]/50'
                   }`}
                 >
@@ -325,7 +325,7 @@ export const NotificationDropdown: React.FC = () => {
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className={`font-semibold truncate ${!item.isRead ? 'text-[var(--ink)] font-bold' : 'text-[var(--ink-muted)]'}`}>
+                        <span className={`font-semibold truncate ${!item.isRead ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-secondary)]'}`}>
                           {item.title}
                         </span>
                         {!item.isRead && (
@@ -333,14 +333,14 @@ export const NotificationDropdown: React.FC = () => {
                         )}
                       </div>
 
-                      <p className="text-[11px] text-[var(--ink-muted)] mt-0.5 line-clamp-2 leading-relaxed font-ui">
+                      <p className="text-xs font-normal text-[var(--text-secondary)] mt-0.5 line-clamp-2 leading-relaxed ">
                         {item.message}
                       </p>
 
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-[var(--ink-muted)] font-mono">
+                      <div className="flex items-center gap-2 mt-1 text-xs font-normal text-[var(--text-secondary)] ">
                         <span>{item.timeAgo}</span>
                         {item.linkUrl && (
-                          <span className="inline-flex items-center gap-0.5 text-[var(--gold-600)] dark:text-[var(--gold-400)] font-semibold">
+                          <span className="inline-flex items-center gap-0.5 text-[var(--accent-hover)] dark:text-[var(--gold-400)] font-semibold">
                             View <ExternalLink size={10} />
                           </span>
                         )}
@@ -354,7 +354,7 @@ export const NotificationDropdown: React.FC = () => {
                       <button
                         type="button"
                         onClick={(e) => handleMarkAsRead(item.id, e)}
-                        className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-emerald-600 cursor-pointer"
+                        className="p-1 rounded hover:bg-[var(--paper)] text-[var(--text-secondary)] hover:text-emerald-600 cursor-pointer"
                         title="Mark as read"
                       >
                         <Check size={12} />
@@ -363,7 +363,7 @@ export const NotificationDropdown: React.FC = () => {
                     <button
                       type="button"
                       onClick={(e) => handleDelete(item.id, e)}
-                      className="p-1 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] hover:text-rose-600 cursor-pointer"
+                      className="p-1 rounded hover:bg-[var(--paper)] text-[var(--text-secondary)] hover:text-rose-600 cursor-pointer"
                       title="Dismiss"
                     >
                       <X size={12} />
@@ -376,7 +376,7 @@ export const NotificationDropdown: React.FC = () => {
 
           {/* Footer */}
           <div className="p-2.5 border-t border-[var(--rule)] bg-[var(--surface-sunken)]/40 text-center">
-            <span className="text-[10px] font-mono text-[var(--ink-muted)]">
+            <span className="text-xs font-normal  text-[var(--text-secondary)]">
               Real-time company & security alerts
             </span>
           </div>

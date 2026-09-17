@@ -63,7 +63,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
   return (
     <div className={className} ref={containerRef}>
       {label && (
-        <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">
+        <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">
           {label}
           {required && <span className="text-[var(--danger)] ml-0.5">*</span>}
         </label>
@@ -94,7 +94,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
               {selectedOptions.slice(0, 3).map(opt => (
                 <span
                   key={opt.value}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-full)] bg-[var(--accent-light)] text-[var(--accent)] text-xs font-medium"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-full)] bg-[var(--accent-light)] text-[var(--accent)] text-sm font-semibold"
                 >
                   {opt.label}
                   <button
@@ -139,7 +139,7 @@ export const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({
                   <button
                     type="button"
                     onClick={() => onChange([])}
-                    className="text-[11px] text-[var(--text-muted)] hover:text-[var(--danger)] cursor-pointer"
+                    className="text-xs font-normal text-[var(--text-muted)] hover:text-[var(--danger)] cursor-pointer"
                   >
                     Clear
                   </button>

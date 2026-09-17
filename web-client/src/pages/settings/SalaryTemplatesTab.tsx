@@ -181,7 +181,7 @@ export const SalaryTemplatesTab: React.FC = () => {
       header: 'ID',
       width: '100px',
       render: (t: Template) => (
-        <span className="text-xs font-semibold text-[var(--ink)]">SG#{String(t.id).padStart(3, '0')}</span>
+        <span className="text-xs font-semibold text-[var(--text-primary)]">SG#{String(t.id).padStart(3, '0')}</span>
       ),
     },
     {
@@ -191,21 +191,21 @@ export const SalaryTemplatesTab: React.FC = () => {
         <div className="flex items-start gap-2">
           <button
             onClick={() => toggleExpand(t.id)}
-            className="text-[var(--ink-muted)] hover:text-[var(--ink)] mt-0.5 cursor-pointer"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] mt-0.5 cursor-pointer"
             title="Preview components formula"
           >
             {expandedId === t.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-xs text-[var(--ink)]">{t.name}</span>
+              <span className="font-semibold text-xs text-[var(--text-primary)]">{t.name}</span>
               {t.isDefault && (
-                <span className="text-[9px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-1.5 py-0.2 rounded-[2px] font-bold">
+                <span className="text-xs font-normal bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-1.5 py-0.2 rounded-[2px] font-semibold">
                   DEFAULT
                 </span>
               )}
             </div>
-            {t.description && <p className="text-[10px] text-[var(--ink-muted)]">{t.description}</p>}
+            {t.description && <p className="text-xs font-normal text-[var(--text-secondary)]">{t.description}</p>}
           </div>
         </div>
       ),
@@ -214,10 +214,10 @@ export const SalaryTemplatesTab: React.FC = () => {
       key: 'components',
       header: 'SALARY COMPONENTS',
       render: (t: Template) => (
-        <div className="flex flex-col gap-0.5 text-xs text-[var(--ink)] py-1">
+        <div className="flex flex-col gap-0.5 text-xs text-[var(--text-primary)] py-1">
           {t.componentNames?.length ? t.componentNames.map((n, idx) => (
             <span key={idx}>{idx + 1}. {n}</span>
-          )) : <span className="text-[var(--ink-muted)]">No components</span>}
+          )) : <span className="text-[var(--text-secondary)]">No components</span>}
         </div>
       ),
     },
@@ -236,12 +236,12 @@ export const SalaryTemplatesTab: React.FC = () => {
             />
           ))}
           {t.employeeCount && t.employeeCount > 5 && (
-            <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-white dark:border-[var(--paper)] bg-indigo-500 text-white text-[11px] font-bold z-[1]">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-white dark:border-[var(--paper)] bg-indigo-500 text-white text-xs font-normal font-semibold z-[1]">
               +{t.employeeCount - 5}
             </div>
           )}
           {(!t.employees || t.employees.length === 0) && (
-            <span className="text-xs text-[var(--ink-muted)] ml-2">None</span>
+            <span className="text-xs text-[var(--text-secondary)] ml-2">None</span>
           )}
         </div>
       ),
@@ -267,8 +267,8 @@ export const SalaryTemplatesTab: React.FC = () => {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h2 className="text-base font-bold text-[var(--ink)] font-ui">Salary Groups</h2>
-        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+        <h2 className="text-base font-semibold text-[var(--text-primary)] ">Salary Groups</h2>
+        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
           Define CTC-based formulas (Basic=40% of CTC, HRA=50% of Basic, etc.) and assign to Pay Groups.
         </p>
       </div>
@@ -286,7 +286,7 @@ export const SalaryTemplatesTab: React.FC = () => {
           label: 'Add Salary Groups',
           icon: <Plus size={14} />,
           onClick: openCreateTemplate,
-          className: 'bg-black text-white hover:bg-gray-800 flex items-center gap-1.5 text-[13px] py-1.5 px-4 rounded-[6px] shadow-sm transition-colors cursor-pointer font-medium'
+          className: 'bg-black text-white hover:bg-gray-800 flex items-center gap-1.5 text-sm font-normal py-1.5 px-4 rounded-[6px] shadow-sm transition-colors cursor-pointer font-medium'
         }}
       />
 
@@ -314,31 +314,31 @@ export const SalaryTemplatesTab: React.FC = () => {
         expandedRowRender={(t) => (
           <div className="p-4 bg-[var(--surface-sunken)] border-t border-[var(--border)] shadow-inner space-y-3 mx-4 my-2 rounded">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-2">
-              <span className="text-xs font-semibold text-[var(--ink)] flex items-center gap-1.5 font-serif uppercase tracking-tight">
-                <Layers size={13} className="text-[var(--gold-500)]" />
+              <span className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5  uppercase tracking-tight">
+                <Layers size={13} className="text-[var(--accent)]" />
                 Template Breakdown Formulas
               </span>
             </div>
             {expandedComponents.length === 0 ? (
-              <p className="text-xs text-[var(--ink-muted)] py-2 italic font-ui">
+              <p className="text-xs text-[var(--text-secondary)] py-2 italic ">
                 No components configured yet. Click "Edit Formulas" on the action menu to add components.
               </p>
             ) : (
               <div className="overflow-x-auto bg-white border border-[var(--border)] rounded shadow-xs">
                 <table className="w-full text-xs text-left">
                   <thead className="bg-[var(--surface-sunken)] border-b border-[var(--rule)]">
-                    <tr className="text-[10px] uppercase text-[var(--ink-muted)] font-bold tracking-wider">
+                    <tr className="text-xs font-normal uppercase text-[var(--text-secondary)] font-semibold tracking-wider">
                       <th className="px-4 py-2">Component</th>
                       <th className="px-4 py-2 border-l border-[var(--rule)]">Type</th>
                       <th className="px-4 py-2 border-l border-[var(--rule)]">Formula Calculation</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--rule)] font-ui bg-white">
+                  <tbody className="divide-y divide-[var(--rule)]  bg-white">
                     {expandedComponents.map((c: any) => (
                       <tr key={c.id} className="hover:bg-[var(--surface-sunken)] transition-colors">
-                        <td className="px-4 py-2 font-medium text-[var(--ink)]">{c.componentName}</td>
-                        <td className="px-4 py-2 text-[var(--ink-muted)] border-l border-[var(--rule)]">{c.componentType}</td>
-                        <td className="px-4 py-2 font-mono text-[11px] text-[var(--teal-600)] border-l border-[var(--rule)]">{
+                        <td className="px-4 py-2 font-medium text-[var(--text-primary)]">{c.componentName}</td>
+                        <td className="px-4 py-2 text-[var(--text-secondary)] border-l border-[var(--rule)]">{c.componentType}</td>
+                        <td className="px-4 py-2  text-xs font-normal text-[var(--teal-600)] border-l border-[var(--rule)]">{
                           c.calculationType === 'FixedAmount' ? `₹${(c.value||0).toLocaleString()}/month` :
                           c.calculationType === 'PercentOfCTC' ? `${c.value}% of Monthly CTC` :
                           c.calculationType === 'PercentOfComponent' ? `${c.value}% of ${c.baseComponentCode}` :
@@ -360,29 +360,29 @@ export const SalaryTemplatesTab: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-xl w-full max-w-sm">
             <div className="flex items-center justify-between p-4 border-b border-[var(--rule)]">
-              <h3 className="font-bold text-sm text-[var(--ink)]">{editTplId ? 'Edit Template' : 'New Template'}</h3>
-              <button onClick={() => setTemplateModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)]">{editTplId ? 'Edit Template' : 'New Template'}</h3>
+              <button onClick={() => setTemplateModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
             <form onSubmit={saveTemplate} className="p-4 space-y-4 text-xs">
               <div>
-                <label className="font-semibold text-[var(--ink)] block mb-1">Template Name *</label>
+                <label className="font-semibold text-[var(--text-primary)] block mb-1">Template Name *</label>
                 <input
                   value={tplForm.name}
                   onChange={e => setTplForm(f => ({ ...f, name: e.target.value }))}
                   required
                   placeholder="e.g. Standard CTC Template"
-                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] "
                 />
               </div>
               <div>
-                <label className="font-semibold text-[var(--ink)] block mb-1">Description</label>
+                <label className="font-semibold text-[var(--text-primary)] block mb-1">Description</label>
                 <input
                   value={tplForm.description}
                   onChange={e => setTplForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="e.g. For corporate and engineering roles"
-                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] "
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-[var(--rule)]">
@@ -412,24 +412,24 @@ export const SalaryTemplatesTab: React.FC = () => {
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-[var(--rule)]">
               <div>
-                <h3 className="font-bold text-sm text-[var(--ink)]">Configure Salary Formulas</h3>
-                <p className="text-xs text-[var(--ink-muted)]">Set calculation rules for each component in this template</p>
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">Configure Salary Formulas</h3>
+                <p className="text-xs text-[var(--text-secondary)]">Set calculation rules for each component in this template</p>
               </div>
-              <button onClick={() => setEditComponentsId(null)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => setEditComponentsId(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-[var(--ink)]">Component Formula Rules ({editRows.length})</span>
+                <span className="font-semibold text-xs text-[var(--text-primary)]">Component Formula Rules ({editRows.length})</span>
                 <button onClick={addComponentRow} className="btn-outline text-xs flex items-center gap-1 py-1 px-2.5 cursor-pointer">
                   <Plus size={12} /> Add Component
                 </button>
               </div>
 
               {editRows.length === 0 ? (
-                <div className="text-center py-8 text-[var(--ink-muted)] border border-dashed border-[var(--rule)] rounded-[4px]">
+                <div className="text-center py-8 text-[var(--text-secondary)] border border-dashed border-[var(--rule)] rounded-[4px]">
                   No components in this template yet. Click "Add Component" above.
                 </div>
               ) : (
@@ -439,7 +439,7 @@ export const SalaryTemplatesTab: React.FC = () => {
                       <select
                         value={row.componentId}
                         onChange={e => updateRow(idx, 'componentId', e.target.value)}
-                        className="px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--ink)] flex-1 min-w-36 font-semibold cursor-pointer"
+                        className="px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--text-primary)] flex-1 min-w-36 font-semibold cursor-pointer"
                       >
                         {components.filter(c => c.isActive).map(c => (
                           <option key={c.id} value={c.id}>
@@ -451,7 +451,7 @@ export const SalaryTemplatesTab: React.FC = () => {
                       <select
                         value={row.calculationType}
                         onChange={e => updateRow(idx, 'calculationType', e.target.value)}
-                        className="px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--ink)] min-w-40 cursor-pointer"
+                        className="px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs text-[var(--text-primary)] min-w-40 cursor-pointer"
                       >
                         {CALC_TYPES.map(ct => (
                           <option key={ct.value} value={ct.value}>{ct.label}</option>
@@ -464,7 +464,7 @@ export const SalaryTemplatesTab: React.FC = () => {
                           value={row.value ?? ''}
                           onChange={e => updateRow(idx, 'value', e.target.value)}
                           placeholder={row.calculationType === 'FixedAmount' ? '₹ Amount' : '% Value'}
-                          className="w-24 px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs font-mono text-[var(--ink)]"
+                          className="w-24 px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs  text-[var(--text-primary)]"
                           min={0}
                         />
                       )}
@@ -475,7 +475,7 @@ export const SalaryTemplatesTab: React.FC = () => {
                           value={row.baseComponentCode || ''}
                           onChange={e => updateRow(idx, 'baseComponentCode', e.target.value.toUpperCase())}
                           placeholder="Base Code (e.g. BASIC)"
-                          className="w-32 px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs font-mono text-[var(--ink)] uppercase"
+                          className="w-32 px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs  text-[var(--text-primary)] uppercase"
                         />
                       )}
 
@@ -494,8 +494,8 @@ export const SalaryTemplatesTab: React.FC = () => {
               {/* CTC Preview Tool */}
               <div className="border-t border-[var(--rule)] pt-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-[var(--ink)] flex items-center gap-1.5">
-                    <Wand2 size={13} className="text-[var(--gold-500)]" />
+                  <span className="font-semibold text-xs text-[var(--text-primary)] flex items-center gap-1.5">
+                    <Wand2 size={13} className="text-[var(--accent)]" />
                     Simulate & Preview CTC Breakdown
                   </span>
                   <div className="flex items-center gap-2">
@@ -504,7 +504,7 @@ export const SalaryTemplatesTab: React.FC = () => {
                       value={previewCTC}
                       onChange={e => setPreviewCTC(e.target.value)}
                       placeholder="Annual CTC (e.g. 600000)"
-                      className="w-48 px-2.5 py-1 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs font-mono text-[var(--ink)]"
+                      className="w-48 px-2.5 py-1 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs  text-[var(--text-primary)]"
                     />
                     <button
                       type="button"
@@ -520,7 +520,7 @@ export const SalaryTemplatesTab: React.FC = () => {
                 {previewRows.length > 0 && (
                   <div className="border border-[var(--rule)] rounded-[4px] overflow-hidden bg-[var(--paper)]">
                     <table className="w-full text-xs">
-                      <thead className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] text-[10px] uppercase font-bold text-[var(--ink-muted)]">
+                      <thead className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] text-xs font-normal uppercase font-semibold text-[var(--text-secondary)]">
                         <tr>
                           <th className="px-3 py-1.5 text-left">Component</th>
                           <th className="px-3 py-1.5 text-left">Type</th>
@@ -529,14 +529,14 @@ export const SalaryTemplatesTab: React.FC = () => {
                           <th className="px-3 py-1.5 text-right">Annual (₹)</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[var(--rule)] font-mono">
+                      <tbody className="divide-y divide-[var(--rule)] ">
                         {previewRows.map((r, i) => (
                           <tr key={i} className="hover:bg-[var(--surface-sunken)]">
-                            <td className="px-3 py-1.5 font-sans font-medium text-[var(--ink)]">{r.componentName}</td>
-                            <td className="px-3 py-1.5 font-sans text-[var(--ink-muted)]">{r.componentType}</td>
+                            <td className="px-3 py-1.5 font-sans font-medium text-[var(--text-primary)]">{r.componentName}</td>
+                            <td className="px-3 py-1.5 font-sans text-[var(--text-secondary)]">{r.componentType}</td>
                             <td className="px-3 py-1.5 text-[var(--teal-600)]">{r.formula}</td>
-                            <td className="px-3 py-1.5 text-right font-bold text-[var(--ink)]">₹{r.amount.toLocaleString()}</td>
-                            <td className="px-3 py-1.5 text-right text-[var(--ink-muted)]">₹{(r.amount * 12).toLocaleString()}</td>
+                            <td className="px-3 py-1.5 text-right font-semibold text-[var(--text-primary)]">₹{r.amount.toLocaleString()}</td>
+                            <td className="px-3 py-1.5 text-right text-[var(--text-secondary)]">₹{(r.amount * 12).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>

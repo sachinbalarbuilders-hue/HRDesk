@@ -277,8 +277,8 @@ export const AnnouncementsPage: React.FC = () => {
           <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
             <Lock size={22} />
           </div>
-          <h3 className="font-display font-semibold text-base text-[var(--ink)]">Access Restricted</h3>
-          <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+          <h3 className=" font-semibold text-base text-[var(--text-primary)]">Access Restricted</h3>
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
             You do not have permission to view company announcements and bulletins. Please contact your administrator if you require access.
           </p>
         </div>
@@ -363,12 +363,12 @@ export const AnnouncementsPage: React.FC = () => {
 
       {/* Bulk Action Bar */}
       {announcementArchive.canBulkDelete && selectedIds.length > 0 && (
-        <div className="flex items-center justify-between px-4 py-2.5 mb-6 bg-[var(--surface)] border border-[var(--accent)]/40 rounded-[4px] shadow-xs animate-in fade-in slide-in-from-top-1 font-ui">
+        <div className="flex items-center justify-between px-4 py-2.5 mb-6 bg-[var(--surface)] border border-[var(--accent)]/40 rounded-[4px] shadow-xs animate-in fade-in slide-in-from-top-1 ">
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold font-mono rounded bg-[var(--accent)] text-white shadow-xs">
+            <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold  rounded bg-[var(--accent)] text-white shadow-xs">
               {selectedIds.length}
             </span>
-            <span className="text-xs font-semibold text-[var(--ink)]">
+            <span className="text-xs font-semibold text-[var(--text-primary)]">
               announcement{selectedIds.length > 1 ? 's' : ''} selected
             </span>
           </div>
@@ -407,7 +407,7 @@ export const AnnouncementsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="text-xs text-[var(--ink-muted)] hover:text-[var(--ink)] px-2 py-1 cursor-pointer font-medium"
+              className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2 py-1 cursor-pointer font-medium"
             >
               Clear
             </button>
@@ -451,7 +451,7 @@ export const AnnouncementsPage: React.FC = () => {
                 key={item.id}
                 padding="none"
                 className={`flex flex-col justify-between overflow-hidden transition-all hover:shadow-md bg-[var(--surface)] border-[var(--border)] ${
-                  isSelected ? 'ring-2 ring-[var(--gold-500)] border-[var(--gold-500)]' : ''
+                  isSelected ? 'ring-2 ring-[var(--accent)] border-[var(--accent)]' : ''
                 } ${item.isPinned ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]/30' : ''}`}
               >
                 <div className="p-5 flex-1 flex flex-col">
@@ -470,7 +470,7 @@ export const AnnouncementsPage: React.FC = () => {
                               setSelectedIds((prev) => prev.filter((id) => id !== item.id));
                             }
                           }}
-                          className="w-4 h-4 rounded border-[var(--rule)] text-[var(--gold-500)] focus:ring-[var(--gold-500)] cursor-pointer mr-0.5"
+                          className="w-4 h-4 rounded border-[var(--rule)] text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer mr-0.5"
                         />
                       )}
                       <Badge variant={getBadgeVariant(item.category)} size="sm">
@@ -573,7 +573,7 @@ export const AnnouncementsPage: React.FC = () => {
               <span className="flex items-center gap-1.5">
                 <span>Announcement Title <span className="text-rose-500">*</span></span>
               </span>
-              <span className="text-[10px] font-normal text-[var(--text-muted)] font-mono">{title.length} chars</span>
+              <span className="text-xs font-normal font-normal text-[var(--text-muted)] ">{title.length} chars</span>
             </label>
             <input
               type="text"
@@ -627,20 +627,20 @@ export const AnnouncementsPage: React.FC = () => {
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 font-mono"
+                className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 "
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5 flex items-center gap-1">
                 <Calendar size={12} className="text-[var(--text-muted)]" />
-                <span>Expiry Date <span className="text-[10px] text-[var(--text-muted)] font-normal">(Opt)</span></span>
+                <span>Expiry Date <span className="text-xs font-normal text-[var(--text-muted)] font-normal">(Opt)</span></span>
               </label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 font-mono"
+                className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 "
               />
             </div>
           </div>
@@ -686,8 +686,8 @@ export const AnnouncementsPage: React.FC = () => {
                     <div className="relative rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] p-1.5 flex items-center gap-2">
                       <img src={imagePreview} alt="Preview" className="w-9 h-9 rounded object-cover border border-[var(--border)] shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-medium text-[var(--text-primary)] truncate">{imageFile?.name || 'Photo'}</p>
-                        <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium">Ready to upload</span>
+                        <p className="text-xs font-normal font-medium text-[var(--text-primary)] truncate">{imageFile?.name || 'Photo'}</p>
+                        <span className="text-xs font-normal text-emerald-600 dark:text-emerald-400 font-medium">Ready to upload</span>
                       </div>
                       <button
                         type="button"
@@ -729,8 +729,8 @@ export const AnnouncementsPage: React.FC = () => {
                         <Film size={15} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-medium text-[var(--text-primary)] truncate">{videoFile?.name || 'Video'}</p>
-                        <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-medium">Video clip</span>
+                        <p className="text-xs font-normal font-medium text-[var(--text-primary)] truncate">{videoFile?.name || 'Video'}</p>
+                        <span className="text-xs font-normal text-indigo-600 dark:text-indigo-400 font-medium">Video clip</span>
                       </div>
                       <button
                         type="button"
@@ -776,7 +776,7 @@ export const AnnouncementsPage: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-[var(--text-primary)] leading-tight">Pin to top of dashboard</p>
-                  <p className="text-[10px] text-[var(--text-muted)] truncate">Anchors notice prominently for team members</p>
+                  <p className="text-xs font-normal text-[var(--text-muted)] truncate">Anchors notice prominently for team members</p>
                 </div>
                 <input
                   type="checkbox"
@@ -787,7 +787,7 @@ export const AnnouncementsPage: React.FC = () => {
                 />
               </div>
 
-              <div className="text-[10px] text-[var(--text-muted)] flex items-center justify-between px-1">
+              <div className="text-xs font-normal text-[var(--text-muted)] flex items-center justify-between px-1">
                 <span>Scope: <strong className="text-[var(--text-primary)]">{currentBranch ? currentBranch.name : 'Company-wide (All)'}</strong></span>
                 <span className="inline-flex items-center gap-1">
                   Priority: <strong className="text-[var(--text-primary)]">{priority}</strong>
@@ -798,7 +798,7 @@ export const AnnouncementsPage: React.FC = () => {
 
           {/* Footer Actions */}
           <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
-            <span className="text-[11px] text-[var(--text-muted)] hidden sm:inline">
+            <span className="text-xs font-normal text-[var(--text-muted)] hidden sm:inline">
               Employees will see this notice across web and mobile.
             </span>
             <div className="flex items-center gap-2 ml-auto">
@@ -838,7 +838,7 @@ export const AnnouncementsPage: React.FC = () => {
           onClick={() => setLightboxUrl(null)}
         >
           <button
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer text-xl font-bold"
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer text-base font-semibold"
             onClick={() => setLightboxUrl(null)}
           >
             &times;

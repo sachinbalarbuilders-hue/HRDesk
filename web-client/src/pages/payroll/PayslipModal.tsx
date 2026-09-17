@@ -49,11 +49,11 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
         {/* Modal Top Control Bar (Hidden on Print) */}
         <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50 no-print">
           <div className="flex items-center gap-2">
-            <span className="font-serif font-bold text-sm text-slate-800">
+            <span className=" font-semibold text-sm text-slate-800">
               Salary Payslip Statement
             </span>
             {payslip?.monthDisplay && (
-              <span className="text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono">
+              <span className="text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-700 ">
                 {payslip.monthDisplay}
               </span>
             )}
@@ -85,30 +85,30 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
             {/* 1. Formal Document Header */}
             <div className="flex items-start justify-between border-b-2 border-slate-900 pb-3">
               <div className="space-y-0.5">
-                <h1 className="text-xl font-bold font-serif tracking-tight text-slate-900 uppercase">
+                <h1 className="text-base font-semibold  tracking-tight text-slate-900 uppercase">
                   {payslip.organization.name}
                 </h1>
                 {payslip.organization.address && (
-                  <p className="text-[11px] text-slate-600 max-w-md">
+                  <p className="text-xs font-normal text-slate-600 max-w-md">
                     {payslip.organization.address}
                   </p>
                 )}
-                <div className="text-[11px] text-slate-500 pt-0.5">
+                <div className="text-xs font-normal text-slate-500 pt-0.5">
                   <span>Company Code: </span>
-                  <span className="font-semibold font-mono text-slate-700">
+                  <span className="font-semibold  text-slate-700">
                     {payslip.organization.code || 'N/A'}
                   </span>
                 </div>
               </div>
 
               <div className="text-right">
-                <div className="text-base font-bold font-serif uppercase tracking-wide text-slate-900">
+                <div className="text-base font-semibold  uppercase tracking-wide text-slate-900">
                   Payslip
                 </div>
                 <div className="text-xs font-semibold text-slate-700 mt-0.5">
                   {payslip.monthDisplay}
                 </div>
-                <div className="text-[10px] text-slate-500 font-mono mt-1 space-x-1.5">
+                <div className="text-xs font-normal text-slate-500  mt-1 space-x-1.5">
                   <span>Status: <strong className="text-slate-800">{payslip.status}</strong></span>
                   {payslip.salaryBasis && <span>· Basis: {payslip.salaryBasis}</span>}
                 </div>
@@ -117,19 +117,19 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
 
             {/* 2. Employee Details Table */}
             <div className="border border-slate-300">
-              <table className="w-full text-left border-collapse text-[11px]">
+              <table className="w-full text-left border-collapse text-xs font-normal">
                 <tbody>
                   <tr className="border-b border-slate-200">
                     <td className="w-1/4 py-1.5 px-3 font-semibold text-slate-600 bg-slate-50 border-r border-slate-200">
                       Employee Name
                     </td>
-                    <td className="w-1/4 py-1.5 px-3 font-bold text-slate-900 border-r border-slate-200">
+                    <td className="w-1/4 py-1.5 px-3 font-semibold text-slate-900 border-r border-slate-200">
                       {payslip.employee.employeeName}
                     </td>
                     <td className="w-1/4 py-1.5 px-3 font-semibold text-slate-600 bg-slate-50 border-r border-slate-200">
                       Employee ID / Code
                     </td>
-                    <td className="w-1/4 py-1.5 px-3 font-mono font-semibold text-slate-900">
+                    <td className="w-1/4 py-1.5 px-3  font-semibold text-slate-900">
                       {payslip.employee.employeeCode || `EMP#${String(payslip.employee.employeeId).padStart(3, '0')}`}
                     </td>
                   </tr>
@@ -151,13 +151,13 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
                     <td className="py-1.5 px-3 font-semibold text-slate-600 bg-slate-50 border-r border-slate-200">
                       Bank Name / IFSC
                     </td>
-                    <td className="py-1.5 px-3 font-mono text-slate-800 border-r border-slate-200">
+                    <td className="py-1.5 px-3  text-slate-800 border-r border-slate-200">
                       {payslip.employee.ifsc || '—'}
                     </td>
                     <td className="py-1.5 px-3 font-semibold text-slate-600 bg-slate-50 border-r border-slate-200">
                       Bank A/C No.
                     </td>
-                    <td className="py-1.5 px-3 font-mono text-slate-800">
+                    <td className="py-1.5 px-3  text-slate-800">
                       {payslip.employee.bankAccount || '—'}
                     </td>
                   </tr>
@@ -165,13 +165,13 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
                     <td className="py-1.5 px-3 font-semibold text-slate-600 bg-slate-50 border-r border-slate-200">
                       PAN Number
                     </td>
-                    <td className="py-1.5 px-3 font-mono text-slate-800 border-r border-slate-200">
+                    <td className="py-1.5 px-3  text-slate-800 border-r border-slate-200">
                       {payslip.employee.pan || '—'}
                     </td>
                     <td className="py-1.5 px-3 font-semibold text-slate-600 bg-slate-50 border-r border-slate-200">
                       UAN / PF No.
                     </td>
-                    <td className="py-1.5 px-3 font-mono text-slate-800">
+                    <td className="py-1.5 px-3  text-slate-800">
                       {payslip.employee.uan || '—'}
                     </td>
                   </tr>
@@ -181,9 +181,9 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
 
             {/* 3. Attendance Summary Bar */}
             <div className="border border-slate-300">
-              <table className="w-full text-center border-collapse text-[11px] font-mono">
+              <table className="w-full text-center border-collapse text-xs font-normal ">
                 <thead>
-                  <tr className="bg-slate-100 text-slate-700 font-sans text-[10px] uppercase tracking-wider border-b border-slate-300">
+                  <tr className="bg-slate-100 text-slate-700 font-sans text-xs font-normal uppercase tracking-wider border-b border-slate-300">
                     <th className="py-1.5 px-2 border-r border-slate-300 font-semibold">Days in Month</th>
                     <th className="py-1.5 px-2 border-r border-slate-300 font-semibold">Present (P)</th>
                     <th className="py-1.5 px-2 border-r border-slate-300 font-semibold">Week Off (WO)</th>
@@ -199,7 +199,7 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
                     <td className="py-1.5 px-2 border-r border-slate-200">{payslip.attendance.weekoffs}</td>
                     <td className="py-1.5 px-2 border-r border-slate-200">{payslip.attendance.holidays}</td>
                     <td className="py-1.5 px-2 border-r border-slate-200 text-rose-700">{payslip.attendance.unpaidLeaves}</td>
-                    <td className="py-1.5 px-2 font-bold text-slate-900 bg-slate-200/50">{payslip.attendance.payableDays}</td>
+                    <td className="py-1.5 px-2 font-semibold text-slate-900 bg-slate-200/50">{payslip.attendance.payableDays}</td>
                   </tr>
                 </tbody>
               </table>
@@ -210,28 +210,28 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
               <div className="grid grid-cols-2 divide-x divide-slate-300">
                 {/* Left Side: Earnings */}
                 <div>
-                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-300 font-semibold text-[11px] uppercase tracking-wider text-slate-800 flex justify-between">
+                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-300 font-semibold text-xs font-normal uppercase tracking-wider text-slate-800 flex justify-between">
                     <span>Earnings</span>
                     <span>Amount (₹)</span>
                   </div>
                   <div className="divide-y divide-slate-200 min-h-[120px]">
                     {payslip.earnings.map((e: any, i: number) => (
-                      <div key={i} className="px-3 py-1.5 flex justify-between text-[11px]">
+                      <div key={i} className="px-3 py-1.5 flex justify-between text-xs font-normal">
                         <span className="text-slate-700">{e.componentName}</span>
-                        <span className="font-mono font-medium text-slate-900">
+                        <span className=" font-medium text-slate-900">
                           ₹{Number(e.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                     ))}
                     {payslip.earnings.length === 0 && (
-                      <div className="px-3 py-6 text-center text-slate-400 text-[11px] italic">
+                      <div className="px-3 py-6 text-center text-slate-400 text-xs font-normal italic">
                         No earning components defined.
                       </div>
                     )}
                   </div>
-                  <div className="bg-slate-50 border-t border-slate-300 px-3 py-2 flex justify-between font-bold text-[11px] text-slate-900">
+                  <div className="bg-slate-50 border-t border-slate-300 px-3 py-2 flex justify-between font-semibold text-xs font-normal text-slate-900">
                     <span>Total Gross Earnings</span>
-                    <span className="font-mono">
+                    <span className="">
                       ₹{Number(payslip.totals.totalEarnings).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -239,28 +239,28 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
 
                 {/* Right Side: Deductions */}
                 <div>
-                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-300 font-semibold text-[11px] uppercase tracking-wider text-slate-800 flex justify-between">
+                  <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-300 font-semibold text-xs font-normal uppercase tracking-wider text-slate-800 flex justify-between">
                     <span>Deductions</span>
                     <span>Amount (₹)</span>
                   </div>
                   <div className="divide-y divide-slate-200 min-h-[120px]">
                     {payslip.deductions.map((d: any, i: number) => (
-                      <div key={i} className="px-3 py-1.5 flex justify-between text-[11px]">
+                      <div key={i} className="px-3 py-1.5 flex justify-between text-xs font-normal">
                         <span className="text-slate-700">{d.componentName}</span>
-                        <span className="font-mono font-medium text-slate-900">
+                        <span className=" font-medium text-slate-900">
                           ₹{Number(d.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                     ))}
                     {payslip.deductions.length === 0 && (
-                      <div className="px-3 py-6 text-center text-slate-400 text-[11px] italic">
+                      <div className="px-3 py-6 text-center text-slate-400 text-xs font-normal italic">
                         No statutory or salary deductions.
                       </div>
                     )}
                   </div>
-                  <div className="bg-slate-50 border-t border-slate-300 px-3 py-2 flex justify-between font-bold text-[11px] text-slate-900">
+                  <div className="bg-slate-50 border-t border-slate-300 px-3 py-2 flex justify-between font-semibold text-xs font-normal text-slate-900">
                     <span>Total Deductions</span>
-                    <span className="font-mono">
+                    <span className="">
                       ₹{Number(payslip.totals.totalDeductions).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -271,7 +271,7 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
             {/* 5. Net Salary Calculation Block */}
             <div className="border-2 border-slate-900 bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1">
-                <div className="text-[11px] uppercase tracking-wider font-bold text-slate-700">
+                <div className="text-xs font-normal uppercase tracking-wider font-semibold text-slate-700">
                   Net Salary Payable
                 </div>
                 <div className="text-xs text-slate-800 font-medium italic">
@@ -282,30 +282,30 @@ export const PayslipModal: React.FC<Props> = ({ open, onClose, loading, payslip 
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold font-mono text-slate-900">
+                <div className="text-base font-semibold  text-slate-900">
                   ₹{Number(payslip.totals.netSalary).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
 
             {/* 6. Legal / Formal Signatures Section */}
-            <div className="pt-8 grid grid-cols-2 gap-12 text-[11px] text-slate-600">
+            <div className="pt-8 grid grid-cols-2 gap-12 text-xs font-normal text-slate-600">
               <div>
                 <div className="h-12 border-b border-slate-400 w-48 mb-1.5" />
                 <div className="font-semibold text-slate-800">Employee Signature</div>
-                <div className="text-[10px] text-slate-400">Date: _______________</div>
+                <div className="text-xs font-normal text-slate-400">Date: _______________</div>
               </div>
               <div className="text-right flex flex-col items-end">
                 <div className="h-12 border-b border-slate-400 w-48 mb-1.5" />
                 <div className="font-semibold text-slate-800">Authorised Signatory</div>
-                <div className="text-[10px] text-slate-500 font-medium">
+                <div className="text-xs font-normal text-slate-500 font-medium">
                   {payslip.organization.name}
                 </div>
               </div>
             </div>
 
             {/* Document Footer Note */}
-            <div className="pt-2 border-t border-slate-200 text-center text-[10px] text-slate-400 italic">
+            <div className="pt-2 border-t border-slate-200 text-center text-xs font-normal text-slate-400 italic">
               This is a computer-generated salary slip issued by {payslip.organization.name}.
             </div>
           </div>

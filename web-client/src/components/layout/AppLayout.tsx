@@ -174,8 +174,8 @@ export const AppLayout: React.FC = () => {
                   <Layers size={16} className="text-[var(--accent)]" />
                 </div>
                 <div>
-                  <span className="font-display font-bold text-sm text-[var(--text-primary)] tracking-tight block leading-tight">HRDesk</span>
-                  <span className="text-[10px] text-[var(--text-muted)] font-medium">People Platform</span>
+                  <span className=" font-semibold text-sm text-[var(--text-primary)] tracking-tight block leading-tight">HRDesk</span>
+                  <span className="text-xs font-normal text-[var(--text-muted)] font-medium">People Platform</span>
                 </div>
               </div>
               <button onClick={() => setCollapsed(true)} className="hidden lg:flex w-6 h-6 items-center justify-center rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] cursor-pointer transition-colors">
@@ -196,7 +196,7 @@ export const AppLayout: React.FC = () => {
             return (
               <div key={group.group} className="space-y-1">
                 {!collapsed && (
-                  <p className="px-2 mb-2 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-widest">
+                  <p className="px-2 mb-2 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                     {group.group}
                   </p>
                 )}
@@ -208,12 +208,12 @@ export const AppLayout: React.FC = () => {
                       key={item.href}
                       to={item.href}
                       onClick={() => setMobileOpen(false)}
-                      className={`relative flex items-center rounded-md text-[13px] font-medium transition-colors ${
+                      className={`relative flex items-center rounded-lg text-sm transition-colors ${
                         collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2'
                       } ${
                         isActive
-                          ? 'bg-[var(--sidebar-active)] text-[var(--sidebar-text-active)]'
-                          : 'text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text-active)]'
+                          ? 'bg-[var(--sidebar-active)] text-[var(--sidebar-text-active)] font-semibold'
+                          : 'text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text-active)] font-normal'
                       }`}
                       title={collapsed ? item.name : undefined}
                     >
@@ -236,8 +236,8 @@ export const AppLayout: React.FC = () => {
             <Avatar name={user?.fullName || user?.username || 'User'} size="sm" />
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{user?.fullName || user?.username}</p>
-                <p className="text-[11px] text-[var(--text-muted)] truncate">{user?.roleName || user?.role}</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{user?.fullName || user?.username}</p>
+                <p className="text-xs font-normal text-[var(--text-secondary)] truncate">{user?.roleName || user?.role}</p>
               </div>
             )}
             {!collapsed && (
@@ -261,7 +261,7 @@ export const AppLayout: React.FC = () => {
           ═══════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
-        <header className="h-[64px] flex items-center justify-between px-8 border-b border-[var(--border)] bg-[var(--surface-header)] z-30 flex-shrink-0 relative">
+        <header className="h-[64px] flex items-center justify-between px-6 lg:px-8 border-b border-[var(--border)] bg-[var(--surface-header)] z-30 flex-shrink-0 relative">
           <div className="flex items-center gap-4 flex-1">
             {/* Mobile menu trigger */}
             <button onClick={() => setMobileOpen(true)} className="lg:hidden p-1.5 rounded-md text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] cursor-pointer">
@@ -274,11 +274,11 @@ export const AppLayout: React.FC = () => {
               <input
                 type="text"
                 placeholder="Search employees, pages or actions..."
-                className="w-full bg-transparent border-none py-2 pl-7 pr-12 text-[13px] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none"
+                className="w-full bg-transparent border-none py-2 pl-7 pr-12 text-sm font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
               />
-              <kbd className="absolute right-0 text-[10px] font-semibold text-[var(--text-muted)] border border-[var(--border)] bg-[var(--surface-secondary)] px-1.5 py-0.5 rounded shadow-xs">
+              <kbd className="absolute right-0 text-xs font-semibold text-[var(--text-muted)] border border-[var(--border-strong)] bg-[var(--surface-secondary)] px-1.5 py-0.5 rounded shadow-xs">
                 ⌘K
               </kbd>
             </div>
@@ -289,7 +289,7 @@ export const AppLayout: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => { setOrgDropdownOpen(!orgDropdownOpen); setBranchDropdownOpen(false); }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border)] hover:border-[var(--accent)] text-xs font-medium text-[var(--text-primary)] cursor-pointer"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border-strong)] hover:border-[var(--accent)] text-sm font-normal text-[var(--text-primary)] cursor-pointer"
               >
                 <Building2 size={14} className="text-[var(--accent)]" />
                 <span className="truncate max-w-[120px] hidden sm:inline">{currentOrganization?.name || 'Select Org'}</span>
@@ -298,13 +298,13 @@ export const AppLayout: React.FC = () => {
               {orgDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setOrgDropdownOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-64 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-lg)] z-40 py-1 animate-slide-down">
-                    <div className="px-3 py-2 text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider">Organizations</div>
+                  <div className="absolute right-0 mt-2 w-64 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] shadow-[var(--shadow-lg)] z-40 py-1 animate-slide-down">
+                    <div className="px-3 py-2 text-xs uppercase font-semibold text-[var(--text-muted)] tracking-wider">Organizations</div>
                     {organizations.map((org) => {
                       const isSelected = String(currentOrganization?.id) === String(org.id);
                       return (
                         <button key={org.id} onClick={() => handleOrgSelect(String(org.id), org.name)}
-                          className={`w-full px-3 py-2 text-left flex items-center justify-between text-sm hover:bg-[var(--surface-secondary)] cursor-pointer ${isSelected ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-primary)]'}`}>
+                          className={`w-full px-3 py-2 text-left flex items-center justify-between text-sm hover:bg-[var(--surface-hover)] cursor-pointer ${isSelected ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-primary)] font-normal'}`}>
                           <span className="truncate">{org.name}</span>
                           {isSelected && <Check size={14} className="text-[var(--accent)]" />}
                         </button>
@@ -320,7 +320,7 @@ export const AppLayout: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={() => { setBranchDropdownOpen(!branchDropdownOpen); setOrgDropdownOpen(false); }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border)] hover:border-[var(--accent)] text-xs font-medium text-[var(--text-primary)] cursor-pointer"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border-strong)] hover:border-[var(--accent)] text-sm font-normal text-[var(--text-primary)] cursor-pointer"
                 >
                   <MapPin size={13} className="text-[var(--accent)]" />
                   <span className="truncate max-w-[100px] hidden sm:inline">{currentBranch?.name || 'All'}</span>
@@ -330,7 +330,7 @@ export const AppLayout: React.FC = () => {
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setBranchDropdownOpen(false)} />
                     <div className="absolute right-0 mt-2 w-56 rounded-[var(--radius-lg)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-lg)] z-40 py-1 animate-slide-down">
-                      <div className="px-3 py-2 text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider">Branches</div>
+                      <div className="px-3 py-2 text-xs font-normal uppercase font-semibold text-[var(--text-muted)] tracking-wider">Branches</div>
                       {branches.map((b) => {
                         const isSelected = String(currentBranch?.id) === String(b.id);
                         return (
@@ -372,14 +372,14 @@ export const AppLayout: React.FC = () => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto px-6 lg:px-8 py-5">
+          <div className="w-full">
             {localStorage.getItem('hrdesk_suspended') === 'true' && !user?.isPlatformUser && !location.pathname.startsWith('/settings') ? (
               <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
                 <div className="w-16 h-16 rounded-full bg-[var(--danger-light)] flex items-center justify-center">
                   <ShieldCheck size={32} className="text-[var(--danger)]" />
                 </div>
-                <h2 className="text-xl font-bold text-[var(--text-primary)]">Workspace Suspended</h2>
+                <h2 className="text-base font-semibold text-[var(--text-primary)]">Workspace Suspended</h2>
                 <p className="text-sm text-[var(--text-secondary)] max-w-md">
                   Your organization workspace has been suspended. Please renew your subscription or contact support to restore access.
                 </p>

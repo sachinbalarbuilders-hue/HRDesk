@@ -269,7 +269,7 @@ export const Holidays: React.FC = () => {
       key: 'name',
       header: 'Holiday Title',
       render: (h) => (
-        <div className="font-semibold text-[var(--ink)] flex items-center gap-2 text-xs">
+        <div className="font-semibold text-[var(--text-primary)] flex items-center gap-2 text-xs">
           <CalendarIcon className="w-3.5 h-3.5 text-[var(--accent)]" />
           <span>{h.name}</span>
         </div>
@@ -278,18 +278,18 @@ export const Holidays: React.FC = () => {
     {
       key: 'startDate',
       header: 'Start Date',
-      render: (h) => <span className="font-mono text-xs text-[var(--ink)]">{h.startDate}</span>,
+      render: (h) => <span className=" text-xs text-[var(--text-primary)]">{h.startDate}</span>,
     },
     {
       key: 'endDate',
       header: 'End Date',
-      render: (h) => <span className="font-mono text-xs text-[var(--ink)]">{h.endDate}</span>,
+      render: (h) => <span className=" text-xs text-[var(--text-primary)]">{h.endDate}</span>,
     },
     {
       key: 'days',
       header: 'Duration',
       render: (h) => (
-        <span className="font-mono font-bold text-xs text-[var(--accent)]">
+        <span className=" font-semibold text-xs text-[var(--accent)]">
           {h.days} {h.days === 1 ? 'Day' : 'Days'}
         </span>
       ),
@@ -300,7 +300,7 @@ export const Holidays: React.FC = () => {
       render: (h) => {
         if (h.isGlobal) {
           return (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300">
               <Globe className="w-3 h-3" />
               Company-wide
             </span>
@@ -313,7 +313,7 @@ export const Holidays: React.FC = () => {
 
           return (
             <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 max-w-[220px] truncate"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 max-w-[220px] truncate"
               title={h.departmentNames?.join(', ') || h.departmentName || h.applicableTo}
             >
               <Building2 className="w-3 h-3 shrink-0" />
@@ -322,7 +322,7 @@ export const Holidays: React.FC = () => {
           );
         }
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
             <Building className="w-3 h-3" />
             {h.branchName ? `Branch: ${h.branchName}` : h.applicableTo}
           </span>
@@ -333,7 +333,7 @@ export const Holidays: React.FC = () => {
       key: 'description',
       header: 'Description',
       render: (h) => (
-        <span className="max-w-[240px] truncate text-xs text-[var(--ink-muted)] block" title={h.description}>
+        <span className="max-w-[240px] truncate text-xs text-[var(--text-secondary)] block" title={h.description}>
           {h.description || '—'}
         </span>
       ),
@@ -374,8 +374,8 @@ export const Holidays: React.FC = () => {
           <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
             <Lock size={22} />
           </div>
-          <h3 className="font-display font-semibold text-base text-[var(--ink)]">Access Restricted</h3>
-          <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+          <h3 className=" font-semibold text-base text-[var(--text-primary)]">Access Restricted</h3>
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
             You do not have permission to view the organization holiday calendar. Please contact your administrator if you require access.
           </p>
         </div>
@@ -459,71 +459,71 @@ export const Holidays: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4 text-[var(--accent)]" />
                 {editingId ? 'Edit Holiday' : 'Register Holiday'}
               </h3>
               <button
                 onClick={() => setHolidayModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveHoliday} className="space-y-4 text-xs font-ui">
+            <form onSubmit={handleSaveHoliday} className="space-y-4 text-xs ">
               <div>
-                <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Holiday Title *</label>
+                <label className="block text-xs font-normal font-semibold text-[var(--text-primary)] mb-1 uppercase tracking-wider">Holiday Title *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Independence Day, Diwali, Annual Maintenance Off"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)]"
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Start Date *</label>
+                  <label className="block text-xs font-normal font-semibold text-[var(--text-primary)] mb-1 uppercase tracking-wider">Start Date *</label>
                   <input
                     type="date"
                     required
                     value={form.startDate}
                     onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-data"
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] "
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">End Date *</label>
+                  <label className="block text-xs font-normal font-semibold text-[var(--text-primary)] mb-1 uppercase tracking-wider">End Date *</label>
                   <input
                     type="date"
                     required
                     value={form.endDate}
                     onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-data"
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] "
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Number of Days</label>
+                  <label className="block text-xs font-normal font-semibold text-[var(--text-primary)] mb-1 uppercase tracking-wider">Number of Days</label>
                   <input
                     type="number"
                     min={1}
                     value={form.days}
                     onChange={(e) => setForm({ ...form, days: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-data"
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] "
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Scope</label>
+                  <label className="block text-xs font-normal font-semibold text-[var(--text-primary)] mb-1 uppercase tracking-wider">Scope</label>
                   <select
                     value={form.scopeType}
                     onChange={(e) => setForm({ ...form, scopeType: e.target.value as any })}
-                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)] font-ui"
+                    className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] "
                   >
                     <option value="global">Company-wide (All Branches & Depts)</option>
                     <option value="branch">Branch Specific</option>
@@ -535,14 +535,14 @@ export const Holidays: React.FC = () => {
               {form.scopeType === 'department' && (
                 <div className="space-y-2 animate-in fade-in duration-150">
                   <div className="flex items-center justify-between">
-                    <label className="block text-[11px] font-bold text-[var(--ink)] uppercase tracking-wider">
+                    <label className="block text-xs font-normal font-semibold text-[var(--text-primary)] uppercase tracking-wider">
                       Applicable Departments * ({form.departmentIds.length} Selected)
                     </label>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setForm({ ...form, departmentIds: departments.map((d) => d.id) })}
-                        className="text-[11px] font-semibold text-[var(--accent)] hover:underline cursor-pointer"
+                        className="text-xs font-semibold text-[var(--accent)] hover:underline cursor-pointer"
                       >
                         Select All
                       </button>
@@ -550,7 +550,7 @@ export const Holidays: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setForm({ ...form, departmentIds: [] })}
-                        className="text-[11px] font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                        className="text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
                       >
                         Clear All
                       </button>
@@ -559,19 +559,19 @@ export const Holidays: React.FC = () => {
 
                   {/* Search filter for departments */}
                   <div className="relative">
-                    <SearchIcon className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                    <SearchIcon className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                     <input
                       type="text"
                       placeholder="Search department..."
                       value={deptSearch}
                       onChange={(e) => setDeptSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)]"
+                      className="w-full pl-8 pr-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                     />
                     {deptSearch && (
                       <button
                         type="button"
                         onClick={() => setDeptSearch('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -586,7 +586,7 @@ export const Holidays: React.FC = () => {
                         return (
                           <span
                             key={id}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--surface)] border border-[var(--rule)] text-[var(--ink)]"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--surface)] border border-[var(--rule)] text-[var(--text-primary)]"
                           >
                             <Building2 className="w-3 h-3 text-[var(--accent)]" />
                             {dept?.name || `Dept #${id}`}
@@ -611,14 +611,14 @@ export const Holidays: React.FC = () => {
                   {/* Scrollable Checkbox List */}
                   <div className="border border-[var(--rule)] rounded-[4px] bg-[var(--paper)] max-h-44 overflow-y-auto p-1.5 space-y-0.5">
                     {departmentsLoading ? (
-                      <div className="flex items-center justify-center gap-2 py-6 text-xs text-[var(--ink-muted)]">
+                      <div className="flex items-center justify-center gap-2 py-6 text-xs text-[var(--text-secondary)]">
                         <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)]" />
                         <span>Loading departments...</span>
                       </div>
                     ) : departments.length === 0 ? (
-                      <div className="text-xs text-[var(--ink-muted)] text-center py-4">No departments found</div>
+                      <div className="text-xs text-[var(--text-secondary)] text-center py-4">No departments found</div>
                     ) : departments.filter((d) => d.name.toLowerCase().includes(deptSearch.toLowerCase().trim())).length === 0 ? (
-                      <div className="text-xs text-[var(--ink-muted)] text-center py-4">
+                      <div className="text-xs text-[var(--text-secondary)] text-center py-4">
                         No departments matching "{deptSearch}"
                       </div>
                     ) : (
@@ -631,8 +631,8 @@ export const Holidays: React.FC = () => {
                               key={dept.id}
                               className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[3px] cursor-pointer transition-colors text-xs select-none ${
                                 isSelected
-                                  ? 'bg-[var(--accent)]/10 text-[var(--ink)] font-semibold'
-                                  : 'hover:bg-[var(--surface)] text-[var(--ink)]'
+                                  ? 'bg-[var(--accent)]/10 text-[var(--text-primary)] font-semibold'
+                                  : 'hover:bg-[var(--surface)] text-[var(--text-primary)]'
                               }`}
                             >
                               <input
@@ -653,7 +653,7 @@ export const Holidays: React.FC = () => {
                                 }}
                                 className="rounded text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
                               />
-                              <Building2 className="w-3.5 h-3.5 text-[var(--ink-muted)] shrink-0" />
+                              <Building2 className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
                               <span>{dept.name}</span>
                             </label>
                           );
@@ -664,13 +664,13 @@ export const Holidays: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-[11px] font-bold text-[var(--ink)] mb-1 uppercase tracking-wider">Description / Note</label>
+                <label className="block text-xs font-normal font-semibold text-[var(--text-primary)] mb-1 uppercase tracking-wider">Description / Note</label>
                 <textarea
                   rows={2}
                   placeholder="Optional details or instructions..."
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--gold-500)]"
+                  className="w-full px-3 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
                 />
               </div>
 

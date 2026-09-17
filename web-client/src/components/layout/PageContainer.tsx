@@ -11,17 +11,17 @@ const maxWidthClasses = {
   sm: 'max-w-3xl',
   md: 'max-w-5xl',
   lg: 'max-w-6xl',
-  xl: 'max-w-7xl',
+  xl: 'max-w-full',
   full: 'max-w-full',
 };
 
 export const PageContainer: React.FC<PageContainerProps> = ({
   children,
   className,
-  maxWidth = 'xl',
+  maxWidth = 'full',
 }) => {
   return (
-    <div className={clsx('mx-auto w-full space-y-6 animate-fade-in', maxWidthClasses[maxWidth], className)}>
+    <div className={clsx('w-full space-y-5 animate-fade-in', maxWidth !== 'full' && maxWidth !== 'xl' && 'mx-auto', maxWidthClasses[maxWidth], className)}>
       {children}
     </div>
   );

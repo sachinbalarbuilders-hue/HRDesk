@@ -63,7 +63,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed text-pretty">
+            <div className="text-sm font-normal text-[var(--text-secondary)] mt-1 leading-relaxed text-pretty">
               {message ?? (
                 <>
                   {itemName ? (
@@ -83,21 +83,21 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         {isDanger && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-[var(--danger-light)] border border-[var(--danger)]/25">
             <AlertTriangle size={13} className="text-[var(--danger)] shrink-0" aria-hidden="true" />
-            <span className="text-[11px] font-semibold text-[var(--danger)]">
+            <span className="text-xs font-semibold text-[var(--danger)]">
               This cannot be undone.
             </span>
           </div>
         )}
 
         <div className="flex items-center justify-end gap-2 pt-1">
-          <button type="button" onClick={onClose} disabled={busy} className="btn-secondary text-xs">
+          <button type="button" onClick={onClose} disabled={busy} className="btn-secondary">
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={() => void onConfirm()}
             disabled={busy}
-            className="text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-md)] text-white disabled:opacity-60 cursor-pointer flex items-center gap-1.5"
+            className="text-sm font-semibold h-9 px-4 rounded-[var(--radius-md)] text-white disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5"
             style={{ backgroundColor: isDanger ? 'var(--danger)' : 'var(--accent)' }}
           >
             {busy && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}

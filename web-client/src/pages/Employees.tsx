@@ -287,17 +287,17 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       width: '60px',
       align: 'center',
       render: (emp) => (
-        <div className="w-10 h-10 mx-auto rounded-full overflow-hidden flex items-center justify-center bg-[var(--paper)] border border-[var(--rule)] shadow-2xs shrink-0">
+        <div className="w-9 h-9 mx-auto rounded-full overflow-hidden flex items-center justify-center bg-[var(--surface-secondary)] border border-[var(--border-strong)] shadow-xs shrink-0">
           {emp.photoPath ? (
             <AuthImage
               src={`/Thumbnail?employeeId=${emp.employeeId}`}
               alt={emp.employeeName}
               className="w-full h-full aspect-square object-cover"
               fallbackInitial={emp.employeeName?.charAt(0) || 'E'}
-              fallbackClassName="w-full h-full text-xs flex items-center justify-center bg-[#312E81] text-white font-bold"
+              fallbackClassName="w-full h-full text-xs flex items-center justify-center bg-[#312E81] text-white font-semibold"
             />
           ) : (
-            <div className="w-full h-full bg-[#312E81] text-white font-bold flex items-center justify-center text-xs">
+            <div className="w-full h-full bg-[#312E81] text-white font-semibold flex items-center justify-center text-xs">
               {emp.employeeName?.charAt(0) || 'E'}
             </div>
           )}
@@ -311,7 +311,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
         <button
           type="button"
           onClick={() => handleRowClick(emp)}
-          className="font-semibold text-[var(--text-primary)] hover:text-[var(--accent)] text-left cursor-pointer transition-colors"
+          className="font-semibold text-sm text-[var(--text-primary)] hover:text-[var(--accent)] text-left cursor-pointer transition-colors block"
         >
           {emp.employeeName}
         </button>
@@ -321,7 +321,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       key: 'employeeCode',
       header: 'Employee ID',
       render: (emp) => (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--surface-secondary)] font-mono text-[11px] font-semibold text-[var(--text-secondary)] tracking-wide">
+        <span className="inline-flex items-center px-2 py-0.5 rounded border border-[var(--border-strong)] bg-[var(--surface-secondary)]  text-xs font-normal font-semibold text-[var(--text-secondary)] tracking-wider">
           {emp.employeeCode || `EMP#${String(emp.employeeId).padStart(3, '0')}`}
         </span>
       ),
@@ -329,23 +329,35 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
     {
       key: 'department',
       header: 'Department',
-      render: (emp) => <span className="text-[13px] text-[var(--text-primary)]">{emp.department || '—'}</span>,
+      render: (emp) => (
+        <span className="text-sm font-normal font-medium text-[var(--text-primary)]">
+          {emp.department || <span className="text-[var(--text-muted)] italic text-xs">Not Assigned</span>}
+        </span>
+      ),
     },
     {
       key: 'designation',
       header: 'Designation',
-      render: (emp) => <span className="text-[13px] text-[var(--text-secondary)]">{emp.designation || '—'}</span>,
+      render: (emp) => (
+        <span className="text-sm font-normal text-[var(--text-secondary)]">
+          {emp.designation || <span className="text-[var(--text-muted)] italic text-xs">—</span>}
+        </span>
+      ),
     },
     {
       key: 'reportingManager',
       header: 'Reporting Manager',
-      render: (emp) => <span className="text-[13px] text-[var(--text-secondary)]">{emp.reportingManager || '—'}</span>,
+      render: (emp) => (
+        <span className="text-sm font-normal text-[var(--text-secondary)]">
+          {emp.reportingManager || <span className="text-[var(--text-muted)] italic text-xs">—</span>}
+        </span>
+      ),
     },
     {
       key: 'joiningDate',
       header: 'Joining Date',
       align: 'center',
-      render: (emp) => <span className="font-mono text-[12px] text-[var(--text-secondary)]">{formatDate(emp.joiningDate)}</span>,
+      render: (emp) => <span className=" text-xs font-normal text-[var(--text-secondary)]">{formatDate(emp.joiningDate)}</span>,
     },
     {
       key: 'status',
@@ -354,11 +366,15 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       render: (emp) => {
         const isActive = emp.status?.toLowerCase() === 'active';
         return (
-          <span className="inline-flex items-center gap-1.5 justify-center text-xs">
-            <span className={isActive ? 'status-dot-ok' : 'status-dot-err'} />
-            <span className={isActive ? 'text-[var(--ok-600)] font-medium' : 'text-[var(--err-600)]'}>
-              {emp.status}
-            </span>
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide ${
+              isActive
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60'
+                : 'bg-rose-50 text-rose-700 border border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+            <span className="capitalize">{emp.status || 'Inactive'}</span>
           </span>
         );
       },
@@ -432,14 +448,14 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       />
 
       {/* Workspace Tabs */}
-      <div className="flex items-center gap-6 border-b border-[var(--border)] mb-6 mt-4">
+      <div className="flex items-center gap-6 border-b border-[var(--border-strong)] mb-6 mt-2">
         <button
           type="button"
           onClick={() => setActiveTab('directory')}
-          className={`pb-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+          className={`pb-2.5 text-sm transition-colors cursor-pointer border-b-2 ${
             activeTab === 'directory'
-              ? 'border-[var(--accent)] text-[var(--text-primary)]'
-              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]'
+              ? 'border-[var(--accent)] text-[var(--text-primary)] font-semibold'
+              : 'border-transparent text-[var(--text-secondary)] font-normal hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]'
           }`}
         >
           Directory
@@ -447,10 +463,10 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
         <button
           type="button"
           onClick={() => setActiveTab('exits')}
-          className={`pb-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+          className={`pb-2.5 text-sm transition-colors cursor-pointer border-b-2 ${
             activeTab === 'exits'
-              ? 'border-[var(--accent)] text-[var(--text-primary)]'
-              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]'
+              ? 'border-[var(--accent)] text-[var(--text-primary)] font-semibold'
+              : 'border-transparent text-[var(--text-secondary)] font-normal hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]'
           }`}
         >
           Offboarding
@@ -511,10 +527,10 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                       setOnboardingForm({ employeeName: '', workEmail: '', departmentId: '', designationId: '' });
                       setGenerateLinkModalOpen(true);
                     }}
-                    className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer"
+                    className="flex items-center gap-2 text-sm font-semibold h-9 px-3.5 rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] shadow-xs transition-colors cursor-pointer"
                     title="Generate Self-Onboarding Link"
                   >
-                    <Link size={13} className="text-[var(--accent)]" />
+                    <Link size={14} className="text-[var(--accent)]" />
                     <span>Onboarding Link</span>
                   </button>
                 )}
@@ -525,10 +541,10 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                       fetchPrefixSettings();
                       setPrefixModalOpen(true);
                     }}
-                    className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 font-semibold cursor-pointer"
+                    className="flex items-center gap-2 text-sm font-semibold h-9 px-3.5 rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] shadow-xs transition-colors cursor-pointer"
                     title="Configure Series Code, Connector and Sequence"
                   >
-                    <Sliders size={13} className="text-[var(--accent)]" />
+                    <Sliders size={14} className="text-[var(--accent)]" />
                     <span>Prefix Setup</span>
                   </button>
                 )}
@@ -596,34 +612,34 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       {/* 7. Dedicated Employee ID & Prefix Setup Modal */}
       {prefixModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xl)] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-[#EEF2FF] text-[var(--accent)] flex items-center justify-center">
                   <Sliders size={16} />
                 </div>
                 <div>
-                  <h3 className="font-display font-semibold text-sm text-[var(--ink)]">
+                  <h3 className="text-base font-semibold text-[var(--text-primary)]">
                     Employee ID &amp; Prefix Setup
                   </h3>
-                  <p className="text-[11px] text-[var(--ink-muted)] font-ui">
+                  <p className="text-sm font-normal text-[var(--text-secondary)]">
                     Series Formula: [Series] + [Connector] + [Sequence]
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setPrefixModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleSavePrefixSettings} className="space-y-4 text-xs">
+            <form onSubmit={handleSavePrefixSettings} className="space-y-4 text-sm font-normal">
               {/* Active Branch Display Banner */}
-              <div className="flex items-center justify-between p-2.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)]">
-                <span className="text-[var(--ink-muted)] font-ui text-[11px]">Active Branch:</span>
-                <span className="font-semibold text-xs text-[var(--accent)] flex items-center gap-1.5 font-ui">
+              <div className="flex items-center justify-between p-2.5 rounded-[4px] bg-[var(--surface-secondary)] border border-[var(--border)]">
+                <span className="text-[var(--text-secondary)] text-xs">Active Branch:</span>
+                <span className="font-semibold text-sm text-[var(--accent)] flex items-center gap-1.5">
                   <MapPin size={13} className="text-[var(--accent)]" />
                   {currentBranch ? currentBranch.name : 'All Branches (Company Default)'}
                 </span>
@@ -632,7 +648,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
               {/* 1. Series Code & 2. Connector */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">
+                  <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">
                     1. Series Code *
                   </label>
                   <input
@@ -643,13 +659,13 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                       setPrefixForm({ ...prefixForm, seriesCode: e.target.value.toUpperCase() })
                     }
                     placeholder="e.g. EMP, STAFF, SB"
-                    className="register-input w-full font-mono text-xs font-bold uppercase tracking-wider"
+                    className="register-input w-full  text-xs font-semibold uppercase tracking-wider"
                   />
-                  <span className="text-[10px] text-[var(--ink-muted)] block mt-0.5">e.g. EMP, SB, VF</span>
+                  <span className="text-xs font-normal text-[var(--text-secondary)] block mt-1">e.g. EMP, SB, VF</span>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">
+                  <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">
                     2. Connector / Symbol
                   </label>
                   <input
@@ -657,7 +673,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                     value={prefixForm.connector}
                     onChange={(e) => setPrefixForm({ ...prefixForm, connector: e.target.value })}
                     placeholder="e.g. #, -, @, /, _"
-                    className="register-input w-full font-mono text-xs font-bold text-center"
+                    className="register-input w-full  text-xs font-semibold text-center"
                   />
                   <div className="flex items-center gap-1 mt-1">
                     {['#', '-', '@', '/', '_', '.'].map((sym) => (
@@ -665,10 +681,10 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                         type="button"
                         key={sym}
                         onClick={() => setPrefixForm({ ...prefixForm, connector: sym })}
-                        className={`px-1.5 py-0.5 rounded-[2px] border text-[10px] font-mono font-bold cursor-pointer transition-colors ${
+                        className={`px-1.5 py-0.5 rounded-[2px] border text-xs  font-semibold cursor-pointer transition-colors ${
                           prefixForm.connector === sym
-                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-bold shadow-xs'
-                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--accent)]'
+                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-semibold shadow-xs'
+                            : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)]'
                         }`}
                       >
                         {sym}
@@ -677,10 +693,10 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                     <button
                       type="button"
                       onClick={() => setPrefixForm({ ...prefixForm, connector: '' })}
-                      className={`px-1.5 py-0.5 rounded-[2px] border text-[9px] font-ui cursor-pointer transition-colors ${
+                      className={`px-1.5 py-0.5 rounded-[2px] border text-xs font-normal cursor-pointer transition-colors ${
                         prefixForm.connector === ''
                           ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-semibold shadow-xs'
-                          : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink-muted)] hover:border-[var(--accent)]'
+                          : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)]'
                       }`}
                     >
                       None
@@ -691,7 +707,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
 
               {/* 3. Sequence Length */}
               <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">
+                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">
                   3. Sequence Length *
                 </label>
                 <div className="flex items-center gap-2">
@@ -707,7 +723,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                         paddingDigits: Math.max(1, Math.min(8, parseInt(e.target.value) || 1)),
                       })
                     }
-                    className="register-input w-24 font-mono text-xs font-bold text-center"
+                    className="register-input w-24  text-xs font-semibold text-center"
                   />
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {[
@@ -720,10 +736,10 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                         type="button"
                         key={item.len}
                         onClick={() => setPrefixForm({ ...prefixForm, paddingDigits: item.len })}
-                        className={`px-2 py-1 rounded-[2px] border text-[11px] font-mono cursor-pointer transition-colors ${
+                        className={`px-2 py-1 rounded-[2px] border text-xs  cursor-pointer transition-colors ${
                           prefixForm.paddingDigits === item.len
-                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-bold shadow-xs'
-                            : 'bg-[var(--paper)] border-[var(--rule)] text-[var(--ink)] hover:border-[var(--accent)]'
+                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] font-semibold shadow-xs'
+                            : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)]'
                         }`}
                       >
                         {item.label}
@@ -731,32 +747,32 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                     ))}
                   </div>
                 </div>
-                <span className="text-[10px] text-[var(--ink-muted)] block mt-1">
+                <span className="text-xs font-normal text-[var(--text-secondary)] block mt-1">
                   Defines the zero-padding length for generated employee numbers (e.g. 3 &rarr; 001)
                 </span>
               </div>
 
               {/* 4. LIVE INTERACTIVE PREVIEW */}
-              <div className="p-4 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] space-y-2.5">
+              <div className="p-4 rounded-[4px] bg-[var(--surface-secondary)] border border-[var(--border)] space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--accent)] font-ui flex items-center gap-1">
+                  <span className="text-xs uppercase font-semibold tracking-wider text-[var(--accent)] flex items-center gap-1">
                     <Sparkles size={12} /> Live Preview Output
                   </span>
-                  <span className="text-[10px] font-mono text-[var(--ink-muted)]">
+                  <span className="text-xs  text-[var(--text-secondary)]">
                     [{prefixForm.seriesCode || 'EMP'}][{prefixForm.connector}][{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}]
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between p-3 rounded-[3px] bg-[var(--surface)] border border-[var(--rule)] shadow-2xs">
-                  <span className="text-xs text-[var(--ink-muted)] font-ui">Next Generated ID:</span>
-                  <span className="font-mono text-base font-bold text-[var(--accent)] tracking-wide">
+                <div className="flex items-center justify-between p-3 rounded-[3px] bg-[var(--surface)] border border-[var(--border)] shadow-2xs">
+                  <span className="text-xs font-normal text-[var(--text-secondary)]">Next Generated ID:</span>
+                  <span className=" text-base font-semibold text-[var(--accent)] tracking-wide">
                     {prefixForm.seriesCode || 'EMP'}{prefixForm.connector}{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}
                   </span>
                 </div>
 
-                <div className="pt-1 flex items-center justify-between text-[11px] font-mono text-[var(--ink-muted)]">
+                <div className="pt-1 flex items-center justify-between text-xs  text-[var(--text-secondary)]">
                   <span>Series Samples:</span>
-                  <span className="font-bold text-[var(--ink)]">
+                  <span className="font-semibold text-[var(--text-primary)]">
                     {prefixForm.seriesCode || 'EMP'}{prefixForm.connector}{String(prefixForm.startSequence).padStart(prefixForm.paddingDigits, '0')}&nbsp;&rarr;&nbsp;
                     {prefixForm.seriesCode || 'EMP'}{prefixForm.connector}{String(prefixForm.startSequence + 1).padStart(prefixForm.paddingDigits, '0')}&nbsp;&rarr;&nbsp;
                     {prefixForm.seriesCode || 'EMP'}{prefixForm.connector}{String(prefixForm.startSequence + 2).padStart(prefixForm.paddingDigits, '0')}
@@ -764,7 +780,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--rule)]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
                 <button
                   type="button"
                   onClick={() => setPrefixModalOpen(false)}
@@ -787,30 +803,30 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
 
       {generateLinkModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xl)] shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-[#EEF2FF] dark:bg-indigo-950/60 text-[var(--accent)] border border-indigo-200/60 dark:border-indigo-800/40 flex items-center justify-center">
                   <Link size={16} />
                 </div>
                 <div>
-                  <h3 className="font-display font-semibold text-sm text-[var(--ink)]">
+                  <h3 className="text-base font-semibold text-[var(--text-primary)]">
                     Employee Self-Onboarding
                   </h3>
-                  <p className="text-[11px] text-[var(--ink-muted)] font-ui">
+                  <p className="text-sm font-normal text-[var(--text-secondary)]">
                     Generate a secure link for the employee to fill their details.
                   </p>
                 </div>
               </div>
-              <button onClick={() => setGenerateLinkModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => setGenerateLinkModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
             {!generatedLink ? (
-              <form onSubmit={handleGenerateLink} className="space-y-4 text-xs">
+              <form onSubmit={handleGenerateLink} className="space-y-4 text-sm font-normal">
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Employee Name *</label>
+                  <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">Employee Name *</label>
                   <input
                     type="text"
                     required
@@ -821,7 +837,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Work Email</label>
+                  <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">Work Email</label>
                   <input
                     type="email"
                     value={onboardingForm.workEmail}
@@ -832,7 +848,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-semibold text-[var(--ink)] mb-1">Department</label>
+                    <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">Department</label>
                     <select
                       className="register-input w-full"
                       value={onboardingForm.departmentId}
@@ -845,7 +861,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                     </select>
                   </div>
                   <div>
-                    <label className="block font-semibold text-[var(--ink)] mb-1">Designation</label>
+                    <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">Designation</label>
                     <select
                       className="register-input w-full"
                       value={onboardingForm.designationId}
@@ -859,7 +875,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-3 border-t border-[var(--rule)]">
+                <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
                   <button type="button" onClick={() => setGenerateLinkModalOpen(false)} className="btn-outline">Cancel</button>
                   <button type="submit" disabled={generatingLink} className="btn-primary disabled:opacity-50">
                     {generatingLink ? 'Generating...' : 'Generate Link'}
@@ -870,12 +886,12 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
               <div className="space-y-4">
                 <div className="p-4 bg-emerald-50 border border-emerald-200 rounded text-center">
                   <Sparkles className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-sm font-bold text-emerald-800">Link Generated Successfully!</p>
+                  <p className="text-sm font-semibold text-emerald-800">Link Generated Successfully!</p>
                   <p className="text-xs text-emerald-700 mt-1">Send this link to the employee so they can complete their onboarding profile.</p>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <input type="text" readOnly value={generatedLink} className="register-input flex-1 font-mono text-[10px]" />
+                  <input type="text" readOnly value={generatedLink} className="register-input flex-1  text-xs" />
                   <button onClick={handleCopyLink} className="btn-outline flex items-center gap-1 px-3" title="Copy to clipboard">
                     <Copy size={14} /> Copy
                   </button>

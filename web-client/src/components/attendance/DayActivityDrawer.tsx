@@ -334,10 +334,10 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-[var(--rule)] bg-[var(--paper)]/60 flex items-center justify-between shrink-0">
               <div>
-                <h2 id="day-activity-title" className="font-serif text-lg font-bold text-[var(--ink)] tracking-tight text-balance">
+                <h2 id="day-activity-title" className=" text-base font-semibold text-[var(--text-primary)] tracking-tight text-balance">
                   Day Attendance Activity
                 </h2>
-                <p className="text-xs font-mono text-[var(--ink-muted)] mt-0.5 tabular-nums">
+                <p className="text-xs  text-[var(--text-secondary)] mt-0.5 tabular-nums">
                   {data?.formattedDate || date || 'Daily Punch Details'}
                 </p>
               </div>
@@ -345,7 +345,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                 type="button"
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="p-1.5 rounded text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-secondary)] cursor-pointer transition-colors"
+                className="p-1.5 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-secondary)] cursor-pointer transition-colors"
                 title="Close (Esc)"
               >
                 <X size={18} aria-hidden="true" />
@@ -370,14 +370,14 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                       <Avatar name={data.employee?.name || 'Employee'} size="lg" />
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-serif text-base font-bold text-[var(--ink)]">
+                          <h3 className=" text-base font-semibold text-[var(--text-primary)]">
                             {data.employee?.name}
                           </h3>
-                          <span className="font-mono text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--ink-muted)] border border-[var(--rule)]">
+                          <span className=" text-xs font-normal font-medium px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--rule)]">
                             {data.employee?.code}
                           </span>
                         </div>
-                        <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+                        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                           {data.employee?.department} • {data.employee?.designation}
                         </p>
                       </div>
@@ -389,14 +389,14 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                   </div>
 
                   {/* Ledger Metadata Rule */}
-                  <div className="pt-2.5 border-t border-[var(--rule)] flex items-center justify-between flex-wrap gap-2 text-xs text-[var(--ink-muted)]">
+                  <div className="pt-2.5 border-t border-[var(--rule)] flex items-center justify-between flex-wrap gap-2 text-xs text-[var(--text-secondary)]">
                     <div className="flex items-center gap-3">
                       <span className="flex items-center gap-1">
                         <Building2 size={12} />
                         <span>{data.employee?.branch || 'Main Branch'}</span>
                       </span>
                       <span className="text-[var(--rule)]">•</span>
-                      <span className="flex items-center gap-1 font-mono text-[11px]">
+                      <span className="flex items-center gap-1  text-xs font-normal">
                         <Calendar size={12} />
                         <span>{data.formattedDate || date}</span>
                       </span>
@@ -404,8 +404,8 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
 
                     {data.shift?.name && (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] uppercase font-mono font-bold text-[var(--ink-muted)] tracking-wider">Shift:</span>
-                        <span className="font-mono font-medium text-[var(--ink)] text-xs">
+                        <span className="text-xs font-normal uppercase  font-semibold text-[var(--text-secondary)] tracking-wider">Shift:</span>
+                        <span className=" font-medium text-[var(--text-primary)] text-xs">
                           {data.shift.name} ({data.shift.start || '--'} - {data.shift.end || '--'})
                         </span>
                       </div>
@@ -460,12 +460,12 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                         <span className="text-xs font-sans font-medium text-slate-500 dark:text-neutral-400 tracking-wide">
                           Total Work
                         </span>
-                        <span className="font-sans font-bold text-xl sm:text-2xl text-teal-600 dark:text-teal-400 tracking-tight tabular-nums mt-0.5 whitespace-nowrap max-w-[136px] truncate">
+                        <span className="font-sans font-semibold text-base sm:text-base text-teal-600 dark:text-teal-400 tracking-tight tabular-nums mt-0.5 whitespace-nowrap max-w-[136px] truncate">
                           {displayHoursMinutes}
                         </span>
-                        <span className="text-[11px] font-sans font-medium mt-1 whitespace-nowrap max-w-[136px] truncate">
+                        <span className="text-xs font-normal font-sans font-medium mt-1 whitespace-nowrap max-w-[136px] truncate">
                           {dial?.subtitle ? (
-                            <span className={dial.isAfterHours ? "text-amber-600 dark:text-amber-400" : dial.lateArrivalMinutes > 0 ? "text-amber-600 dark:text-amber-400 font-semibold" : isInProgress ? "text-blue-600 dark:text-blue-400" : "text-[var(--ink-muted)]"}>
+                            <span className={dial.isAfterHours ? "text-amber-600 dark:text-amber-400" : dial.lateArrivalMinutes > 0 ? "text-amber-600 dark:text-amber-400 font-semibold" : isInProgress ? "text-blue-600 dark:text-blue-400" : "text-[var(--text-secondary)]"}>
                               {isInProgress && !dial.isAfterHours && <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse mr-1 align-middle" />}
                               {dial.subtitle}
                             </span>
@@ -474,28 +474,28 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" /> In Progress
                             </span>
                           ) : workedM > 0 ? (
-                            <span className="text-[var(--ink-muted)] tabular-nums">
+                            <span className="text-[var(--text-secondary)] tabular-nums">
                               {Math.round((workedM / shiftM) * 100)}% of {Math.round(shiftM / 60)}h shift
                             </span>
                           ) : (
-                            <span className="text-[var(--ink-muted)]">0 mins</span>
+                            <span className="text-[var(--text-secondary)]">0 mins</span>
                           )}
                         </span>
                       </div>
                     </div>
 
                     {/* Color Splits Legend - dynamically driven by backend dial segments */}
-                    <div className="flex items-center justify-center flex-wrap gap-x-3 gap-y-1 mt-3 text-[11px] font-sans max-w-[260px]">
+                    <div className="flex items-center justify-center flex-wrap gap-x-3 gap-y-1 mt-3 text-xs font-normal font-sans max-w-[260px]">
                       {rawSegments.map((seg) => (
                         <span key={seg.id} className="flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
-                          <span className="text-[var(--ink)] font-medium tabular-nums">
+                          <span className="text-[var(--text-primary)] font-medium tabular-nums">
                             {seg.label}: {Math.floor(seg.minutes / 60)}h {seg.minutes % 60}m
                           </span>
                         </span>
                       ))}
                       {!dial?.isAfterHours && remainingM > 0 && (
-                        <span className="flex items-center gap-1 text-[var(--ink-muted)] tabular-nums">
+                        <span className="flex items-center gap-1 text-[var(--text-secondary)] tabular-nums">
                           <span className="w-2 h-2 rounded-full bg-[var(--rule)] shrink-0" />
                           <span>Rem: {Math.floor(remainingM / 60)}h {remainingM % 60}m</span>
                         </span>
@@ -508,19 +508,19 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                     {/* FIRST IN */}
                     <div className="p-3 rounded-lg border border-[var(--rule)] bg-[var(--paper)]/50 flex flex-col justify-between">
                       <div>
-                        <p className="text-[10px] font-mono font-semibold text-[var(--ink-muted)] uppercase tracking-wider flex items-center gap-1.5">
+                        <p className="text-xs font-normal  font-semibold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
                           <LogIn size={12} className={data.isLate ? 'text-amber-600' : 'text-emerald-700'} /> First In
                         </p>
-                        <p className={`text-base font-bold font-mono tabular-nums mt-1 ${data.isLate ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-800 dark:text-emerald-400'}`}>
+                        <p className={`text-base font-semibold  tabular-nums mt-1 ${data.isLate ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-800 dark:text-emerald-400'}`}>
                           {formatTime12h(data.inTime) || '—'}
                         </p>
                       </div>
                       <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t border-[var(--rule)]/50">
-                        <span className="text-[10px] font-mono tabular-nums text-[var(--ink-muted)]">
+                        <span className="text-xs font-normal  tabular-nums text-[var(--text-secondary)]">
                           {data.inTime ? `${data.inTime}` : 'No punch'}
                         </span>
                         {data.isLate && (
-                          <span className="text-[10px] font-mono tabular-nums font-medium px-1 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                          <span className="text-xs font-normal  tabular-nums font-medium px-1 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-200">
                             +{data.lateMinutes}m
                           </span>
                         )}
@@ -530,19 +530,19 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                     {/* LAST OUT */}
                     <div className="p-3 rounded-lg border border-[var(--rule)] bg-[var(--paper)]/50 flex flex-col justify-between">
                       <div>
-                        <p className="text-[10px] font-mono font-semibold text-[var(--ink-muted)] uppercase tracking-wider flex items-center gap-1.5">
+                        <p className="text-xs font-normal  font-semibold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
                           <LogOut size={12} className="text-neutral-600" /> Last Out
                         </p>
-                        <p className={`text-base font-bold font-mono tabular-nums mt-1 ${data.outTime ? 'text-indigo-700 dark:text-indigo-400' : 'text-[var(--ink-muted)] opacity-60'}`}>
+                        <p className={`text-base font-semibold  tabular-nums mt-1 ${data.outTime ? 'text-indigo-700 dark:text-indigo-400' : 'text-[var(--text-secondary)] opacity-60'}`}>
                           {formatTime12h(data.outTime) || (data.inTime ? 'Open' : '—')}
                         </p>
                       </div>
                       <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t border-[var(--rule)]/50">
-                        <span className="text-[10px] font-mono tabular-nums text-[var(--ink-muted)]">
+                        <span className="text-xs font-normal  tabular-nums text-[var(--text-secondary)]">
                           {data.outTime ? `${data.outTime}` : (data.inTime ? 'Awaiting Out' : 'No punch')}
                         </span>
                         {data.isEarly && (
-                          <span className="text-[10px] font-mono tabular-nums font-medium px-1 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                          <span className="text-xs font-normal  tabular-nums font-medium px-1 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-200">
                             -{data.earlyMinutes}m
                           </span>
                         )}
@@ -552,15 +552,15 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                     {/* BREAK TIME */}
                     <div className="p-3 rounded-lg border border-[var(--rule)] bg-[var(--paper)]/50 flex flex-col justify-between">
                       <div>
-                        <p className="text-[10px] font-mono font-semibold text-[var(--ink-muted)] uppercase tracking-wider flex items-center gap-1.5">
+                        <p className="text-xs font-normal  font-semibold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
                           <Timer size={12} className="text-amber-600" /> Break Time
                         </p>
-                        <p className="text-base font-bold font-mono tabular-nums text-[var(--ink)] mt-1">
+                        <p className="text-base font-semibold  tabular-nums text-[var(--text-primary)] mt-1">
                           {data.breakMinutes > 0 ? `${data.breakMinutes} mins` : '0 mins'}
                         </p>
                       </div>
                       <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t border-[var(--rule)]/50">
-                        <span className="text-[10px] font-mono tabular-nums text-[var(--ink-muted)]">
+                        <span className="text-xs font-normal  tabular-nums text-[var(--text-secondary)]">
                           {data.breakMinutes > 0 ? `${data.breakMinutes}m logged` : 'No break logged'}
                         </span>
                       </div>
@@ -569,15 +569,15 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                     {/* TOTAL SWIPES */}
                     <div className="p-3 rounded-lg border border-[var(--rule)] bg-[var(--paper)]/50 flex flex-col justify-between">
                       <div>
-                        <p className="text-[10px] font-mono font-semibold text-[var(--ink-muted)] uppercase tracking-wider flex items-center gap-1.5">
-                          <Activity size={12} className="text-[var(--ink-muted)]" /> Swipes
+                        <p className="text-xs font-normal  font-semibold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
+                          <Activity size={12} className="text-[var(--text-secondary)]" /> Swipes
                         </p>
-                        <p className="text-base font-bold font-mono tabular-nums text-[var(--ink)] mt-1">
+                        <p className="text-base font-semibold  tabular-nums text-[var(--text-primary)] mt-1">
                           {data.totalPunches} {data.totalPunches === 1 ? 'Punch' : 'Punches'}
                         </p>
                       </div>
                       <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t border-[var(--rule)]/50">
-                        <span className="text-[10px] font-mono tabular-nums text-[var(--ink-muted)]">
+                        <span className="text-xs font-normal  tabular-nums text-[var(--text-secondary)]">
                           {punchList.length} punch log{punchList.length === 1 ? '' : 's'}
                         </span>
                       </div>
@@ -605,11 +605,11 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                 {/* 3. Punch Activity Feed */}
                 <div className="space-y-3 pt-1">
                   <div className="flex items-center justify-between border-b border-[var(--rule)] pb-2">
-                    <h4 className="text-xs font-mono font-bold text-[var(--ink)] uppercase tracking-wider flex items-center gap-1.5">
-                      <Activity size={13} className="text-[var(--ink-muted)]" />
+                    <h4 className="text-xs  font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-1.5">
+                      <Activity size={13} className="text-[var(--text-secondary)]" />
                       <span>Punch Audit Trail ({data.totalPunches})</span>
                     </h4>
-                    <span className="text-[11px] font-mono text-[var(--ink-muted)]">Chronological</span>
+                    <span className="text-xs font-normal  text-[var(--text-secondary)]">Chronological</span>
                   </div>
 
                   {loading && punchList.length === 0 ? (
@@ -619,9 +619,9 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                     </div>
                   ) : punchList.length === 0 ? (
                     <div className="p-8 text-center rounded-lg border border-dashed border-[var(--rule)] bg-[var(--paper)]/30">
-                      <Clock size={28} className="mx-auto text-[var(--ink-muted)] opacity-40 mb-2" />
-                      <p className="text-xs font-semibold text-[var(--ink)]">No punch logs recorded</p>
-                      <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
+                      <Clock size={28} className="mx-auto text-[var(--text-secondary)] opacity-40 mb-2" />
+                      <p className="text-xs font-semibold text-[var(--text-primary)]">No punch logs recorded</p>
+                      <p className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">
                         No biometric or web punches recorded for this day.
                       </p>
                       {canEdit && (
@@ -634,7 +634,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                             setEditModalPunchId2(undefined);
                             setEditModalOpen(true);
                           }}
-                          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--paper)] text-xs font-mono font-medium text-[var(--ink)] cursor-pointer transition-colors shadow-2xs"
+                          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--paper)] text-xs  font-medium text-[var(--text-primary)] cursor-pointer transition-colors shadow-2xs"
                         >
                           <Plus size={13} />
                           <span>Add Attendance</span>
@@ -656,10 +656,10 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                             {isOdd && (
                               <div className="flex items-center justify-between pt-2 first:pt-0 pb-1.5 px-0.5 border-b border-[var(--rule)]">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-[var(--ink)]">
+                                  <span className=" text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)]">
                                     Session #{pairNumber}
                                   </span>
-                                  <span className="font-mono text-[10px] font-medium text-[var(--ink-muted)] bg-[var(--paper)] px-2 py-0.5 rounded border border-[var(--rule)]">
+                                  <span className=" text-xs font-normal font-medium text-[var(--text-secondary)] bg-[var(--paper)] px-2 py-0.5 rounded border border-[var(--rule)]">
                                     {nextOutPunch ? `Punches #${punchNumber} & #${punchNumber + 1}` : `Punch #${punchNumber} (Open)`}
                                   </span>
                                 </div>
@@ -671,10 +671,10 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                                       type="button"
                                       onClick={() => handleOpenEditModal(punch, nextOutPunch)}
                                       aria-label={`Edit Session #${pairNumber}`}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--paper)] text-xs font-mono font-medium text-[var(--ink)] cursor-pointer transition-colors shadow-2xs"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--paper)] text-xs  font-medium text-[var(--text-primary)] cursor-pointer transition-colors shadow-2xs"
                                       title={`Edit Session #${pairNumber}`}
                                     >
-                                      <Edit3 size={11} className="text-[var(--ink-muted)]" aria-hidden="true" />
+                                      <Edit3 size={11} className="text-[var(--text-secondary)]" aria-hidden="true" />
                                       <span>Edit</span>
                                     </button>
                                   )}
@@ -684,7 +684,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                                       type="button"
                                       onClick={() => handleOpenDeletePairModal(punch, nextOutPunch, pairNumber)}
                                       aria-label={nextOutPunch ? `Delete Pair #${pairNumber}` : 'Delete Punch'}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-transparent hover:border-red-200 hover:bg-red-50/70 text-xs font-mono text-[var(--ink-muted)] hover:text-red-700 cursor-pointer transition-colors"
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-transparent hover:border-red-200 hover:bg-red-50/70 text-xs  text-[var(--text-secondary)] hover:text-red-700 cursor-pointer transition-colors"
                                       title={`Delete entire Pair #${pairNumber}`}
                                     >
                                       <Trash2 size={11} aria-hidden="true" />
@@ -709,56 +709,56 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                               </div>
 
                               {/* Punch Ledger Card */}
-                              <div className="p-3 rounded-lg border border-[var(--rule)] bg-[var(--surface)] hover:border-[var(--ink-muted)]/50 transition-colors">
+                              <div className="p-3 rounded-lg border border-[var(--rule)] bg-[var(--surface)] hover:border-[var(--text-secondary)]/50 transition-colors">
                                 <div className="flex items-center justify-between gap-3">
                                   {/* Left: Type tag, time */}
                                   <div className="flex items-center gap-2 flex-wrap">
                                     {isIn ? (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 tracking-wider">
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-normal  font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 tracking-wider">
                                         <LogIn size={10} strokeWidth={2.5} aria-hidden="true" />
                                         IN
                                       </span>
                                     ) : (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-neutral-100 text-neutral-700 border border-neutral-300 tracking-wider">
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-normal  font-semibold bg-neutral-100 text-neutral-700 border border-neutral-300 tracking-wider">
                                         <LogOut size={10} strokeWidth={2.5} aria-hidden="true" />
                                         OUT
                                       </span>
                                     )}
 
-                                    <span className="text-sm font-bold font-mono tabular-nums text-[var(--ink)]">
+                                    <span className="text-sm font-semibold  tabular-nums text-[var(--text-primary)]">
                                       {punch.timeShort}
                                     </span>
-                                    <span className="text-xs font-mono tabular-nums text-[var(--ink-muted)]">
+                                    <span className="text-xs  tabular-nums text-[var(--text-secondary)]">
                                       ({punch.time})
                                     </span>
                                   </div>
 
                                   {/* Right: Punch number tag */}
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-mono tabular-nums font-medium bg-[var(--paper)] text-[var(--ink-muted)] px-1.5 py-0.5 rounded border border-[var(--rule)]">
+                                    <span className="text-xs font-normal  tabular-nums font-medium bg-[var(--paper)] text-[var(--text-secondary)] px-1.5 py-0.5 rounded border border-[var(--rule)]">
                                       #{punchNumber}
                                     </span>
                                   </div>
                                 </div>
 
                                 {/* Metadata row: Device, Mode, Location, IP, Photo */}
-                                <div className="mt-2 pt-2 border-t border-[var(--rule)]/60 flex items-center justify-between flex-wrap gap-2 text-xs text-[var(--ink-muted)]">
+                                <div className="mt-2 pt-2 border-t border-[var(--rule)]/60 flex items-center justify-between flex-wrap gap-2 text-xs text-[var(--text-secondary)]">
                                   <div className="flex items-center gap-1.5">
                                     {getVerifyIcon(punch.verifyType)}
-                                    <span className="font-mono font-medium text-[var(--ink)]">
+                                    <span className=" font-medium text-[var(--text-primary)]">
                                       {punch.verifyType || 'Biometric'}
                                     </span>
-                                    <span className="text-[var(--ink-muted)] text-[11px] font-mono tabular-nums">• {punch.machineNumber}</span>
+                                    <span className="text-[var(--text-secondary)] text-xs font-normal  tabular-nums">• {punch.machineNumber}</span>
                                   </div>
 
                                   <div className="flex items-center gap-2 flex-wrap">
                                     {punch.ipAddress && (
-                                      <div className="flex items-center gap-1 text-[11px]">
-                                        <span className="font-mono tabular-nums text-[10px] font-medium text-[var(--ink)] bg-[var(--paper)] px-1.5 py-0.5 rounded border border-[var(--rule)]">
+                                      <div className="flex items-center gap-1 text-xs font-normal">
+                                        <span className=" tabular-nums text-xs font-normal font-medium text-[var(--text-primary)] bg-[var(--paper)] px-1.5 py-0.5 rounded border border-[var(--rule)]">
                                           {punch.ipAddress}
                                         </span>
                                         {punch.isIpValid !== null && (
-                                          <span className="px-1 py-0.2 rounded font-mono text-[10px] font-medium text-[var(--ink-muted)] border border-[var(--rule)] bg-[var(--paper)]">
+                                          <span className="px-1 py-0.2 rounded  text-xs font-normal font-medium text-[var(--text-secondary)] border border-[var(--rule)] bg-[var(--paper)]">
                                             {punch.isIpValid ? 'Office' : 'Remote'}
                                           </span>
                                         )}
@@ -766,11 +766,11 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                                     )}
 
                                     {punch.latitude && punch.longitude && (
-                                      <div className="flex items-center gap-1 text-[11px]">
+                                      <div className="flex items-center gap-1 text-xs font-normal">
                                         <MapPin size={11} className="text-neutral-500 shrink-0" aria-hidden="true" />
-                                        <span className="font-mono tabular-nums text-[10px]">{punch.latitude.toFixed(3)}, {punch.longitude.toFixed(3)}</span>
+                                        <span className=" tabular-nums text-xs font-normal">{punch.latitude.toFixed(3)}, {punch.longitude.toFixed(3)}</span>
                                         {punch.isGeofenceValid !== null && (
-                                          <span className="px-1.5 py-0.2 rounded font-mono text-[10px] font-medium text-emerald-800 bg-emerald-50 border border-emerald-200">
+                                          <span className="px-1.5 py-0.2 rounded  text-xs font-normal font-medium text-emerald-800 bg-emerald-50 border border-emerald-200">
                                             {punch.isGeofenceValid ? 'Geofenced' : 'Outside'}
                                           </span>
                                         )}
@@ -782,7 +782,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                                         type="button"
                                         onClick={() => setSelectedPhoto(punch.photoUrl)}
                                         aria-label="View punch photo verification"
-                                        className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--accent)] hover:underline font-medium cursor-pointer ml-1"
+                                        className="inline-flex items-center gap-1 text-xs font-normal  text-[var(--accent)] hover:underline font-medium cursor-pointer ml-1"
                                       >
                                         <Camera size={12} aria-hidden="true" />
                                         <span>Photo</span>
@@ -813,12 +813,12 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-between">
-                        <h4 id="photo-preview-title" className="text-xs font-mono font-bold text-[var(--ink)]">Punch Verification Photo</h4>
+                        <h4 id="photo-preview-title" className="text-xs  font-semibold text-[var(--text-primary)]">Punch Verification Photo</h4>
                         <button
                           type="button"
                           onClick={() => setSelectedPhoto(null)}
                           aria-label="Close photo preview"
-                          className="p-1 rounded text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                          className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
                         >
                           <X size={15} aria-hidden="true" />
                         </button>
@@ -836,7 +836,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
 
             {/* Modal Footer */}
             <div className="px-6 py-3.5 border-t border-[var(--rule)] bg-[var(--paper)]/60 flex items-center justify-between gap-3 shrink-0">
-              <span className="text-[11px] font-mono text-[var(--ink-muted)]">
+              <span className="text-xs font-normal  text-[var(--text-secondary)]">
                 {punchList.length} swipe log{punchList.length === 1 ? '' : 's'}
               </span>
 
@@ -847,7 +847,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                     type="button"
                     onClick={() => setConfirmDayDeleteOpen(true)}
                     disabled={isDeletingDay}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-[var(--rule)] hover:border-red-300 text-xs font-mono text-[var(--ink-muted)] hover:text-red-700 hover:bg-red-50/60 dark:hover:bg-red-950/20 transition-all cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-[var(--rule)] hover:border-red-300 text-xs  text-[var(--text-secondary)] hover:text-red-700 hover:bg-red-50/60 dark:hover:bg-red-950/20 transition-all cursor-pointer disabled:opacity-50"
                   >
                     <Trash2 size={12} />
                     <span>Delete Day Attendance</span>
@@ -857,7 +857,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-1.5 rounded border border-[var(--rule)] bg-[var(--surface)] text-xs font-medium text-[var(--ink)] hover:bg-[var(--paper)] cursor-pointer transition-colors shadow-2xs"
+                  className="px-4 py-1.5 rounded border border-[var(--rule)] bg-[var(--surface)] text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--paper)] cursor-pointer transition-colors shadow-2xs"
                 >
                   Close
                 </button>
@@ -906,19 +906,19 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
               <strong className="text-[var(--text-primary)]">{data?.employee?.name}</strong> on{' '}
               <strong className="text-[var(--text-primary)]">{data?.formattedDate || date}</strong>?
             </p>
-            <div className="p-3 rounded-lg bg-[var(--surface-secondary)] border border-[var(--border)] font-mono text-[11px] space-y-1">
+            <div className="p-3 rounded-lg bg-[var(--surface-secondary)] border border-[var(--border)]  text-xs font-normal space-y-1">
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">In Punch:</span>
-                <span className="font-bold text-[var(--text-primary)]">{pairToDelete?.inPunch?.timeShort || '—'}</span>
+                <span className="font-semibold text-[var(--text-primary)]">{pairToDelete?.inPunch?.timeShort || '—'}</span>
               </div>
               {pairToDelete?.outPunch && (
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-rose-600 dark:text-rose-400">Out Punch:</span>
-                  <span className="font-bold text-[var(--text-primary)]">{pairToDelete?.outPunch?.timeShort || '—'}</span>
+                  <span className="font-semibold text-[var(--text-primary)]">{pairToDelete?.outPunch?.timeShort || '—'}</span>
                 </div>
               )}
             </div>
-            <p className="text-[11px] text-[var(--text-muted)]">
+            <p className="text-xs font-normal text-[var(--text-muted)]">
               This pair will be removed, and daily attendance will be recalculated with any remaining punches.
             </p>
           </div>
@@ -941,7 +941,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
               <strong className="text-[var(--text-primary)]">{data?.employee?.name}</strong> on{' '}
               <strong className="text-[var(--text-primary)]">{data?.formattedDate || date}</strong>?
             </p>
-            <p className="text-[11px] text-[var(--text-muted)]">
+            <p className="text-xs font-normal text-[var(--text-muted)]">
               This will permanently remove all punches for this day. The daily attendance status will be recalculated based on their shift roster.
             </p>
           </div>

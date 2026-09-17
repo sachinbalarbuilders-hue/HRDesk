@@ -252,12 +252,12 @@ export const EmailSettingsTab: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-[var(--text-primary)]">SMTP Server</span>
                   {provider === 'Smtp' && (
-                    <span className="w-4 h-4 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-[10px]">
+                    <span className="w-4 h-4 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-xs font-normal">
                       <Check size={10} strokeWidth={3} />
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-1 leading-snug">
+                <p className="text-xs font-normal text-[var(--text-secondary)] mt-1 leading-snug">
                   Connect to Google Workspace, Microsoft 365, Zoho Mail, or custom SMTP host.
                 </p>
               </div>
@@ -285,12 +285,12 @@ export const EmailSettingsTab: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-[var(--text-primary)]">SendGrid API</span>
                   {provider === 'SendGrid' && (
-                    <span className="w-4 h-4 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-[10px]">
+                    <span className="w-4 h-4 rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-xs font-normal">
                       <Check size={10} strokeWidth={3} />
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-1 leading-snug">
+                <p className="text-xs font-normal text-[var(--text-secondary)] mt-1 leading-snug">
                   High-reliability cloud transactional email delivery through Twilio SendGrid API.
                 </p>
               </div>
@@ -335,7 +335,7 @@ export const EmailSettingsTab: React.FC = () => {
           <Card>
             <CardHeader
               actions={
-                <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                <div className="flex items-center gap-1.5 text-xs font-normal text-[var(--text-muted)]">
                   <Server size={13} className="text-[var(--text-secondary)]" /> Standard Port: 587 (STARTTLS)
                 </div>
               }
@@ -349,7 +349,7 @@ export const EmailSettingsTab: React.FC = () => {
             <div className="space-y-4">
               {/* Presets bar */}
               <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)]">
-                <span className="text-xs font-medium text-[var(--text-secondary)] block mb-2">
+                <span className="text-sm font-semibold text-[var(--text-secondary)] block mb-2">
                   Quick Provider Presets:
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -358,7 +358,7 @@ export const EmailSettingsTab: React.FC = () => {
                       key={p.label}
                       type="button"
                       onClick={() => handleApplyPreset(p)}
-                      className="px-2.5 py-1 text-[11px] font-medium rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all cursor-pointer shadow-xs"
+                      className="px-2.5 py-1 text-xs font-normal font-medium rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all cursor-pointer shadow-xs"
                     >
                       {p.label}
                     </button>
@@ -444,7 +444,7 @@ export const EmailSettingsTab: React.FC = () => {
                 icon={<Key size={14} />}
                 helperText="Must have 'Mail Send' full-access permission in SendGrid."
               />
-              <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1.5 pt-1">
+              <div className="text-xs font-normal text-[var(--text-muted)] flex items-center gap-1.5 pt-1">
                 <HelpCircle size={12} />
                 <span>You can generate an API key from your{' '}</span>
                 <a
@@ -513,7 +513,7 @@ export const EmailSettingsTab: React.FC = () => {
               type="button"
               onClick={handleSendTest}
               disabled={testing || !isConfigured}
-              className="btn-secondary py-2 px-4 text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer shrink-0"
+              className="btn-secondary py-2 px-4 text-sm font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer shrink-0"
             >
               {testing ? (
                 <>
@@ -528,7 +528,7 @@ export const EmailSettingsTab: React.FC = () => {
           </div>
 
           {!isConfigured && (
-            <p className="text-[11px] text-[var(--warning)] flex items-center gap-1.5 pt-1">
+            <p className="text-xs font-normal text-[var(--warning)] flex items-center gap-1.5 pt-1">
               <AlertCircle size={12} /> Please save and verify your email configuration above before executing a test dispatch.
             </p>
           )}

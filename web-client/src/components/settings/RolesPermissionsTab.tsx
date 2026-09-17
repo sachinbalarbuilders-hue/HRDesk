@@ -292,18 +292,18 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
   };
 
   return (
-    <div className="space-y-6 font-ui">
+    <div className="space-y-6 ">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column: Roles Selector Sidebar */}
         <div className="space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-[var(--rule)]">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--ink)] font-ui flex items-center gap-1.5">
-              <Shield size={14} className="text-[var(--gold-500)]" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)]  flex items-center gap-1.5">
+              <Shield size={14} className="text-[var(--accent)]" />
               <span>Roles & Profiles</span>
             </span>
             <button
               onClick={() => setCreateRoleModalOpen(true)}
-              className="btn-primary text-[11px] py-1 px-2.5 flex items-center gap-1 cursor-pointer"
+              className="btn-primary text-xs font-normal py-1 px-2.5 flex items-center gap-1 cursor-pointer"
               title="Create Custom Role"
             >
               <Plus size={12} />
@@ -322,7 +322,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                   className={`w-full p-3 rounded-[6px] text-left transition-all flex items-center justify-between cursor-pointer border relative ${
                     isSelected
                       ? 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-500 shadow-xs'
-                      : 'bg-[var(--surface)] text-[var(--ink)] border-[var(--rule)] hover:border-[var(--ink-muted)]'
+                      : 'bg-[var(--surface)] text-[var(--text-primary)] border-[var(--rule)] hover:border-[var(--text-secondary)]'
                   }`}
                 >
                   {/* Left-edge active indicator */}
@@ -332,16 +332,16 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
 
                   <div className="pl-1.5">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-semibold text-[var(--ink)]">
+                      <p className="text-xs font-semibold text-[var(--text-primary)]">
                         {role.name}
                       </p>
                       {role.isBranchSpecific && (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
+                        <span className="px-1.5 py-0.2 rounded text-xs font-normal font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
                           Branch
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] font-data text-[var(--ink-muted)] mt-0.5">
+                    <p className="text-xs font-normal  text-[var(--text-secondary)] mt-0.5">
                       {role.isSystemRole
                         ? 'System Built-in'
                         : role.isBranchSpecific
@@ -351,7 +351,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded-[3px] text-[10px] font-data font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink-muted)]">
+                    <span className="px-1.5 py-0.5 rounded-[3px] text-xs font-normal  font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--text-secondary)]">
                       {role.userCount || 0} users
                     </span>
                     {!role.isSystemRole && (
@@ -360,7 +360,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                           e.stopPropagation();
                           roleArchive.archive({ id: role.publicId, name: role.name, isArchived: false });
                         }}
-                        className="p-1 text-[var(--ink-muted)] hover:text-rose-600 rounded cursor-pointer"
+                        className="p-1 text-[var(--text-secondary)] hover:text-rose-600 rounded cursor-pointer"
                         title="Delete Role"
                       >
                         <Trash2 size={12} />
@@ -379,21 +379,21 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
           <div className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-display text-base font-semibold text-[var(--ink)]">
+                <h2 className=" text-base font-semibold text-[var(--text-primary)]">
                   {roleDetail?.name || 'Loading role...'}
                 </h2>
                 {roleDetail?.isSystemRole ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--gold-100)] text-[var(--gold-500)] text-[10px] font-data font-bold border border-[var(--gold-500)]/40">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[var(--gold-100)] text-[var(--accent)] text-xs font-normal  font-semibold border border-[var(--accent)]/40">
                     <Shield size={10} />
                     System Role (Non-deletable)
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-data font-bold border border-emerald-200 dark:border-emerald-900/60">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-normal  font-semibold border border-emerald-200 dark:border-emerald-900/60">
                     Custom Configurable
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                 {roleDetail?.description ||
                   `Configure granular data scopes (View, Create, Edit, Delete) and restrictions for ${branchName || 'this branch'}.`}
               </p>
@@ -403,13 +403,13 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
             <div className="flex items-center gap-2 text-xs">
               <button
                 onClick={expandAll}
-                className="btn-outline py-1 px-2.5 text-[11px] cursor-pointer"
+                className="btn-outline py-1 px-2.5 text-xs font-normal cursor-pointer"
               >
                 Expand All
               </button>
               <button
                 onClick={collapseAll}
-                className="btn-outline py-1 px-2.5 text-[11px] cursor-pointer"
+                className="btn-outline py-1 px-2.5 text-xs font-normal cursor-pointer"
               >
                 Collapse All
               </button>
@@ -447,16 +447,16 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                       {isExpanded ? (
                         <ChevronUp size={16} className="text-indigo-600 dark:text-indigo-400" />
                       ) : (
-                        <ChevronDown size={16} className="text-[var(--ink-muted)]" />
+                        <ChevronDown size={16} className="text-[var(--text-secondary)]" />
                       )}
                       {getModuleIcon(defGroup.module)}
-                      <span className="font-semibold text-sm text-[var(--ink)]">
+                      <span className="font-semibold text-sm text-[var(--text-primary)]">
                         {defGroup.module}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-medium font-data px-2 py-0.5 rounded-full bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink-muted)]">
+                      <span className="text-xs font-normal font-medium  px-2 py-0.5 rounded-full bg-[var(--paper)] border border-[var(--rule)] text-[var(--text-secondary)]">
                         {grantedCount} / {defGroup.permissions.length} active
                       </span>
                     </div>
@@ -535,11 +535,11 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                                 <div className="flex items-center justify-between pb-2 border-b border-[var(--rule)]/60">
                                   <div className="flex items-center gap-2">
                                     <GroupIcon size={15} className="text-indigo-600 dark:text-indigo-400" />
-                                    <h4 className="text-xs font-bold text-[var(--ink)] tracking-wide">
+                                    <h4 className="text-xs font-semibold text-[var(--text-primary)] tracking-wide">
                                       {group.title}
                                     </h4>
                                   </div>
-                                  <span className="text-[10px] font-medium font-data px-2 py-0.5 rounded-full bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink-muted)]">
+                                  <span className="text-xs font-normal font-medium  px-2 py-0.5 rounded-full bg-[var(--paper)] border border-[var(--rule)] text-[var(--text-secondary)]">
                                     {groupGrantedCount} / {groupPerms.length} active
                                   </span>
                                 </div>
@@ -596,17 +596,17 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                                                 );
                                               }
                                             }}
-                                            className={`text-xs font-medium cursor-pointer select-none ${
+                                            className={`text-sm font-semibold cursor-pointer select-none ${
                                               isGranted
-                                                ? 'text-[var(--ink)] font-semibold'
-                                                : 'text-[var(--ink-muted)] line-through'
+                                                ? 'text-[var(--text-primary)] font-semibold'
+                                                : 'text-[var(--text-secondary)] line-through'
                                             }`}
                                           >
                                             {perm.displayName} {perm.supportsScope ? ':' : ''}
                                           </label>
 
                                           {isSuccess && (
-                                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 animate-in fade-in">
+                                            <span className="inline-flex items-center gap-0.5 text-xs font-normal font-semibold text-emerald-600 animate-in fade-in">
                                               <Check size={10} />
                                             </span>
                                           )}
@@ -624,7 +624,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                                           />
                                         ) : (
                                           <span
-                                            className={`text-[10px] font-data px-2 py-0.5 rounded border select-none ${
+                                            className={`text-xs font-normal  px-2 py-0.5 rounded border select-none ${
                                               isGranted
                                                 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60'
                                                 : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700'
@@ -698,17 +698,17 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                                             );
                                           }
                                         }}
-                                        className={`text-xs font-medium cursor-pointer select-none ${
+                                        className={`text-sm font-semibold cursor-pointer select-none ${
                                           isGranted
-                                            ? 'text-[var(--ink)] font-semibold'
-                                            : 'text-[var(--ink-muted)] line-through'
+                                            ? 'text-[var(--text-primary)] font-semibold'
+                                            : 'text-[var(--text-secondary)] line-through'
                                         }`}
                                       >
                                         {perm.displayName} :
                                       </label>
 
                                       {isSuccess && (
-                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 animate-in fade-in">
+                                        <span className="inline-flex items-center gap-0.5 text-xs font-normal font-semibold text-emerald-600 animate-in fade-in">
                                           <Check size={10} />
                                         </span>
                                       )}
@@ -733,13 +733,13 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                           {moduleSubSections.length > 0 && (
                             <div className="pt-3 border-t border-[var(--rule)]/60 space-y-2">
                               <div className="flex items-center justify-between">
-                                <label className="text-xs font-semibold text-[var(--ink)]">
+                                <label className="text-xs font-semibold text-[var(--text-primary)]">
                                   Restricted Sub-sections :
                                 </label>
                                 <button
                                   type="button"
                                   onClick={() => setFieldModalModule(defGroup.module)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-black text-white dark:bg-white dark:text-black text-[10px] font-medium hover:opacity-85 transition-opacity cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-black text-white dark:bg-white dark:text-black text-xs font-normal font-medium hover:opacity-85 transition-opacity cursor-pointer"
                                 >
                                   <Eye size={11} />
                                   <span>view</span>
@@ -758,8 +758,8 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                                       key={subName}
                                       className={`flex items-center gap-1.5 text-xs select-none p-1 rounded transition-colors ${
                                         isSystem
-                                          ? 'opacity-60 cursor-not-allowed text-[var(--ink-muted)]'
-                                          : 'cursor-pointer hover:text-indigo-600 text-[var(--ink)]'
+                                          ? 'opacity-60 cursor-not-allowed text-[var(--text-secondary)]'
+                                          : 'cursor-pointer hover:text-indigo-600 text-[var(--text-primary)]'
                                       }`}
                                     >
                                       <input
@@ -771,7 +771,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                                         }
                                         className="rounded border-gray-300 dark:border-gray-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer h-3.5 w-3.5"
                                       />
-                                      <span className="text-[11px] font-medium">{subName}</span>
+                                      <span className="text-xs font-normal font-medium">{subName}</span>
                                     </label>
                                   );
                                 })}
@@ -782,7 +782,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                           {/* Simple Boolean Permissions (Toggles) */}
                           {togglePerms.length > 0 && (
                             <div className="pt-3 border-t border-[var(--rule)]/60 space-y-2">
-                              <span className="text-[11px] font-bold text-[var(--ink-muted)] uppercase tracking-wider">
+                              <span className="text-xs font-normal font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                                 Additional Module Capabilities
                               </span>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
@@ -796,10 +796,10 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
                                       className="flex items-center justify-between p-2.5 rounded-lg border border-[var(--rule)] bg-[var(--paper)]/50"
                                     >
                                       <div className="pr-3">
-                                        <p className="text-xs font-semibold text-[var(--ink)]">
+                                        <p className="text-xs font-semibold text-[var(--text-primary)]">
                                           {perm.displayName}
                                         </p>
-                                        <p className="text-[10px] text-[var(--ink-muted)]">
+                                        <p className="text-xs font-normal text-[var(--text-secondary)]">
                                           {perm.description}
                                         </p>
                                       </div>
@@ -848,28 +848,28 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-lg shadow-2xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
                 <Eye size={16} className="text-indigo-600 dark:text-indigo-400" />
                 <span>Field Restrictions — {fieldModalModule}</span>
               </h3>
               <button
                 onClick={() => setFieldModalModule(null)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <p className="text-xs text-[var(--ink-muted)] leading-relaxed">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
               Check specific tabs and sub-sections to restrict access for users assigned to this role within{' '}
-              <span className="font-semibold text-[var(--ink)]">{branchName || 'this branch'}</span>.
+              <span className="font-semibold text-[var(--text-primary)]">{branchName || 'this branch'}</span>.
             </p>
 
-            <div className="p-3 bg-[var(--paper)] rounded border border-[var(--rule)] text-xs text-[var(--ink)] space-y-2">
+            <div className="p-3 bg-[var(--paper)] rounded border border-[var(--rule)] text-xs text-[var(--text-primary)] space-y-2">
               <div className="font-semibold text-indigo-700 dark:text-indigo-300">
                 Active Branch Configuration
               </div>
-              <ul className="list-disc list-inside space-y-1 text-[11px] text-[var(--ink-muted)]">
+              <ul className="list-disc list-inside space-y-1 text-xs font-normal text-[var(--text-secondary)]">
                 <li>Checked sub-sections are restricted / masked for this role.</li>
                 <li>All changes auto-save in real time without requiring a server restart.</li>
               </ul>
@@ -893,13 +893,13 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-lg shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
-                <Shield size={16} className="text-[var(--gold-500)]" />
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <Shield size={16} className="text-[var(--accent)]" />
                 <span>Create {branchName ? `Branch Role (${branchName})` : 'Custom Role'}</span>
               </h3>
               <button
                 onClick={() => setCreateRoleModalOpen(false)}
-                className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -907,7 +907,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
 
             <form onSubmit={handleCreateRole} className="space-y-3 text-xs">
               <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Role Name *</label>
+                <label className="block font-medium text-[var(--text-primary)] mb-1">Role Name *</label>
                 <input
                   type="text"
                   value={newRoleName}
@@ -919,7 +919,7 @@ export const RolesPermissionsTab: React.FC<RolesPermissionsTabProps> = ({
               </div>
 
               <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Description</label>
+                <label className="block font-medium text-[var(--text-primary)] mb-1">Description</label>
                 <textarea
                   value={newRoleDesc}
                   onChange={(e) => setNewRoleDesc(e.target.value)}

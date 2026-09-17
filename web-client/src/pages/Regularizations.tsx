@@ -86,7 +86,7 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
 
   if (row.status === 'Approved') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
         <span className="w-2 h-2 rounded-full bg-emerald-500" />
         <span>Approved</span>
       </span>
@@ -95,7 +95,7 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
 
   if (row.status === 'Rejected') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
         <span className="w-2 h-2 rounded-full bg-rose-500" />
         <span>Rejected</span>
       </span>
@@ -104,7 +104,7 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
 
   if (row.status === 'Cancelled') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gray-500/10 text-gray-500 dark:text-gray-400 border border-gray-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-gray-500/10 text-gray-500 dark:text-gray-400 border border-gray-500/20">
         <span className="w-2 h-2 rounded-full bg-gray-400" />
         <span>Cancelled</span>
       </span>
@@ -113,7 +113,7 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
 
   if (row.status === 'Archived') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
         <span className="w-2 h-2 rounded-full bg-slate-400" />
         <span>Archived</span>
       </span>
@@ -123,7 +123,7 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
   // Pending Status
   if (!canApprove && !canCancel) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
         <span className="w-2 h-2 rounded-full bg-amber-500" />
         <span>Pending</span>
       </span>
@@ -135,13 +135,13 @@ const StatusApprovalDropdown: React.FC<StatusApprovalDropdownProps> = ({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center justify-between gap-2 px-2.5 py-1 rounded-md text-xs font-medium border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--ink)] shadow-2xs cursor-pointer transition-all hover:border-[var(--gold-500)]"
+        className="inline-flex items-center justify-between gap-2 px-2.5 py-1 rounded-md text-sm font-semibold border border-[var(--rule)] bg-[var(--surface)] hover:bg-[var(--surface-secondary)] text-[var(--text-primary)] shadow-2xs cursor-pointer transition-all hover:border-[var(--accent)]"
       >
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-amber-500" />
           <span className="font-semibold">Pending</span>
         </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-[var(--ink-muted)] transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-[var(--text-secondary)] transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
@@ -620,8 +620,8 @@ export const Regularizations: React.FC = () => {
             header: 'Employee',
             render: (r) => (
               <div>
-                <div className="font-semibold text-[var(--ink)]">{r.employeeName}</div>
-                <div className="text-[11px] text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
+                <div className="font-semibold text-[var(--text-primary)]">{r.employeeName}</div>
+                <div className="text-xs font-normal text-[var(--text-secondary)] flex items-center gap-1 mt-0.5">
                   <Building2 className="w-3 h-3" />
                   <span>{r.departmentName}</span>
                 </div>
@@ -632,9 +632,9 @@ export const Regularizations: React.FC = () => {
             key: 'requestDate',
             header: 'Request Date',
             render: (r) => (
-              <div className="font-mono">
-                <div className="font-medium text-[var(--ink)]">{r.requestDate}</div>
-                <div className="text-[10px] text-[var(--ink-muted)]">
+              <div className="">
+                <div className="font-medium text-[var(--text-primary)]">{r.requestDate}</div>
+                <div className="text-xs font-normal text-[var(--text-secondary)]">
                   Filed: {new Date(r.createdAt).toLocaleDateString()}
                 </div>
               </div>
@@ -644,18 +644,18 @@ export const Regularizations: React.FC = () => {
             key: 'timings',
             header: 'Adjusted Timings',
             render: (r) => (
-              <div className="font-mono text-[11px]">
+              <div className=" text-xs font-normal">
                 <div className="flex items-center gap-2">
-                  <span className="text-[var(--ink-muted)]">In:</span>
-                  <span className="font-bold text-emerald-600">
+                  <span className="text-[var(--text-secondary)]">In:</span>
+                  <span className="font-semibold text-emerald-600">
                     {r.punchTimeIn
                       ? new Date(r.punchTimeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
                       : '—'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[var(--ink-muted)]">Out:</span>
-                  <span className="font-bold text-indigo-600">
+                  <span className="text-[var(--text-secondary)]">Out:</span>
+                  <span className="font-semibold text-indigo-600">
                     {r.punchTimeOut
                       ? new Date(r.punchTimeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
                       : '—'}
@@ -667,13 +667,13 @@ export const Regularizations: React.FC = () => {
           {
             key: 'requestType',
             header: 'Type & Penalty',
-            render: (r) => <div className="font-medium text-[var(--ink)]">{r.requestType}</div>,
+            render: (r) => <div className="font-medium text-[var(--text-primary)]">{r.requestType}</div>,
           },
           {
             key: 'reason',
             header: 'Reason',
             render: (r) => (
-              <div className="max-w-[200px] truncate text-[var(--ink-muted)]" title={r.reason || ''}>
+              <div className="max-w-[200px] truncate text-[var(--text-secondary)]" title={r.reason || ''}>
                 {r.reason || '—'}
               </div>
             ),
@@ -725,7 +725,7 @@ export const Regularizations: React.FC = () => {
                   ]}
                 />
               ) : (
-                <div className="text-[10px] text-[var(--ink-muted)] font-mono">
+                <div className="text-xs font-normal text-[var(--text-secondary)] ">
                   {r.approvedBy ? `by ${r.approvedBy}` : '—'}
                 </div>
               );
@@ -775,7 +775,7 @@ export const Regularizations: React.FC = () => {
             <form onSubmit={handleSubmitRegularization} className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
               {/* Employee Selection */}
               <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">Select Employee *</label>
+                <label className="block font-semibold text-[var(--text-primary)] mb-1">Select Employee *</label>
                 <select
                 className={`register-input w-full ${createScope === 'Own' || editingId !== null ? 'opacity-70 bg-gray-50 dark:bg-gray-900 cursor-not-allowed' : ''}`}
                 value={regForm.employeeId}
@@ -796,17 +796,17 @@ export const Regularizations: React.FC = () => {
               {/* Date & Type */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Date *</label>
+                  <label className="block font-semibold text-[var(--text-primary)] mb-1">Date *</label>
                   <input
                     type="date"
                     value={regForm.requestDate}
                     onChange={(e) => setRegForm({ ...regForm, requestDate: e.target.value })}
-                    className="register-input w-full font-mono"
+                    className="register-input w-full "
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-[var(--ink)] mb-1">Adjustment Type *</label>
+                  <label className="block font-semibold text-[var(--text-primary)] mb-1">Adjustment Type *</label>
                   <select
                     value={regForm.requestType}
                     onChange={(e) => setRegForm({ ...regForm, requestType: e.target.value })}
@@ -821,25 +821,25 @@ export const Regularizations: React.FC = () => {
 
               {/* Live Punch Information Box */}
               {punchPreview && (
-                <div className="bg-[var(--surface-secondary)] border border-[var(--border)] p-3 rounded-[var(--radius-md)] text-[11px] space-y-1.5 font-data">
+                <div className="bg-[var(--surface-secondary)] border border-[var(--border)] p-3 rounded-[var(--radius-md)] text-xs font-normal space-y-1.5 ">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1 font-semibold text-[var(--text-primary)]">
                       <Info className="w-3.5 h-3.5 text-[var(--accent)]" /> Recorded Status:
                     </span>
-                    <span className="px-1.5 py-0.5 rounded-[var(--radius-sm)] bg-[var(--surface)] font-bold text-[var(--accent)]">
+                    <span className="px-1.5 py-0.5 rounded-[var(--radius-sm)] bg-[var(--surface)] font-semibold text-[var(--accent)]">
                       {punchPreview.currentStatus}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[var(--border)] text-[10px]">
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[var(--border)] text-xs font-normal">
                     <div>
-                      Existing In: <span className="font-bold text-[var(--success)]">{punchPreview.existingInTime || 'No punch'}</span>
+                      Existing In: <span className="font-semibold text-[var(--success)]">{punchPreview.existingInTime || 'No punch'}</span>
                     </div>
                     <div>
-                      Existing Out: <span className="font-bold text-[var(--text-primary)]">{punchPreview.existingOutTime || 'No punch'}</span>
+                      Existing Out: <span className="font-semibold text-[var(--text-primary)]">{punchPreview.existingOutTime || 'No punch'}</span>
                     </div>
                   </div>
                   {punchPreview.shift && (
-                    <div className="text-[10px] text-[var(--text-muted)]">
+                    <div className="text-xs font-normal text-[var(--text-muted)]">
                       Assigned Shift: {punchPreview.shift.name} ({punchPreview.shift.startTime} - {punchPreview.shift.endTime})
                     </div>
                   )}
@@ -849,15 +849,15 @@ export const Regularizations: React.FC = () => {
               {/* Punch Target — only for Missed Punch */}
               {regForm.requestType === 'Missed Punch' && (
               <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">Correction Target *</label>
+                <label className="block font-semibold text-[var(--text-primary)] mb-1">Correction Target *</label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setRegForm({ ...regForm, punchTarget: 'in' })}
                     className={`py-1.5 px-2 rounded-lg border text-center font-medium transition-all ${
                       regForm.punchTarget === 'in'
-                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] font-bold'
-                        : 'border-[var(--rule)] text-[var(--ink-muted)] hover:bg-[var(--paper-subtle)]'
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] font-semibold'
+                        : 'border-[var(--rule)] text-[var(--text-secondary)] hover:bg-[var(--paper-subtle)]'
                     }`}
                   >
                     Punch In Only
@@ -867,8 +867,8 @@ export const Regularizations: React.FC = () => {
                     onClick={() => setRegForm({ ...regForm, punchTarget: 'out' })}
                     className={`py-1.5 px-2 rounded-lg border text-center font-medium transition-all ${
                       regForm.punchTarget === 'out'
-                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] font-bold'
-                        : 'border-[var(--rule)] text-[var(--ink-muted)] hover:bg-[var(--paper-subtle)]'
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] font-semibold'
+                        : 'border-[var(--rule)] text-[var(--text-secondary)] hover:bg-[var(--paper-subtle)]'
                     }`}
                   >
                     Punch Out Only
@@ -878,8 +878,8 @@ export const Regularizations: React.FC = () => {
                     onClick={() => setRegForm({ ...regForm, punchTarget: 'both' })}
                     className={`py-1.5 px-2 rounded-lg border text-center font-medium transition-all ${
                       regForm.punchTarget === 'both'
-                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] font-bold'
-                        : 'border-[var(--rule)] text-[var(--ink-muted)] hover:bg-[var(--paper-subtle)]'
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] font-semibold'
+                        : 'border-[var(--rule)] text-[var(--text-secondary)] hover:bg-[var(--paper-subtle)]'
                     }`}
                   >
                     Both (In & Out)
@@ -898,7 +898,7 @@ export const Regularizations: React.FC = () => {
                       type="time"
                       value={regForm.punchTimeIn}
                       onChange={(e) => setRegForm({ ...regForm, punchTimeIn: e.target.value })}
-                      className="register-input w-full font-mono"
+                      className="register-input w-full "
                       required
                     />
                   </div>
@@ -910,7 +910,7 @@ export const Regularizations: React.FC = () => {
                       type="time"
                       value={regForm.punchTimeOut}
                       onChange={(e) => setRegForm({ ...regForm, punchTimeOut: e.target.value })}
-                      className="register-input w-full font-mono"
+                      className="register-input w-full "
                       required
                     />
                   </div>
@@ -921,7 +921,7 @@ export const Regularizations: React.FC = () => {
 
               {/* Reason */}
               <div>
-                <label className="block font-semibold text-[var(--ink)] mb-1">Reason / Explanation *</label>
+                <label className="block font-semibold text-[var(--text-primary)] mb-1">Reason / Explanation *</label>
                 <textarea
                   value={regForm.reason}
                   onChange={(e) => setRegForm({ ...regForm, reason: e.target.value })}
@@ -949,7 +949,7 @@ export const Regularizations: React.FC = () => {
                     ) : (
                       <>
                         <div className="text-sm text-[var(--text-secondary)]">Click to upload proof</div>
-                        <div className="text-[11px] text-[var(--text-muted)] mt-0.5">PDF, JPG, PNG, DOC (max 5MB)</div>
+                        <div className="text-xs font-normal text-[var(--text-muted)] mt-0.5">PDF, JPG, PNG, DOC (max 5MB)</div>
                       </>
                     )}
                   </label>
@@ -984,10 +984,10 @@ export const Regularizations: React.FC = () => {
       {rejectModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">
           <div className="bg-[var(--paper)] border border-[var(--rule)] rounded-xl shadow-2xl max-w-sm w-full p-4 space-y-3">
-            <h3 className="font-serif font-bold text-base text-rose-600 flex items-center gap-1.5">
+            <h3 className=" font-semibold text-base text-rose-600 flex items-center gap-1.5">
               <XCircle className="w-5 h-5" /> Reject Application
             </h3>
-            <p className="text-xs text-[var(--ink-muted)]">
+            <p className="text-xs text-[var(--text-secondary)]">
               Please specify the reason for rejecting this adjustment request.
             </p>
             <textarea

@@ -88,7 +88,7 @@ export const Modal: React.FC<ModalProps> = ({
                 </h2>
               )}
               {description && (
-                <p id="modal-description" className="text-xs text-[var(--text-secondary)] mt-1">
+                <p id="modal-description" className="text-sm font-normal text-[var(--text-secondary)] mt-1">
                   {description}
                 </p>
               )}

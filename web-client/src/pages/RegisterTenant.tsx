@@ -219,14 +219,14 @@ export const RegisterTenant: React.FC = () => {
           <div className="h-10 w-10 bg-[var(--accent)] rounded flex items-center justify-center text-white shadow-md">
             <Building2 size={24} />
           </div>
-          <span className="font-display font-bold text-2xl tracking-tight text-[var(--ink)]">
-            HRDesk<span className="text-[var(--accent)] text-sm ml-1 font-mono">CLOUD</span>
+          <span className=" font-semibold text-base tracking-tight text-[var(--text-primary)]">
+            HRDesk<span className="text-[var(--accent)] text-sm ml-1 ">CLOUD</span>
           </span>
         </div>
-        <h2 className="mt-4 text-center text-xl font-display font-bold text-[var(--ink)]">
+        <h2 className="mt-4 text-center text-base  font-semibold text-[var(--text-primary)]">
           Create your Organization Workspace
         </h2>
-        <p className="mt-1 text-center text-xs text-[var(--ink-muted)] font-ui">
+        <p className="mt-1 text-center text-xs text-[var(--text-secondary)] ">
           Start your <strong className="text-[var(--accent)]">14-day full free trial</strong>. No credit card required.
         </p>
 
@@ -235,12 +235,12 @@ export const RegisterTenant: React.FC = () => {
           {[1, 2, 3, 4].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-normal font-semibold transition-all ${
                   step === s
                     ? 'bg-[var(--accent)] text-white ring-2 ring-[var(--accent)]/30 shadow-xs'
                     : step > s
                     ? 'bg-emerald-500 text-white'
-                    : 'bg-[var(--surface-sunken)] text-[var(--ink-muted)] border border-[var(--rule)]'
+                    : 'bg-[var(--surface-sunken)] text-[var(--text-secondary)] border border-[var(--rule)]'
                 }`}
               >
                 {step > s ? '✓' : s}
@@ -257,19 +257,19 @@ export const RegisterTenant: React.FC = () => {
           {step === 1 && (
             <form onSubmit={handleNextStep} className="space-y-5">
               <div className="text-center mb-2">
-                <h3 className="text-sm font-display font-bold text-[var(--ink)]">Choose your plan</h3>
-                <p className="text-[11px] text-[var(--ink-muted)] font-ui mt-0.5">
+                <h3 className="text-sm  font-semibold text-[var(--text-primary)]">Choose your plan</h3>
+                <p className="text-xs font-normal text-[var(--text-secondary)]  mt-0.5">
                   All plans include a 14-day free trial. Upgrade or downgrade anytime.
                 </p>
               </div>
 
               {plansLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 size={24} className="animate-spin text-[var(--ink-muted)]" />
-                  <span className="ml-2 text-xs text-[var(--ink-muted)]">Loading plans...</span>
+                  <Loader2 size={24} className="animate-spin text-[var(--text-secondary)]" />
+                  <span className="ml-2 text-xs text-[var(--text-secondary)]">Loading plans...</span>
                 </div>
               ) : plans.length === 0 ? (
-                <div className="text-center py-8 text-xs text-[var(--ink-muted)]">
+                <div className="text-center py-8 text-xs text-[var(--text-secondary)]">
                   <p>Unable to load plans. You can continue with the default plan.</p>
                 </div>
               ) : (
@@ -287,26 +287,26 @@ export const RegisterTenant: React.FC = () => {
                         onClick={() => setSelectedPlanCode(plan.code || plan.name)}
                         className={`relative text-left p-4 rounded-[var(--radius-lg)] border transition-all cursor-pointer ${
                           isSelected
-                            ? 'border-[var(--gold-500)] ring-2 ring-[var(--gold-500)]/30 bg-[var(--gold-500)]/5'
-                            : 'border-[var(--rule)] bg-[var(--surface)] hover:border-[var(--gold-500)]/50'
+                            ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/30 bg-[var(--accent)]/5'
+                            : 'border-[var(--rule)] bg-[var(--surface)] hover:border-[var(--accent)]/50'
                         }`}
                       >
                         {/* Selected checkmark */}
                         {isSelected && (
-                          <div className="absolute top-2 right-2 w-5 h-5 bg-[var(--gold-500)] rounded-full flex items-center justify-center">
+                          <div className="absolute top-2 right-2 w-5 h-5 bg-[var(--accent)] rounded-full flex items-center justify-center">
                             <Check size={12} className="text-white" />
                           </div>
                         )}
 
                         {/* Free badge */}
                         {isFree && (
-                          <span className="inline-block mb-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          <span className="inline-block mb-2 text-xs font-normal font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                             Free Forever
                           </span>
                         )}
 
                         {!isFree && (
-                          <span className="inline-block mb-2 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--gold-500)]/10 text-[var(--gold-600)] dark:text-[var(--gold-400)] border border-[var(--gold-500)]/20">
+                          <span className="inline-block mb-2 text-xs font-normal font-semibold uppercase px-1.5 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent-hover)] dark:text-[var(--gold-400)] border border-[var(--accent)]/20">
                             <Sparkles size={9} className="inline mr-0.5 -mt-px" />
                             14-day trial
                           </span>
@@ -314,25 +314,25 @@ export const RegisterTenant: React.FC = () => {
 
                         <div className="flex items-center gap-1.5 mb-1">
                           {plan.code === 'enterprise' || plan.name?.toLowerCase().includes('enterprise') ? (
-                            <Crown size={14} className="text-[var(--gold-500)]" />
+                            <Crown size={14} className="text-[var(--accent)]" />
                           ) : null}
-                          <span className="text-xs font-bold text-[var(--ink)] font-display">
+                          <span className="text-xs font-semibold text-[var(--text-primary)] ">
                             {plan.name}
                           </span>
                         </div>
 
                         <div className="mb-3">
-                          <span className="text-lg font-bold text-[var(--ink)] font-display">
+                          <span className="text-base font-semibold text-[var(--text-primary)] ">
                             {formatPrice(price)}
                           </span>
                           {!isFree && (
-                            <span className="text-[10px] text-[var(--ink-muted)] font-ui">/month</span>
+                            <span className="text-xs font-normal text-[var(--text-secondary)] ">/month</span>
                           )}
                         </div>
 
                         <ul className="space-y-1">
                           {features.slice(0, 5).map((feature, idx) => (
-                            <li key={idx} className="flex items-start gap-1.5 text-[11px] text-[var(--ink-muted)]">
+                            <li key={idx} className="flex items-start gap-1.5 text-xs font-normal text-[var(--text-secondary)]">
                               <CheckCircle2 size={11} className="text-emerald-500 shrink-0 mt-0.5" />
                               <span>{feature}</span>
                             </li>
@@ -361,18 +361,18 @@ export const RegisterTenant: React.FC = () => {
           {step === 2 && (
             <form onSubmit={handleNextStep} className="space-y-4">
               {selectedPlanCode && (
-                <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--gold-500)]/10 border border-[var(--gold-500)]/20 text-[var(--gold-600)] dark:text-[var(--gold-400)] text-[11px] font-bold">
+                <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent-hover)] dark:text-[var(--gold-400)] text-xs font-normal font-semibold">
                   <Sparkles size={12} />
                   <span>Plan: {selectedPlanCode.replace(/_/g, ' ')}</span>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)]  mb-1">
                   Company / Organization Name *
                 </label>
                 <div className="relative">
-                  <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                  <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                   <input
                     type="text"
                     required
@@ -385,7 +385,7 @@ export const RegisterTenant: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)]  mb-1">
                   Workspace URL *
                 </label>
                 <div className="flex rounded-[var(--radius-md)] shadow-2xs">
@@ -399,16 +399,16 @@ export const RegisterTenant: React.FC = () => {
                     }}
                     onBlur={handleSlugBlur}
                     placeholder="acme"
-                    className="register-input text-xs flex-1 rounded-r-none font-mono"
+                    className="register-input text-xs flex-1 rounded-r-none "
                   />
-                  <span className="inline-flex items-center px-3 rounded-r-[var(--radius-md)] border border-l-0 border-[var(--rule)] bg-[var(--surface-sunken)] text-xs text-[var(--ink-muted)] font-mono">
+                  <span className="inline-flex items-center px-3 rounded-r-[var(--radius-md)] border border-l-0 border-[var(--rule)] bg-[var(--surface-sunken)] text-xs text-[var(--text-secondary)] ">
                     .hrdesk.app
                   </span>
                 </div>
 
-                <div className="mt-1.5 flex items-center justify-between text-[11px] font-ui">
+                <div className="mt-1.5 flex items-center justify-between text-xs font-normal ">
                   {slugChecking ? (
-                    <span className="text-[var(--ink-muted)] flex items-center gap-1">
+                    <span className="text-[var(--text-secondary)] flex items-center gap-1">
                       <Loader2 size={11} className="animate-spin" /> Checking availability...
                     </span>
                   ) : slugAvailable === true ? (
@@ -418,7 +418,7 @@ export const RegisterTenant: React.FC = () => {
                   ) : slugAvailable === false ? (
                     <span className="text-rose-600 dark:text-rose-400 font-semibold">{slugMessage || 'URL taken'}</span>
                   ) : (
-                    <span className="text-[var(--ink-muted)]">Your team will access HRDesk at this URL</span>
+                    <span className="text-[var(--text-secondary)]">Your team will access HRDesk at this URL</span>
                   )}
                 </div>
               </div>
@@ -447,11 +447,11 @@ export const RegisterTenant: React.FC = () => {
           {step === 3 && (
             <form onSubmit={handleNextStep} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)]  mb-1">
                   Full Name *
                 </label>
                 <div className="relative">
-                  <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                  <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                   <input
                     type="text"
                     required
@@ -464,11 +464,11 @@ export const RegisterTenant: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)]  mb-1">
                   Work Email *
                 </label>
                 <div className="relative">
-                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                   <input
                     type="email"
                     required
@@ -481,11 +481,11 @@ export const RegisterTenant: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)]  mb-1">
                   Phone Number
                 </label>
                 <div className="relative">
-                  <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                  <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                   <input
                     type="tel"
                     value={adminPhone}
@@ -498,11 +498,11 @@ export const RegisterTenant: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
+                  <label className="block text-xs font-semibold text-[var(--text-primary)]  mb-1">
                     Password *
                   </label>
                   <div className="relative">
-                    <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                    <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                     <input
                       type="password"
                       required
@@ -516,11 +516,11 @@ export const RegisterTenant: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
+                  <label className="block text-xs font-semibold text-[var(--text-primary)]  mb-1">
                     Confirm *
                   </label>
                   <div className="relative">
-                    <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                    <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                     <input
                       type="password"
                       required
@@ -557,11 +557,11 @@ export const RegisterTenant: React.FC = () => {
           {step === 4 && (
             <form onSubmit={handleFinalSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)]  mb-1">
                   Primary Location / City
                 </label>
                 <div className="relative">
-                  <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+                  <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                   <input
                     type="text"
                     value={city}
@@ -573,11 +573,11 @@ export const RegisterTenant: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink)] font-ui mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-primary)]  mb-1">
                   Estimated Employee Count
                 </label>
                 <div className="relative">
-                  <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-muted)] pointer-events-none" />
+                  <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" />
                   <select
                     value={headcount}
                     onChange={(e) => setHeadcount(e.target.value)}
@@ -632,9 +632,9 @@ export const RegisterTenant: React.FC = () => {
           )}
 
           <div className="mt-6 border-t border-[var(--rule)] pt-4 text-center">
-            <p className="text-xs text-[var(--ink-muted)] font-ui">
+            <p className="text-xs text-[var(--text-secondary)] ">
               Already have an organization?{' '}
-              <Link to="/auth/sign-in" className="font-semibold text-[var(--gold-600)] dark:text-[var(--gold-400)] hover:underline">
+              <Link to="/auth/sign-in" className="font-semibold text-[var(--accent-hover)] dark:text-[var(--gold-400)] hover:underline">
                 Sign in here
               </Link>
             </p>

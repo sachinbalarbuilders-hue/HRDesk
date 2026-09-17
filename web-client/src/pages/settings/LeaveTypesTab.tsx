@@ -180,8 +180,8 @@ export const LeaveTypesTab: React.FC = () => {
       header: 'Leave Category',
       render: (item) => (
         <div className="flex items-center gap-2">
-          <CalendarCheck size={14} className="text-[var(--gold-500)]" />
-          <span className="font-semibold text-xs text-[var(--ink)]">{item.name}</span>
+          <CalendarCheck size={14} className="text-[var(--accent)]" />
+          <span className="font-semibold text-xs text-[var(--text-primary)]">{item.name}</span>
         </div>
       ),
     },
@@ -189,7 +189,7 @@ export const LeaveTypesTab: React.FC = () => {
       key: 'code',
       header: 'Code',
       render: (item) => (
-        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] font-data text-[10px] font-bold text-[var(--ink)]">
+        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)]  text-xs font-normal font-semibold text-[var(--text-primary)]">
           {item.code}
         </span>
       ),
@@ -198,10 +198,10 @@ export const LeaveTypesTab: React.FC = () => {
       key: 'quota',
       header: 'Annual Quota',
       align: 'center',
-      className: 'font-data font-bold text-xs text-[var(--ink)]',
+      className: ' font-semibold text-xs text-[var(--text-primary)]',
       render: (item) =>
         item.code === 'CO' ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" title="Quota is earned dynamically through approved off-day duty claims">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" title="Quota is earned dynamically through approved off-day duty claims">
             Earned via Comp-Off
           </span>
         ) : (
@@ -213,11 +213,11 @@ export const LeaveTypesTab: React.FC = () => {
       header: 'Compensation Type',
       render: (item) =>
         item.isPaid ? (
-          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
             Paid Leave
           </span>
         ) : (
-          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
+          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200">
             Loss of Pay (Unpaid)
           </span>
         ),
@@ -227,11 +227,11 @@ export const LeaveTypesTab: React.FC = () => {
       header: 'Status',
       render: (item) =>
         item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived' ? (
-          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
             Active
           </span>
         ) : (
-          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
             Archived
           </span>
         ),
@@ -372,12 +372,12 @@ export const LeaveTypesTab: React.FC = () => {
                 {leaveFormStep === 1 && (
                 <div className="space-y-3.5">
                   <h4 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-[var(--radius-md)] bg-[var(--accent-light)] text-[var(--accent)] flex items-center justify-center text-[10px] font-bold">1</span>
+                    <span className="w-5 h-5 rounded-[var(--radius-md)] bg-[var(--accent-light)] text-[var(--accent)] flex items-center justify-center text-xs font-normal font-semibold">1</span>
                     Basic Details
                   </h4>
 
                   <div>
-                    <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Category Name *</label>
+                    <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Category Name *</label>
                     <input
                       type="text"
                       value={newLeaveType.name}
@@ -389,24 +389,24 @@ export const LeaveTypesTab: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Code</label>
+                      <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Code</label>
                       <input
                         type="text"
                         value={newLeaveType.code}
                         onChange={(e) => setNewLeaveType({ ...newLeaveType, code: e.target.value.toUpperCase() })}
                         placeholder="e.g. PAT"
-                        className="register-input w-full font-data"
+                        className="register-input w-full "
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">Annual Quota (Days)</label>
+                      <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">Annual Quota (Days)</label>
                       <input
                         type="number"
                         min="0"
                         value={newLeaveType.quota === 0 ? '' : newLeaveType.quota}
                         placeholder="0"
                         onChange={(e) => setNewLeaveType({ ...newLeaveType, quota: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)) })}
-                        className="register-input w-full font-data"
+                        className="register-input w-full "
                       />
                     </div>
                   </div>
@@ -438,10 +438,10 @@ export const LeaveTypesTab: React.FC = () => {
                 {leaveFormStep === 2 && (
                 <div className="space-y-3.5">
                   <h4 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-[var(--radius-md)] bg-[var(--accent-light)] text-[var(--accent)] flex items-center justify-center text-[10px] font-bold">2</span>
+                    <span className="w-5 h-5 rounded-[var(--radius-md)] bg-[var(--accent-light)] text-[var(--accent)] flex items-center justify-center text-xs font-normal font-semibold">2</span>
                     Applicability Rules
                   </h4>
-                  <p className="text-[11px] text-[var(--text-muted)] -mt-2">Leave empty to apply to all. Select specific values to restrict.</p>
+                  <p className="text-xs font-normal text-[var(--text-muted)] -mt-2">Leave empty to apply to all. Select specific values to restrict.</p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <MultiSelectDropdown
@@ -506,7 +506,7 @@ export const LeaveTypesTab: React.FC = () => {
               </div>
 
               <div className="px-5 py-3 border-t border-[var(--border)] flex items-center justify-between shrink-0 bg-[var(--surface-secondary)]">
-                <div className="text-[11px] text-[var(--text-muted)]">Step {leaveFormStep} of 2</div>
+                <div className="text-xs font-normal text-[var(--text-muted)]">Step {leaveFormStep} of 2</div>
                 <div className="flex items-center gap-2">
                   {leaveFormStep === 1 ? (
                     <>

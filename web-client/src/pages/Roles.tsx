@@ -140,21 +140,21 @@ export const Roles: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 font-ui">
+    <div className="space-y-6 ">
       {/* 1. Header with Display Serif and Divider */}
       <div className="space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
           <div>
-            <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">
+            <h1 className=" text-base font-semibold text-[var(--text-primary)]">
               Roles & Permissions
             </h1>
-            <p className="text-xs text-[var(--ink-muted)] font-ui mt-0.5">
+            <p className="text-xs text-[var(--text-secondary)]  mt-0.5">
               Access control matrix & row-level data scoping rules (All, Reporting, Department, Own)
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-data text-[var(--ink-muted)]">
+            <span className="text-xs font-normal  text-[var(--text-secondary)]">
               {roles.length} Roles Configured
             </span>
           </div>
@@ -168,10 +168,10 @@ export const Roles: React.FC = () => {
         {/* Left Column: Roles List */}
         <div className="space-y-2">
           <div className="flex items-center justify-between pb-1 border-b border-[var(--rule)]">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--ink)] font-ui">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-primary)] ">
               System Roles
             </span>
-            <Shield size={14} className="text-[var(--ink-muted)]" />
+            <Shield size={14} className="text-[var(--text-secondary)]" />
           </div>
 
           <div className="space-y-1.5">
@@ -184,25 +184,25 @@ export const Roles: React.FC = () => {
                   onClick={() => setSelectedRoleId(role.id)}
                   className={`w-full p-3 rounded-[4px] text-left transition-all flex items-center justify-between cursor-pointer border relative ${
                     isSelected
-                      ? 'bg-[var(--surface)] border-[var(--gold-500)] shadow-sm'
-                      : 'bg-[var(--surface)] text-[var(--ink)] border-[var(--rule)] hover:border-[var(--ink-muted)]'
+                      ? 'bg-[var(--surface)] border-[var(--accent)] shadow-sm'
+                      : 'bg-[var(--surface)] text-[var(--text-primary)] border-[var(--rule)] hover:border-[var(--text-secondary)]'
                   }`}
                 >
                   {/* Left-edge gold active indicator */}
                   {isSelected && (
-                    <span className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--gold-500)] rounded-l-[4px]" />
+                    <span className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--accent)] rounded-l-[4px]" />
                   )}
 
                   <div className="pl-1">
-                    <p className="text-xs font-semibold text-[var(--ink)]">
+                    <p className="text-xs font-semibold text-[var(--text-primary)]">
                       {role.name}
                     </p>
-                    <p className="text-[10px] font-data text-[var(--ink-muted)] mt-0.5">
+                    <p className="text-xs font-normal  text-[var(--text-secondary)] mt-0.5">
                       {role.isSystemRole ? 'System Built-in' : 'Custom Configured'}
                     </p>
                   </div>
 
-                  <div className="px-1.5 py-0.5 rounded-[2px] text-[10px] font-data font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink-muted)]">
+                  <div className="px-1.5 py-0.5 rounded-[2px] text-xs font-normal  font-semibold bg-[var(--paper)] border border-[var(--rule)] text-[var(--text-secondary)]">
                     {role.userCount} users
                   </div>
                 </button>
@@ -217,17 +217,17 @@ export const Roles: React.FC = () => {
           <div className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-display text-lg font-semibold text-[var(--ink)]">
+                <h2 className=" text-base font-semibold text-[var(--text-primary)]">
                   {roleDetail?.name || 'Loading role...'}
                 </h2>
                 {roleDetail?.isSystemRole && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[var(--gold-100)] text-[var(--gold-500)] text-[10px] font-data font-bold border border-[var(--gold-500)]/40">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-[var(--gold-100)] text-[var(--accent)] text-xs font-normal  font-semibold border border-[var(--accent)]/40">
                     <Lock size={10} />
                     System Protected
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[var(--ink-muted)] mt-0.5">
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
                 {roleDetail?.description || 'All permission and data scope switches auto-save in real time.'}
               </p>
             </div>
@@ -236,13 +236,13 @@ export const Roles: React.FC = () => {
             <div className="flex items-center gap-2 text-xs">
               <button
                 onClick={expandAll}
-                className="btn-outline py-1 px-2.5 text-[11px] cursor-pointer"
+                className="btn-outline py-1 px-2.5 text-xs font-normal cursor-pointer"
               >
                 Expand All
               </button>
               <button
                 onClick={collapseAll}
-                className="btn-outline py-1 px-2.5 text-[11px] cursor-pointer"
+                className="btn-outline py-1 px-2.5 text-xs font-normal cursor-pointer"
               >
                 Collapse All
               </button>
@@ -269,15 +269,15 @@ export const Roles: React.FC = () => {
                     className="flex items-center justify-between p-3 cursor-pointer bg-[var(--surface-header)] hover:bg-[var(--surface-hover)] select-none transition-colors border-b border-[var(--rule)]"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="text-[var(--ink-muted)]">
+                      <div className="text-[var(--text-secondary)]">
                         {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                       </div>
-                      <span className="font-semibold text-xs text-[var(--ink)] uppercase tracking-wider font-ui">
+                      <span className="font-semibold text-xs text-[var(--text-primary)] uppercase tracking-wider ">
                         {def.module} Module
                       </span>
                     </div>
 
-                    <span className="px-2 py-0.5 rounded-[2px] text-[10px] font-data font-bold bg-[var(--paper)] text-[var(--ink-muted)] border border-[var(--rule)]">
+                    <span className="px-2 py-0.5 rounded-[2px] text-xs font-normal  font-semibold bg-[var(--paper)] text-[var(--text-secondary)] border border-[var(--rule)]">
                       {grantedCount} / {modulePerms.length} Active
                     </span>
                   </div>
@@ -298,14 +298,14 @@ export const Roles: React.FC = () => {
                           >
                             <div className="space-y-0.5 max-w-md">
                               <div className="flex items-center gap-2">
-                                <span className="font-semibold text-xs text-[var(--ink)]">
+                                <span className="font-semibold text-xs text-[var(--text-primary)]">
                                   {perm.displayName}
                                 </span>
-                                <span className="font-data text-[10px] text-[var(--ink-muted)]">
+                                <span className=" text-xs font-normal text-[var(--text-secondary)]">
                                   ({perm.key})
                                 </span>
                               </div>
-                              <p className="text-[11px] text-[var(--ink-muted)] leading-snug">
+                              <p className="text-xs font-normal text-[var(--text-secondary)] leading-snug">
                                 {perm.description}
                               </p>
                             </div>
@@ -314,14 +314,14 @@ export const Roles: React.FC = () => {
                             <div className="flex items-center gap-3">
                               {perm.supportsScope && isGranted && (
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-[10px] font-semibold text-[var(--ink-muted)] uppercase font-ui">
+                                  <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase ">
                                     Scope:
                                   </span>
                                   <select
                                     value={currentScope}
                                     disabled={roleDetail?.isSystemRole}
                                     onChange={(e) => handleScopeChange(perm.key, e.target.value)}
-                                    className="register-input py-1 px-2 text-xs font-data cursor-pointer"
+                                    className="register-input py-1 px-2 text-xs  cursor-pointer"
                                   >
                                     <option value="All">All (Entire Org)</option>
                                     <option value="Reporting">Reporting Hierarchy</option>
@@ -332,7 +332,7 @@ export const Roles: React.FC = () => {
                               )}
 
                               {isSuccess && (
-                                <span className="text-[10px] font-bold text-[var(--ok-600)] flex items-center gap-1 font-data">
+                                <span className="text-xs font-normal font-semibold text-[var(--ok-600)] flex items-center gap-1 ">
                                   <Check size={12} /> Saved
                                 </span>
                               )}

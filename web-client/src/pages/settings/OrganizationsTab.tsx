@@ -180,7 +180,7 @@ export const OrganizationsTab: React.FC = () => {
             onClick={() => navigate(`/settings/organizations/${org.publicId}`)}
           >
             <div
-              className="w-8 h-8 rounded-[4px] flex items-center justify-center shrink-0 font-bold text-xs shadow-xs overflow-hidden border border-[var(--rule)]"
+              className="w-8 h-8 rounded-[4px] flex items-center justify-center shrink-0 font-semibold text-xs shadow-xs overflow-hidden border border-[var(--rule)]"
               style={{ backgroundColor: org.primaryColor && org.primaryColor !== '#D97706' ? org.primaryColor : '#4F46E5', color: '#FFFFFF' }}
             >
               {org.logoUrl ? (
@@ -190,18 +190,18 @@ export const OrganizationsTab: React.FC = () => {
                   className="w-full h-full object-contain p-0.5 bg-[var(--surface)]"
                 />
               ) : (
-                <span className="font-display font-bold text-xs">
+                <span className=" font-semibold text-xs">
                   {(org.name || 'O').charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
 
             <div className="flex flex-col min-w-0">
-              <span className="font-semibold text-xs text-[var(--ink)] group-hover:text-[var(--gold-600)] transition-colors">
+              <span className="font-semibold text-xs text-[var(--text-primary)] group-hover:text-[var(--accent-hover)] transition-colors">
                 {org.name}
               </span>
-              <div className="flex items-center gap-2 text-[10px] text-[var(--ink-muted)]">
-                <span className="font-mono">ID: {org.publicId.slice(0, 8)}...</span>
+              <div className="flex items-center gap-2 text-xs font-normal text-[var(--text-secondary)]">
+                <span className="">ID: {org.publicId.slice(0, 8)}...</span>
               </div>
             </div>
           </div>
@@ -213,12 +213,12 @@ export const OrganizationsTab: React.FC = () => {
       header: 'Subdomain / Domain',
       render: (org) =>
         org.customDomain ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded  text-xs font-normal bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium">
             <Globe size={11} />
             {org.customDomain}
           </span>
         ) : (
-          <span className="text-[var(--ink-muted)] text-[11px]">—</span>
+          <span className="text-[var(--text-secondary)] text-xs font-normal">—</span>
         ),
     },
     {
@@ -228,12 +228,12 @@ export const OrganizationsTab: React.FC = () => {
         <div className="flex flex-col gap-1 max-w-xs">
           {org.gstin ? (
             <div className="flex items-center gap-1">
-              <span className="font-mono text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <span className=" text-xs font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 GST: {org.gstin}
               </span>
             </div>
           ) : (
-            <span className="text-[var(--ink-muted)] text-xs">—</span>
+            <span className="text-[var(--text-secondary)] text-xs">—</span>
           )}
         </div>
       ),
@@ -250,7 +250,7 @@ export const OrganizationsTab: React.FC = () => {
               e.stopPropagation();
               navigate(`/settings/organizations/${org.publicId}/branches`);
             }}
-            className="font-mono text-[11px] font-semibold px-2 py-0.5 rounded bg-[var(--surface-sunken)] hover:bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink)] cursor-pointer transition-colors"
+            className=" text-xs font-semibold px-2 py-0.5 rounded bg-[var(--surface-sunken)] hover:bg-[var(--paper)] border border-[var(--rule)] text-[var(--text-primary)] cursor-pointer transition-colors"
           >
             {count} {count === 1 ? 'branch' : 'branches'}
           </button>
@@ -326,42 +326,42 @@ export const OrganizationsTab: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4 max-w-6xl font-ui">
+    <div className="space-y-4 max-w-6xl ">
       {/* KPI Top Stat Summary Chips */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="flex items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
-          <div className="w-8 h-8 rounded-[4px] bg-[var(--gold-500)]/10 text-[var(--gold-600)] dark:text-[var(--gold-400)] flex items-center justify-center font-bold">
+          <div className="w-8 h-8 rounded-[4px] bg-[var(--accent)]/10 text-[var(--accent-hover)] dark:text-[var(--gold-400)] flex items-center justify-center font-semibold">
             <Building2 size={16} />
           </div>
           <div>
-            <div className="font-mono text-base font-bold text-[var(--ink)] leading-none">
+            <div className=" text-base font-semibold text-[var(--text-primary)] leading-none">
               {organizations.length}
             </div>
-            <div className="text-[11px] text-[var(--ink-muted)] mt-0.5">Total Organizations</div>
+            <div className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">Total Organizations</div>
           </div>
         </div>
 
         <div className="flex items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
-          <div className="w-8 h-8 rounded-[4px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+          <div className="w-8 h-8 rounded-[4px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-semibold">
             <Layers size={16} />
           </div>
           <div>
-            <div className="font-mono text-base font-bold text-[var(--ink)] leading-none">
+            <div className=" text-base font-semibold text-[var(--text-primary)] leading-none">
               {totalBranchesCount}
             </div>
-            <div className="text-[11px] text-[var(--ink-muted)] mt-0.5">Configured Branches</div>
+            <div className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">Configured Branches</div>
           </div>
         </div>
 
         <div className="flex items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
-          <div className="w-8 h-8 rounded-[4px] bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+          <div className="w-8 h-8 rounded-[4px] bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-semibold">
             <Globe size={16} />
           </div>
           <div>
-            <div className="font-mono text-base font-bold text-[var(--ink)] leading-none">
+            <div className=" text-base font-semibold text-[var(--text-primary)] leading-none">
               {customDomainsCount}
             </div>
-            <div className="text-[11px] text-[var(--ink-muted)] mt-0.5">Custom Subdomains</div>
+            <div className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">Custom Subdomains</div>
           </div>
         </div>
       </div>

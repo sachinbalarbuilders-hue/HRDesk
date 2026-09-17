@@ -27,7 +27,7 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={inputId} className="block text-xs font-medium text-[var(--text-primary)]">
+        <label htmlFor={inputId} className="block text-xs font-semibold text-[var(--text-primary)]">
           {label}
           {props.required && <span className="text-[var(--danger)] ml-0.5">*</span>}
         </label>
@@ -62,10 +62,10 @@ export const Input: React.FC<InputProps> = ({
       </div>
 
       {error && (
-        <p id={errorId} role="alert" className="text-[11px] text-[var(--danger)]">{error}</p>
+        <p id={errorId} role="alert" className="text-xs font-normal text-[var(--danger)]">{error}</p>
       )}
       {helperText && !error && (
-        <p id={helperId} className="text-[11px] text-[var(--text-muted)]">{helperText}</p>
+        <p id={helperId} className="text-xs font-normal text-[var(--text-secondary)]">{helperText}</p>
       )}
     </div>
   );
@@ -95,7 +95,7 @@ export const Select: React.FC<SelectProps> = ({
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={selectId} className="block text-xs font-medium text-[var(--text-primary)]">
+        <label htmlFor={selectId} className="block text-xs font-semibold text-[var(--text-primary)]">
           {label}
           {props.required && <span className="text-[var(--danger)] ml-0.5">*</span>}
         </label>
@@ -117,8 +117,8 @@ export const Select: React.FC<SelectProps> = ({
         ))}
       </select>
 
-      {error && <p id={errorId} role="alert" className="text-[11px] text-[var(--danger)]">{error}</p>}
-      {helperText && !error && <p id={helperId} className="text-[11px] text-[var(--text-muted)]">{helperText}</p>}
+      {error && <p id={errorId} role="alert" className="text-xs font-normal text-[var(--danger)]">{error}</p>}
+      {helperText && !error && <p id={helperId} className="text-xs font-normal text-[var(--text-secondary)]">{helperText}</p>}
     </div>
   );
 };
@@ -145,7 +145,7 @@ export const Textarea: React.FC<TextareaProps> = ({
   return (
     <div className="space-y-1.5">
       {label && (
-        <label htmlFor={textareaId} className="block text-xs font-medium text-[var(--text-primary)]">
+        <label htmlFor={textareaId} className="block text-xs font-semibold text-[var(--text-primary)]">
           {label}
           {props.required && <span className="text-[var(--danger)] ml-0.5">*</span>}
         </label>
@@ -163,8 +163,8 @@ export const Textarea: React.FC<TextareaProps> = ({
         {...props}
       />
 
-      {error && <p id={errorId} role="alert" className="text-[11px] text-[var(--danger)]">{error}</p>}
-      {helperText && !error && <p id={helperId} className="text-[11px] text-[var(--text-muted)]">{helperText}</p>}
+      {error && <p id={errorId} role="alert" className="text-xs font-normal text-[var(--danger)]">{error}</p>}
+      {helperText && !error && <p id={helperId} className="text-xs font-normal text-[var(--text-secondary)]">{helperText}</p>}
     </div>
   );
 };

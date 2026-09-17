@@ -114,7 +114,7 @@ export const Login: React.FC = () => {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--accent)] text-white mb-2">
             <Building2 size={24} />
           </div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">{title}</h1>
+          <h1 className="text-base font-semibold text-[var(--text-primary)]">{title}</h1>
           <p className="text-sm text-[var(--text-secondary)]">{subtitle}</p>
         </div>
 
@@ -188,7 +188,7 @@ export const Login: React.FC = () => {
                 <label className="block text-sm font-medium text-[var(--text-primary)]">Verification Code</label>
                 <div className="relative">
                   <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none z-10" />
-                  <input type="text" required value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit code" maxLength={6} className="register-input !pl-10 py-2.5 font-mono tracking-widest text-center" />
+                  <input type="text" required value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit code" maxLength={6} className="register-input !pl-10 py-2.5  tracking-widest text-center" />
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -235,7 +235,7 @@ export const Login: React.FC = () => {
             <div className="pt-3 border-t border-[var(--border)] text-center">
               <p className="text-xs text-[var(--text-secondary)]">
                 Need a new workspace?{' '}
-                <Link to="/register" className="text-[var(--gold-600)] dark:text-[var(--gold-400)] font-semibold hover:underline">
+                <Link to="/register" className="text-[var(--accent-hover)] dark:text-[var(--gold-400)] font-semibold hover:underline">
                   Create an Organization
                 </Link>
               </p>

@@ -111,7 +111,7 @@ const WebClockWidget: React.FC<{
           </div>
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="text-xl font-bold font-data text-[var(--text-primary)] tracking-tight">
+              <span className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
                 {timeString}
               </span>
               <Badge
@@ -128,15 +128,15 @@ const WebClockWidget: React.FC<{
         </div>
 
         {/* Center: Punch In & Out Metrics */}
-        <div className="flex items-center justify-center gap-6 px-4 py-2 rounded-lg bg-[var(--surface-secondary)] border border-[var(--border)] text-center text-xs">
+        <div className="flex items-center justify-center gap-6 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-center text-xs">
           <div>
-            <p className="text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider">Punch In</p>
-            <p className="font-bold font-data text-[var(--text-primary)] text-sm">{inTime || '--:--'}</p>
+            <p className="text-xs uppercase font-semibold text-[var(--text-secondary)] tracking-wider">Punch In</p>
+            <p className="font-semibold text-[var(--text-primary)] text-sm">{inTime || '--:--'}</p>
           </div>
           <div className="w-px h-6 bg-[var(--border)]" />
           <div>
-            <p className="text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-wider">Punch Out</p>
-            <p className="font-bold font-data text-[var(--text-primary)] text-sm">{outTime || '--:--'}</p>
+            <p className="text-xs uppercase font-semibold text-[var(--text-secondary)] tracking-wider">Punch Out</p>
+            <p className="font-semibold text-[var(--text-primary)] text-sm">{outTime || '--:--'}</p>
           </div>
         </div>
 
@@ -179,7 +179,7 @@ const WebClockWidget: React.FC<{
 const TabButton: React.FC<{ active: boolean; label: string; count?: number; onClick: () => void }> = ({ active, label, count, onClick }) => (
   <button
     onClick={onClick}
-    className={`px-3 py-1.5 text-xs font-medium rounded-[var(--radius-md)] cursor-pointer transition-all ${
+    className={`px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-md)] cursor-pointer transition-all ${
       active
         ? 'bg-[var(--accent)] text-white'
         : 'text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)]'
@@ -187,8 +187,8 @@ const TabButton: React.FC<{ active: boolean; label: string; count?: number; onCl
   >
     {label}
     {typeof count === 'number' && count > 0 && (
-      <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-        active ? 'bg-white/20' : 'bg-[var(--danger-light)] text-[var(--danger)]'
+      <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-semibold ${
+        active ? 'bg-white/20' : 'bg-[var(--danger)]/10 text-[var(--danger)]'
       }`}>
         {count}
       </span>
@@ -304,8 +304,8 @@ export const Dashboard: React.FC = () => {
             <div className="grid grid-cols-2 gap-3 mt-4">
               {(stats?.leaveBalances || []).slice(0, 4).map((lb: any, idx: number) => (
                 <div key={idx} className="p-3 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] text-center">
-                  <p className="text-lg font-bold font-data text-[var(--text-primary)]">{lb.balance}</p>
-                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{lb.leaveType}</p>
+                  <p className="text-base font-semibold text-[var(--text-primary)]">{lb.balance}</p>
+                  <p className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">{lb.leaveType}</p>
                 </div>
               ))}
               {(!stats?.leaveBalances || stats.leaveBalances.length === 0) && (
@@ -328,8 +328,8 @@ export const Dashboard: React.FC = () => {
             <div className="divide-y divide-[var(--border)]">
               {overview.announcements.slice(0, 3).map((a: any, idx: number) => (
                 <div key={idx} className="px-5 py-3">
-                  <p className="text-xs font-medium text-[var(--text-primary)]">{a.title}</p>
-                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-1">{a.message}</p>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">{a.title}</p>
+                  <p className="text-xs font-normal text-[var(--text-secondary)] mt-0.5 line-clamp-1">{a.message}</p>
                 </div>
               ))}
             </div>
@@ -346,9 +346,9 @@ export const Dashboard: React.FC = () => {
               { label: 'Payslip', href: '/payroll', icon: <CreditCard size={14} /> },
               { label: 'Regularization', href: '/regularizations', icon: <ClipboardList size={14} /> },
             ].map((link) => (
-              <Link key={link.href} to={link.href} className="flex items-center gap-2 px-3 py-2.5 rounded-[var(--radius-md)] text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]">
+              <Link key={link.href} to={link.href} className="flex items-center gap-2 px-3 py-2.5 rounded-[var(--radius-md)] text-sm text-[var(--text-secondary)] hover:bg-[var(--surface-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]">
                 <span className="text-[var(--accent)]">{link.icon}</span>
-                <span className="font-medium">{link.label}</span>
+                <span className="font-semibold">{link.label}</span>
               </Link>
             ))}
           </div>
@@ -420,9 +420,9 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
             <div>
               <CardTitle>Today's Attendance</CardTitle>
-              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Real-time punch logs</p>
+              <p className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">Real-time punch logs</p>
             </div>
-            <Link to="/attendance" className="text-xs font-medium text-[var(--accent)] hover:underline flex items-center gap-1">
+            <Link to="/attendance" className="text-xs font-semibold text-[var(--accent)] hover:underline flex items-center gap-1">
               View all <ArrowRight size={12} />
             </Link>
           </div>
@@ -432,10 +432,10 @@ export const Dashboard: React.FC = () => {
                 <div key={idx} className="flex items-center gap-3 px-5 py-2.5">
                   <Avatar name={punch.employeeName || 'E'} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-[var(--text-primary)] truncate">{punch.employeeName}</p>
-                    <p className="text-[11px] text-[var(--text-muted)]">{punch.department}</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{punch.employeeName}</p>
+                    <p className="text-xs font-normal text-[var(--text-secondary)]">{punch.department}</p>
                   </div>
-                  <p className="text-[11px] font-data text-[var(--text-secondary)]">{punch.inTime} → {punch.outTime}</p>
+                  <p className="text-xs font-normal text-[var(--text-secondary)]">{punch.inTime} → {punch.outTime}</p>
                   <Badge variant={punch.status === 'Present' ? 'success' : punch.isLate ? 'warning' : 'neutral'} dot>{punch.status}</Badge>
                 </div>
               ))}
@@ -461,15 +461,15 @@ export const Dashboard: React.FC = () => {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-[var(--accent)]">{item.icon}</span>
-                  <span className="text-xs font-medium text-[var(--text-primary)]">{item.label}</span>
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">{item.label}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {item.count > 0 ? (
                     <Badge variant="danger">{item.count}</Badge>
                   ) : (
-                    <span className="text-[11px] text-[var(--text-muted)]">0</span>
+                    <span className="text-xs font-normal text-[var(--text-secondary)]">0</span>
                   )}
-                  <ArrowRight size={12} className="text-[var(--text-muted)]" />
+                  <ArrowRight size={12} className="text-[var(--text-secondary)]" />
                 </div>
               </Link>
             ))}
@@ -486,8 +486,8 @@ export const Dashboard: React.FC = () => {
                 {onLeaveTodayList.slice(0, 4).map((emp: any, idx: number) => (
                   <div key={idx} className="flex items-center gap-2.5">
                     <Avatar name={emp.employeeName || 'E'} size="xs" />
-                    <span className="text-[11px] text-[var(--text-primary)] truncate flex-1">{emp.employeeName}</span>
-                    <span className="text-[10px] text-[var(--text-muted)]">{emp.leaveType}</span>
+                    <span className="text-sm font-semibold text-[var(--text-primary)] truncate flex-1">{emp.employeeName}</span>
+                    <span className="text-xs font-normal text-[var(--text-secondary)]">{emp.leaveType}</span>
                   </div>
                 ))}
               </div>
@@ -505,7 +505,7 @@ export const Dashboard: React.FC = () => {
               <Building2 size={16} className="text-[var(--accent)]" />
               <CardTitle>Department Distribution</CardTitle>
             </div>
-            <span className="text-[11px] text-[var(--text-muted)]">{totalStaff} total</span>
+            <span className="text-xs font-normal text-[var(--text-secondary)]">{totalStaff} total</span>
           </div>
           {departmentCounts.length > 0 ? (
             <div className="flex items-center gap-8">
@@ -552,16 +552,16 @@ export const Dashboard: React.FC = () => {
                   return (
                     <div key={idx} className="flex items-center gap-3">
                       <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: colors[idx % colors.length] }} />
-                      <span className="text-xs text-[var(--text-primary)] flex-1 truncate">{dept.name}</span>
-                      <span className="text-xs font-data font-semibold text-[var(--text-primary)]">{dept.count}</span>
-                      <span className="text-[10px] text-[var(--text-muted)] w-8 text-right">{pct}%</span>
+                      <span className="text-sm font-semibold text-[var(--text-primary)] flex-1 truncate">{dept.name}</span>
+                      <span className="text-sm font-semibold text-[var(--text-primary)]">{dept.count}</span>
+                      <span className="text-xs font-normal text-[var(--text-secondary)] w-8 text-right">{pct}%</span>
                     </div>
                   );
                 })}
               </div>
             </div>
           ) : (
-            <p className="text-xs text-[var(--text-muted)] text-center py-6">No department data available</p>
+            <p className="text-xs font-normal text-[var(--text-secondary)] text-center py-6">No department data available</p>
           )}
         </Card>
 
@@ -573,7 +573,7 @@ export const Dashboard: React.FC = () => {
               <CardTitle>New Joiners</CardTitle>
             </div>
             {newJoiners.length > 3 && (
-              <Link to="/employees" className="text-[11px] text-[var(--accent)] hover:underline flex items-center gap-0.5">
+              <Link to="/employees" className="text-xs font-semibold text-[var(--accent)] hover:underline flex items-center gap-0.5">
                 View all <ArrowRight size={10} />
               </Link>
             )}
@@ -584,10 +584,10 @@ export const Dashboard: React.FC = () => {
                 <div key={idx} className="flex items-center gap-3 px-5 py-3">
                   <Avatar name={nj.employeeName || 'E'} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-[var(--text-primary)] truncate">{nj.employeeName}</p>
-                    <p className="text-[11px] text-[var(--text-muted)]">{nj.department}</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{nj.employeeName}</p>
+                    <p className="text-xs font-normal text-[var(--text-secondary)]">{nj.department}</p>
                   </div>
-                  <span className="text-[10px] text-[var(--text-muted)] font-data">{nj.dateStr}</span>
+                  <span className="text-xs font-normal text-[var(--text-secondary)]">{nj.dateStr}</span>
                 </div>
               ))}
             </div>
@@ -619,19 +619,19 @@ export const Dashboard: React.FC = () => {
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar name={leave.employeeName || 'E'} size="sm" />
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-[var(--text-primary)] truncate">{leave.employeeName}</p>
-                        <p className="text-[11px] text-[var(--text-muted)]">{leave.leaveType} · {leave.days}d · {leave.startDate}</p>
+                        <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{leave.employeeName}</p>
+                        <p className="text-xs font-normal text-[var(--text-secondary)]">{leave.leaveType} · {leave.days}d · {leave.startDate}</p>
                       </div>
                     </div>
                     {canApproveLeaves && (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button onClick={() => handleLeaveDecision(leave.id, 'Approved')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center hover:opacity-80 cursor-pointer"><Check size={14} /></button>
-                      <button onClick={() => handleLeaveDecision(leave.id, 'Rejected')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--danger-light)] text-[var(--danger)] flex items-center justify-center hover:opacity-80 cursor-pointer"><X size={14} /></button>
+                      <button onClick={() => handleLeaveDecision(leave.id, 'Approved')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--success)]/10 text-[var(--success)] flex items-center justify-center hover:opacity-80 cursor-pointer"><Check size={14} /></button>
+                      <button onClick={() => handleLeaveDecision(leave.id, 'Rejected')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--danger)]/10 text-[var(--danger)] flex items-center justify-center hover:opacity-80 cursor-pointer"><X size={14} /></button>
                     </div>
                     )}
-                    {!canApproveLeaves && <Link to="/leaves" className="text-xs text-[var(--accent)] hover:underline font-medium">View</Link>}
+                    {!canApproveLeaves && <Link to="/leaves" className="text-sm text-[var(--accent)] hover:underline font-semibold">View</Link>}
                   </div>
-                )) : <div className="px-5 py-8 text-center text-xs text-[var(--text-muted)]">No pending leave requests</div>
+                )) : <div className="px-5 py-8 text-center text-sm text-[var(--text-secondary)]">No pending leave requests</div>
               )}
               {activeTab === 'regularizations' && (
                 pendingRegs.length > 0 ? pendingRegs.map((reg: any) => (
@@ -639,19 +639,19 @@ export const Dashboard: React.FC = () => {
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar name={reg.employeeName || 'E'} size="sm" />
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-[var(--text-primary)] truncate">{reg.employeeName}</p>
-                        <p className="text-[11px] text-[var(--text-muted)]">{reg.type} · {reg.requestDate}</p>
+                        <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{reg.employeeName}</p>
+                        <p className="text-xs font-normal text-[var(--text-secondary)]">{reg.type} · {reg.requestDate}</p>
                       </div>
                     </div>
                     {canApproveRegs && (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button onClick={() => handleRegularizationDecision(reg.id, 'Approved')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--success-light)] text-[var(--success)] flex items-center justify-center hover:opacity-80 cursor-pointer"><Check size={14} /></button>
-                      <button onClick={() => handleRegularizationDecision(reg.id, 'Rejected')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--danger-light)] text-[var(--danger)] flex items-center justify-center hover:opacity-80 cursor-pointer"><X size={14} /></button>
+                      <button onClick={() => handleRegularizationDecision(reg.id, 'Approved')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--success)]/10 text-[var(--success)] flex items-center justify-center hover:opacity-80 cursor-pointer"><Check size={14} /></button>
+                      <button onClick={() => handleRegularizationDecision(reg.id, 'Rejected')} className="w-7 h-7 rounded-[var(--radius-md)] bg-[var(--danger)]/10 text-[var(--danger)] flex items-center justify-center hover:opacity-80 cursor-pointer"><X size={14} /></button>
                     </div>
                     )}
-                    {!canApproveRegs && <Link to="/regularizations" className="text-xs text-[var(--accent)] hover:underline font-medium">View</Link>}
+                    {!canApproveRegs && <Link to="/regularizations" className="text-sm text-[var(--accent)] hover:underline font-semibold">View</Link>}
                   </div>
-                )) : <div className="px-5 py-8 text-center text-xs text-[var(--text-muted)]">No pending corrections</div>
+                )) : <div className="px-5 py-8 text-center text-sm text-[var(--text-secondary)]">No pending corrections</div>
               )}
               {activeTab === 'loans' && (
                 pendingLoansData.length > 0 ? pendingLoansData.map((loan: any) => (
@@ -659,13 +659,13 @@ export const Dashboard: React.FC = () => {
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar name={loan.employeeName || 'E'} size="sm" />
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-[var(--text-primary)] truncate">{loan.employeeName}</p>
-                        <p className="text-[11px] text-[var(--text-muted)]">{loan.loanType} · ₹{loan.amount?.toLocaleString()}</p>
+                        <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{loan.employeeName}</p>
+                        <p className="text-xs font-normal text-[var(--text-secondary)]">{loan.loanType} · ₹{loan.amount?.toLocaleString()}</p>
                       </div>
                     </div>
-                    {canManageLoans && <Link to={`/loans/${loan.id}`} className="text-xs text-[var(--accent)] hover:underline font-medium">View</Link>}
+                    {canManageLoans && <Link to={`/loans/${loan.id}`} className="text-sm text-[var(--accent)] hover:underline font-semibold">View</Link>}
                   </div>
-                )) : <div className="px-5 py-8 text-center text-xs text-[var(--text-muted)]">No pending loan requests</div>
+                )) : <div className="px-5 py-8 text-center text-sm text-[var(--text-secondary)]">No pending loan requests</div>
               )}
             </div>
           </Card>
@@ -678,7 +678,7 @@ export const Dashboard: React.FC = () => {
             <Card padding="none">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
                 <CardTitle>Announcements</CardTitle>
-                <Link to="/announcements" className="text-[11px] text-[var(--accent)] hover:underline flex items-center gap-0.5">
+                <Link to="/announcements" className="text-xs font-semibold text-[var(--accent)] hover:underline flex items-center gap-0.5">
                   View all <ArrowRight size={10} />
                 </Link>
               </div>
@@ -694,13 +694,13 @@ export const Dashboard: React.FC = () => {
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-[var(--accent)]"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                         </div>
                       ) : (
-                        <div className={`p-1.5 rounded-[var(--radius-md)] flex-shrink-0 mt-0.5 ${isHoliday ? 'bg-[var(--success-light)] text-[var(--success)]' : 'bg-[var(--info-light)] text-[var(--info)]'}`}>
+                        <div className={`p-1.5 rounded-[var(--radius-md)] flex-shrink-0 mt-0.5 ${isHoliday ? 'bg-[var(--success)]/10 text-[var(--success)]' : 'bg-[var(--accent)]/10 text-[var(--accent)]'}`}>
                           {isHoliday ? <Calendar size={12} /> : <Megaphone size={12} />}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-[var(--text-primary)] truncate">{item.title}</p>
-                        <p className="text-[11px] text-[var(--text-muted)] line-clamp-1 mt-0.5">{item.message}</p>
+                        <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{item.title}</p>
+                        <p className="text-xs font-normal text-[var(--text-secondary)] line-clamp-1 mt-0.5">{item.message}</p>
                       </div>
                     </div>
                   );
@@ -718,7 +718,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <CardTitle>Team Celebrations</CardTitle>
-              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{celebrationsList.length} upcoming events</p>
+              <p className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">{celebrationsList.length} upcoming events</p>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -774,18 +774,18 @@ export const Dashboard: React.FC = () => {
                   <Badge variant={isBday ? 'danger' : 'warning'} size="sm" className="mt-1.5 mx-auto">
                     {isBday ? '🎂 Birthday' : `🎉 ${item.years || 1}yr Anniversary`}
                   </Badge>
-                  <p className="text-[11px] text-[var(--text-secondary)] mt-3 leading-relaxed italic line-clamp-3 flex-1">"{message}"</p>
+                  <p className="text-xs font-normal text-[var(--text-secondary)] mt-3 leading-relaxed italic line-clamp-3 flex-1">"{message}"</p>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-[var(--border)]">
-                    <span className="text-[11px] text-[var(--text-muted)] font-data">{item.dateStr}</span>
+                    <span className="text-xs font-normal text-[var(--text-secondary)]">{item.dateStr}</span>
                     {item.isToday ? (
                       <Badge variant="success" size="sm">Today!</Badge>
                     ) : (
-                      <span className="text-[11px] font-medium text-[var(--accent)]">{daysLeft} days left</span>
+                      <span className="text-xs font-semibold text-[var(--accent)]">{daysLeft} days left</span>
                     )}
                   </div>
                   <button
                     onClick={() => openWishModal(item)}
-                    className="mt-3 w-full py-1.5 text-xs font-medium rounded-[var(--radius-md)] border border-[var(--border)] hover:bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
+                    className="mt-3 w-full py-1.5 text-sm font-semibold rounded-[var(--radius-md)] border border-[var(--border)] hover:bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Sparkles size={12} /> Send Wish
                   </button>
@@ -810,7 +810,7 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Your Message</label>
+              <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1.5">Your Message</label>
               <textarea
                 value={wishMessage}
                 onChange={(e) => setWishMessage(e.target.value)}

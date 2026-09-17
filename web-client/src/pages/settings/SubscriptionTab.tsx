@@ -238,7 +238,7 @@ export const SubscriptionTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
-        <Loader2 size={24} className="animate-spin text-[var(--gold-500)]" />
+        <Loader2 size={24} className="animate-spin text-[var(--accent)]" />
       </div>
     );
   }
@@ -257,11 +257,11 @@ export const SubscriptionTab: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-display text-xl font-bold text-[var(--ink)]">
+                <h2 className=" text-base font-semibold text-[var(--text-primary)]">
                   {quota?.planName || 'Current Plan'}
                 </h2>
                 <span
-                  className={`px-2 py-0.5 text-[10px] font-semibold uppercase rounded-full tracking-wider ${
+                  className={`px-2 py-0.5 text-xs font-semibold uppercase rounded-full tracking-wider ${
                     quota?.status === 'Active'
                       ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                       : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
@@ -270,18 +270,18 @@ export const SubscriptionTab: React.FC = () => {
                   {quota?.status || 'Active'}
                 </span>
               </div>
-              <p className="text-xs text-[var(--ink-muted)] font-ui mt-1">
-                Workspace: <span className="font-semibold text-[var(--ink)]">{quota?.organizationName}</span>
+              <p className="text-xs text-[var(--text-secondary)]  mt-1">
+                Workspace: <span className="font-semibold text-[var(--text-primary)]">{quota?.organizationName}</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-ui text-[var(--ink-muted)]">
+          <div className="flex items-center gap-4 text-xs  text-[var(--text-secondary)]">
             <div className="flex items-center gap-1.5 bg-[var(--paper)] px-3 py-1.5 rounded border border-[var(--rule)]">
-              <Calendar size={14} className="text-[var(--gold-500)]" />
+              <Calendar size={14} className="text-[var(--accent)]" />
               <span>
                 Renews on:{' '}
-                <strong className="text-[var(--ink)]">
+                <strong className="text-[var(--text-primary)]">
                   {quota?.validUntil ? new Date(quota.validUntil).toLocaleDateString() : 'N/A'}
                 </strong>
               </span>
@@ -293,34 +293,34 @@ export const SubscriptionTab: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-5">
           {/* Employee Seat Usage */}
           <div className="bg-[var(--paper)] p-4 rounded-[4px] border border-[var(--rule)] space-y-2.5">
-            <div className="flex items-center justify-between text-xs font-ui">
-              <span className="flex items-center gap-1.5 font-semibold text-[var(--ink)]">
-                <Users size={14} className="text-[var(--gold-500)]" /> Employee Seats Utilization
+            <div className="flex items-center justify-between text-xs ">
+              <span className="flex items-center gap-1.5 font-semibold text-[var(--text-primary)]">
+                <Users size={14} className="text-[var(--accent)]" /> Employee Seats Utilization
               </span>
-              <span className="font-data font-bold text-[var(--ink)]">
+              <span className=" font-semibold text-[var(--text-primary)]">
                 {quota?.usedEmployees} / {quota?.maxEmployees} seats ({employeePercent}%)
               </span>
             </div>
             <div className="w-full bg-[var(--canvas)] h-2 rounded-full overflow-hidden border border-[var(--rule)]">
               <div
                 className={`h-full transition-all duration-500 ${
-                  employeePercent >= 90 ? 'bg-rose-500' : employeePercent >= 75 ? 'bg-amber-500' : 'bg-[var(--gold-500)]'
+                  employeePercent >= 90 ? 'bg-rose-500' : employeePercent >= 75 ? 'bg-amber-500' : 'bg-[var(--accent)]'
                 }`}
                 style={{ width: `${employeePercent}%` }}
               />
             </div>
-            <p className="text-[11px] text-[var(--ink-muted)]">
+            <p className="text-xs font-normal text-[var(--text-secondary)]">
               {quota?.availableEmployees ?? 0} seats remaining before plan quota limit is reached.
             </p>
           </div>
 
           {/* Branch Utilization */}
           <div className="bg-[var(--paper)] p-4 rounded-[4px] border border-[var(--rule)] space-y-2.5">
-            <div className="flex items-center justify-between text-xs font-ui">
-              <span className="flex items-center gap-1.5 font-semibold text-[var(--ink)]">
-                <Building2 size={14} className="text-[var(--gold-500)]" /> Branch Location Quota
+            <div className="flex items-center justify-between text-xs ">
+              <span className="flex items-center gap-1.5 font-semibold text-[var(--text-primary)]">
+                <Building2 size={14} className="text-[var(--accent)]" /> Branch Location Quota
               </span>
-              <span className="font-data font-bold text-[var(--ink)]">
+              <span className=" font-semibold text-[var(--text-primary)]">
                 {quota?.usedBranches} / {quota?.maxBranches} branches ({branchPercent}%)
               </span>
             </div>
@@ -330,7 +330,7 @@ export const SubscriptionTab: React.FC = () => {
                 style={{ width: `${branchPercent}%` }}
               />
             </div>
-            <p className="text-[11px] text-[var(--ink-muted)]">
+            <p className="text-xs font-normal text-[var(--text-secondary)]">
               {quota?.availableBranches ?? 0} branch slots available under current plan.
             </p>
           </div>
@@ -338,7 +338,7 @@ export const SubscriptionTab: React.FC = () => {
 
         {/* Feature Entitlements Badges */}
         <div className="mt-5 pt-4 border-t border-[var(--rule)]">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-muted)] font-ui block mb-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]  block mb-3">
             Enabled SaaS Modules
           </span>
           <div className="flex flex-wrap gap-2">
@@ -351,10 +351,10 @@ export const SubscriptionTab: React.FC = () => {
             ].map((module, idx) => (
               <div
                 key={idx}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-ui border ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs  border ${
                   module.enabled
                     ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
-                    : 'bg-zinc-500/5 text-[var(--ink-muted)] border-[var(--rule)] opacity-60'
+                    : 'bg-zinc-500/5 text-[var(--text-secondary)] border-[var(--rule)] opacity-60'
                 }`}
               >
                 {module.enabled ? (
@@ -373,8 +373,8 @@ export const SubscriptionTab: React.FC = () => {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="font-display text-lg font-bold text-[var(--ink)]">Available Subscription Tiers</h3>
-            <p className="text-xs text-[var(--ink-muted)] font-ui">
+            <h3 className=" text-base font-semibold text-[var(--text-primary)]">Available Subscription Tiers</h3>
+            <p className="text-xs text-[var(--text-secondary)] ">
               Scale your organization by upgrading seats and unlocking premium HRMS modules.
             </p>
           </div>
@@ -384,7 +384,7 @@ export const SubscriptionTab: React.FC = () => {
             <button
               onClick={() => setBillingCycle('Monthly')}
               className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${
-                billingCycle === 'Monthly' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-[var(--ink-muted)]'
+                billingCycle === 'Monthly' ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)]'
               }`}
             >
               Monthly
@@ -392,10 +392,10 @@ export const SubscriptionTab: React.FC = () => {
             <button
               onClick={() => setBillingCycle('Yearly')}
               className={`px-3 py-1 text-xs font-semibold rounded transition-colors flex items-center gap-1 ${
-                billingCycle === 'Yearly' ? 'bg-[var(--surface)] text-[var(--ink)] shadow-sm' : 'text-[var(--ink-muted)]'
+                billingCycle === 'Yearly' ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)]'
               }`}
             >
-              Yearly <span className="text-[10px] text-emerald-600 font-bold">(-15%)</span>
+              Yearly <span className="text-xs font-normal text-emerald-600 font-semibold">(-15%)</span>
             </button>
           </div>
         </div>
@@ -414,31 +414,31 @@ export const SubscriptionTab: React.FC = () => {
                 key={plan.id}
                 className={`rounded-[4px] border p-5 flex flex-col justify-between transition-all ${
                   isCurrent
-                    ? 'border-[var(--gold-500)] bg-[var(--gold-500)]/5 shadow-sm ring-1 ring-[var(--gold-500)]/30'
-                    : 'border-[var(--rule)] bg-[var(--surface)] hover:border-[var(--gold-500)]/50'
+                    ? 'border-[var(--accent)] bg-[var(--accent)]/5 shadow-sm ring-1 ring-[var(--accent)]/30'
+                    : 'border-[var(--rule)] bg-[var(--surface)] hover:border-[var(--accent)]/50'
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <h4 className="font-display text-base font-bold text-[var(--ink)]">{plan.name}</h4>
+                    <h4 className=" text-base font-semibold text-[var(--text-primary)]">{plan.name}</h4>
                     {isCurrent && (
-                      <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-[var(--accent)] text-white shadow-xs">
+                      <span className="px-2 py-0.5 text-xs font-normal font-semibold uppercase rounded bg-[var(--accent)] text-white shadow-xs">
                         Current
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-[var(--ink-muted)] font-ui mt-1 min-h-[36px]">{plan.description}</p>
+                  <p className="text-xs text-[var(--text-secondary)]  mt-1 min-h-[36px]">{plan.description}</p>
 
                   <div className="mt-4 mb-4 pb-4 border-b border-[var(--rule)]">
                     <div className="flex items-baseline gap-1">
-                      <span className="font-display text-2xl font-bold text-[var(--ink)]">
+                      <span className=" text-base font-semibold text-[var(--text-primary)]">
                         {'\u20B9'}{price.toLocaleString('en-IN')}
                       </span>
-                      <span className="text-xs text-[var(--ink-muted)] font-ui">/ month</span>
+                      <span className="text-xs text-[var(--text-secondary)] ">/ month</span>
                     </div>
                   </div>
 
-                  <ul className="space-y-2 text-xs font-ui text-[var(--ink)]">
+                  <ul className="space-y-2 text-xs  text-[var(--text-primary)]">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
                       <span>
@@ -455,9 +455,9 @@ export const SubscriptionTab: React.FC = () => {
                       {plan.hasBiometricsModule ? (
                         <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
                       ) : (
-                        <XCircle size={13} className="text-[var(--ink-muted)] opacity-50 shrink-0" />
+                        <XCircle size={13} className="text-[var(--text-secondary)] opacity-50 shrink-0" />
                       )}
-                      <span className={!plan.hasBiometricsModule ? 'text-[var(--ink-muted)]' : ''}>
+                      <span className={!plan.hasBiometricsModule ? 'text-[var(--text-secondary)]' : ''}>
                         Biometrics & Sync
                       </span>
                     </li>
@@ -465,17 +465,17 @@ export const SubscriptionTab: React.FC = () => {
                       {plan.hasPayrollModule ? (
                         <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
                       ) : (
-                        <XCircle size={13} className="text-[var(--ink-muted)] opacity-50 shrink-0" />
+                        <XCircle size={13} className="text-[var(--text-secondary)] opacity-50 shrink-0" />
                       )}
-                      <span className={!plan.hasPayrollModule ? 'text-[var(--ink-muted)]' : ''}>Payroll Engine</span>
+                      <span className={!plan.hasPayrollModule ? 'text-[var(--text-secondary)]' : ''}>Payroll Engine</span>
                     </li>
                     <li className="flex items-center gap-2">
                       {plan.hasRecruitmentModule ? (
                         <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
                       ) : (
-                        <XCircle size={13} className="text-[var(--ink-muted)] opacity-50 shrink-0" />
+                        <XCircle size={13} className="text-[var(--text-secondary)] opacity-50 shrink-0" />
                       )}
-                      <span className={!plan.hasRecruitmentModule ? 'text-[var(--ink-muted)]' : ''}>
+                      <span className={!plan.hasRecruitmentModule ? 'text-[var(--text-secondary)]' : ''}>
                         Recruitment Pipeline
                       </span>
                     </li>
@@ -483,9 +483,9 @@ export const SubscriptionTab: React.FC = () => {
                       {plan.hasLoanManagement ? (
                         <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
                       ) : (
-                        <XCircle size={13} className="text-[var(--ink-muted)] opacity-50 shrink-0" />
+                        <XCircle size={13} className="text-[var(--text-secondary)] opacity-50 shrink-0" />
                       )}
-                      <span className={!plan.hasLoanManagement ? 'text-[var(--ink-muted)]' : ''}>
+                      <span className={!plan.hasLoanManagement ? 'text-[var(--text-secondary)]' : ''}>
                         Loans & Advances
                       </span>
                     </li>
@@ -496,7 +496,7 @@ export const SubscriptionTab: React.FC = () => {
                   {isCurrent ? (
                     <button
                       disabled
-                      className="w-full py-2 px-3 text-xs font-semibold rounded bg-[var(--paper)] text-[var(--ink-muted)] border border-[var(--rule)] cursor-default"
+                      className="w-full py-2 px-3 text-xs font-semibold rounded bg-[var(--paper)] text-[var(--text-secondary)] border border-[var(--rule)] cursor-default"
                     >
                       Active Plan
                     </button>
@@ -527,11 +527,11 @@ export const SubscriptionTab: React.FC = () => {
       <div className="space-y-4 pt-4 border-t border-[var(--rule)]">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-display text-base font-bold text-[var(--ink)] flex items-center gap-2">
-              <Receipt size={18} className="text-[var(--gold-500)]" />
+            <h3 className=" text-base font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <Receipt size={18} className="text-[var(--accent)]" />
               Invoices & Payment History
             </h3>
-            <p className="text-xs text-[var(--ink-muted)] font-ui">
+            <p className="text-xs text-[var(--text-secondary)] ">
               View and verify past subscription billing transactions.
             </p>
           </div>
@@ -540,7 +540,7 @@ export const SubscriptionTab: React.FC = () => {
         <div className="rounded-[4px] border border-[var(--rule)] bg-[var(--surface)] overflow-hidden">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)] font-ui text-[11px] uppercase tracking-wider text-[var(--ink-muted)]">
+              <tr className="bg-[var(--surface-sunken)] border-b border-[var(--rule)]  text-xs font-normal uppercase tracking-wider text-[var(--text-secondary)]">
                 <th className="py-3 px-4 w-12 text-center">Sr.</th>
                 <th className="py-3 px-4">Invoice #</th>
                 <th className="py-3 px-4">Plan Tier</th>
@@ -555,14 +555,14 @@ export const SubscriptionTab: React.FC = () => {
             <tbody className="divide-y divide-[var(--rule)]">
               {loadingHistory ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-[var(--ink-muted)]">
-                    <Loader2 size={16} className="animate-spin inline mr-2 text-[var(--gold-500)]" />
+                  <td colSpan={9} className="py-8 text-center text-[var(--text-secondary)]">
+                    <Loader2 size={16} className="animate-spin inline mr-2 text-[var(--accent)]" />
                     Loading billing history...
                   </td>
                 </tr>
               ) : paymentHistory.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-[var(--ink-muted)] font-ui">
+                  <td colSpan={9} className="py-8 text-center text-[var(--text-secondary)] ">
                     <FileText size={20} className="mx-auto mb-1 opacity-40" />
                     No previous payment records found.
                   </td>
@@ -570,25 +570,25 @@ export const SubscriptionTab: React.FC = () => {
               ) : (
                 paymentHistory.map((item, idx) => (
                   <tr key={item.id} className="hover:bg-[var(--surface-sunken)]/50 transition-colors">
-                    <td className="py-3 px-4 font-mono text-center text-xs text-[var(--ink-muted)] w-12">{idx + 1}</td>
-                    <td className="py-3 px-4 font-mono font-semibold text-[var(--ink)]">{item.invoiceNumber}</td>
-                    <td className="py-3 px-4 font-semibold text-[var(--ink)]">{item.planName}</td>
-                    <td className="py-3 px-4 text-[var(--ink-muted)]">{item.billingCycle}</td>
-                    <td className="py-3 px-4 text-[var(--ink-muted)] font-mono text-[11px]">
+                    <td className="py-3 px-4  text-center text-xs text-[var(--text-secondary)] w-12">{idx + 1}</td>
+                    <td className="py-3 px-4  font-semibold text-[var(--text-primary)]">{item.invoiceNumber}</td>
+                    <td className="py-3 px-4 font-semibold text-[var(--text-primary)]">{item.planName}</td>
+                    <td className="py-3 px-4 text-[var(--text-secondary)]">{item.billingCycle}</td>
+                    <td className="py-3 px-4 text-[var(--text-secondary)]  text-xs font-normal">
                       {new Date(item.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="py-3 px-4 font-data">
+                    <td className="py-3 px-4 ">
                       {'\u20B9'}{item.amount.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-4 font-data text-[var(--ink-muted)]">
+                    <td className="py-3 px-4  text-[var(--text-secondary)]">
                       {'\u20B9'}{item.taxAmount.toLocaleString('en-IN')}
                     </td>
-                    <td className="py-3 px-4 font-data font-bold text-[var(--ink)]">
+                    <td className="py-3 px-4  font-semibold text-[var(--text-primary)]">
                       {'\u20B9'}{item.total.toLocaleString('en-IN')}
                     </td>
                     <td className="py-3 px-4">
                       <span
-                        className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${
+                        className={`px-2 py-0.5 text-xs font-normal font-semibold uppercase rounded-full ${
                           item.status === 'Paid'
                             ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                             : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
@@ -612,12 +612,12 @@ export const SubscriptionTab: React.FC = () => {
             {/* Modal Header */}
             <div className="p-4 border-b border-[var(--rule)] flex items-center justify-between bg-[var(--surface-sunken)]">
               <div className="flex items-center gap-2">
-                <Lock size={16} className="text-[var(--gold-500)]" />
-                <h4 className="font-display font-bold text-base text-[var(--ink)]">Secure Order Checkout</h4>
+                <Lock size={16} className="text-[var(--accent)]" />
+                <h4 className=" font-semibold text-base text-[var(--text-primary)]">Secure Order Checkout</h4>
               </div>
               <button
                 onClick={() => setCheckoutOrder(null)}
-                className="p-1.5 rounded hover:bg-[var(--paper)] text-[var(--ink-muted)] cursor-pointer"
+                className="p-1.5 rounded hover:bg-[var(--paper)] text-[var(--text-secondary)] cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -627,42 +627,42 @@ export const SubscriptionTab: React.FC = () => {
             <div className="p-6 space-y-4 text-xs">
               <div className="bg-[var(--paper)] p-4 rounded border border-[var(--rule)] space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-[var(--ink-muted)] font-ui">Plan Tier:</span>
-                  <strong className="text-[var(--ink)] font-display text-sm">{checkoutOrder.planName}</strong>
+                  <span className="text-[var(--text-secondary)] ">Plan Tier:</span>
+                  <strong className="text-[var(--text-primary)]  text-sm">{checkoutOrder.planName}</strong>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-[var(--ink-muted)] font-ui">Billing Frequency:</span>
-                  <span className="font-semibold text-[var(--ink)]">{checkoutOrder.billingCycle}</span>
+                  <span className="text-[var(--text-secondary)] ">Billing Frequency:</span>
+                  <span className="font-semibold text-[var(--text-primary)]">{checkoutOrder.billingCycle}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-[var(--ink-muted)] font-ui">Invoice Number:</span>
-                  <span className="font-mono text-[11px] text-[var(--ink)]">{checkoutOrder.invoiceNumber}</span>
+                  <span className="text-[var(--text-secondary)] ">Invoice Number:</span>
+                  <span className=" text-xs font-normal text-[var(--text-primary)]">{checkoutOrder.invoiceNumber}</span>
                 </div>
               </div>
 
               {/* Price Breakdown */}
               <div className="space-y-2 border-t border-[var(--rule)] pt-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--ink-muted)]">Subtotal</span>
-                  <span className="font-data font-semibold text-[var(--ink)]">
+                  <span className="text-[var(--text-secondary)]">Subtotal</span>
+                  <span className=" font-semibold text-[var(--text-primary)]">
                     {'\u20B9'}{checkoutOrder.amount.toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[var(--ink-muted)]">Goods & Services Tax (18% GST)</span>
-                  <span className="font-data text-[var(--ink-muted)]">
+                  <span className="text-[var(--text-secondary)]">Goods & Services Tax (18% GST)</span>
+                  <span className=" text-[var(--text-secondary)]">
                     {'\u20B9'}{checkoutOrder.taxAmount.toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center border-t border-[var(--rule)] pt-2 text-sm">
-                  <span className="font-bold text-[var(--ink)]">Total Payable</span>
-                  <span className="font-display font-bold text-base text-[var(--gold-600)] dark:text-[var(--gold-400)]">
+                  <span className="font-semibold text-[var(--text-primary)]">Total Payable</span>
+                  <span className=" font-semibold text-base text-[var(--accent-hover)] dark:text-[var(--gold-400)]">
                     {'\u20B9'}{checkoutOrder.totalAmount.toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
 
-              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded text-xs font-normal text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                 <ShieldCheck size={16} className="shrink-0 text-emerald-600" />
                 <span>Instant subscription activation upon checkout confirmation.</span>
               </div>

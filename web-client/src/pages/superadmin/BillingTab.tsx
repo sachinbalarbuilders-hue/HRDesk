@@ -56,16 +56,16 @@ export const BillingTab: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold text-[var(--text-primary)]">Global Billing & Invoices</h3>
-          <p className="text-[11px] text-[var(--text-muted)]">All payment transactions across tenants.</p>
+          <p className="text-xs font-normal text-[var(--text-muted)]">All payment transactions across tenants.</p>
         </div>
-        <span className="text-[11px] text-[var(--text-muted)]">{totalCount} total records</span>
+        <span className="text-xs font-normal text-[var(--text-muted)]">{totalCount} total records</span>
       </div>
 
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--surface-secondary)] border-b border-[var(--border)]">
-              <tr className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+              <tr className="text-xs font-normal uppercase tracking-wider text-[var(--text-muted)]">
                 <th className="py-3 px-4">Invoice #</th>
                 <th className="py-3 px-4">Organization</th>
                 <th className="py-3 px-4">Plan</th>
@@ -84,14 +84,14 @@ export const BillingTab: React.FC = () => {
                 <tr><td colSpan={9} className="py-12 text-center text-[var(--text-muted)]">No payments recorded.</td></tr>
               ) : payments.map((p) => (
                 <tr key={p.id} className="hover:bg-[var(--surface-hover)]">
-                  <td className="py-3 px-4 font-mono font-semibold text-[var(--text-primary)]">{p.invoiceNumber}</td>
+                  <td className="py-3 px-4  font-semibold text-[var(--text-primary)]">{p.invoiceNumber}</td>
                   <td className="py-3 px-4 text-[var(--text-primary)]">{p.organizationName}</td>
                   <td className="py-3 px-4 text-[var(--text-secondary)]">{p.planName}</td>
                   <td className="py-3 px-4 text-[var(--text-muted)]">{p.billingCycle}</td>
-                  <td className="py-3 px-4 font-mono text-[11px] text-[var(--text-muted)]">{new Date(p.createdAt).toLocaleDateString()}</td>
-                  <td className="py-3 px-4 font-data text-right">₹{p.amount.toLocaleString()}</td>
-                  <td className="py-3 px-4 font-data text-right text-[var(--text-muted)]">₹{p.taxAmount.toLocaleString()}</td>
-                  <td className="py-3 px-4 font-data font-semibold text-right text-[var(--text-primary)]">₹{p.total.toLocaleString()}</td>
+                  <td className="py-3 px-4  text-xs font-normal text-[var(--text-muted)]">{new Date(p.createdAt).toLocaleDateString()}</td>
+                  <td className="py-3 px-4  text-right">₹{p.amount.toLocaleString()}</td>
+                  <td className="py-3 px-4  text-right text-[var(--text-muted)]">₹{p.taxAmount.toLocaleString()}</td>
+                  <td className="py-3 px-4  font-semibold text-right text-[var(--text-primary)]">₹{p.total.toLocaleString()}</td>
                   <td className="py-3 px-4"><Badge variant={statusVariant(p.status) as any} dot>{p.status}</Badge></td>
                 </tr>
               ))}
@@ -102,7 +102,7 @@ export const BillingTab: React.FC = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)] bg-[var(--surface-secondary)]">
-            <span className="text-[11px] text-[var(--text-muted)]">
+            <span className="text-xs font-normal text-[var(--text-muted)]">
               Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount}
             </span>
             <div className="flex items-center gap-2">

@@ -197,7 +197,7 @@ export const OrganizationShell: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-[var(--ink-muted)] text-xs font-data">Loading organization details...</div>;
+    return <div className="p-8 text-center text-[var(--text-secondary)] text-xs ">Loading organization details...</div>;
   }
 
   const activeTab = TABS.find((t) => location.pathname === t.path(id || '')) || TABS[0];
@@ -208,16 +208,16 @@ export const OrganizationShell: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/settings/organizations')}
-            className="p-1.5 rounded-md hover:bg-[var(--surface)] text-[var(--ink-muted)] transition-colors cursor-pointer"
+            className="p-1.5 rounded-md hover:bg-[var(--surface)] text-[var(--text-secondary)] transition-colors cursor-pointer"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-2xl font-display font-semibold text-[var(--ink)] flex items-center gap-2">
-              <Building2 className="text-[var(--gold-500)]" size={24} />
+            <h1 className="text-base  font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <Building2 className="text-[var(--accent)]" size={24} />
               {isNew ? 'New Organization' : orgForm.name}
             </h1>
-            <p className="text-xs text-[var(--ink-muted)] mt-1">
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
               Manage organization details, branches, and company policies.
             </p>
           </div>
@@ -234,7 +234,7 @@ export const OrganizationShell: React.FC = () => {
               <button
                 key={tab.id}
                 className={`px-4 py-3 text-xs font-semibold cursor-pointer border-b-2 transition-colors ${
-                  isActive ? 'border-[var(--gold-500)] text-[var(--gold-500)]' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                  isActive ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
                 onClick={() => navigate(path)}
               >

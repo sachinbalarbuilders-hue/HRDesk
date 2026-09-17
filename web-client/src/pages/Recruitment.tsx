@@ -546,17 +546,17 @@ export const Recruitment: React.FC = () => {
       header: 'Candidate Name',
       render: (c) => (
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[10px] shrink-0 border border-indigo-200/50 dark:border-indigo-800/50">
+          <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-semibold text-xs font-normal shrink-0 border border-indigo-200/50 dark:border-indigo-800/50">
             {c.candidateName.charAt(0)}
           </div>
           <div>
             <button
               onClick={() => handleOpenCandidateDrawer(c)}
-              className="font-semibold text-xs text-[var(--ink)] hover:text-[var(--gold-500)] text-left cursor-pointer transition-colors block"
+              className="font-semibold text-xs text-[var(--text-primary)] hover:text-[var(--accent)] text-left cursor-pointer transition-colors block"
             >
               {c.candidateName}
             </button>
-            <span className="text-[10px] text-[var(--ink-muted)] font-data block">
+            <span className="text-xs font-normal text-[var(--text-secondary)]  block">
               Applied: {c.applicationDate || new Date(c.createdAt).toLocaleDateString()}
             </span>
           </div>
@@ -568,8 +568,8 @@ export const Recruitment: React.FC = () => {
       header: 'Position Applied',
       render: (c) => (
         <div className="flex items-center gap-1.5">
-          <Briefcase size={12} className="text-[var(--gold-500)]" />
-          <span className="font-semibold text-xs text-[var(--ink)]">{c.appliedFor}</span>
+          <Briefcase size={12} className="text-[var(--accent)]" />
+          <span className="font-semibold text-xs text-[var(--text-primary)]">{c.appliedFor}</span>
         </div>
       ),
     },
@@ -582,7 +582,7 @@ export const Recruitment: React.FC = () => {
           <select
             value={c.status}
             onChange={(e) => handleStageChange(c.candidateId, e.target.value)}
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border border-transparent focus:outline-none cursor-pointer ${stage.color}`}
+            className={`text-xs font-semibold px-2 py-0.5 rounded-full border border-transparent focus:outline-none cursor-pointer ${stage.color}`}
           >
             {STAGES.map((s) => (
               <option key={s.id} value={s.id}>
@@ -597,39 +597,39 @@ export const Recruitment: React.FC = () => {
       key: 'contact',
       header: 'Contact Info (Phone / Email)',
       render: (c) => (
-        <div className="space-y-0.5 text-xs text-[var(--ink)]">
+        <div className="space-y-0.5 text-xs text-[var(--text-primary)]">
           {c.phone && (
-            <div className="flex items-center gap-1 text-[11px] font-data text-[var(--ink)]">
-              <Phone size={11} className="text-[var(--ink-muted)]" />
+            <div className="flex items-center gap-1 text-xs font-normal  text-[var(--text-primary)]">
+              <Phone size={11} className="text-[var(--text-secondary)]" />
               <span>{c.phone}</span>
             </div>
           )}
           {c.email && (
-            <div className="flex items-center gap-1 text-[11px] font-data text-[var(--ink-muted)]">
-              <Mail size={11} className="text-[var(--ink-muted)]" />
+            <div className="flex items-center gap-1 text-xs font-normal  text-[var(--text-secondary)]">
+              <Mail size={11} className="text-[var(--text-secondary)]" />
               <span className="truncate max-w-[140px]">{c.email}</span>
             </div>
           )}
-          {!c.phone && !c.email && <span className="text-[var(--ink-muted)]">—</span>}
+          {!c.phone && !c.email && <span className="text-[var(--text-secondary)]">—</span>}
         </div>
       ),
     },
     {
       key: 'source',
       header: 'Source',
-      className: 'text-xs font-data text-[var(--ink-muted)]',
+      className: 'text-xs  text-[var(--text-secondary)]',
       render: (c) => c.source || 'Direct',
     },
     {
       key: 'salary',
       header: 'CTC (Current / Expected)',
       render: (c) => (
-        <div className="text-[11px] font-data">
-          <span className="text-[var(--ink)] font-semibold">
+        <div className="text-xs font-normal ">
+          <span className="text-[var(--text-primary)] font-semibold">
             {c.expectedSalary ? `₹${c.expectedSalary.toLocaleString()}` : '—'}
           </span>
           {c.currentSalary && (
-            <span className="text-[var(--ink-muted)] block text-[10px]">
+            <span className="text-[var(--text-secondary)] block text-xs font-normal">
               Curr: ₹{c.currentSalary.toLocaleString()}
             </span>
           )}
@@ -644,14 +644,14 @@ export const Recruitment: React.FC = () => {
         c.hasResume ? (
           <button
             onClick={() => handleDownloadResume(c.candidateId)}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-semibold cursor-pointer hover:bg-indigo-100 transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold cursor-pointer hover:bg-indigo-100 transition-colors"
             title="Download Attached Resume"
           >
             <Download size={11} />
             <span>PDF</span>
           </button>
         ) : (
-          <span className="text-[10px] text-[var(--ink-muted)]">No File</span>
+          <span className="text-xs font-normal text-[var(--text-secondary)]">No File</span>
         ),
     },
     {
@@ -682,8 +682,8 @@ export const Recruitment: React.FC = () => {
       header: 'Candidate',
       render: (i) => (
         <div>
-          <span className="font-semibold text-xs text-[var(--ink)] block">{i.candidateName}</span>
-          <span className="text-[10px] text-[var(--ink-muted)] font-data block">{i.appliedFor}</span>
+          <span className="font-semibold text-xs text-[var(--text-primary)] block">{i.candidateName}</span>
+          <span className="text-xs font-normal text-[var(--text-secondary)]  block">{i.appliedFor}</span>
         </div>
       ),
     },
@@ -691,11 +691,11 @@ export const Recruitment: React.FC = () => {
       key: 'dateTime',
       header: 'Interview Date & Time',
       render: (i) => (
-        <div className="font-data text-xs">
-          <span className="font-semibold text-[var(--ink)] block">
+        <div className=" text-xs">
+          <span className="font-semibold text-[var(--text-primary)] block">
             {new Date(i.interviewDateTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
           </span>
-          <span className="text-[10px] text-[var(--ink-muted)] font-data">
+          <span className="text-xs font-normal text-[var(--text-secondary)] ">
             {new Date(i.interviewDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
@@ -705,7 +705,7 @@ export const Recruitment: React.FC = () => {
       key: 'round',
       header: 'Round',
       render: (i) => (
-        <span className="inline-block px-2 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] font-data text-[10px] font-bold text-[var(--ink)]">
+        <span className="inline-block px-2 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)]  text-xs font-semibold text-[var(--text-primary)]">
           {i.round}
         </span>
       ),
@@ -714,7 +714,7 @@ export const Recruitment: React.FC = () => {
       key: 'mode',
       header: 'Mode / Type',
       render: (i) => (
-        <div className="flex items-center gap-1 text-[11px] text-[var(--ink)]">
+        <div className="flex items-center gap-1 text-xs font-normal text-[var(--text-primary)]">
           {i.interviewType === 'Video' ? (
             <Video size={12} className="text-blue-600" />
           ) : i.interviewType === 'Phone' ? (
@@ -729,11 +729,11 @@ export const Recruitment: React.FC = () => {
     {
       key: 'interviewer',
       header: 'Interviewer',
-      className: 'text-xs font-medium text-[var(--ink)]',
+      className: 'text-sm font-semibold text-[var(--text-primary)]',
       render: (i) => (
         <div>
           <span>{i.interviewerName}</span>
-          {i.interviewerPhone && <span className="text-[10px] text-[var(--ink-muted)] block font-data">{i.interviewerPhone}</span>}
+          {i.interviewerPhone && <span className="text-xs font-normal text-[var(--text-secondary)] block ">{i.interviewerPhone}</span>}
         </div>
       ),
     },
@@ -752,7 +752,7 @@ export const Recruitment: React.FC = () => {
             : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200';
 
         return (
-          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${badgeColor}`}>
+          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${badgeColor}`}>
             {i.status}
           </span>
         );
@@ -763,19 +763,19 @@ export const Recruitment: React.FC = () => {
       header: 'Evaluation Result',
       render: (i) =>
         i.result === 'Pass' ? (
-          <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-[11px]">
+          <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-xs font-normal">
             <CheckCircle2 size={12} /> Pass
           </span>
         ) : i.result === 'Fail' ? (
-          <span className="inline-flex items-center gap-1 text-rose-700 font-semibold text-[11px]">
+          <span className="inline-flex items-center gap-1 text-rose-700 font-semibold text-xs font-normal">
             <XCircle size={12} /> Reject
           </span>
         ) : i.result === 'Hold' ? (
-          <span className="inline-flex items-center gap-1 text-amber-700 font-semibold text-[11px]">
+          <span className="inline-flex items-center gap-1 text-amber-700 font-semibold text-xs font-normal">
             <AlertCircle size={12} /> On Hold
           </span>
         ) : (
-          <span className="text-[11px] text-[var(--ink-muted)]">Pending Feedback</span>
+          <span className="text-xs font-normal text-[var(--text-secondary)]">Pending Feedback</span>
         ),
     },
     {
@@ -819,69 +819,69 @@ export const Recruitment: React.FC = () => {
   });
 
   return (
-    <PageContainer className="font-ui">
+    <PageContainer className="">
       <PageHeader title="Recruitment" description="Track candidates and hiring pipeline" />
 
       {/* 2. Top Overview Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
-          <span className="text-[10px] uppercase font-bold text-[var(--ink-muted)] tracking-wider block font-ui">
+          <span className="text-xs font-normal uppercase font-semibold text-[var(--text-secondary)] tracking-wider block ">
             Total Pipeline
           </span>
-          <span className="font-data font-bold text-xl text-[var(--ink)] block mt-0.5">
+          <span className=" font-semibold text-base text-[var(--text-primary)] block mt-0.5">
             {overview.totalCandidates}
           </span>
-          <span className="text-[10px] text-[var(--ink-muted)]">All applicants</span>
+          <span className="text-xs font-normal text-[var(--text-secondary)]">All applicants</span>
         </div>
 
         <div className="p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
-          <span className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 tracking-wider block font-ui">
+          <span className="text-xs font-normal uppercase font-semibold text-blue-600 dark:text-blue-400 tracking-wider block ">
             Screening
           </span>
-          <span className="font-data font-bold text-xl text-blue-700 dark:text-blue-300 block mt-0.5">
+          <span className=" font-semibold text-base text-blue-700 dark:text-blue-300 block mt-0.5">
             {overview.pipeline?.screening || 0}
           </span>
-          <span className="text-[10px] text-[var(--ink-muted)]">Resume review</span>
+          <span className="text-xs font-normal text-[var(--text-secondary)]">Resume review</span>
         </div>
 
         <div className="p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
-          <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 tracking-wider block font-ui">
+          <span className="text-xs font-normal uppercase font-semibold text-amber-600 dark:text-amber-400 tracking-wider block ">
             In Interviews
           </span>
-          <span className="font-data font-bold text-xl text-amber-700 dark:text-amber-300 block mt-0.5">
+          <span className=" font-semibold text-base text-amber-700 dark:text-amber-300 block mt-0.5">
             {overview.pipeline?.interview || 0}
           </span>
-          <span className="text-[10px] text-[var(--ink-muted)]">{overview.upcomingInterviewsCount} scheduled</span>
+          <span className="text-xs font-normal text-[var(--text-secondary)]">{overview.upcomingInterviewsCount} scheduled</span>
         </div>
 
         <div className="p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
-          <span className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 tracking-wider block font-ui">
+          <span className="text-xs font-normal uppercase font-semibold text-purple-600 dark:text-purple-400 tracking-wider block ">
             Offers Extended
           </span>
-          <span className="font-data font-bold text-xl text-purple-700 dark:text-purple-300 block mt-0.5">
+          <span className=" font-semibold text-base text-purple-700 dark:text-purple-300 block mt-0.5">
             {overview.pipeline?.offered || 0}
           </span>
-          <span className="text-[10px] text-[var(--ink-muted)]">Pending acceptance</span>
+          <span className="text-xs font-normal text-[var(--text-secondary)]">Pending acceptance</span>
         </div>
 
         <div className="p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
-          <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider block font-ui">
+          <span className="text-xs font-normal uppercase font-semibold text-emerald-600 dark:text-emerald-400 tracking-wider block ">
             Hired & Onboarded
           </span>
-          <span className="font-data font-bold text-xl text-emerald-700 dark:text-emerald-300 block mt-0.5">
+          <span className=" font-semibold text-base text-emerald-700 dark:text-emerald-300 block mt-0.5">
             {overview.pipeline?.hired || 0}
           </span>
-          <span className="text-[10px] text-[var(--ink-muted)]">Converted to staff</span>
+          <span className="text-xs font-normal text-[var(--text-secondary)]">Converted to staff</span>
         </div>
 
         <div className="p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
-          <span className="text-[10px] uppercase font-bold text-[var(--gold-500)] tracking-wider block font-ui">
+          <span className="text-xs font-normal uppercase font-semibold text-[var(--accent)] tracking-wider block ">
             Active Openings
           </span>
-          <span className="font-data font-bold text-xl text-[var(--ink)] block mt-0.5">
+          <span className=" font-semibold text-base text-[var(--text-primary)] block mt-0.5">
             {overview.positions?.length || 0}
           </span>
-          <span className="text-[10px] text-[var(--ink-muted)]">Job roles</span>
+          <span className="text-xs font-normal text-[var(--text-secondary)]">Job roles</span>
         </div>
       </div>
 
@@ -893,7 +893,7 @@ export const Recruitment: React.FC = () => {
             className={`px-3 py-1.5 text-xs font-semibold rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 ${
               activeTab === 'candidates'
                 ? 'bg-[var(--accent)] text-white shadow-xs'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Users size={14} />
@@ -905,7 +905,7 @@ export const Recruitment: React.FC = () => {
             className={`px-3 py-1.5 text-xs font-semibold rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 ${
               activeTab === 'interviews'
                 ? 'bg-[var(--accent)] text-white shadow-xs'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Calendar size={14} />
@@ -917,7 +917,7 @@ export const Recruitment: React.FC = () => {
             className={`px-3 py-1.5 text-xs font-semibold rounded-[2px] transition-colors flex items-center gap-2 cursor-pointer flex-shrink-0 ${
               activeTab === 'openings'
                 ? 'bg-[var(--accent)] text-white shadow-xs'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
             <Briefcase size={14} />
@@ -929,16 +929,16 @@ export const Recruitment: React.FC = () => {
           <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-[4px] border border-[var(--rule)] self-end sm:self-auto">
             <button
               onClick={() => setViewMode('table')}
-              className={`px-2.5 py-1 text-xs font-medium rounded-[2px] transition-colors cursor-pointer ${
-                viewMode === 'table' ? 'bg-[var(--navy-900)] text-white' : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              className={`px-2.5 py-1 text-sm font-semibold rounded-[2px] transition-colors cursor-pointer ${
+                viewMode === 'table' ? 'bg-[var(--navy-900)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Ledger Table
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`px-2.5 py-1 text-xs font-medium rounded-[2px] transition-colors cursor-pointer ${
-                viewMode === 'kanban' ? 'bg-[var(--navy-900)] text-white' : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+              className={`px-2.5 py-1 text-sm font-semibold rounded-[2px] transition-colors cursor-pointer ${
+                viewMode === 'kanban' ? 'bg-[var(--navy-900)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               Kanban Board
@@ -1023,8 +1023,8 @@ export const Recruitment: React.FC = () => {
                     className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] p-3 space-y-2.5 min-w-[220px]"
                   >
                     <div className="flex items-center justify-between border-b border-[var(--rule)] pb-2">
-                      <span className="font-semibold text-xs text-[var(--ink)]">{stage.label}</span>
-                      <span className="text-[10px] font-bold font-data px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] text-[var(--ink)]">
+                      <span className="font-semibold text-xs text-[var(--text-primary)]">{stage.label}</span>
+                      <span className="text-xs font-semibold  px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] text-[var(--text-primary)]">
                         {stageCandidates.length}
                       </span>
                     </div>
@@ -1034,19 +1034,19 @@ export const Recruitment: React.FC = () => {
                         <div
                           key={c.candidateId}
                           onClick={() => handleOpenCandidateDrawer(c)}
-                          className="p-2.5 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] hover:border-[var(--gold-500)]/60 cursor-pointer space-y-1.5 transition-all shadow-xs"
+                          className="p-2.5 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] hover:border-[var(--accent)]/60 cursor-pointer space-y-1.5 transition-all shadow-xs"
                         >
                           <div className="flex items-start justify-between gap-1">
-                            <span className="font-semibold text-xs text-[var(--ink)] line-clamp-1">{c.candidateName}</span>
-                            <span className="text-[9px] font-data text-[var(--ink-muted)] shrink-0">#{c.candidateId}</span>
+                            <span className="font-semibold text-xs text-[var(--text-primary)] line-clamp-1">{c.candidateName}</span>
+                            <span className="text-xs font-normal  text-[var(--text-secondary)] shrink-0">#{c.candidateId}</span>
                           </div>
 
-                          <div className="text-[11px] text-[var(--gold-500)] font-medium flex items-center gap-1">
+                          <div className="text-xs font-normal text-[var(--accent)] font-medium flex items-center gap-1">
                             <Briefcase size={11} />
                             <span className="line-clamp-1">{c.appliedFor}</span>
                           </div>
 
-                          <div className="flex items-center justify-between text-[10px] text-[var(--ink-muted)] pt-1 border-t border-[var(--rule)] font-data">
+                          <div className="flex items-center justify-between text-xs font-normal text-[var(--text-secondary)] pt-1 border-t border-[var(--rule)] ">
                             <span>{c.expectedSalary ? `₹${c.expectedSalary.toLocaleString()}` : c.source}</span>
                             {c.hasResume && <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Resume</span>}
                           </div>
@@ -1054,7 +1054,7 @@ export const Recruitment: React.FC = () => {
                       ))}
 
                       {stageCandidates.length === 0 && (
-                        <div className="py-6 text-center text-[11px] text-[var(--ink-muted)] italic">
+                        <div className="py-6 text-center text-xs font-normal text-[var(--text-secondary)] italic">
                           No candidates
                         </div>
                       )}
@@ -1138,32 +1138,32 @@ export const Recruitment: React.FC = () => {
             {overview.positions?.map((pos: any, idx: number) => (
               <div
                 key={idx}
-                className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] space-y-3 relative hover:border-[var(--gold-500)]/60 transition-colors"
+                className="p-4 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] space-y-3 relative hover:border-[var(--accent)]/60 transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-[4px] bg-indigo-50 dark:bg-indigo-950/50 text-[var(--accent)] flex items-center justify-center font-bold text-xs border border-indigo-200/60 dark:border-indigo-800/40">
+                    <div className="w-8 h-8 rounded-[4px] bg-indigo-50 dark:bg-indigo-950/50 text-[var(--accent)] flex items-center justify-center font-semibold text-xs border border-indigo-200/60 dark:border-indigo-800/40">
                       <Briefcase size={16} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-xs text-[var(--ink)]">{pos.position}</h3>
-                      <p className="font-data text-[10px] text-[var(--ink-muted)]">Active Role</p>
+                      <h3 className="font-semibold text-xs text-[var(--text-primary)]">{pos.position}</h3>
+                      <p className=" text-xs font-normal text-[var(--text-secondary)]">Active Role</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[var(--rule)] text-center">
                   <div>
-                    <span className="text-[10px] text-[var(--ink-muted)] block">Total Applicants</span>
-                    <span className="font-data font-bold text-sm text-[var(--ink)]">{pos.totalApplicants}</span>
+                    <span className="text-xs font-normal text-[var(--text-secondary)] block">Total Applicants</span>
+                    <span className=" font-semibold text-sm text-[var(--text-primary)]">{pos.totalApplicants}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-amber-600 block">In Progress</span>
-                    <span className="font-data font-bold text-sm text-amber-700">{pos.active}</span>
+                    <span className="text-xs font-normal text-amber-600 block">In Progress</span>
+                    <span className=" font-semibold text-sm text-amber-700">{pos.active}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-emerald-600 block">Hired</span>
-                    <span className="font-data font-bold text-sm text-emerald-700">{pos.hired}</span>
+                    <span className="text-xs font-normal text-emerald-600 block">Hired</span>
+                    <span className=" font-semibold text-sm text-emerald-700">{pos.hired}</span>
                   </div>
                 </div>
 
@@ -1172,7 +1172,7 @@ export const Recruitment: React.FC = () => {
                     setCandidatePositionFilter(pos.position);
                     setActiveTab('candidates');
                   }}
-                  className="w-full mt-2 py-1 px-2 text-[11px] font-semibold text-[var(--gold-500)] bg-[var(--paper)] border border-[var(--rule)] rounded-[2px] hover:border-[var(--gold-500)] transition-colors cursor-pointer text-center"
+                  className="w-full mt-2 py-1 px-2 text-xs font-semibold text-[var(--accent)] bg-[var(--paper)] border border-[var(--rule)] rounded-[2px] hover:border-[var(--accent)] transition-colors cursor-pointer text-center"
                 >
                   View Pipeline Applicants →
                 </button>
@@ -1180,7 +1180,7 @@ export const Recruitment: React.FC = () => {
             ))}
 
             {overview.positions?.length === 0 && (
-              <div className="col-span-3 py-12 text-center text-xs text-[var(--ink-muted)] card p-8">
+              <div className="col-span-3 py-12 text-center text-xs text-[var(--text-secondary)] card p-8">
                 No active positions recorded. Add candidates to populate job roles.
               </div>
             )}
@@ -1197,18 +1197,18 @@ export const Recruitment: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
-                <UserPlus size={16} className="text-[var(--gold-500)]" />
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <UserPlus size={16} className="text-[var(--accent)]" />
                 <span>Source New Candidate</span>
               </h3>
-              <button onClick={() => setCandidateModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => setCandidateModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleCreateCandidate} className="space-y-3 text-xs">
               <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Full Legal Name *</label>
+                <label className="block font-medium text-[var(--text-primary)] mb-1">Full Legal Name *</label>
                 <input
                   type="text"
                   value={candidateForm.candidateName}
@@ -1221,30 +1221,30 @@ export const Recruitment: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Phone Number</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Phone Number</label>
                   <input
                     type="tel"
                     value={candidateForm.phone}
                     onChange={(e) => setCandidateForm({ ...candidateForm, phone: e.target.value })}
                     placeholder="e.g. +91 98765 43210"
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Email Address</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Email Address</label>
                   <input
                     type="email"
                     value={candidateForm.email}
                     onChange={(e) => setCandidateForm({ ...candidateForm, email: e.target.value })}
                     placeholder="e.g. vikram@example.com"
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Applied Position *</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Applied Position *</label>
                   <input
                     type="text"
                     value={candidateForm.appliedFor}
@@ -1255,7 +1255,7 @@ export const Recruitment: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Source</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Source</label>
                   <select
                     value={candidateForm.source}
                     onChange={(e) => setCandidateForm({ ...candidateForm, source: e.target.value })}
@@ -1273,29 +1273,29 @@ export const Recruitment: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Current CTC (₹ / Annum)</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Current CTC (₹ / Annum)</label>
                   <input
                     type="number"
                     value={candidateForm.currentSalary}
                     onChange={(e) => setCandidateForm({ ...candidateForm, currentSalary: e.target.value })}
                     placeholder="e.g. 650000"
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Expected CTC (₹ / Annum)</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Expected CTC (₹ / Annum)</label>
                   <input
                     type="number"
                     value={candidateForm.expectedSalary}
                     onChange={(e) => setCandidateForm({ ...candidateForm, expectedSalary: e.target.value })}
                     placeholder="e.g. 850000"
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Resume File (PDF / Word)</label>
+                <label className="block font-medium text-[var(--text-primary)] mb-1">Resume File (PDF / Word)</label>
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx"
@@ -1305,7 +1305,7 @@ export const Recruitment: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Interviewer / Recruiter Notes</label>
+                <label className="block font-medium text-[var(--text-primary)] mb-1">Interviewer / Recruiter Notes</label>
                 <textarea
                   value={candidateForm.notes}
                   onChange={(e) => setCandidateForm({ ...candidateForm, notes: e.target.value })}
@@ -1333,25 +1333,25 @@ export const Recruitment: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
                 <Calendar size={16} className="text-amber-500" />
                 <span>Schedule Interview Round</span>
               </h3>
-              <button onClick={() => setScheduleModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => setScheduleModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleScheduleInterview} className="space-y-3 text-xs">
               <div className="p-2.5 bg-[var(--paper)] rounded-[4px] border border-[var(--rule)]">
-                <span className="text-[10px] text-[var(--ink-muted)] block">Candidate</span>
-                <span className="font-semibold text-xs text-[var(--ink)]">{selectedCandidate?.candidateName}</span>
-                <span className="text-[10px] text-[var(--gold-500)] block font-medium">{selectedCandidate?.appliedFor}</span>
+                <span className="text-xs font-normal text-[var(--text-secondary)] block">Candidate</span>
+                <span className="font-semibold text-xs text-[var(--text-primary)]">{selectedCandidate?.candidateName}</span>
+                <span className="text-xs font-normal text-[var(--accent)] block font-medium">{selectedCandidate?.appliedFor}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Interview Round</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Interview Round</label>
                   <select
                     value={interviewForm.round}
                     onChange={(e) => setInterviewForm({ ...interviewForm, round: e.target.value })}
@@ -1365,7 +1365,7 @@ export const Recruitment: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Interview Mode</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Interview Mode</label>
                   <select
                     value={interviewForm.interviewType}
                     onChange={(e) => setInterviewForm({ ...interviewForm, interviewType: e.target.value as any })}
@@ -1379,19 +1379,19 @@ export const Recruitment: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Date & Time *</label>
+                <label className="block font-medium text-[var(--text-primary)] mb-1">Date & Time *</label>
                 <input
                   type="datetime-local"
                   value={interviewForm.interviewDateTime}
                   onChange={(e) => setInterviewForm({ ...interviewForm, interviewDateTime: e.target.value })}
-                  className="register-input w-full font-data"
+                  className="register-input w-full "
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Interviewer Name *</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Interviewer Name *</label>
                   <input
                     type="text"
                     value={interviewForm.interviewerName}
@@ -1402,25 +1402,25 @@ export const Recruitment: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Interviewer Phone</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Interviewer Phone</label>
                   <input
                     type="tel"
                     value={interviewForm.interviewerPhone}
                     onChange={(e) => setInterviewForm({ ...interviewForm, interviewerPhone: e.target.value })}
                     placeholder="+91..."
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Location / Meeting URL</label>
+                <label className="block font-medium text-[var(--text-primary)] mb-1">Location / Meeting URL</label>
                 <input
                   type="text"
                   value={interviewForm.location}
                   onChange={(e) => setInterviewForm({ ...interviewForm, location: e.target.value })}
                   placeholder="Meeting room / https://meet.google.com/..."
-                  className="register-input w-full font-mono text-[11px]"
+                  className="register-input w-full  text-xs font-normal"
                 />
               </div>
 
@@ -1442,24 +1442,24 @@ export const Recruitment: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
                 <CheckCircle2 size={16} className="text-emerald-500" />
                 <span>Interview Outcome & Feedback</span>
               </h3>
-              <button onClick={() => setFeedbackModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => setFeedbackModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleSaveFeedback} className="space-y-3 text-xs">
               <div className="p-2.5 bg-[var(--paper)] rounded-[4px] border border-[var(--rule)]">
-                <span className="font-semibold text-xs text-[var(--ink)] block">{selectedInterview.candidateName}</span>
-                <span className="text-[10px] text-[var(--ink-muted)] block font-data">{selectedInterview.round} • {selectedInterview.interviewerName}</span>
+                <span className="font-semibold text-xs text-[var(--text-primary)] block">{selectedInterview.candidateName}</span>
+                <span className="text-xs font-normal text-[var(--text-secondary)] block ">{selectedInterview.round} • {selectedInterview.interviewerName}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Interview Status</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Interview Status</label>
                   <select
                     value={feedbackForm.status}
                     onChange={(e) => setFeedbackForm({ ...feedbackForm, status: e.target.value })}
@@ -1471,7 +1471,7 @@ export const Recruitment: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Evaluation Outcome</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Evaluation Outcome</label>
                   <select
                     value={feedbackForm.result}
                     onChange={(e) => setFeedbackForm({ ...feedbackForm, result: e.target.value })}
@@ -1485,7 +1485,7 @@ export const Recruitment: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Detailed Interviewer Feedback</label>
+                <label className="block font-medium text-[var(--text-primary)] mb-1">Detailed Interviewer Feedback</label>
                 <textarea
                   value={feedbackForm.feedback}
                   onChange={(e) => setFeedbackForm({ ...feedbackForm, feedback: e.target.value })}
@@ -1513,40 +1513,40 @@ export const Recruitment: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
                 <UserCheck size={16} className="text-emerald-500" />
                 <span>Onboard Candidate to Staff Directory</span>
               </h3>
-              <button onClick={() => setHireModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => setHireModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleExecuteHire} className="space-y-3 text-xs">
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 rounded-[4px]">
-                <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold uppercase tracking-wider block">Candidate</span>
-                <span className="font-semibold text-xs text-[var(--ink)] block">{selectedCandidate.candidateName}</span>
-                <span className="text-[11px] text-[var(--ink-muted)]">Position: {selectedCandidate.appliedFor} • Phone: {selectedCandidate.phone || 'N/A'}</span>
+                <span className="text-xs font-normal text-emerald-700 dark:text-emerald-300 font-semibold uppercase tracking-wider block">Candidate</span>
+                <span className="font-semibold text-xs text-[var(--text-primary)] block">{selectedCandidate.candidateName}</span>
+                <span className="text-xs font-normal text-[var(--text-secondary)]">Position: {selectedCandidate.appliedFor} • Phone: {selectedCandidate.phone || 'N/A'}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Employee ID (Optional Auto-Assigned)</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Employee ID (Optional Auto-Assigned)</label>
                   <input
                     type="number"
                     value={hireForm.employeeId}
                     onChange={(e) => setHireForm({ ...hireForm, employeeId: e.target.value })}
                     placeholder="Auto-generated if blank"
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Joining Date *</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Joining Date *</label>
                   <input
                     type="date"
                     value={hireForm.joiningDate}
                     onChange={(e) => setHireForm({ ...hireForm, joiningDate: e.target.value })}
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                     required
                   />
                 </div>
@@ -1554,7 +1554,7 @@ export const Recruitment: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Department</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Department</label>
                   <select
                     value={hireForm.departmentId}
                     onChange={(e) => setHireForm({ ...hireForm, departmentId: e.target.value })}
@@ -1569,7 +1569,7 @@ export const Recruitment: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Designation</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Designation</label>
                   <select
                     value={hireForm.designationId}
                     onChange={(e) => setHireForm({ ...hireForm, designationId: e.target.value })}
@@ -1587,16 +1587,16 @@ export const Recruitment: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Probation Period (Days)</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Probation Period (Days)</label>
                   <input
                     type="number"
                     value={hireForm.probationDays}
                     onChange={(e) => setHireForm({ ...hireForm, probationDays: parseInt(e.target.value) || 0 })}
-                    className="register-input w-full font-data"
+                    className="register-input w-full "
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Default Week Off</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Default Week Off</label>
                   <select
                     value={hireForm.weekoff}
                     onChange={(e) => setHireForm({ ...hireForm, weekoff: e.target.value })}
@@ -1634,29 +1634,29 @@ export const Recruitment: React.FC = () => {
             <div className="space-y-5">
               <div className="flex items-start justify-between border-b border-[var(--rule)] pb-3">
                 <div>
-                  <span className="font-data text-[10px] text-[var(--gold-500)] font-bold">CANDIDATE #{selectedCandidate.candidateId}</span>
-                  <h2 className="font-display text-lg font-bold text-[var(--ink)]">{selectedCandidate.candidateName}</h2>
-                  <p className="text-xs text-[var(--ink-muted)] flex items-center gap-1 mt-0.5">
+                  <span className=" text-xs font-normal text-[var(--accent)] font-semibold">CANDIDATE #{selectedCandidate.candidateId}</span>
+                  <h2 className=" text-base font-semibold text-[var(--text-primary)]">{selectedCandidate.candidateName}</h2>
+                  <p className="text-xs text-[var(--text-secondary)] flex items-center gap-1 mt-0.5">
                     <Briefcase size={12} /> {selectedCandidate.appliedFor}
                   </p>
                 </div>
-                <button onClick={() => setCandidateDrawerOpen(false)} className="p-1 text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+                <button onClick={() => setCandidateDrawerOpen(false)} className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                   <X size={18} />
                 </button>
               </div>
 
               {/* Stage Progress Pills */}
               <div>
-                <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block mb-1.5">Current Stage</span>
+                <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">Current Stage</span>
                 <div className="flex flex-wrap gap-1">
                   {STAGES.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => handleStageChange(selectedCandidate.candidateId, s.id)}
-                      className={`text-[10px] font-semibold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
                         selectedCandidate.status === s.id
-                          ? `${s.color} ring-1 ring-[var(--ink)]`
-                          : 'bg-[var(--paper)] text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                          ? `${s.color} ring-1 ring-[var(--text-primary)]`
+                          : 'bg-[var(--paper)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                       }`}
                     >
                       {s.label}
@@ -1668,35 +1668,35 @@ export const Recruitment: React.FC = () => {
               {/* Contact & Compensation Details */}
               <div className="p-3 bg-[var(--paper)] rounded-[4px] border border-[var(--rule)] space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-[var(--ink-muted)]">Phone</span>
-                  <span className="font-data font-semibold text-[var(--ink)]">{selectedCandidate.phone || '—'}</span>
+                  <span className="text-[var(--text-secondary)]">Phone</span>
+                  <span className=" font-semibold text-[var(--text-primary)]">{selectedCandidate.phone || '—'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--ink-muted)]">Email</span>
-                  <span className="font-data text-[var(--ink)]">{selectedCandidate.email || '—'}</span>
+                  <span className="text-[var(--text-secondary)]">Email</span>
+                  <span className=" text-[var(--text-primary)]">{selectedCandidate.email || '—'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--ink-muted)]">Source</span>
-                  <span className="text-[var(--ink)]">{selectedCandidate.source || 'Direct'}</span>
+                  <span className="text-[var(--text-secondary)]">Source</span>
+                  <span className="text-[var(--text-primary)]">{selectedCandidate.source || 'Direct'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--ink-muted)]">Expected CTC</span>
-                  <span className="font-data font-bold text-emerald-700 dark:text-emerald-300">
+                  <span className="text-[var(--text-secondary)]">Expected CTC</span>
+                  <span className=" font-semibold text-emerald-700 dark:text-emerald-300">
                     {selectedCandidate.expectedSalary ? `₹${selectedCandidate.expectedSalary.toLocaleString()}` : '—'}
                   </span>
                 </div>
                 {selectedCandidate.currentSalary && (
                   <div className="flex justify-between">
-                    <span className="text-[var(--ink-muted)]">Current CTC</span>
-                    <span className="font-data text-[var(--ink)]">₹{selectedCandidate.currentSalary.toLocaleString()}</span>
+                    <span className="text-[var(--text-secondary)]">Current CTC</span>
+                    <span className=" text-[var(--text-primary)]">₹{selectedCandidate.currentSalary.toLocaleString()}</span>
                   </div>
                 )}
                 {selectedCandidate.hasResume && (
                   <div className="pt-2 border-t border-[var(--rule)] flex justify-between items-center">
-                    <span className="text-[var(--ink-muted)]">Resume Document</span>
+                    <span className="text-[var(--text-secondary)]">Resume Document</span>
                     <button
                       onClick={() => handleDownloadResume(selectedCandidate.candidateId)}
-                      className="btn-outline text-[11px] py-1 px-2.5 flex items-center gap-1"
+                      className="btn-outline text-xs font-normal py-1 px-2.5 flex items-center gap-1"
                     >
                       <Download size={12} /> Download PDF
                     </button>
@@ -1707,8 +1707,8 @@ export const Recruitment: React.FC = () => {
               {/* Notes */}
               {selectedCandidate.notes && (
                 <div>
-                  <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block mb-1">Recruiter Notes</span>
-                  <p className="text-xs bg-[var(--paper)] p-2.5 rounded-[4px] border border-[var(--rule)] text-[var(--ink)]">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1">Recruiter Notes</span>
+                  <p className="text-xs bg-[var(--paper)] p-2.5 rounded-[4px] border border-[var(--rule)] text-[var(--text-primary)]">
                     {selectedCandidate.notes}
                   </p>
                 </div>
@@ -1716,25 +1716,25 @@ export const Recruitment: React.FC = () => {
 
               {/* Interview Timeline */}
               <div className="space-y-2">
-                <span className="text-[10px] font-bold text-[var(--ink-muted)] uppercase tracking-wider block">Interview History</span>
+                <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block">Interview History</span>
                 <div className="space-y-2">
                   {drawerTimeline.map((item: any) => (
                     <div key={item.id} className="p-2.5 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] space-y-1 text-xs">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-[var(--ink)]">{item.round}</span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[2px] ${item.result === 'Pass' ? 'bg-emerald-100 text-emerald-800' : item.result === 'Fail' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-800'}`}>
+                        <span className="font-semibold text-[var(--text-primary)]">{item.round}</span>
+                        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-[2px] ${item.result === 'Pass' ? 'bg-emerald-100 text-emerald-800' : item.result === 'Fail' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-800'}`}>
                           {item.result || item.status}
                         </span>
                       </div>
-                      <p className="text-[10px] text-[var(--ink-muted)] font-data">
+                      <p className="text-xs font-normal text-[var(--text-secondary)] ">
                         {new Date(item.interviewDateTime).toLocaleString()} • {item.interviewerName} ({item.interviewType})
                       </p>
-                      {item.feedback && <p className="text-[11px] text-[var(--ink)] italic bg-[var(--surface)] p-1.5 rounded-[2px]">{item.feedback}</p>}
+                      {item.feedback && <p className="text-xs font-normal text-[var(--text-primary)] italic bg-[var(--surface)] p-1.5 rounded-[2px]">{item.feedback}</p>}
                     </div>
                   ))}
 
                   {drawerTimeline.length === 0 && (
-                    <p className="text-[11px] text-[var(--ink-muted)] italic py-2">No interviews scheduled yet.</p>
+                    <p className="text-xs font-normal text-[var(--text-secondary)] italic py-2">No interviews scheduled yet.</p>
                   )}
                 </div>
               </div>

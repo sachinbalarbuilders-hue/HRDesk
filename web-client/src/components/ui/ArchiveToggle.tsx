@@ -19,21 +19,21 @@ export const ArchiveToggle: React.FC<ArchiveToggleProps> = ({
   allCount,
 }) => {
   return (
-    <div className="inline-flex items-center p-0.5 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px] text-xs font-ui">
+    <div className="inline-flex items-center p-1 bg-[var(--surface-secondary)] border border-[var(--border-strong)] rounded-lg text-sm">
       <button
         type="button"
         onClick={() => onChange('active')}
-        className={`px-2.5 py-1 rounded-[2px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+        className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
           value === 'active'
-            ? 'bg-[var(--surface)] text-[var(--ink)] shadow-xs font-semibold'
-            : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+            ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-normal'
         }`}
         title="Show Active Records Only"
       >
-        <CheckCircle2 size={12} className={value === 'active' ? 'text-emerald-600' : 'text-[var(--ink-muted)]'} />
+        <CheckCircle2 size={14} className={value === 'active' ? 'text-emerald-600' : 'text-[var(--text-secondary)]'} />
         <span>Active</span>
         {activeCount !== undefined && (
-          <span className="font-data text-[10px] px-1 rounded-full bg-[var(--rule)]/50 text-[var(--ink)]">
+          <span className=" text-xs px-1.5 py-0.2 rounded-full bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text-primary)]">
             {activeCount}
           </span>
         )}
@@ -42,17 +42,17 @@ export const ArchiveToggle: React.FC<ArchiveToggleProps> = ({
       <button
         type="button"
         onClick={() => onChange('archived')}
-        className={`px-2.5 py-1 rounded-[2px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+        className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
           value === 'archived'
             ? 'bg-[var(--surface)] text-amber-700 dark:text-amber-300 shadow-xs font-semibold'
-            : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-normal'
         }`}
         title="Show Archived Records"
       >
-        <Archive size={12} className={value === 'archived' ? 'text-amber-600' : 'text-[var(--ink-muted)]'} />
+        <Archive size={14} className={value === 'archived' ? 'text-amber-600' : 'text-[var(--text-secondary)]'} />
         <span>Archived</span>
         {archivedCount !== undefined && (
-          <span className="font-data text-[10px] px-1 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200">
+          <span className=" text-xs px-1.5 py-0.2 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200">
             {archivedCount}
           </span>
         )}
@@ -61,17 +61,17 @@ export const ArchiveToggle: React.FC<ArchiveToggleProps> = ({
       <button
         type="button"
         onClick={() => onChange('all')}
-        className={`px-2.5 py-1 rounded-[2px] font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+        className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
           value === 'all'
-            ? 'bg-[var(--surface)] text-[var(--ink)] shadow-xs font-semibold'
-            : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
+            ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-normal'
         }`}
         title="Show All Records"
       >
-        <Layers size={12} className={value === 'all' ? 'text-[var(--gold-500)]' : 'text-[var(--ink-muted)]'} />
+        <Layers size={14} className={value === 'all' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'} />
         <span>All</span>
         {allCount !== undefined && (
-          <span className="font-data text-[10px] px-1 rounded-full bg-[var(--rule)]/50 text-[var(--ink)]">
+          <span className=" text-xs px-1.5 py-0.2 rounded-full bg-[var(--surface)] border border-[var(--border-strong)] text-[var(--text-primary)]">
             {allCount}
           </span>
         )}

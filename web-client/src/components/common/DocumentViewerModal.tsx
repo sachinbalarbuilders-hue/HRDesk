@@ -21,7 +21,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({ viewin
       className="fixed inset-0 z-[100] flex flex-col bg-black/90 backdrop-blur-sm animate-fade-in"
     >
       <div className="flex items-center justify-between p-4 bg-black/50 text-white">
-        <h3 id="doc-viewer-title" className="text-lg font-medium truncate text-balance">{viewingDoc.name}</h3>
+        <h3 id="doc-viewer-title" className="text-base font-medium truncate text-balance">{viewingDoc.name}</h3>
         <div className="flex items-center gap-4">
           <a
             href={viewingDoc.url}

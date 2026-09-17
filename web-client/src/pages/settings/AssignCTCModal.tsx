@@ -156,7 +156,7 @@ export const AssignCTCModal: React.FC<AssignCTCModalProps> = ({
         {/* Pay Group Card / Selector */}
         {currentPayGroupId && !showChangeGroup ? (
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-[var(--text-primary)]">
+            <label className="block text-sm font-semibold text-[var(--text-primary)]">
               Pay Group
             </label>
             <div className="flex items-center justify-between px-3.5 py-2.5 bg-[var(--surface-secondary)] border border-[var(--border)] rounded-[var(--radius-md)]">
@@ -180,7 +180,7 @@ export const AssignCTCModal: React.FC<AssignCTCModalProps> = ({
         ) : (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-medium text-[var(--text-primary)]">
+              <label className="block text-sm font-semibold text-[var(--text-primary)]">
                 Pay Group <span className="text-[var(--danger)]">*</span>
               </label>
               {currentPayGroupId && (
@@ -210,7 +210,7 @@ export const AssignCTCModal: React.FC<AssignCTCModalProps> = ({
               ))}
             </select>
             {!currentPayGroupId && (
-              <p className="text-[11px] text-[var(--text-muted)]">
+              <p className="text-xs font-normal text-[var(--text-muted)]">
                 Employee is not yet assigned to a pay group. Selecting here will assign them.
               </p>
             )}
@@ -259,7 +259,7 @@ export const AssignCTCModal: React.FC<AssignCTCModalProps> = ({
                 Monthly Breakdown Preview
                 {previewing && <Loader2 size={13} className="animate-spin text-[var(--accent)]" />}
               </span>
-              <span className="font-mono text-xs font-semibold text-[var(--text-primary)]">
+              <span className=" text-xs font-semibold text-[var(--text-primary)]">
                 ₹{(parseFloat(form.annualCTC) / 12).toLocaleString('en-IN', { maximumFractionDigits: 0 })} / month
               </span>
             </div>
@@ -269,13 +269,13 @@ export const AssignCTCModal: React.FC<AssignCTCModalProps> = ({
                 <table className="w-full border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-[var(--table-header-border)] bg-[var(--table-header-bg)]">
-                      <th className="py-2.5 px-3.5 text-left text-[11px] font-semibold text-[var(--table-header-text)] uppercase tracking-wider">
+                      <th className="py-2.5 px-3.5 text-left text-xs font-semibold text-[var(--table-header-text)] uppercase tracking-wider">
                         Component
                       </th>
-                      <th className="py-2.5 px-3.5 text-left text-[11px] font-semibold text-[var(--table-header-text)] uppercase tracking-wider">
+                      <th className="py-2.5 px-3.5 text-left text-xs font-semibold text-[var(--table-header-text)] uppercase tracking-wider">
                         Calculation
                       </th>
-                      <th className="py-2.5 px-3.5 text-right text-[11px] font-semibold text-[var(--table-header-text)] uppercase tracking-wider">
+                      <th className="py-2.5 px-3.5 text-right text-xs font-semibold text-[var(--table-header-text)] uppercase tracking-wider">
                         Monthly Amount
                       </th>
                     </tr>
@@ -286,15 +286,15 @@ export const AssignCTCModal: React.FC<AssignCTCModalProps> = ({
                         <td className="py-2.5 px-3.5">
                           <span className="font-medium text-[var(--text-primary)]">{r.componentName}</span>
                           {r.formula && (
-                            <span className="text-[11px] text-[var(--text-muted)] block font-mono mt-0.5">
+                            <span className="text-xs font-normal text-[var(--text-muted)] block  mt-0.5">
                               {r.formula}
                             </span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3.5 text-[var(--text-secondary)] font-mono text-[11px]">
+                        <td className="py-2.5 px-3.5 text-[var(--text-secondary)]  text-xs font-normal">
                           {r.calculationType}
                         </td>
-                        <td className="py-2.5 px-3.5 font-mono text-right font-semibold text-[var(--text-primary)]">
+                        <td className="py-2.5 px-3.5  text-right font-semibold text-[var(--text-primary)]">
                           ₹{r.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                         </td>
                       </tr>
@@ -302,10 +302,10 @@ export const AssignCTCModal: React.FC<AssignCTCModalProps> = ({
                     {deductions.map(r => (
                       <tr key={r.componentCode} className="hover:bg-[var(--surface-hover)] bg-[var(--surface-secondary)]/40 transition-colors">
                         <td className="py-2.5 px-3.5 text-[var(--text-secondary)]">{r.componentName}</td>
-                        <td className="py-2.5 px-3.5 text-[var(--text-muted)] font-mono text-[11px]">
+                        <td className="py-2.5 px-3.5 text-[var(--text-muted)]  text-xs font-normal">
                           {r.calculationType}
                         </td>
-                        <td className="py-2.5 px-3.5 font-mono text-right text-[var(--text-secondary)]">
+                        <td className="py-2.5 px-3.5  text-right text-[var(--text-secondary)]">
                           {r.calculationType === 'Statutory' ? 'Auto at payroll' : `₹${r.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
                         </td>
                       </tr>
@@ -314,7 +314,7 @@ export const AssignCTCModal: React.FC<AssignCTCModalProps> = ({
                   <tfoot>
                     <tr className="border-t-2 border-[var(--border)] bg-[var(--surface-secondary)] font-semibold text-[var(--text-primary)]">
                       <td colSpan={2} className="py-2.5 px-3.5">Gross Earnings Total</td>
-                      <td className="py-2.5 px-3.5 font-mono text-right font-bold text-[var(--text-primary)]">
+                      <td className="py-2.5 px-3.5  text-right font-semibold text-[var(--text-primary)]">
                         ₹{totalEarnings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </td>
                     </tr>

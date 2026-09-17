@@ -12,11 +12,11 @@ interface AvatarProps {
 }
 
 const sizes: Record<AvatarSize, string> = {
-  xs: 'w-6 h-6 text-[9px]',
-  sm: 'w-8 h-8 text-[11px]',
+  xs: 'w-6 h-6 text-xs font-normal',
+  sm: 'w-8 h-8 text-xs font-normal',
   md: 'w-10 h-10 text-sm',
   lg: 'w-12 h-12 text-base',
-  xl: 'w-16 h-16 text-lg',
+  xl: 'w-16 h-16 text-base',
 };
 
 const presenceColors: Record<string, string> = {

@@ -93,20 +93,20 @@ export const EditAttendanceModal: React.FC<EditAttendanceModalProps> = ({
         {/* Employee & Record Info Banner */}
         <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)]/40 flex items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)] font-bold">
+            <div className="w-8 h-8 rounded-full bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)] font-semibold">
               <User size={15} />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-[var(--text-primary)] text-sm">{employeeName || 'Employee'}</span>
+                <span className="font-semibold text-[var(--text-primary)] text-sm">{employeeName || 'Employee'}</span>
                 {employeeCode && (
-                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)]">
+                  <span className=" text-xs font-normal font-semibold px-1.5 py-0.2 rounded bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)]">
                     {employeeCode}
                   </span>
                 )}
               </div>
               {departmentName && (
-                <p className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
+                <p className="text-xs font-normal text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
                   <Building2 size={11} />
                   <span>{departmentName}</span>
                 </p>
@@ -114,7 +114,7 @@ export const EditAttendanceModal: React.FC<EditAttendanceModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 text-[var(--text-secondary)] font-mono text-xs bg-[var(--surface)] px-2.5 py-1 rounded-md border border-[var(--border)]">
+          <div className="flex items-center gap-1 text-[var(--text-secondary)]  text-xs bg-[var(--surface)] px-2.5 py-1 rounded-md border border-[var(--border)]">
             <Calendar size={12} className="text-[var(--accent)]" />
             <span>{date}</span>
           </div>

@@ -57,7 +57,7 @@ function CyclePreviewStrip({ slots, cycleLengthDays }: { slots: CycleSlot[]; cyc
           <div
             key={i}
             title={isWO ? 'Week Off' : (slot?.shiftName ?? 'Unknown')}
-            className="flex items-center justify-center rounded-[2px] text-[8px] font-bold text-white"
+            className="flex items-center justify-center rounded-[2px] text-[8px] font-semibold text-white"
             style={{ width: 26, height: 20, backgroundColor: color, opacity: i >= cycleLengthDays ? 0.45 : 1 }}
           >
             {label.slice(0, 3)}
@@ -65,7 +65,7 @@ function CyclePreviewStrip({ slots, cycleLengthDays }: { slots: CycleSlot[]; cyc
         );
       })}
       {cycleLengthDays > 21 && (
-        <span className="text-[9px] text-[var(--ink-muted)] self-center ml-1">×2 preview</span>
+        <span className="text-xs font-normal text-[var(--text-secondary)] self-center ml-1">×2 preview</span>
       )}
     </div>
   );
@@ -338,8 +338,8 @@ export const WorkShiftsTab: React.FC = () => {
       render: (item) => (
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.colorCode || '#4e73df' }} />
-          <Layers size={14} className="text-[var(--gold-500)]" />
-          <span className="font-semibold text-xs text-[var(--ink)]">{item.name}</span>
+          <Layers size={14} className="text-[var(--accent)]" />
+          <span className="font-semibold text-xs text-[var(--text-primary)]">{item.name}</span>
         </div>
       ),
     },
@@ -347,7 +347,7 @@ export const WorkShiftsTab: React.FC = () => {
       key: 'code',
       header: 'Code',
       render: (item) => (
-        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] font-data text-[10px] font-bold text-[var(--ink)]">
+        <span className="inline-block px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)]  text-xs font-normal font-semibold text-[var(--text-primary)]">
           {item.code}
         </span>
       ),
@@ -356,7 +356,7 @@ export const WorkShiftsTab: React.FC = () => {
       key: 'timing',
       header: 'Timing',
       render: (item) => (
-        <span className="font-data font-semibold text-xs text-emerald-700 dark:text-emerald-300">
+        <span className=" font-semibold text-xs text-emerald-700 dark:text-emerald-300">
           {item.startTime} – {item.endTime}
         </span>
       ),
@@ -365,7 +365,7 @@ export const WorkShiftsTab: React.FC = () => {
       key: 'breakMinutes',
       header: 'Break Duration',
       align: 'center',
-      className: 'font-data text-xs text-[var(--ink-muted)]',
+      className: ' text-xs text-[var(--text-secondary)]',
       render: (item) => item.breakMinutes ? `${item.breakMinutes} mins` : '—',
     },
     {
@@ -373,11 +373,11 @@ export const WorkShiftsTab: React.FC = () => {
       header: 'Status',
       render: (item) =>
         item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived' ? (
-          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
             Active
           </span>
         ) : (
-          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
             Archived
           </span>
         ),
@@ -452,12 +452,12 @@ export const WorkShiftsTab: React.FC = () => {
       render: (cycle) => (
         <div className="space-y-1 py-1">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-xs text-[var(--ink)]">{cycle.name}</span>
-            <span className="px-1.5 py-0.2 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] text-[10px] font-data font-bold text-[var(--ink-muted)]">
+            <span className="font-semibold text-xs text-[var(--text-primary)]">{cycle.name}</span>
+            <span className="px-1.5 py-0.2 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)] text-xs font-normal  font-semibold text-[var(--text-secondary)]">
               {cycle.cycleLengthDays}-day cycle
             </span>
           </div>
-          {cycle.description && <p className="text-[11px] text-[var(--ink-muted)]">{cycle.description}</p>}
+          {cycle.description && <p className="text-xs font-normal text-[var(--text-secondary)]">{cycle.description}</p>}
           <CyclePreviewStrip slots={cycle.slots} cycleLengthDays={cycle.cycleLengthDays} />
         </div>
       ),
@@ -469,14 +469,14 @@ export const WorkShiftsTab: React.FC = () => {
         const names = Array.from(new Set(cycle.slots.filter(s => !s.isWeekOff && s.shiftName).map(s => s.shiftName)));
         const hasWO = cycle.slots.some(s => s.isWeekOff);
         return (
-          <div className="flex flex-wrap gap-1 text-[10px] text-[var(--ink-muted)]">
+          <div className="flex flex-wrap gap-1 text-xs font-normal text-[var(--text-secondary)]">
             {names.map(name => (
               <span key={name} className="px-1.5 py-0.5 rounded-[2px] bg-[var(--paper)] border border-[var(--rule)]">
                 {name}
               </span>
             ))}
             {hasWO && (
-              <span className="px-1.5 py-0.5 rounded-[2px] bg-[var(--surface-sunken)] border border-[var(--rule)] text-[var(--ink-muted)]">
+              <span className="px-1.5 py-0.5 rounded-[2px] bg-[var(--surface-sunken)] border border-[var(--rule)] text-[var(--text-secondary)]">
                 Week Off
               </span>
             )}
@@ -515,10 +515,10 @@ export const WorkShiftsTab: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveSubTab('shifts')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-[4px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-sm font-semibold rounded-[4px] transition-colors cursor-pointer flex items-center gap-1.5 ${
               activeSubTab === 'shifts'
-                ? 'bg-[var(--gold-500)]/15 text-[var(--gold-500)] border border-[var(--gold-500)]/30 font-semibold'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)]'
+                ? 'bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30 font-semibold'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--paper)]'
             }`}
           >
             <Clock size={13} />
@@ -526,10 +526,10 @@ export const WorkShiftsTab: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveSubTab('cycles')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-[4px] transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 text-sm font-semibold rounded-[4px] transition-colors cursor-pointer flex items-center gap-1.5 ${
               activeSubTab === 'cycles'
-                ? 'bg-[var(--gold-500)]/15 text-[var(--gold-500)] border border-[var(--gold-500)]/30 font-semibold'
-                : 'text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--paper)]'
+                ? 'bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/30 font-semibold'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--paper)]'
             }`}
           >
             <RotateCcw size={13} />
@@ -635,11 +635,11 @@ export const WorkShiftsTab: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-2xl w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
-                <Layers size={16} className="text-[var(--gold-500)]" />
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <Layers size={16} className="text-[var(--accent)]" />
                 <span>{editingShiftId ? 'Edit Work Shift' : 'Create Work Shift'}</span>
               </h3>
-              <button onClick={() => setShiftModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => setShiftModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -647,34 +647,34 @@ export const WorkShiftsTab: React.FC = () => {
             <form onSubmit={handleSaveShift} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <label className="block font-medium text-[var(--ink)] mb-1">Shift Name *</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Shift Name *</label>
                   <input type="text" value={newShift.name} onChange={(e) => setNewShift({ ...newShift, name: e.target.value })} placeholder="e.g. Regular Day Shift, Night Shift" className="register-input w-full" required />
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Shift Code</label>
-                  <input type="text" value={newShift.code} onChange={(e) => setNewShift({ ...newShift, code: e.target.value.toUpperCase() })} placeholder="e.g. GEN, NS" className="register-input w-full font-data uppercase" />
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Shift Code</label>
+                  <input type="text" value={newShift.code} onChange={(e) => setNewShift({ ...newShift, code: e.target.value.toUpperCase() })} placeholder="e.g. GEN, NS" className="register-input w-full  uppercase" />
                 </div>
               </div>
 
               {/* Timings */}
               <div className="bg-[var(--paper)]/50 border border-[var(--rule)] rounded-[4px] p-3 space-y-2">
-                <span className="text-[10px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Shift & Lunch Timings</span>
+                <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Shift & Lunch Timings</span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <label className="block font-medium text-[var(--ink)] mb-1">Start Time</label>
-                    <input type="time" value={newShift.startTime} onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })} className="register-input w-full font-data" />
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">Start Time</label>
+                    <input type="time" value={newShift.startTime} onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })} className="register-input w-full " />
                   </div>
                   <div>
-                    <label className="block font-medium text-[var(--ink)] mb-1">End Time</label>
-                    <input type="time" value={newShift.endTime} onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })} className="register-input w-full font-data" />
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">End Time</label>
+                    <input type="time" value={newShift.endTime} onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })} className="register-input w-full " />
                   </div>
                   <div>
-                    <label className="block font-medium text-[var(--ink)] mb-1">Lunch Start</label>
-                    <input type="time" value={newShift.lunchStart} onChange={(e) => setNewShift({ ...newShift, lunchStart: e.target.value })} className="register-input w-full font-data" />
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">Lunch Start</label>
+                    <input type="time" value={newShift.lunchStart} onChange={(e) => setNewShift({ ...newShift, lunchStart: e.target.value })} className="register-input w-full " />
                   </div>
                   <div>
-                    <label className="block font-medium text-[var(--ink)] mb-1">Lunch End</label>
-                    <input type="time" value={newShift.lunchEnd} onChange={(e) => setNewShift({ ...newShift, lunchEnd: e.target.value })} className="register-input w-full font-data" />
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">Lunch End</label>
+                    <input type="time" value={newShift.lunchEnd} onChange={(e) => setNewShift({ ...newShift, lunchEnd: e.target.value })} className="register-input w-full " />
                   </div>
                 </div>
               </div>
@@ -682,33 +682,33 @@ export const WorkShiftsTab: React.FC = () => {
               {/* Monthly Late & Early Exit Rules */}
               <div className="bg-[var(--paper)]/50 border border-[var(--rule)] rounded-[4px] p-3 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider">Late & Early Exit Policy</span>
-                  <label className="flex items-center gap-2 cursor-pointer text-[11px] text-[var(--ink)]">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Late & Early Exit Policy</span>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-normal text-[var(--text-primary)]">
                     <span>Deduct Half Day on Exceed</span>
                     <input
                       type="checkbox"
                       checked={newShift.lateHalfDayOnExceed}
                       onChange={(e) => setNewShift({ ...newShift, lateHalfDayOnExceed: e.target.checked })}
-                      className="rounded text-[var(--gold-500)] focus:ring-[var(--gold-500)] cursor-pointer"
+                      className="rounded text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
                     />
                   </label>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <label className="block font-medium text-[var(--ink)] mb-1">Daily Late Grace (mins)</label>
-                    <input type="number" value={newShift.lateGrace} onChange={(e) => setNewShift({ ...newShift, lateGrace: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full font-data" min={0} max={120} />
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">Daily Late Grace (mins)</label>
+                    <input type="number" value={newShift.lateGrace} onChange={(e) => setNewShift({ ...newShift, lateGrace: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full " min={0} max={120} />
                   </div>
                   <div>
-                    <label className="block font-medium text-[var(--ink)] mb-1">Max Lates / Month</label>
-                    <input type="number" value={newShift.lateAllowedMonth} onChange={(e) => setNewShift({ ...newShift, lateAllowedMonth: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full font-data" min={0} max={31} />
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">Max Lates / Month</label>
+                    <input type="number" value={newShift.lateAllowedMonth} onChange={(e) => setNewShift({ ...newShift, lateAllowedMonth: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full " min={0} max={31} />
                   </div>
                   <div>
-                    <label className="block font-medium text-[var(--ink)] mb-1">Daily Early Grace (mins)</label>
-                    <input type="number" value={newShift.earlyLeaveGrace} onChange={(e) => setNewShift({ ...newShift, earlyLeaveGrace: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full font-data" min={0} max={120} />
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">Daily Early Grace (mins)</label>
+                    <input type="number" value={newShift.earlyLeaveGrace} onChange={(e) => setNewShift({ ...newShift, earlyLeaveGrace: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full " min={0} max={120} />
                   </div>
                   <div>
-                    <label className="block font-medium text-[var(--ink)] mb-1">Max Early Exits / Month</label>
-                    <input type="number" value={newShift.earlyAllowedMonth} onChange={(e) => setNewShift({ ...newShift, earlyAllowedMonth: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full font-data" min={0} max={31} />
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">Max Early Exits / Month</label>
+                    <input type="number" value={newShift.earlyAllowedMonth} onChange={(e) => setNewShift({ ...newShift, earlyAllowedMonth: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full " min={0} max={31} />
                   </div>
                 </div>
               </div>
@@ -716,26 +716,26 @@ export const WorkShiftsTab: React.FC = () => {
               {/* Break, Cutoff & Color */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Break Duration (mins)</label>
-                  <input type="number" value={newShift.breakMinutes} onChange={(e) => setNewShift({ ...newShift, breakMinutes: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full font-data" min={0} max={120} />
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Break Duration (mins)</label>
+                  <input type="number" value={newShift.breakMinutes} onChange={(e) => setNewShift({ ...newShift, breakMinutes: e.target.value === '' ? '' : Number(e.target.value) })} className="register-input w-full " min={0} max={120} />
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Half Day Cutoff Time</label>
-                  <input type="time" value={newShift.halfTime || ''} onChange={(e) => setNewShift({ ...newShift, halfTime: e.target.value })} className="register-input w-full font-data" />
-                  <p className="text-[10px] text-[var(--ink-muted)] mt-0.5">Midpoint if empty.</p>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Half Day Cutoff Time</label>
+                  <input type="time" value={newShift.halfTime || ''} onChange={(e) => setNewShift({ ...newShift, halfTime: e.target.value })} className="register-input w-full " />
+                  <p className="text-xs font-normal text-[var(--text-secondary)] mt-0.5">Midpoint if empty.</p>
                 </div>
                 <div>
-                  <label className="block font-medium text-[var(--ink)] mb-1">Shift Color Badge</label>
+                  <label className="block font-medium text-[var(--text-primary)] mb-1">Shift Color Badge</label>
                   <div className="flex items-center gap-2.5 pt-1">
                     <input type="color" value={newShift.colorCode} onChange={(e) => setNewShift({ ...newShift, colorCode: e.target.value })} className="w-8 h-8 rounded-[4px] border border-[var(--rule)] cursor-pointer" />
-                    <span className="font-data text-xs text-[var(--ink-muted)]">{newShift.colorCode}</span>
+                    <span className=" text-xs text-[var(--text-secondary)]">{newShift.colorCode}</span>
                   </div>
                 </div>
               </div>
 
               <div className="p-2.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between">
-                <span className="text-[var(--ink-muted)]">Calculated Working Hours:</span>
-                <span className="font-data font-bold text-[var(--gold-500)]">
+                <span className="text-[var(--text-secondary)]">Calculated Working Hours:</span>
+                <span className=" font-semibold text-[var(--accent)]">
                   {(() => {
                     if (!newShift.startTime || !newShift.endTime) return '—';
                     const [sh, sm] = newShift.startTime.split(':').map(Number);
@@ -765,11 +765,11 @@ export const WorkShiftsTab: React.FC = () => {
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[var(--rule)] p-5 shrink-0">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
-                <RefreshCw size={15} className="text-[var(--gold-500)]" />
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <RefreshCw size={15} className="text-[var(--accent)]" />
                 {editingCycleId ? 'Edit Shift Cycle' : 'Create Shift Cycle'}
               </h3>
-              <button onClick={() => setCycleModalOpen(false)} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => setCycleModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
@@ -779,7 +779,7 @@ export const WorkShiftsTab: React.FC = () => {
                 {/* Basic info */}
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div className="col-span-2">
-                    <label className="block font-medium text-[var(--ink)] mb-1">Cycle Name *</label>
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">Cycle Name *</label>
                     <input
                       type="text"
                       required
@@ -790,7 +790,7 @@ export const WorkShiftsTab: React.FC = () => {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block font-medium text-[var(--ink)] mb-1">Description</label>
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">Description</label>
                     <input
                       type="text"
                       value={cycleForm.description}
@@ -800,7 +800,7 @@ export const WorkShiftsTab: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block font-medium text-[var(--ink)] mb-1">Cycle Length (days) *</label>
+                    <label className="block font-medium text-[var(--text-primary)] mb-1">Cycle Length (days) *</label>
                     <input
                       type="number"
                       min={1}
@@ -808,9 +808,9 @@ export const WorkShiftsTab: React.FC = () => {
                       required
                       value={cycleForm.cycleLengthDays}
                       onChange={e => handleCycleLengthChange(Number(e.target.value))}
-                      className="register-input w-full font-data"
+                      className="register-input w-full "
                     />
-                    <p className="text-[10px] text-[var(--ink-muted)] mt-1">
+                    <p className="text-xs font-normal text-[var(--text-secondary)] mt-1">
                       7 = weekly, 21 = 3-week rotation, 6 = 4-on/2-off, etc.
                     </p>
                   </div>
@@ -819,7 +819,7 @@ export const WorkShiftsTab: React.FC = () => {
                 {/* Live preview */}
                 {cycleSlots.length > 0 && (
                   <div className="p-3 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px]">
-                    <p className="text-[10px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider mb-1.5">Pattern Preview (×2)</p>
+                    <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">Pattern Preview (×2)</p>
                     <CyclePreviewStrip
                       cycleLengthDays={cycleForm.cycleLengthDays}
                       slots={cycleSlots.map((s, i) => ({
@@ -836,7 +836,7 @@ export const WorkShiftsTab: React.FC = () => {
 
                 {/* Per-slot editor */}
                 <div>
-                  <p className="text-[10px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider mb-2">Day-by-Day Assignment</p>
+                  <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-2">Day-by-Day Assignment</p>
                   <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                     {cycleSlots.map((slot, i) => (
                       <div
@@ -847,7 +847,7 @@ export const WorkShiftsTab: React.FC = () => {
                             : 'bg-[var(--paper)] border-[var(--rule)]'
                         }`}
                       >
-                        <span className="w-14 font-data text-[var(--ink-muted)] shrink-0">Day {i + 1}</span>
+                        <span className="w-14  text-[var(--text-secondary)] shrink-0">Day {i + 1}</span>
                         <label className="flex items-center gap-1 cursor-pointer shrink-0">
                           <input
                             type="checkbox"
@@ -859,7 +859,7 @@ export const WorkShiftsTab: React.FC = () => {
                             }}
                             className="accent-slate-400"
                           />
-                          <span className="text-[var(--ink-muted)]">W/Off</span>
+                          <span className="text-[var(--text-secondary)]">W/Off</span>
                         </label>
                         {!slot.isWeekOff && (
                           <select
@@ -878,7 +878,7 @@ export const WorkShiftsTab: React.FC = () => {
                           </select>
                         )}
                         {slot.isWeekOff && (
-                          <span className="flex-1 text-[var(--ink-muted)] italic text-[11px]">Week Off</span>
+                          <span className="flex-1 text-[var(--text-secondary)] italic text-xs font-normal">Week Off</span>
                         )}
                       </div>
                     ))}

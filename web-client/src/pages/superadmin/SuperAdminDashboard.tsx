@@ -219,11 +219,11 @@ export const SuperAdminDashboard: React.FC = () => {
 
   if (user && !user.isPlatformUser) {
     return (
-      <div className="min-h-screen bg-[var(--canvas)] flex flex-col items-center justify-center p-6 text-center font-ui">
+      <div className="min-h-screen bg-[var(--canvas)] flex flex-col items-center justify-center p-6 text-center ">
         <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center mb-4">
           <Lock size={32} />
         </div>
-        <h2 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-2">Restricted Access</h2>
+        <h2 className=" text-base font-semibold text-[var(--text-primary)] mb-2">Restricted Access</h2>
         <p className="text-sm text-[var(--text-primary)]/60 max-w-md mb-6">
           Platform SuperAdmin credentials are required to access this portal. Your account does not have platform-level clearance.
         </p>
@@ -244,19 +244,19 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* ── Top Navbar ──────────────────────────────────── */}
       <header className="bg-[var(--navy-900)] text-white border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0 z-30 shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-indigo-600 text-white flex items-center justify-center font-bold shadow-xs">
+          <div className="w-8 h-8 rounded bg-indigo-600 text-white flex items-center justify-center font-semibold shadow-xs">
             <ShieldCheck size={18} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-bold text-base tracking-tight text-white">
-                HRDesk<span className="text-indigo-400 text-xs ml-1 font-mono">PLATFORM CONSOLE</span>
+              <span className=" font-semibold text-base tracking-tight text-white">
+                HRDesk<span className="text-indigo-400 text-xs ml-1 ">PLATFORM CONSOLE</span>
               </span>
-              <span className="px-1.5 py-0.2 text-[9px] font-bold uppercase rounded bg-rose-500 text-white">
+              <span className="px-1.5 py-0.2 text-xs font-normal font-semibold uppercase rounded bg-rose-500 text-white">
                 SuperAdmin
               </span>
             </div>
-            <span className="text-[10px] text-zinc-400 font-mono">Global Multi-Tenant Infrastructure &amp; Overrides</span>
+            <span className="text-xs font-normal text-zinc-400 ">Global Multi-Tenant Infrastructure &amp; Overrides</span>
           </div>
         </div>
 
@@ -283,22 +283,22 @@ export const SuperAdminDashboard: React.FC = () => {
       </header>
 
       {/* ── Main Container ─────────────────────────────── */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6 font-ui">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6 ">
 
         {/* ── KPI Metric Cards ─────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* MRR */}
           <div className="bg-[var(--surface)] p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs space-y-2">
             <div className="flex items-center justify-between text-xs text-[var(--text-primary)]/60">
-              <span className="font-semibold uppercase tracking-wider text-[10px]">Monthly Recurring (MRR)</span>
+              <span className="font-semibold uppercase tracking-wider text-xs font-normal">Monthly Recurring (MRR)</span>
               <div className="p-2 rounded bg-emerald-500/10 text-emerald-600">
                 <TrendingUp size={16} />
               </div>
             </div>
-            <div className="font-display text-2xl font-bold text-[var(--text-primary)]">
+            <div className=" text-base font-semibold text-[var(--text-primary)]">
               {'\u20B9'}{(metrics?.totalMRR ?? 0).toLocaleString('en-IN')}
             </div>
-            <span className="text-[11px] text-[var(--text-primary)]/60 block">
+            <span className="text-xs font-normal text-[var(--text-primary)]/60 block">
               Annualized (ARR): {'\u20B9'}{(metrics?.totalARR ?? 0).toLocaleString('en-IN')}
             </span>
           </div>
@@ -306,15 +306,15 @@ export const SuperAdminDashboard: React.FC = () => {
           {/* Active Workspaces */}
           <div className="bg-[var(--surface)] p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs space-y-2">
             <div className="flex items-center justify-between text-xs text-[var(--text-primary)]/60">
-              <span className="font-semibold uppercase tracking-wider text-[10px]">Total Workspaces</span>
+              <span className="font-semibold uppercase tracking-wider text-xs font-normal">Total Workspaces</span>
               <div className="p-2 rounded bg-blue-500/10 text-blue-600">
                 <Building2 size={16} />
               </div>
             </div>
-            <div className="font-display text-2xl font-bold text-[var(--text-primary)]">
+            <div className=" text-base font-semibold text-[var(--text-primary)]">
               {metrics?.totalTenants ?? 0}
             </div>
-            <span className="text-[11px] text-emerald-600 font-semibold block">
+            <span className="text-xs font-normal text-emerald-600 font-semibold block">
               {metrics?.activeTenants ?? 0} actively operational
             </span>
           </div>
@@ -322,15 +322,15 @@ export const SuperAdminDashboard: React.FC = () => {
           {/* Total Managed Employees */}
           <div className="bg-[var(--surface)] p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs space-y-2">
             <div className="flex items-center justify-between text-xs text-[var(--text-primary)]/60">
-              <span className="font-semibold uppercase tracking-wider text-[10px]">Total Managed Seats</span>
+              <span className="font-semibold uppercase tracking-wider text-xs font-normal">Total Managed Seats</span>
               <div className="p-2 rounded bg-amber-500/10 text-amber-600">
                 <Users size={16} />
               </div>
             </div>
-            <div className="font-display text-2xl font-bold text-[var(--text-primary)]">
+            <div className=" text-base font-semibold text-[var(--text-primary)]">
               {metrics?.totalEmployees ?? 0}
             </div>
-            <span className="text-[11px] text-[var(--text-primary)]/60 block">
+            <span className="text-xs font-normal text-[var(--text-primary)]/60 block">
               Across all customer organizations
             </span>
           </div>
@@ -338,15 +338,15 @@ export const SuperAdminDashboard: React.FC = () => {
           {/* Lifetime Revenue */}
           <div className="bg-[var(--surface)] p-5 rounded-[var(--radius-lg)] border border-[var(--border)] shadow-xs space-y-2">
             <div className="flex items-center justify-between text-xs text-[var(--text-primary)]/60">
-              <span className="font-semibold uppercase tracking-wider text-[10px]">Collected Revenue</span>
+              <span className="font-semibold uppercase tracking-wider text-xs font-normal">Collected Revenue</span>
               <div className="p-2 rounded bg-purple-500/10 text-purple-600">
                 <CreditCard size={16} />
               </div>
             </div>
-            <div className="font-display text-2xl font-bold text-[var(--text-primary)]">
+            <div className=" text-base font-semibold text-[var(--text-primary)]">
               {'\u20B9'}{(metrics?.totalCollectedRevenue ?? 0).toLocaleString('en-IN')}
             </div>
-            <span className="text-[11px] text-emerald-600 font-semibold block">
+            <span className="text-xs font-normal text-emerald-600 font-semibold block">
               {'\u20B9'}{(metrics?.thisMonthRevenue ?? 0).toLocaleString('en-IN')} this month
             </span>
           </div>
@@ -356,9 +356,9 @@ export const SuperAdminDashboard: React.FC = () => {
         <div className="flex items-center gap-2 border-b border-[var(--border)]">
           <button
             onClick={() => setActiveTab('tenants')}
-            className={`pb-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'tenants'
-                ? 'border-[var(--gold-500)] text-[var(--text-primary)]'
+                ? 'border-[var(--accent)] text-[var(--text-primary)]'
                 : 'border-transparent text-[var(--text-primary)]/60 hover:text-[var(--text-primary)]'
             }`}
           >
@@ -368,9 +368,9 @@ export const SuperAdminDashboard: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('plans')}
-            className={`pb-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'plans'
-                ? 'border-[var(--gold-500)] text-[var(--text-primary)]'
+                ? 'border-[var(--accent)] text-[var(--text-primary)]'
                 : 'border-transparent text-[var(--text-primary)]/60 hover:text-[var(--text-primary)]'
             }`}
           >
@@ -380,9 +380,9 @@ export const SuperAdminDashboard: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('billing')}
-            className={`pb-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`pb-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'billing'
-                ? 'border-[var(--gold-500)] text-[var(--text-primary)]'
+                ? 'border-[var(--accent)] text-[var(--text-primary)]'
                 : 'border-transparent text-[var(--text-primary)]/60 hover:text-[var(--text-primary)]'
             }`}
           >
@@ -417,9 +417,9 @@ export const SuperAdminDashboard: React.FC = () => {
                       setStatusFilter(pill.value);
                       setPage(1);
                     }}
-                    className={`px-3 py-1.5 text-[11px] font-semibold rounded-full border cursor-pointer transition-colors ${
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-full border cursor-pointer transition-colors ${
                       statusFilter === pill.value
-                        ? 'border-[var(--gold-500)] bg-[var(--gold-500)]/10 text-[var(--text-primary)]'
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
                         : 'border-[var(--border)] text-[var(--text-primary)]/60 hover:border-[var(--text-primary)]/30'
                     }`}
                   >
@@ -434,7 +434,7 @@ export const SuperAdminDashboard: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-[var(--surface-sunken)] border-b border-[var(--border)] text-[11px] uppercase tracking-wider text-[var(--text-primary)]/60">
+                    <tr className="bg-[var(--surface-sunken)] border-b border-[var(--border)] text-xs font-normal uppercase tracking-wider text-[var(--text-primary)]/60">
                       <th className="py-3 px-4 w-12 text-center">Sr.</th>
                       <th className="py-3 px-4">Workspace / Organization</th>
                       <th className="py-3 px-4">Plan Tier</th>
@@ -449,7 +449,7 @@ export const SuperAdminDashboard: React.FC = () => {
                     {loadingTenants ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-[var(--text-primary)]/60">
-                          <Loader2 size={16} className="animate-spin inline mr-2 text-[var(--gold-500)]" />
+                          <Loader2 size={16} className="animate-spin inline mr-2 text-[var(--accent)]" />
                           Loading workspaces...
                         </td>
                       </tr>
@@ -464,13 +464,13 @@ export const SuperAdminDashboard: React.FC = () => {
                         const isExpired = t.validUntil && new Date(t.validUntil) < new Date();
                         return (
                           <tr key={t.id} className="hover:bg-[var(--surface-sunken)]/50 transition-colors">
-                            <td className="py-3 px-4 font-mono text-center text-xs text-[var(--text-primary)]/60 w-12">
+                            <td className="py-3 px-4  text-center text-xs text-[var(--text-primary)]/60 w-12">
                               {(page - 1) * 15 + idx + 1}
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-2.5">
                                 <div
-                                  className="w-8 h-8 rounded flex items-center justify-center font-bold text-xs text-white shrink-0"
+                                  className="w-8 h-8 rounded flex items-center justify-center font-semibold text-xs text-white shrink-0"
                                   style={{ backgroundColor: t.primaryColor && t.primaryColor !== '#D97706' ? t.primaryColor : '#4F46E5' }}
                                 >
                                   {t.logoUrl ? (
@@ -481,7 +481,7 @@ export const SuperAdminDashboard: React.FC = () => {
                                 </div>
                                 <div>
                                   <strong className="text-[var(--text-primary)] block">{t.name}</strong>
-                                  <span className="font-mono text-[10px] text-[var(--text-primary)]/60">
+                                  <span className=" text-xs font-normal text-[var(--text-primary)]/60">
                                     {t.code || `ID: ${t.id}`}
                                   </span>
                                 </div>
@@ -489,31 +489,31 @@ export const SuperAdminDashboard: React.FC = () => {
                             </td>
 
                             <td className="py-3 px-4">
-                              <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-[var(--gold-500)]/10 text-[var(--gold-600)] border border-[var(--gold-500)]/20">
+                              <span className="px-2 py-0.5 text-xs font-normal font-semibold uppercase rounded bg-[var(--accent)]/10 text-[var(--accent-hover)] border border-[var(--accent)]/20">
                                 {t.planName}
                               </span>
                             </td>
 
-                            <td className="py-3 px-4 font-data">
+                            <td className="py-3 px-4 ">
                               <strong>{t.employeeCount}</strong> / {t.maxEmployees} seats
                             </td>
 
-                            <td className="py-3 px-4 font-data">
+                            <td className="py-3 px-4 ">
                               <strong>{t.branchCount}</strong> / {t.maxBranches} branches
                             </td>
 
                             <td className="py-3 px-4">
-                              <div className="font-mono text-[11px]">
+                              <div className=" text-xs font-normal">
                                 {t.validUntil ? new Date(t.validUntil).toLocaleDateString() : 'Unlimited'}
                               </div>
                               {isExpired && (
-                                <span className="text-[10px] text-rose-600 font-semibold block">Expired</span>
+                                <span className="text-xs font-normal text-rose-600 font-semibold block">Expired</span>
                               )}
                             </td>
 
                             <td className="py-3 px-4">
                               <span
-                                className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${
+                                className={`px-2 py-0.5 text-xs font-normal font-semibold uppercase rounded-full ${
                                   t.isActive
                                     ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                                     : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
@@ -530,7 +530,7 @@ export const SuperAdminDashboard: React.FC = () => {
                                     setExtendModalTenant(t);
                                     setExtendDays(14);
                                   }}
-                                  className="px-2 py-1 text-[11px] font-semibold rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-sunken)] cursor-pointer"
+                                  className="px-2 py-1 text-xs font-semibold rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-sunken)] cursor-pointer"
                                   title="Extend Free Trial"
                                 >
                                   + Trial
@@ -541,7 +541,7 @@ export const SuperAdminDashboard: React.FC = () => {
                                     setOverrideModalTenant(t);
                                     setOverridePlanId(plans.find((p) => p.name === t.planName)?.id || plans[0]?.id);
                                   }}
-                                  className="px-2 py-1 text-[11px] font-semibold rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-sunken)] cursor-pointer"
+                                  className="px-2 py-1 text-xs font-semibold rounded border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-sunken)] cursor-pointer"
                                   title="Override Plan"
                                 >
                                   Plan
@@ -549,7 +549,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
                                 <button
                                   onClick={() => handleToggleTenantStatus(t)}
-                                  className={`px-2 py-1 text-[11px] font-semibold rounded border cursor-pointer ${
+                                  className={`px-2 py-1 text-xs font-semibold rounded border cursor-pointer ${
                                     t.isActive
                                       ? 'border-rose-500/30 text-rose-600 hover:bg-rose-500/10'
                                       : 'border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10'
@@ -577,7 +577,7 @@ export const SuperAdminDashboard: React.FC = () => {
                   >
                     Previous
                   </button>
-                  <span className="text-xs text-[var(--text-primary)]/60 font-mono">
+                  <span className="text-xs text-[var(--text-primary)]/60 ">
                     Page {page} of {totalPages}
                   </span>
                   <button
@@ -604,8 +604,8 @@ export const SuperAdminDashboard: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] shadow-2xl w-full max-w-sm overflow-hidden">
               <div className="p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface-sunken)]">
-                <h4 className="font-display font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
-                  <Calendar size={16} className="text-[var(--gold-500)]" />
+                <h4 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                  <Calendar size={16} className="text-[var(--accent)]" />
                   Extend Trial: {extendModalTenant.name}
                 </h4>
                 <button onClick={() => setExtendModalTenant(null)} className="p-1 text-[var(--text-primary)]/60 cursor-pointer">
@@ -626,7 +626,7 @@ export const SuperAdminDashboard: React.FC = () => {
                       onClick={() => setExtendDays(d)}
                       className={`py-2 text-center rounded border font-semibold cursor-pointer transition-colors ${
                         extendDays === d
-                          ? 'border-[var(--gold-500)] bg-[var(--gold-500)]/10 text-[var(--text-primary)] font-bold'
+                          ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)] font-semibold'
                           : 'border-[var(--border)] text-[var(--text-primary)]/60 hover:border-[var(--text-primary)]'
                       }`}
                     >
@@ -670,8 +670,8 @@ export const SuperAdminDashboard: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
             <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] shadow-2xl w-full max-w-sm overflow-hidden">
               <div className="p-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface-sunken)]">
-                <h4 className="font-display font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
-                  <Layers size={16} className="text-[var(--gold-500)]" />
+                <h4 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                  <Layers size={16} className="text-[var(--accent)]" />
                   Override Plan: {overrideModalTenant.name}
                 </h4>
                 <button onClick={() => setOverrideModalTenant(null)} className="p-1 text-[var(--text-primary)]/60 cursor-pointer">
@@ -690,7 +690,7 @@ export const SuperAdminDashboard: React.FC = () => {
                       key={p.id}
                       className={`flex items-center justify-between p-3 rounded border cursor-pointer transition-colors ${
                         overridePlanId === p.id
-                          ? 'border-[var(--gold-500)] bg-[var(--gold-500)]/10 font-bold'
+                          ? 'border-[var(--accent)] bg-[var(--accent)]/10 font-semibold'
                           : 'border-[var(--border)] hover:bg-[var(--surface-sunken)]'
                       }`}
                     >
@@ -700,11 +700,11 @@ export const SuperAdminDashboard: React.FC = () => {
                           name="plan"
                           checked={overridePlanId === p.id}
                           onChange={() => setOverridePlanId(p.id)}
-                          className="text-[var(--gold-500)]"
+                          className="text-[var(--accent)]"
                         />
                         <span className="text-[var(--text-primary)]">{p.name}</span>
                       </div>
-                      <span className="text-[10px] text-[var(--text-primary)]/60 font-mono">
+                      <span className="text-xs font-normal text-[var(--text-primary)]/60 ">
                         {p.maxEmployees} seats
                       </span>
                     </label>

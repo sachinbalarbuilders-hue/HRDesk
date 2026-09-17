@@ -32,10 +32,10 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
     badgeText = 'WARNING';
     badgeColor = 'text-[var(--warn-600)] bg-[var(--warn-600)]/10';
   } else if (type === 'info') {
-    borderAccent = 'border-l-[var(--gold-500)]';
-    icon = <Info size={16} className="text-[var(--gold-500)] flex-shrink-0 mt-0.5" aria-hidden="true" />;
+    borderAccent = 'border-l-[var(--accent)]';
+    icon = <Info size={16} className="text-[var(--accent)] flex-shrink-0 mt-0.5" aria-hidden="true" />;
     badgeText = 'NOTICE';
-    badgeColor = 'text-[var(--gold-500)] bg-[var(--gold-500)]/10';
+    badgeColor = 'text-[var(--accent)] bg-[var(--accent)]/10';
   }
 
   return (
@@ -49,15 +49,15 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
       <div className="flex-1 min-w-0">
         {title && (
           <div className="flex items-center gap-2 mb-0.5">
-            <span className={`px-1 rounded-[2px] text-[9px] font-bold font-data ${badgeColor}`}>
+            <span className={`px-1 rounded-[2px] text-xs font-normal font-semibold  ${badgeColor}`}>
               {badgeText}
             </span>
-            <p className="text-xs font-semibold text-[var(--ink)] font-ui text-balance">
+            <p className="text-xs font-semibold text-[var(--text-primary)]  text-balance">
               {title}
             </p>
           </div>
         )}
-        <p className="text-xs text-[var(--ink-muted)] font-ui leading-snug text-pretty">
+        <p className="text-xs text-[var(--text-secondary)]  leading-snug text-pretty">
           {message}
         </p>
       </div>
@@ -67,7 +67,7 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss alert"
-          className="text-[var(--ink-muted)] hover:text-[var(--ink)] p-0.5 rounded cursor-pointer"
+          className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-0.5 rounded cursor-pointer"
         >
           <X size={14} aria-hidden="true" />
         </button>

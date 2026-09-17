@@ -123,8 +123,8 @@ export const DepartmentsTab: React.FC = () => {
       header: 'Department Name',
       render: (item) => (
         <div className="flex items-center gap-2">
-          <FolderTree size={14} className="text-[var(--gold-500)]" />
-          <span className="font-semibold text-xs text-[var(--ink)]">{item.name}</span>
+          <FolderTree size={14} className="text-[var(--accent)]" />
+          <span className="font-semibold text-xs text-[var(--text-primary)]">{item.name}</span>
         </div>
       ),
     },
@@ -134,7 +134,7 @@ export const DepartmentsTab: React.FC = () => {
       render: (item) => {
         const isAct = item.status?.toLowerCase() !== 'inactive' && item.status?.toLowerCase() !== 'archived';
         return (
-          <span className={`px-2 py-0.5 rounded-[2px] text-[10px] font-semibold uppercase tracking-wider ${
+          <span className={`px-2 py-0.5 rounded-[2px] text-xs font-semibold uppercase tracking-wider ${
             isAct
               ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
               : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
@@ -240,18 +240,18 @@ export const DepartmentsTab: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
-              <h3 className="font-display font-semibold text-sm text-[var(--ink)] flex items-center gap-2">
-                <FolderTree size={16} className="text-[var(--gold-500)]" />
+              <h3 className=" font-semibold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                <FolderTree size={16} className="text-[var(--accent)]" />
                 <span>{editingDeptId ? 'Edit Department' : 'Create Department'}</span>
               </h3>
-              <button onClick={() => { setDeptModalOpen(false); setEditingDeptId(null); }} className="text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer">
+              <button onClick={() => { setDeptModalOpen(false); setEditingDeptId(null); }} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">
                 <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleAddDept} className="space-y-3 text-xs">
               <div>
-                <label className="block font-medium text-[var(--ink)] mb-1">Department Name *</label>
+                <label className="block font-medium text-[var(--text-primary)] mb-1">Department Name *</label>
                 <input
                   type="text"
                   value={newDept.name}

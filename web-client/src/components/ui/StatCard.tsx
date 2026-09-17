@@ -34,20 +34,20 @@ export const StatCard: React.FC<StatCardProps> = ({
   return (
     <div
       className={clsx(
-        'bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] p-5 shadow-[var(--shadow-sm)]',
+        'bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-lg)] p-4 lg:p-5 shadow-[var(--shadow-sm)]',
         className
       )}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wide">
+          <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">
             {label}
           </p>
-          <p className="text-2xl font-bold text-[var(--text-primary)] mt-1 font-data tabular-nums">
+          <p className="text-base font-semibold text-[var(--text-primary)] mt-1 tabular-nums">
             {value}
           </p>
           {subtitle && (
-            <p className="text-[11px] text-[var(--text-muted)] mt-1 text-pretty">{subtitle}</p>
+            <p className="text-xs font-normal text-[var(--text-secondary)] mt-1 text-pretty">{subtitle}</p>
           )}
           {trend && (
             <div className="flex items-center gap-1 mt-2">
@@ -60,7 +60,7 @@ export const StatCard: React.FC<StatCardProps> = ({
               )}
               <span
                 className={clsx(
-                  'text-[11px] font-medium tabular-nums',
+                  'text-xs font-semibold tabular-nums',
                   trend.value > 0 && 'text-[var(--success)]',
                   trend.value < 0 && 'text-[var(--danger)]',
                   trend.value === 0 && 'text-[var(--text-muted)]'
@@ -69,7 +69,7 @@ export const StatCard: React.FC<StatCardProps> = ({
                 {trend.value > 0 ? '+' : ''}{trend.value}%
               </span>
               {trend.label && (
-                <span className="text-[11px] text-[var(--text-muted)]">{trend.label}</span>
+                <span className="text-xs font-normal text-[var(--text-secondary)]">{trend.label}</span>
               )}
             </div>
           )}

@@ -128,7 +128,7 @@ export const PlansTab: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold text-[var(--text-primary)]">Subscription Plans</h3>
-          <p className="text-[11px] text-[var(--text-muted)]">Manage pricing tiers shown on landing page and registration.</p>
+          <p className="text-xs font-normal text-[var(--text-muted)]">Manage pricing tiers shown on landing page and registration.</p>
         </div>
         <button onClick={openCreate} className="btn-primary text-xs px-4 py-2 flex items-center gap-1.5 cursor-pointer">
           <Plus size={14} /> Add Plan
@@ -140,7 +140,7 @@ export const PlansTab: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--surface-secondary)] border-b border-[var(--border)]">
-              <tr className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+              <tr className="text-xs font-normal uppercase tracking-wider text-[var(--text-muted)]">
                 <th className="py-3 px-4">Plan Name</th>
                 <th className="py-3 px-4">Code</th>
                 <th className="py-3 px-4">₹/Month</th>
@@ -156,14 +156,14 @@ export const PlansTab: React.FC = () => {
                 <tr key={plan.id} className="hover:bg-[var(--surface-hover)]">
                   <td className="py-3 px-4">
                     <p className="font-medium text-[var(--text-primary)]">{plan.name}</p>
-                    <p className="text-[10px] text-[var(--text-muted)] mt-0.5 line-clamp-1">{plan.description}</p>
+                    <p className="text-xs font-normal text-[var(--text-muted)] mt-0.5 line-clamp-1">{plan.description}</p>
                   </td>
-                  <td className="py-3 px-4 font-mono text-[var(--text-secondary)]">{plan.code}</td>
-                  <td className="py-3 px-4 font-data font-semibold text-[var(--text-primary)]">
+                  <td className="py-3 px-4  text-[var(--text-secondary)]">{plan.code}</td>
+                  <td className="py-3 px-4  font-semibold text-[var(--text-primary)]">
                     {plan.pricePerMonth === 0 ? 'Free' : `₹${plan.pricePerMonth.toLocaleString()}`}
                   </td>
-                  <td className="py-3 px-4 font-data">{plan.maxEmployees.toLocaleString()}</td>
-                  <td className="py-3 px-4 font-data">{plan.maxBranches}</td>
+                  <td className="py-3 px-4 ">{plan.maxEmployees.toLocaleString()}</td>
+                  <td className="py-3 px-4 ">{plan.maxBranches}</td>
                   <td className="py-3 px-4">
                     <div className="flex flex-wrap gap-1">
                       {plan.hasBiometricsModule && <Badge variant="default" size="sm">Bio</Badge>}
@@ -203,38 +203,38 @@ export const PlansTab: React.FC = () => {
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Plan Name *</label>
+              <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1">Plan Name *</label>
               <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Growth Enterprise" className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Code *</label>
-              <input type="text" required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="e.g. growth" className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] font-mono" />
+              <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1">Code *</label>
+              <input type="text" required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="e.g. growth" className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] " />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Description</label>
+            <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1">Description</label>
             <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Short description for landing page" className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]" />
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">₹ Price/Month</label>
+              <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1">₹ Price/Month</label>
               <input type="number" min={0} value={form.pricePerMonth} onChange={(e) => setForm({ ...form, pricePerMonth: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Max Employees</label>
+              <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1">Max Employees</label>
               <input type="number" min={1} value={form.maxEmployees} onChange={(e) => setForm({ ...form, maxEmployees: parseInt(e.target.value) || 1 })} className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Max Branches</label>
+              <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-1">Max Branches</label>
               <input type="number" min={1} value={form.maxBranches} onChange={(e) => setForm({ ...form, maxBranches: parseInt(e.target.value) || 1 })} className="w-full px-3 py-2 text-sm rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]" />
             </div>
           </div>
 
           {/* Feature Toggles */}
           <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">Included Modules</label>
+            <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Included Modules</label>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { key: 'hasBiometricsModule', label: 'Biometric Attendance' },

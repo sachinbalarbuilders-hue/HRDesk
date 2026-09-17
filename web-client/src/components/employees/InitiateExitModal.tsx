@@ -183,11 +183,11 @@ export const InitiateExitModal: React.FC<InitiateExitModalProps> = ({
         {/* Row 1: Employee & Exit Type */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-              Employee <span className="text-[var(--err-500)]">*</span>
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">
+              Employee <span className="text-[var(--danger)]">*</span>
             </label>
             {preselectedEmployee ? (
-              <div className="p-2 rounded-[var(--radius-sm)] bg-[var(--surface-sunken)] border border-[var(--rule)] text-xs font-bold text-[var(--ink)]">
+              <div className="p-2 rounded-[var(--radius-sm)] bg-[var(--surface-secondary)] border border-[var(--border)] text-sm font-semibold text-[var(--text-primary)]">
                 {preselectedEmployee.employeeName} (EMP#{preselectedEmployee.employeeId})
               </div>
             ) : (
@@ -219,8 +219,8 @@ export const InitiateExitModal: React.FC<InitiateExitModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-              Exit Type <span className="text-[var(--err-500)]">*</span>
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">
+              Exit Type <span className="text-[var(--danger)]">*</span>
             </label>
             <select
               value={form.exitType}
@@ -246,8 +246,8 @@ export const InitiateExitModal: React.FC<InitiateExitModalProps> = ({
         {/* Row 2: Clean 3-Column Dates & Notice */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1 flex items-center gap-1">
-              <Calendar size={12} className="text-[var(--gold-500)]" />
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1 flex items-center gap-1">
+              <Calendar size={12} className="text-[var(--accent)]" />
               <span>Notice Date</span>
             </label>
             <input
@@ -260,7 +260,7 @@ export const InitiateExitModal: React.FC<InitiateExitModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">
               Notice Days
             </label>
             <input
@@ -275,15 +275,15 @@ export const InitiateExitModal: React.FC<InitiateExitModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1 flex items-center gap-1">
-              <Calendar size={12} className="text-emerald-600" />
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1 flex items-center gap-1">
+              <Calendar size={12} className="text-[var(--success)]" />
               <span>Last Working Day (LWD)</span>
             </label>
             <input
               type="date"
               value={form.lastWorkingDate}
               onChange={(e) => setForm((prev) => ({ ...prev, lastWorkingDate: e.target.value }))}
-              className="register-input w-full text-xs font-bold text-emerald-600 dark:text-emerald-400"
+              className="register-input w-full text-sm font-semibold text-[var(--success)]"
               required
             />
           </div>
@@ -292,8 +292,8 @@ export const InitiateExitModal: React.FC<InitiateExitModalProps> = ({
         {/* Row 3: Reason & Admin Rehire Eligibility */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
-              Primary Reason <span className="text-[var(--err-500)]">*</span>
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">
+              Primary Reason <span className="text-[var(--danger)]">*</span>
             </label>
             <select
               value={form.reason}
@@ -315,9 +315,9 @@ export const InitiateExitModal: React.FC<InitiateExitModalProps> = ({
               id="rehireCheck"
               checked={form.isEligibleForRehire}
               onChange={(e) => setForm((prev) => ({ ...prev, isEligibleForRehire: e.target.checked }))}
-              className="w-4 h-4 rounded text-[var(--gold-500)] border-[var(--rule)] focus:ring-[var(--gold-500)] cursor-pointer"
+              className="w-4 h-4 rounded text-[var(--accent)] border-[var(--border)] focus:ring-[var(--accent)] cursor-pointer"
             />
-            <label htmlFor="rehireCheck" className="text-xs font-medium text-[var(--ink)] cursor-pointer select-none">
+            <label htmlFor="rehireCheck" className="text-sm font-semibold text-[var(--text-primary)] cursor-pointer select-none">
               Eligible for rehire in future
             </label>
           </div>
@@ -325,7 +325,7 @@ export const InitiateExitModal: React.FC<InitiateExitModalProps> = ({
 
         {/* Row 4: Remarks / Notes */}
         <div>
-          <label className="block text-xs font-semibold text-[var(--ink)] mb-1">
+          <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1">
             Detailed Reason / Remarks
           </label>
           <textarea
@@ -333,18 +333,18 @@ export const InitiateExitModal: React.FC<InitiateExitModalProps> = ({
             value={form.reasonDetails}
             onChange={(e) => setForm((prev) => ({ ...prev, reasonDetails: e.target.value }))}
             placeholder="Add handover instructions, discussion notes, or reason details..."
-            className="register-input w-full resize-none text-xs"
+            className="register-input w-full resize-none text-sm font-normal"
           />
         </div>
 
         {/* Row 5: Clean Inline Document Attachment */}
         <div className="pt-1">
-          <label className="block text-xs font-semibold text-[var(--ink)] mb-1.5">
+          <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">
             Attach Resignation / Notice Letter (Optional)
           </label>
           <div className="flex items-center gap-3">
-            <label className="btn-outline text-xs py-1.5 px-3 cursor-pointer flex items-center gap-1.5 border-[var(--rule)] hover:border-[var(--gold-500)] text-[var(--ink)]">
-              <Upload size={13} className="text-[var(--gold-500)]" />
+            <label className="btn-outline flex items-center gap-1.5 border-[var(--border)] text-[var(--text-primary)] cursor-pointer">
+              <Upload size={13} className="text-[var(--accent)]" />
               <span>Choose Document</span>
               <input
                 type="file"
@@ -355,37 +355,37 @@ export const InitiateExitModal: React.FC<InitiateExitModalProps> = ({
             </label>
 
             {form.documentFileName ? (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-[var(--success)]">
                 <CheckCircle2 size={13} />
                 <span className="truncate max-w-[200px]">{form.documentFileName}</span>
                 <button
                   type="button"
                   onClick={() => setForm((prev) => ({ ...prev, documentBase64: '', documentFileName: '' }))}
-                  className="text-[var(--err-500)] hover:text-[var(--err-600)] p-0.5 ml-1 cursor-pointer"
+                  className="text-[var(--danger)] hover:text-red-600 p-0.5 ml-1 cursor-pointer"
                   title="Remove file"
                 >
                   <X size={13} />
                 </button>
               </div>
             ) : (
-              <span className="text-[11px] text-[var(--ink-muted)]">PDF, Word, or Image (max 5MB)</span>
+              <span className="text-xs font-normal text-[var(--text-secondary)]">PDF, Word, or Image (max 5MB)</span>
             )}
           </div>
         </div>
 
         {/* Footer Buttons */}
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-[var(--rule)]">
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-[var(--border)]">
           <button
             type="button"
             onClick={onClose}
-            className="btn-outline text-xs py-1.5 px-4 cursor-pointer"
+            className="btn-outline"
             disabled={submitting}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="btn-primary text-xs py-1.5 px-4 cursor-pointer"
+            className="btn-primary"
             disabled={submitting}
           >
             {submitting ? 'Submitting...' : 'Submit Exit Request'}

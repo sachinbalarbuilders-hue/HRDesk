@@ -275,21 +275,21 @@ export const Form16Modal: React.FC<Props> = ({
         {/* Top Controls Bar (Pinned to top, hidden on print) */}
         <div className="px-5 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50 shrink-0 z-10 no-print">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-semibold">
               <FileText className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-serif font-bold text-sm text-slate-900">
+                <span className=" font-semibold text-sm text-slate-900">
                   Form 16 (Part B)
                 </span>
                 {data?.isDraft && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
                     PROVISIONAL / DRAFT
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs font-normal text-slate-500">
                 {employeeName || data?.employee.name} {data?.employee.employeeCode && `(${data.employee.employeeCode})`}
               </p>
             </div>
@@ -301,7 +301,7 @@ export const Form16Modal: React.FC<Props> = ({
               <select
                 value={financialYear}
                 onChange={(e) => setFinancialYear(e.target.value)}
-                className="text-xs border border-slate-300 rounded px-2 py-1 bg-white text-slate-800 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                className="text-xs border border-slate-300 rounded px-2 py-1 bg-white text-slate-800  focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
               >
                 <option value="2026-2027">2026-2027 (AY 2027-28)</option>
                 <option value="2025-2026">2025-2026 (AY 2026-27)</option>
@@ -348,7 +348,7 @@ export const Form16Modal: React.FC<Props> = ({
           <div id="printable-form16-body" className="p-6 sm:p-8 bg-white text-slate-900 text-xs space-y-6 flex-1 overflow-y-auto print:p-4 print:space-y-4 print:overflow-visible print:max-h-none">
             {/* Draft Notice if fiscal year not finalized */}
             {data.isDraft && (
-              <div className="p-2.5 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-start gap-2 no-print">
+              <div className="p-2.5 rounded bg-amber-50 border border-amber-200 text-amber-900 text-xs font-normal flex items-start gap-2 no-print">
                 <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                 <div>
                   <strong>Provisional Form 16 Part B Projection:</strong> The selected financial year is ongoing. Unprocessed months are estimated based on active CTC. Final statutory Form 16 Part B will be sealed at fiscal year-end.
@@ -358,17 +358,17 @@ export const Form16Modal: React.FC<Props> = ({
 
             {/* 1. Official Statutory Header */}
             <div className="text-center border-b-2 border-slate-900 pb-4 space-y-1">
-              <h1 className="text-base sm:text-lg font-bold font-serif tracking-wide uppercase text-slate-900">
+              <h1 className="text-base sm:text-base font-semibold  tracking-wide uppercase text-slate-900">
                 FORM NO. 16
               </h1>
-              <p className="text-[10px] text-slate-500 font-mono">[See rule 31(1)(a)]</p>
-              <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">
+              <p className="text-xs font-normal text-slate-500 ">[See rule 31(1)(a)]</p>
+              <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-800">
                 PART B
               </h2>
-              <p className="text-[11px] text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-xs font-normal text-slate-600 max-w-2xl mx-auto leading-relaxed">
                 Certificate under section 203 of the Income-tax Act, 1961 for tax deducted at source on salary paid to an employee or central / state government or other employers
               </p>
-              <div className="pt-1 flex flex-wrap items-center justify-center gap-4 text-[11px] font-mono text-slate-700">
+              <div className="pt-1 flex flex-wrap items-center justify-center gap-4 text-xs font-normal  text-slate-700">
                 <span>Certificate No: <strong className="text-slate-900">{data.certificateNumber}</strong></span>
                 <span>•</span>
                 <span>Assessment Year: <strong className="text-slate-900">{data.assessmentYear}</strong></span>
@@ -381,24 +381,24 @@ export const Form16Modal: React.FC<Props> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-slate-300 rounded p-3.5 bg-slate-50/50">
               {/* Employer Details */}
               <div className="space-y-1.5 border-b md:border-b-0 md:border-r border-slate-200 pb-3 md:pb-0 md:pr-4">
-                <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                <div className="text-xs font-normal uppercase font-semibold text-slate-500 tracking-wider">
                   Employer / Deductor Details
                 </div>
-                <div className="font-bold font-serif text-sm text-slate-900">
+                <div className="font-semibold  text-sm text-slate-900">
                   {data.employer.name}
                 </div>
                 {data.employer.address && (
-                  <p className="text-[11px] text-slate-600 leading-snug">
+                  <p className="text-xs font-normal text-slate-600 leading-snug">
                     {data.employer.address}
                   </p>
                 )}
-                <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+                <div className="grid grid-cols-2 gap-2 pt-1  text-xs font-normal">
                   <div>
-                    <span className="text-slate-500 text-[10px] block">PAN of Employer</span>
+                    <span className="text-slate-500 text-xs font-normal block">PAN of Employer</span>
                     <strong className="text-slate-800">{data.employer.pan || '—'}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] block">TAN of Employer</span>
+                    <span className="text-slate-500 text-xs font-normal block">TAN of Employer</span>
                     <strong className="text-slate-800">{data.employer.tan || '—'}</strong>
                   </div>
                 </div>
@@ -406,30 +406,30 @@ export const Form16Modal: React.FC<Props> = ({
 
               {/* Employee Details */}
               <div className="space-y-1.5">
-                <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center justify-between">
+                <div className="text-xs font-normal uppercase font-semibold text-slate-500 tracking-wider flex items-center justify-between">
                   <span>Employee / Deductee Details</span>
-                  <span className="px-1.5 py-0.2 rounded font-mono font-semibold text-[10px] bg-slate-200 text-slate-800">
+                  <span className="px-1.5 py-0.2 rounded  font-semibold text-xs font-normal bg-slate-200 text-slate-800">
                     {data.employee.taxRegime === 'Old' ? 'Old Regime' : 'New Regime (115BAC)'}
                   </span>
                 </div>
-                <div className="font-bold text-sm text-slate-900">
+                <div className="font-semibold text-sm text-slate-900">
                   {data.employee.name}
-                  <span className="ml-2 font-mono text-xs font-normal text-slate-600">
+                  <span className="ml-2  text-xs font-normal text-slate-600">
                     ({data.employee.employeeCode})
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-600">
+                <div className="text-xs font-normal text-slate-600">
                   <span>Dept: <strong>{data.employee.department}</strong></span>
                   <span className="mx-1.5">•</span>
                   <span>Desig: <strong>{data.employee.designation}</strong></span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+                <div className="grid grid-cols-2 gap-2 pt-1  text-xs font-normal">
                   <div>
-                    <span className="text-slate-500 text-[10px] block">PAN of Employee</span>
+                    <span className="text-slate-500 text-xs font-normal block">PAN of Employee</span>
                     <strong className="text-slate-800">{data.employee.pan || '—'}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Period with Employer</span>
+                    <span className="text-slate-500 text-xs font-normal block">Period with Employer</span>
                     <span className="text-slate-800">{data.periodFrom} to {data.periodTo}</span>
                   </div>
                 </div>
@@ -438,7 +438,7 @@ export const Form16Modal: React.FC<Props> = ({
 
             {/* 3. Statutory Form 16 Table Schedule */}
             <div className="border border-slate-300 overflow-hidden">
-              <table className="w-full text-left border-collapse text-[11px]">
+              <table className="w-full text-left border-collapse text-xs font-normal">
                 <thead>
                   <tr className="bg-slate-100 border-b border-slate-300 text-slate-700 font-semibold">
                     <th className="p-2 w-10 text-center border-r border-slate-300">#</th>
@@ -447,14 +447,14 @@ export const Form16Modal: React.FC<Props> = ({
                     <th className="p-2 w-36 text-right">Amount (₹)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 font-mono text-slate-800">
+                <tbody className="divide-y divide-slate-200  text-slate-800">
                   {/* Row 1: Gross Salary */}
                   <tr className="bg-slate-50/70 font-sans font-semibold text-slate-900">
                     <td className="p-2 text-center border-r border-slate-300">1</td>
                     <td className="p-2 border-r border-slate-300" colSpan={2}>
                       Gross Salary
                     </td>
-                    <td className="p-2 text-right font-mono font-bold">
+                    <td className="p-2 text-right  font-semibold">
                       {fmt(data.grossSalaryTotal)}
                     </td>
                   </tr>
@@ -507,7 +507,7 @@ export const Form16Modal: React.FC<Props> = ({
                     <td className="p-2 border-r border-slate-300 font-sans" colSpan={2}>
                       Less: Allowances to the extent exempt under section 10
                     </td>
-                    <td className="p-2 text-right font-mono font-bold">
+                    <td className="p-2 text-right  font-semibold">
                       {fmt(data.totalExemptionsSec10)}
                     </td>
                   </tr>
@@ -528,7 +528,7 @@ export const Form16Modal: React.FC<Props> = ({
                     <td className="p-2 border-r border-slate-300 font-sans" colSpan={2}>
                       Balance (1 - 2)
                     </td>
-                    <td className="p-2 text-right font-mono">
+                    <td className="p-2 text-right ">
                       {fmt(data.balanceSalary)}
                     </td>
                   </tr>
@@ -539,7 +539,7 @@ export const Form16Modal: React.FC<Props> = ({
                     <td className="p-2 border-r border-slate-300 font-sans" colSpan={2}>
                       Less: Deductions under section 16
                     </td>
-                    <td className="p-2 text-right font-mono font-bold">
+                    <td className="p-2 text-right  font-semibold">
                       {fmt(data.totalDeductionsSec16)}
                     </td>
                   </tr>
@@ -570,7 +570,7 @@ export const Form16Modal: React.FC<Props> = ({
                     <td className="p-2 border-r border-slate-300 font-sans" colSpan={2}>
                       Income chargeable under the head 'Salaries' (3 - 4)
                     </td>
-                    <td className="p-2 text-right font-mono font-bold text-slate-900">
+                    <td className="p-2 text-right  font-semibold text-slate-900">
                       {fmt(data.incomeChargeableSalaries)}
                     </td>
                   </tr>
@@ -581,18 +581,18 @@ export const Form16Modal: React.FC<Props> = ({
                     <td className="p-2 border-r border-slate-300 font-sans" colSpan={2}>
                       Add / (Less): Any other income / permissible house property loss u/s 24(b)
                     </td>
-                    <td className="p-2 text-right font-mono">
+                    <td className="p-2 text-right ">
                       {fmt(data.otherIncomeReported - data.housePropertyLossSec24_b)}
                     </td>
                   </tr>
 
                   {/* Row 7: Gross Total Income */}
-                  <tr className="font-bold bg-slate-100 border-t border-b border-slate-300 text-slate-900">
+                  <tr className="font-semibold bg-slate-100 border-t border-b border-slate-300 text-slate-900">
                     <td className="p-2 text-center border-r border-slate-300 font-sans">7</td>
                     <td className="p-2 border-r border-slate-300 font-sans" colSpan={2}>
                       Gross Total Income (5 + 6)
                     </td>
-                    <td className="p-2 text-right font-mono">
+                    <td className="p-2 text-right ">
                       {fmt(data.grossTotalIncome)}
                     </td>
                   </tr>
@@ -603,12 +603,12 @@ export const Form16Modal: React.FC<Props> = ({
                     <td className="p-2 border-r border-slate-300 font-sans" colSpan={2}>
                       Deductions under Chapter VI-A
                       {data.employee.taxRegime === 'New' && (
-                        <span className="text-[10px] font-normal text-slate-500 block italic">
+                        <span className="text-xs font-normal font-normal text-slate-500 block italic">
                           (Not applicable under Section 115BAC New Tax Regime)
                         </span>
                       )}
                     </td>
-                    <td className="p-2 text-right font-mono font-bold">
+                    <td className="p-2 text-right  font-semibold">
                       {fmt(data.totalChapterVIA_Deductions)}
                     </td>
                   </tr>
@@ -618,7 +618,7 @@ export const Form16Modal: React.FC<Props> = ({
                         <td className="p-2 text-center border-r border-slate-300 font-sans"></td>
                         <td className="p-2 border-r border-slate-300 font-sans pl-6">
                           <span className="font-semibold text-slate-900">{item.section}</span>: {item.description}
-                          <span className="text-[10px] text-slate-500 block font-mono">
+                          <span className="text-xs font-normal text-slate-500 block ">
                             Declared: ₹{fmt(item.grossAmount)}
                           </span>
                         </td>
@@ -639,12 +639,12 @@ export const Form16Modal: React.FC<Props> = ({
                   )}
 
                   {/* Row 9: Total Taxable Income */}
-                  <tr className="font-bold bg-slate-100 border-t-2 border-b-2 border-slate-900 text-slate-900">
+                  <tr className="font-semibold bg-slate-100 border-t-2 border-b-2 border-slate-900 text-slate-900">
                     <td className="p-2 text-center border-r border-slate-300 font-sans">9</td>
                     <td className="p-2 border-r border-slate-300 font-sans" colSpan={2}>
                       Total Taxable Income (7 - 8) [Rounded off u/s 288A]
                     </td>
-                    <td className="p-2 text-right font-mono text-sm">
+                    <td className="p-2 text-right  text-sm">
                       ₹{fmtInt(data.totalTaxableIncome)}
                     </td>
                   </tr>
@@ -655,7 +655,7 @@ export const Form16Modal: React.FC<Props> = ({
                     <td className="p-2 border-r border-slate-300 font-sans" colSpan={2}>
                       Tax on Total Income
                     </td>
-                    <td className="p-2 text-right font-mono font-bold">
+                    <td className="p-2 text-right  font-semibold">
                       {fmt(data.taxOnTotalIncome)}
                     </td>
                   </tr>
@@ -666,10 +666,10 @@ export const Form16Modal: React.FC<Props> = ({
                       <td className="p-2 text-center border-r border-slate-300 font-sans"></td>
                       <td className="p-2 border-r border-slate-300 font-sans pl-6" colSpan={3}>
                         <div className="py-1">
-                          <span className="text-[10px] font-bold uppercase text-slate-500 block mb-1">
+                          <span className="text-xs font-normal font-semibold uppercase text-slate-500 block mb-1">
                             Slab Rates Breakdown:
                           </span>
-                          <div className="space-y-0.5 text-[10px] font-mono">
+                          <div className="space-y-0.5 text-xs font-normal ">
                             {data.slabBreakdown.map((slab, i) => (
                               <div key={i} className="flex items-center justify-between text-slate-600">
                                 <span>{slab.slabRange} @ {slab.ratePercent}%</span>
@@ -714,12 +714,12 @@ export const Form16Modal: React.FC<Props> = ({
                   </tr>
 
                   {/* Net Tax Payable */}
-                  <tr className="font-bold bg-slate-100 border-t border-slate-300 text-slate-900">
+                  <tr className="font-semibold bg-slate-100 border-t border-slate-300 text-slate-900">
                     <td className="p-2 text-center border-r border-slate-300 font-sans">11</td>
                     <td className="p-2 border-r border-slate-300 font-sans" colSpan={2}>
                       Total Tax Payable [Rounded off u/s 288B]
                     </td>
-                    <td className="p-2 text-right font-mono font-bold text-sm">
+                    <td className="p-2 text-right  font-semibold text-sm">
                       ₹{fmtInt(data.totalTaxPayable)}
                     </td>
                   </tr>
@@ -730,14 +730,14 @@ export const Form16Modal: React.FC<Props> = ({
                     <td className="p-2 border-r border-slate-300 font-sans pl-6" colSpan={2}>
                       Less: Tax Deducted at Source (TDS)
                     </td>
-                    <td className="p-2 text-right font-mono font-bold text-slate-700">
+                    <td className="p-2 text-right  font-semibold text-slate-700">
                       {fmt(data.totalTdsDeducted)}
                     </td>
                   </tr>
                   {data.tdsDeductedPreviousEmployer > 0 && (
                     <tr>
                       <td className="p-2 text-center border-r border-slate-300 font-sans"></td>
-                      <td className="p-2 border-r border-slate-300 font-sans pl-10 text-[10px] text-slate-600">
+                      <td className="p-2 border-r border-slate-300 font-sans pl-10 text-xs font-normal text-slate-600">
                         • Current Employer: ₹{fmt(data.tdsDeductedCurrentEmployer)} | Previous Employer: ₹{fmt(data.tdsDeductedPreviousEmployer)}
                       </td>
                       <td className="p-2 text-right border-r border-slate-300" colSpan={2}></td>
@@ -745,12 +745,12 @@ export const Form16Modal: React.FC<Props> = ({
                   )}
 
                   {/* Tax Payable / Refundable */}
-                  <tr className="font-bold bg-slate-900 text-white">
+                  <tr className="font-semibold bg-slate-900 text-white">
                     <td className="p-2 text-center border-r border-slate-700 font-sans">13</td>
                     <td className="p-2 border-r border-slate-700 font-sans" colSpan={2}>
                       {data.taxPayableOrRefundable >= 0 ? 'Tax Payable / (Due)' : 'Tax Refundable'}
                     </td>
-                    <td className="p-2 text-right font-mono text-sm">
+                    <td className="p-2 text-right  text-sm">
                       ₹{fmtInt(Math.abs(data.taxPayableOrRefundable))}
                     </td>
                   </tr>
@@ -760,10 +760,10 @@ export const Form16Modal: React.FC<Props> = ({
 
             {/* 4. Official Verification Declaration */}
             <div className="border border-slate-300 p-4 rounded bg-slate-50/50 space-y-4">
-              <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+              <div className="text-xs font-normal uppercase font-semibold text-slate-500 tracking-wider">
                 Verification & Statutory Declaration
               </div>
-              <p className="text-[11px] text-slate-700 leading-relaxed">
+              <p className="text-xs font-normal text-slate-700 leading-relaxed">
                 I, <strong className="text-slate-900">{data.employer.signatoryName}</strong>
                 {data.employer.signatoryFatherName ? `, son / daughter of ${data.employer.signatoryFatherName}` : ''},
                 working in the capacity of <strong className="text-slate-900">{data.employer.signatoryDesignation}</strong> do hereby certify that a sum of{' '}
@@ -772,7 +772,7 @@ export const Form16Modal: React.FC<Props> = ({
                 <strong className="text-slate-900">{data.employer.name}</strong>.
               </p>
 
-              <div className="flex items-end justify-between pt-4 border-t border-slate-200 text-[11px]">
+              <div className="flex items-end justify-between pt-4 border-t border-slate-200 text-xs font-normal">
                 <div className="space-y-1">
                   <div>Place: <strong className="text-slate-800">{data.place || 'Bengaluru'}</strong></div>
                   <div>Date: <strong className="text-slate-800">{data.generatedAt}</strong></div>
@@ -781,7 +781,7 @@ export const Form16Modal: React.FC<Props> = ({
                 <div className="text-right space-y-1">
                   <div className="h-10 border-b border-dashed border-slate-400 w-44 ml-auto"></div>
                   <div className="font-semibold text-slate-900">{data.employer.signatoryName}</div>
-                  <div className="text-[10px] text-slate-500">{data.employer.signatoryDesignation}</div>
+                  <div className="text-xs font-normal text-slate-500">{data.employer.signatoryDesignation}</div>
                 </div>
               </div>
             </div>

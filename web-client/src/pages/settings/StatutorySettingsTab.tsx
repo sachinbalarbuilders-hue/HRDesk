@@ -91,7 +91,7 @@ export const StatutorySettingsTab: React.FC = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-medium text-[var(--ink)]">Employee Contribution Rate (%)</label>
+              <label className="text-sm font-semibold text-[var(--text-primary)]">Employee Contribution Rate (%)</label>
               <Input
                 type="number"
                 name="pfEmployeeRate"
@@ -101,10 +101,10 @@ export const StatutorySettingsTab: React.FC = () => {
                 max="100"
                 step="0.01"
               />
-              <p className="text-[10px] text-[var(--ink-lighter)]">Statutory rate is usually 12%.</p>
+              <p className="text-xs font-normal text-[var(--ink-lighter)]">Statutory rate is usually 12%.</p>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-[var(--ink)]">Employer Contribution Rate (%)</label>
+              <label className="text-sm font-semibold text-[var(--text-primary)]">Employer Contribution Rate (%)</label>
               <Input
                 type="number"
                 name="pfEmployerRate"
@@ -114,7 +114,7 @@ export const StatutorySettingsTab: React.FC = () => {
                 max="100"
                 step="0.01"
               />
-              <p className="text-[10px] text-[var(--ink-lighter)]">Statutory rate is usually 12%.</p>
+              <p className="text-xs font-normal text-[var(--ink-lighter)]">Statutory rate is usually 12%.</p>
             </div>
           </div>
         </div>
@@ -128,7 +128,7 @@ export const StatutorySettingsTab: React.FC = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-medium text-[var(--ink)]">Employee Contribution Rate (%)</label>
+              <label className="text-sm font-semibold text-[var(--text-primary)]">Employee Contribution Rate (%)</label>
               <Input
                 type="number"
                 name="esiEmployeeRate"
@@ -138,10 +138,10 @@ export const StatutorySettingsTab: React.FC = () => {
                 max="100"
                 step="0.01"
               />
-              <p className="text-[10px] text-[var(--ink-lighter)]">Statutory rate is usually 0.75%.</p>
+              <p className="text-xs font-normal text-[var(--ink-lighter)]">Statutory rate is usually 0.75%.</p>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-[var(--ink)]">Employer Contribution Rate (%)</label>
+              <label className="text-sm font-semibold text-[var(--text-primary)]">Employer Contribution Rate (%)</label>
               <Input
                 type="number"
                 name="esiEmployerRate"
@@ -151,10 +151,10 @@ export const StatutorySettingsTab: React.FC = () => {
                 max="100"
                 step="0.01"
               />
-              <p className="text-[10px] text-[var(--ink-lighter)]">Statutory rate is usually 3.25%.</p>
+              <p className="text-xs font-normal text-[var(--ink-lighter)]">Statutory rate is usually 3.25%.</p>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium text-[var(--ink)]">ESI Gross Wage Ceiling (₹)</label>
+              <label className="text-sm font-semibold text-[var(--text-primary)]">ESI Gross Wage Ceiling (₹)</label>
               <Input
                 type="number"
                 name="esiGrossCeiling"
@@ -162,7 +162,7 @@ export const StatutorySettingsTab: React.FC = () => {
                 onChange={handleChange}
                 min="0"
               />
-              <p className="text-[10px] text-[var(--ink-lighter)]">Employees earning above this gross are exempt from ESI (usually ₹21,000).</p>
+              <p className="text-xs font-normal text-[var(--ink-lighter)]">Employees earning above this gross are exempt from ESI (usually ₹21,000).</p>
             </div>
           </div>
         </div>

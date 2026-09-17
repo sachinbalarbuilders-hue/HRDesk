@@ -57,5 +57,5 @@ export const CardTitle: React.FC<{ children: React.ReactNode; className?: string
 );
 
 export const CardDescription: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <p className={clsx('text-xs text-[var(--text-secondary)] mt-0.5', className)}>{children}</p>
+  <p className={clsx('text-xs font-normal text-[var(--text-secondary)] mt-0.5', className)}>{children}</p>
 );

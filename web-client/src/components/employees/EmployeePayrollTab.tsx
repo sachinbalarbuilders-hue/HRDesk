@@ -76,9 +76,9 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, employeeName, 
   const currentGroupName = assignedPayGroupName || activeRecord?.payGroupName;
 
   return (
-    <div className="space-y-6 font-ui">
+    <div className="space-y-6 ">
       {loading ? (
-        <div className="h-20 flex items-center justify-center text-[var(--text-muted)] text-sm">
+        <div className="h-20 flex items-center justify-center text-[var(--text-secondary)] text-sm font-normal">
           Loading payroll details...
         </div>
       ) : (
@@ -86,7 +86,7 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, employeeName, 
           {/* Active CTC */}
           <div className="p-4 border border-[var(--border)] rounded-[var(--radius-lg)] bg-[var(--surface)] shadow-xs">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wide flex items-center gap-1.5">
+              <h3 className="text-xs uppercase font-semibold text-[var(--text-primary)] tracking-wide flex items-center gap-1.5">
                 <IndianRupee size={13} className="text-[var(--accent)]" /> Salary / CTC
               </h3>
               {canEdit && (
@@ -108,8 +108,8 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, employeeName, 
                   ['Effective From', activeRecord.effectiveFrom],
                 ].map(([lbl, val]) => (
                   <div key={lbl} className="p-3 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)]">
-                    <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)] block">{lbl}</span>
-                    <p className="font-semibold text-[var(--text-primary)] mt-0.5 text-sm font-mono">{val}</p>
+                    <span className="text-xs uppercase font-semibold text-[var(--text-secondary)] block">{lbl}</span>
+                    <p className="font-semibold text-[var(--text-primary)] mt-0.5 text-sm">{val}</p>
                   </div>
                 ))}
               </div>
@@ -139,10 +139,10 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, employeeName, 
           <div className="p-4 border border-[var(--border)] rounded-[var(--radius-lg)] bg-[var(--surface)] shadow-xs">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wide flex items-center gap-1.5">
+                <h3 className="text-xs uppercase font-semibold text-[var(--text-primary)] tracking-wide flex items-center gap-1.5">
                   <Landmark size={13} className="text-[var(--accent)]" /> Income Tax (IT) Declaration & TDS
                 </h3>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+                <p className="text-xs font-normal text-[var(--text-secondary)] mt-1">
                   Tax regime (Old vs New Sec 115BAC), Chapter VI-A deductions (80C, 80D), HRA exemptions & monthly TDS.
                 </p>
               </div>
@@ -160,10 +160,10 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, employeeName, 
           <div className="p-4 border border-[var(--border)] rounded-[var(--radius-lg)] bg-[var(--surface)] shadow-xs">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wide flex items-center gap-1.5">
+                <h3 className="text-xs uppercase font-semibold text-[var(--text-primary)] tracking-wide flex items-center gap-1.5">
                   <FileText size={13} className="text-[var(--accent)]" /> Form 16 (Part B) Certificate
                 </h3>
-                <p className="text-[11px] text-[var(--text-secondary)] mt-1">
+                <p className="text-xs font-normal text-[var(--text-secondary)] mt-1">
                   Statutory Certificate under Section 203 of the Income-tax Act showing annual salary, Sec 16 deductions, Chapter VI-A tax credits, and TDS.
                 </p>
               </div>
@@ -180,7 +180,7 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, employeeName, 
           {/* CTC History */}
           {records.length > 1 && (
             <div>
-              <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wide mb-2">CTC History</h3>
+              <h3 className="text-xs uppercase font-semibold text-[var(--text-primary)] tracking-wide mb-2">CTC History</h3>
               <div className="space-y-1.5">
                 {records.slice(1).map(r => (
                   <div
@@ -188,12 +188,12 @@ export const EmployeePayrollTab: React.FC<Props> = ({ employeeId, employeeName, 
                     className="flex items-center justify-between p-3 border border-[var(--border)] rounded-[var(--radius-md)] bg-[var(--surface)] shadow-xs opacity-80"
                   >
                     <div>
-                      <span className="font-semibold text-sm text-[var(--text-primary)] font-mono">
+                      <span className="font-semibold text-sm text-[var(--text-primary)]">
                         ₹{r.annualCTC.toLocaleString('en-IN')} / year
                       </span>
                       <span className="text-xs text-[var(--text-secondary)] ml-2">{r.payGroupName}</span>
                     </div>
-                    <span className="text-xs text-[var(--text-muted)] font-mono">
+                    <span className="text-xs font-normal text-[var(--text-secondary)]">
                       {r.effectiveFrom} → {r.effectiveTo ?? 'superseded'}
                     </span>
                   </div>

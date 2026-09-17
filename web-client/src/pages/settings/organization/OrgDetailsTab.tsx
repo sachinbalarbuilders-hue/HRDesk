@@ -185,7 +185,7 @@ export const OrgDetailsTab: React.FC = () => {
 
           {/* Logo Upload Dropzone / Control */}
           <div className="pt-2 border-t border-[var(--border)]">
-            <label className="block text-xs font-medium text-[var(--text-primary)] mb-2">
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
               Organization Brand Logo
             </label>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-dashed border-[var(--border)]">
@@ -199,9 +199,9 @@ export const OrgDetailsTab: React.FC = () => {
                     className="w-full h-full object-contain p-1"
                   />
                 ) : (
-                  <div className="flex flex-col items-center text-[var(--text-muted)] text-[10px]">
+                  <div className="flex flex-col items-center text-[var(--text-muted)] text-xs font-normal">
                     <Building2 size={22} className="mb-0.5 opacity-40" />
-                    <span className="text-[9px]">No Logo</span>
+                    <span className="text-xs font-normal">No Logo</span>
                   </div>
                 )}
                 {uploadingLogo && (
@@ -225,7 +225,7 @@ export const OrgDetailsTab: React.FC = () => {
                     type="button"
                     disabled={uploadingLogo}
                     onClick={() => fileInputRef.current?.click()}
-                    className="btn-secondary py-1.5 px-3 text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="btn-secondary py-1.5 px-3 text-sm font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     <Upload size={13} />
                     {uploadingLogo ? 'Uploading...' : orgForm.logoUrl ? 'Change Logo' : 'Upload Logo'}
@@ -241,7 +241,7 @@ export const OrgDetailsTab: React.FC = () => {
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-[var(--text-muted)]">
+                <p className="text-xs font-normal text-[var(--text-muted)]">
                   PNG, JPG, WEBP, or SVG (max 5MB). Displayed across headers, reports, and tenant portals.
                 </p>
               </div>
@@ -302,7 +302,7 @@ export const OrgDetailsTab: React.FC = () => {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">
               Registered Corporate Address
             </label>
             <textarea
@@ -329,7 +329,7 @@ export const OrgDetailsTab: React.FC = () => {
 
             {/* Derived PAN Card */}
             <div>
-              <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">
+              <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">
                 Corporate PAN (Permanent Account Number)
               </label>
               <div className="flex items-center justify-between p-2.5 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] min-h-[38px]">
@@ -340,12 +340,12 @@ export const OrgDetailsTab: React.FC = () => {
                   </span>
                 </div>
                 {derivedPan && (
-                  <span className="text-[10px] font-medium text-[var(--success)] bg-[var(--success-light)] px-1.5 py-0.5 rounded">
+                  <span className="text-xs font-normal font-medium text-[var(--success)] bg-[var(--success-light)] px-1.5 py-0.5 rounded">
                     Derived from GSTIN
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-[var(--text-muted)] mt-1">
+              <p className="text-xs font-normal text-[var(--text-muted)] mt-1">
                 Extracted automatically from characters 3–12 of GSTIN.
               </p>
             </div>
@@ -364,7 +364,7 @@ export const OrgDetailsTab: React.FC = () => {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[var(--text-primary)] mb-1.5">
+            <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">
               Select Primary Contact from Employees
             </label>
             <select
@@ -380,7 +380,7 @@ export const OrgDetailsTab: React.FC = () => {
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-[var(--text-muted)] mt-1">
+            <p className="text-xs font-normal text-[var(--text-muted)] mt-1">
               Select any active employee from your organization roster.
             </p>
           </div>
@@ -389,7 +389,7 @@ export const OrgDetailsTab: React.FC = () => {
           {selectedAdmin && (
             <div className="p-3.5 rounded-[var(--radius-md)] bg-[var(--surface-secondary)] border border-[var(--border)] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center font-bold text-xs uppercase shadow-xs">
+                <div className="w-10 h-10 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center font-semibold text-xs uppercase shadow-xs">
                   {(selectedAdmin.employeeName || 'A').slice(0, 2)}
                 </div>
                 <div>
@@ -397,11 +397,11 @@ export const OrgDetailsTab: React.FC = () => {
                     <span className="font-semibold text-xs text-[var(--text-primary)]">
                       {selectedAdmin.employeeName}
                     </span>
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)]">
+                    <span className=" text-xs font-normal px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)]">
                       EMP#{String(selectedAdmin.employeeId).padStart(3, '0')}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)] mt-0.5">
+                  <div className="flex items-center gap-3 text-xs font-normal text-[var(--text-muted)] mt-0.5">
                     {selectedAdmin.workEmail && (
                       <span className="flex items-center gap-1">
                         <Mail size={12} />
@@ -431,7 +431,7 @@ export const OrgDetailsTab: React.FC = () => {
         <button
           type="button"
           onClick={() => navigate('/settings/organizations')}
-          className="btn-secondary py-2 px-4 text-xs font-medium cursor-pointer"
+          className="btn-secondary py-2 px-4 text-sm font-semibold cursor-pointer"
         >
           Cancel
         </button>
