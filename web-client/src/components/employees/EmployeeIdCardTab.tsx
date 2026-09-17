@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Droplet, Phone, Calendar, MapPin, Barcode } from 'lucide-react';
 import { useOrganization } from '../../context/CompanyContext';
 import { AuthImage } from '../ui/AuthImage';
+import { formatDate } from '../../utils/formatters';
 
 interface EmployeeIdCardTabProps {
   employee: any;
@@ -11,7 +12,7 @@ export const EmployeeIdCardTab: React.FC<EmployeeIdCardTabProps> = ({ employee }
   const { currentOrganization } = useOrganization();
   const [theme, setTheme] = useState<'classic' | 'modern' | 'dark'>('classic');
   
-  const dob = employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString('en-GB') : 'N/A';
+  const dob = employee.dateOfBirth ? formatDate(employee.dateOfBirth) : 'N/A';
   const orgName = employee.organizationName || currentOrganization?.name || employee.companyName || 'Company';
   const orgAddress = employee.organizationAddress || currentOrganization?.address || employee.branchAddress || 'Registered Corporate Office';
   const orgPhone = employee.companyPhone || employee.phone || '+91 98765 43210';

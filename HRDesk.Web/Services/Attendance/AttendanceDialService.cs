@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HRDesk.Web.Core;
+using HRDesk.Web.Services.Infrastructure;
 
 namespace HRDesk.Web.Services.Attendance;
 
@@ -36,6 +37,13 @@ public class AttendanceDialResult
 
 public class AttendanceDialService
 {
+    private readonly TenantDateTimeService _dateTimeService;
+
+    public AttendanceDialService(TenantDateTimeService dateTimeService)
+    {
+        _dateTimeService = dateTimeService;
+    }
+
     public AttendanceDialResult ComputeShiftDial(
         TimeOnly? shiftStart,
         TimeOnly? shiftEnd,
@@ -64,13 +72,13 @@ public class AttendanceDialService
         result.ShiftTotalMinutes = shiftTotalMinutes;
 
         // 2. In-Progress Shift Handling
-        bool isToday = recordDate == DateOnly.FromDateTime(IstDateTime.Now);
+        bool isToday = recordDate == _dateTimeService.Today;
         bool isShiftInProgress = isToday && effectiveInTime.HasValue && !effectiveOutTime.HasValue;
         int inProgressElapsedMinutes = 0;
 
         if (isShiftInProgress && effectiveInTime.HasValue)
         {
-            var nowTime = TimeOnly.FromDateTime(IstDateTime.Now);
+            var nowTime = TimeOnly.FromDateTime(_dateTimeService.Now);
             if (nowTime > effectiveInTime.Value)
             {
                 inProgressElapsedMinutes = (int)(nowTime - effectiveInTime.Value).TotalMinutes;

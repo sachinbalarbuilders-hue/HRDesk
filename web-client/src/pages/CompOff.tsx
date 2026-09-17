@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+﻿import React, { useEffect, useState, useMemo, useRef } from 'react';
 
 import { StatusApprovalDropdown } from '../components/ui/StatusApprovalDropdown';
 import { apiClient } from '../api/client';
@@ -138,7 +138,7 @@ const OffDayDatePicker: React.FC<OffDayDatePickerProps> = ({
             <span className=" text-xs text-[var(--text-primary)] truncate">
               {selectedInfo ? (
                 <>
-                  <strong className="font-semibold">{selectedInfo.formattedDate}</strong> ({selectedInfo.dayName}) — {selectedInfo.offType}
+                  <strong className="font-semibold">{selectedInfo.formattedDate}</strong> ({selectedInfo.dayName}) â€” {selectedInfo.offType}
                 </>
               ) : (
                 value
@@ -216,7 +216,7 @@ const OffDayDatePicker: React.FC<OffDayDatePickerProps> = ({
                     onChange(cell.dateStr);
                     setOpen(false);
                   }}
-                  title={`${cell.eligibleInfo.offType} ${hasPunches ? `• In: ${cell.eligibleInfo.inTime} | Out: ${cell.eligibleInfo.outTime}` : '• Off-Day'}`}
+                  title={`${cell.eligibleInfo.offType} ${hasPunches ? `â€¢ In: ${cell.eligibleInfo.inTime} | Out: ${cell.eligibleInfo.outTime}` : 'â€¢ Off-Day'}`}
                   className={`h-8 flex flex-col items-center justify-center text-xs font-normal  rounded relative transition-all cursor-pointer font-medium ${
                     isSelected
                       ? 'bg-[var(--accent)] text-white font-semibold shadow-xs'
@@ -293,7 +293,8 @@ export const CompOff: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 20;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -733,7 +734,7 @@ export const CompOff: React.FC = () => {
             <span>{balanceInfo ? `${balanceInfo.pendingDays || 0}d pending` : 'Rejected requests'}</span>
             {balanceInfo?.expiringSoonDays > 0 && (
               <span className="text-amber-600 dark:text-amber-400 font-semibold" title="Expiring within 15 days">
-                ⚠️ {balanceInfo.expiringSoonDays}d expiring soon
+                âš ï¸ {balanceInfo.expiringSoonDays}d expiring soon
               </span>
             )}
           </div>
@@ -801,7 +802,7 @@ export const CompOff: React.FC = () => {
               <div>
                 <span className="font-semibold text-[var(--text-primary)] block">{req.employeeName}</span>
                 <span className="text-xs font-normal text-[var(--text-secondary)]">
-                  {req.department || 'General'} {req.branch ? `• ${req.branch}` : ''}
+                  {req.department || 'General'} {req.branch ? `â€¢ ${req.branch}` : ''}
                 </span>
               </div>
             ),
@@ -849,7 +850,7 @@ export const CompOff: React.FC = () => {
             header: 'Validity / Expiry',
             render: (req) => {
               if (req.status !== 'Approved') {
-                return <span className="text-xs font-normal text-[var(--text-secondary)]">—</span>;
+                return <span className="text-xs font-normal text-[var(--text-secondary)]">â€”</span>;
               }
               if (req.isExpired) {
                 return (
@@ -877,7 +878,7 @@ export const CompOff: React.FC = () => {
             header: 'Reason / Remarks',
             render: (req) => (
               <div className="max-w-[220px] truncate text-xs text-[var(--text-primary)]" title={req.reason}>
-                {req.reason || '—'}
+                {req.reason || 'â€”'}
               </div>
             ),
           },
@@ -945,9 +946,9 @@ export const CompOff: React.FC = () => {
         />
       </div>
 
-      {/* ═══════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           REQUEST / EDIT COMP-OFF SLIDE-IN PANEL (500px)
-          ═══════════════════════════════════════════ */}
+          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       {applyPanelOpen && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-[1px]">
           <div className="w-full max-w-[500px] bg-[var(--surface)] h-full p-6 shadow-2xl overflow-y-auto space-y-5 border-l border-[var(--rule)]">
@@ -993,7 +994,7 @@ export const CompOff: React.FC = () => {
                 </select>
                 {balanceInfo && (
                   <p className="text-xs font-normal text-emerald-600 dark:text-emerald-400 mt-1 ">
-                    Current Balance: {balanceInfo.balance} Day(s) • Pending: {balanceInfo.pendingDays || 0} Day(s)
+                    Current Balance: {balanceInfo.balance} Day(s) â€¢ Pending: {balanceInfo.pendingDays || 0} Day(s)
                   </p>
                 )}
               </div>
@@ -1136,9 +1137,9 @@ export const CompOff: React.FC = () => {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           REJECT REASON MODAL
-          ═══════════════════════════════════════════ */}
+          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       {rejectModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -1189,9 +1190,9 @@ export const CompOff: React.FC = () => {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════
+      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
           CANCEL MODAL
-          ═══════════════════════════════════════════ */}
+          â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
       {cancelModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
@@ -1246,3 +1247,4 @@ export const CompOff: React.FC = () => {
     </PageContainer>
   );
 };
+

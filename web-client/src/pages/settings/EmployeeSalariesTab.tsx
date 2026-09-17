@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
@@ -41,7 +41,8 @@ export const EmployeeSalariesTab: React.FC = () => {
   const [search, setSearch] = useState('');
   const [filterGroup, setFilterGroup] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 15;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   // Bulk selection
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -72,7 +73,7 @@ export const EmployeeSalariesTab: React.FC = () => {
 
   useEffect(() => { fetchAll(); }, []);
 
-  // ── Filtering ──────────────────────────────────────────────────────────────
+  // â”€â”€ Filtering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const filtered = rows.filter(r => {
     const matchSearch = !search ||
       r.employeeName.toLowerCase().includes(search.toLowerCase()) ||
@@ -87,7 +88,7 @@ export const EmployeeSalariesTab: React.FC = () => {
 
   const paginatedRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  // ── Bulk assign pay group ──────────────────────────────────────────────────
+  // â”€â”€ Bulk assign pay group â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleBulkUnassign = async () => {
     if (selected.size === 0) return;
     if (!confirm(`Remove ${selected.size} employee(s) from their pay group?`)) return;
@@ -109,8 +110,8 @@ export const EmployeeSalariesTab: React.FC = () => {
       Department: r.department || '',
       Designation: r.designation || '',
       'Pay Group': r.payGroupName || 'Not Assigned',
-      'Annual CTC (₹)': r.annualCTC || 0,
-      'Monthly CTC (₹)': r.monthlyCTC || 0,
+      'Annual CTC (â‚¹)': r.annualCTC || 0,
+      'Monthly CTC (â‚¹)': r.monthlyCTC || 0,
       'Effective Date': r.ctcEffectiveFrom || '',
     })));
     showSuccess('Export Complete', 'Employee salaries exported to CSV.');
@@ -132,7 +133,7 @@ export const EmployeeSalariesTab: React.FC = () => {
       header: 'Department',
       render: (row: EmpRow) => (
         <div>
-          <span className="text-xs text-[var(--text-secondary)]">{row.department ?? '—'}</span>
+          <span className="text-xs text-[var(--text-secondary)]">{row.department ?? 'â€”'}</span>
           {row.designation && <p className="text-xs font-normal text-[var(--text-secondary)]">{row.designation}</p>}
         </div>
       ),
@@ -161,7 +162,7 @@ export const EmployeeSalariesTab: React.FC = () => {
       header: 'Annual CTC',
       render: (row: EmpRow) =>
         row.annualCTC != null ? (
-          <span className="text-xs font-semibold text-[var(--text-primary)] ">₹{fmt(row.annualCTC)}</span>
+          <span className="text-xs font-semibold text-[var(--text-primary)] ">â‚¹{fmt(row.annualCTC)}</span>
         ) : (
           <span className="text-xs font-normal px-2 py-0.5 rounded-[2px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">
             Not set
@@ -173,7 +174,7 @@ export const EmployeeSalariesTab: React.FC = () => {
       header: 'Monthly',
       render: (row: EmpRow) => (
         <span className="text-xs  text-[var(--text-secondary)]">
-          {row.monthlyCTC != null ? `₹${fmt(row.monthlyCTC)}` : '—'}
+          {row.monthlyCTC != null ? `â‚¹${fmt(row.monthlyCTC)}` : 'â€”'}
         </span>
       ),
     },
@@ -221,7 +222,7 @@ export const EmployeeSalariesTab: React.FC = () => {
             onChange: (v) => { setFilterGroup(v); setPage(1); },
             options: [
               { value: '', label: 'All Pay Groups' },
-              { value: '0', label: '⚠ Not Assigned' },
+              { value: '0', label: 'âš  Not Assigned' },
               ...payGroups.map(g => ({ value: String(g.id), label: g.name })),
             ],
           },
@@ -298,3 +299,4 @@ export const EmployeeSalariesTab: React.FC = () => {
     </div>
   );
 };
+

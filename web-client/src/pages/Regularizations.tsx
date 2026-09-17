@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+﻿import React, { useEffect, useState, useMemo, useRef } from 'react';
 
 import { StatusApprovalDropdown } from '../components/ui/StatusApprovalDropdown';
 import { apiClient } from '../api/client';
@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
+import { formatDate, formatTime } from '../utils/formatters';
 
 interface RegularizationItem {
   id: number;
@@ -69,7 +70,8 @@ export const Regularizations: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 25;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [metrics, setMetrics] = useState({ pending: 0, approved: 0, rejected: 0, archived: 0, total: 0 });
@@ -267,8 +269,8 @@ export const Regularizations: React.FC = () => {
 
   const handleOpenEdit = (r: RegularizationItem) => {
     setEditingId(r.id);
-    const inTime = r.punchTimeIn ? new Date(r.punchTimeIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '09:00';
-    const outTime = r.punchTimeOut ? new Date(r.punchTimeOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '18:00';
+    const inTime = r.punchTimeIn ? formatTime(r.punchTimeIn) : '09:00';
+    const outTime = r.punchTimeOut ? formatTime(r.punchTimeOut) : '18:00';
     const punchTarget = (r.punchTimeIn && r.punchTimeOut) ? 'both' : r.punchTimeIn ? 'in' : r.punchTimeOut ? 'out' : 'both';
     const reqDate = r.requestDate ? r.requestDate.split('T')[0] : new Date().toISOString().split('T')[0];
 
@@ -356,8 +358,8 @@ export const Regularizations: React.FC = () => {
         Department: r.departmentName,
         'Request Date': r.requestDate,
         'Type': r.requestType,
-        'Punch In': r.punchTimeIn ? new Date(r.punchTimeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
-        'Punch Out': r.punchTimeOut ? new Date(r.punchTimeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
+        'Punch In': r.punchTimeIn ? formatTime(r.punchTimeIn) : '-',
+        'Punch Out': r.punchTimeOut ? formatTime(r.punchTimeOut) : '-',
         Status: r.status,
         Reason: r.reason || '',
         'Approved By': r.approvedBy || '',
@@ -496,7 +498,7 @@ export const Regularizations: React.FC = () => {
               <div className="">
                 <div className="font-medium text-[var(--text-primary)]">{r.requestDate}</div>
                 <div className="text-xs font-normal text-[var(--text-secondary)]">
-                  Filed: {new Date(r.createdAt).toLocaleDateString()}
+                  Filed: {formatDate(r.createdAt)}
                 </div>
               </div>
             ),
@@ -510,16 +512,16 @@ export const Regularizations: React.FC = () => {
                   <span className="text-[var(--text-secondary)]">In:</span>
                   <span className="font-semibold text-emerald-600">
                     {r.punchTimeIn
-                      ? new Date(r.punchTimeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
-                      : '—'}
+                      ? formatTime(r.punchTimeIn)
+                      : 'â€”'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[var(--text-secondary)]">Out:</span>
                   <span className="font-semibold text-indigo-600">
                     {r.punchTimeOut
-                      ? new Date(r.punchTimeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
-                      : '—'}
+                      ? formatTime(r.punchTimeOut)
+                      : 'â€”'}
                   </span>
                 </div>
               </div>
@@ -535,7 +537,7 @@ export const Regularizations: React.FC = () => {
             header: 'Reason',
             render: (r) => (
               <div className="max-w-[200px] truncate text-[var(--text-secondary)]" title={r.reason || ''}>
-                {r.reason || '—'}
+                {r.reason || 'â€”'}
               </div>
             ),
           },
@@ -587,7 +589,7 @@ export const Regularizations: React.FC = () => {
                 />
               ) : (
                 <div className="text-xs font-normal text-[var(--text-secondary)] ">
-                  {r.approvedBy ? `by ${r.approvedBy}` : '—'}
+                  {r.approvedBy ? `by ${r.approvedBy}` : 'â€”'}
                 </div>
               );
             },
@@ -707,7 +709,7 @@ export const Regularizations: React.FC = () => {
                 </div>
               )}
 
-              {/* Punch Target — only for Missed Punch */}
+              {/* Punch Target â€” only for Missed Punch */}
               {regForm.requestType === 'Missed Punch' && (
               <div>
                 <label className="block font-semibold text-[var(--text-primary)] mb-1">Correction Target *</label>
@@ -749,7 +751,7 @@ export const Regularizations: React.FC = () => {
               </div>
               )}
 
-              {/* Time Inputs — only for Missed Punch */}
+              {/* Time Inputs â€” only for Missed Punch */}
               {regForm.requestType === 'Missed Punch' && (
               <div className="grid grid-cols-2 gap-3">
                 {(regForm.punchTarget === 'in' || regForm.punchTarget === 'both') && (
@@ -916,3 +918,4 @@ export const Regularizations: React.FC = () => {
     </PageContainer>
   );
 };
+

@@ -13,6 +13,7 @@ import {
   ChevronRight,
   FileText,
 } from 'lucide-react';
+import { formatCurrency } from '../../utils/formatters';
 
 export const TaxDeclarationsTab: React.FC = () => {
   const { showError, showSuccess } = useToast();
@@ -98,11 +99,6 @@ export const TaxDeclarationsTab: React.FC = () => {
     e.preventDefault();
     setPage(1);
     fetchDeclarations();
-  };
-
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount === null || amount === undefined) return '₹0';
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
   };
 
   const openDeclaration = (employeeId: number) => {

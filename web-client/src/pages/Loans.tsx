@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -86,7 +86,8 @@ export const Loans: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 15;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -506,7 +507,7 @@ export const Loans: React.FC = () => {
             header: 'Principal',
             render: (l) => (
               <span className=" font-semibold text-[var(--text-primary)]">
-                ₹{l.principalAmount.toLocaleString()}
+                â‚¹{l.principalAmount.toLocaleString()}
               </span>
             ),
           },
@@ -515,7 +516,7 @@ export const Loans: React.FC = () => {
             header: 'Monthly EMI',
             render: (l) => (
               <span className=" text-indigo-600 font-semibold">
-                ₹{l.monthlyEmi.toLocaleString()} / mo
+                â‚¹{l.monthlyEmi.toLocaleString()} / mo
               </span>
             ),
           },
@@ -524,7 +525,7 @@ export const Loans: React.FC = () => {
             header: 'Remaining',
             render: (l) => (
               <span className=" font-semibold text-amber-700 dark:text-amber-300">
-                ₹{l.remainingAmount.toLocaleString()}
+                â‚¹{l.remainingAmount.toLocaleString()}
               </span>
             ),
           },
@@ -696,7 +697,7 @@ export const Loans: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Principal Amount (₹) *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Principal Amount (â‚¹) *</label>
                   <input
                     type="number"
                     value={form.principalAmount}
@@ -738,7 +739,7 @@ export const Loans: React.FC = () => {
               <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between text-xs">
                 <span className="text-[var(--text-secondary)]">Calculated Monthly EMI:</span>
                 <span className="text-sm font-semibold  text-[var(--accent)]">
-                  ₹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
+                  â‚¹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
                 </span>
               </div>
 
@@ -812,7 +813,7 @@ export const Loans: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Principal Amount (₹) *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Principal Amount (â‚¹) *</label>
                   <input
                     type="number"
                     value={form.principalAmount}
@@ -853,7 +854,7 @@ export const Loans: React.FC = () => {
               <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between text-xs">
                 <span className="text-[var(--text-secondary)]">Calculated Monthly EMI:</span>
                 <span className="text-sm font-semibold  text-[var(--accent)]">
-                  ₹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
+                  â‚¹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
                 </span>
               </div>
 
@@ -1117,3 +1118,4 @@ export const Loans: React.FC = () => {
     </PageContainer>
   );
 };
+

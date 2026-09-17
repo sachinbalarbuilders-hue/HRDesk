@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { exportToCSV } from '../../utils/csvHelper';
 import { useOrganization } from '../../context/CompanyContext';
@@ -25,7 +25,8 @@ export const DesignationsTab: React.FC = () => {
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 10;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [designations, setDesignations] = useState<any[]>([]);
   const [desigModalOpen, setDesigModalOpen] = useState(false);
   const [newDesignation, setNewDesignation] = useState({ title: '' });
@@ -291,3 +292,4 @@ export const DesignationsTab: React.FC = () => {
     </div>
   );
 };
+

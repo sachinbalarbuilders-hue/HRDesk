@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useOrganization } from '../../context/CompanyContext';
@@ -31,7 +31,8 @@ export const OrganizationsTab: React.FC = () => {
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 10;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
@@ -218,7 +219,7 @@ export const OrganizationsTab: React.FC = () => {
             {org.customDomain}
           </span>
         ) : (
-          <span className="text-[var(--text-secondary)] text-xs font-normal">—</span>
+          <span className="text-[var(--text-secondary)] text-xs font-normal">â€”</span>
         ),
     },
     {
@@ -233,7 +234,7 @@ export const OrganizationsTab: React.FC = () => {
               </span>
             </div>
           ) : (
-            <span className="text-[var(--text-secondary)] text-xs">—</span>
+            <span className="text-[var(--text-secondary)] text-xs">â€”</span>
           )}
         </div>
       ),
@@ -403,3 +404,4 @@ export const OrganizationsTab: React.FC = () => {
     </div>
   );
 };
+

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { Plus, Pencil, X } from 'lucide-react';
@@ -32,7 +32,7 @@ const COMPONENT_TYPES = ['Earning', 'Deduction', 'Informational'];
 const CALCULATION_TYPES = [
   { value: 'PercentOfCTC', label: '% of Monthly CTC' },
   { value: 'PercentOfComponent', label: '% of Base Component (e.g. Basic)' },
-  { value: 'FixedAmount', label: '₹ Fixed Monthly Amount' },
+  { value: 'FixedAmount', label: 'â‚¹ Fixed Monthly Amount' },
   { value: 'Remainder', label: 'Remainder (fills CTC)' },
   { value: 'Statutory', label: 'Statutory (auto-computed)' },
 ];
@@ -67,7 +67,8 @@ export const SalaryComponentsTab: React.FC = () => {
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 15;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   const fetchComponents = useCallback(async () => {
@@ -213,7 +214,7 @@ export const SalaryComponentsTab: React.FC = () => {
         if (c.calculationType === 'FixedAmount') {
           return (
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
-              ₹{Number(c.defaultValue || 0).toLocaleString('en-IN')} / mo
+              â‚¹{Number(c.defaultValue || 0).toLocaleString('en-IN')} / mo
             </span>
           );
         }
@@ -231,7 +232,7 @@ export const SalaryComponentsTab: React.FC = () => {
             </span>
           );
         }
-        return <span className="text-xs text-[var(--text-secondary)]">—</span>;
+        return <span className="text-xs text-[var(--text-secondary)]">â€”</span>;
       },
     },
     {
@@ -437,7 +438,7 @@ export const SalaryComponentsTab: React.FC = () => {
                   {['PercentOfCTC', 'PercentOfComponent', 'FixedAmount'].includes(form.calculationType) && (
                     <div>
                       <label className="text-xs font-semibold text-[var(--text-secondary)] block mb-1">
-                        {form.calculationType === 'FixedAmount' ? 'Monthly Rupee Value (₹) *' : 'Percentage Value (%) *'}
+                        {form.calculationType === 'FixedAmount' ? 'Monthly Rupee Value (â‚¹) *' : 'Percentage Value (%) *'}
                       </label>
                       <div className="relative">
                         <input
@@ -451,7 +452,7 @@ export const SalaryComponentsTab: React.FC = () => {
                           className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all  pr-8"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[var(--text-secondary)]">
-                          {form.calculationType === 'FixedAmount' ? '₹' : '%'}
+                          {form.calculationType === 'FixedAmount' ? 'â‚¹' : '%'}
                         </span>
                       </div>
                     </div>
@@ -460,13 +461,13 @@ export const SalaryComponentsTab: React.FC = () => {
 
                 {form.calculationType === 'Remainder' && (
                   <p className="text-xs font-normal text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2 rounded border border-amber-200 dark:border-amber-900/50">
-                    💡 <strong>Remainder:</strong> This component automatically absorbs whatever monthly CTC remains after all other earnings are deducted, keeping CTC exact.
+                    ðŸ’¡ <strong>Remainder:</strong> This component automatically absorbs whatever monthly CTC remains after all other earnings are deducted, keeping CTC exact.
                   </p>
                 )}
 
                 {form.calculationType === 'Statutory' && (
                   <p className="text-xs font-normal text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 p-2 rounded border border-slate-200 dark:border-slate-700">
-                    ⚖️ <strong>Statutory:</strong> This component is auto-calculated at payroll time according to PF, ESI, PT, or TDS rules and wage limits.
+                    âš–ï¸ <strong>Statutory:</strong> This component is auto-calculated at payroll time according to PF, ESI, PT, or TDS rules and wage limits.
                   </p>
                 )}
               </div>
@@ -519,3 +520,4 @@ export const SalaryComponentsTab: React.FC = () => {
     </div>
   );
 };
+

@@ -3,6 +3,7 @@ import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganization } from '../../context/CompanyContext';
+import { formatDate } from '../../utils/formatters';
 import {
   CreditCard,
   Users,
@@ -282,7 +283,7 @@ export const SubscriptionTab: React.FC = () => {
               <span>
                 Renews on:{' '}
                 <strong className="text-[var(--text-primary)]">
-                  {quota?.validUntil ? new Date(quota.validUntil).toLocaleDateString() : 'N/A'}
+                  {quota?.validUntil ? formatDate(quota.validUntil) : 'N/A'}
                 </strong>
               </span>
             </div>
@@ -575,7 +576,7 @@ export const SubscriptionTab: React.FC = () => {
                     <td className="py-3 px-4 font-semibold text-[var(--text-primary)]">{item.planName}</td>
                     <td className="py-3 px-4 text-[var(--text-secondary)]">{item.billingCycle}</td>
                     <td className="py-3 px-4 text-[var(--text-secondary)]  text-xs font-normal">
-                      {new Date(item.createdAt).toLocaleDateString()}
+                      {formatDate(item.createdAt)}
                     </td>
                     <td className="py-3 px-4 ">
                       {'\u20B9'}{item.amount.toLocaleString('en-IN')}

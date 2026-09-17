@@ -4,6 +4,8 @@ import { Input } from '../ui/Input';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/formatters';
+import { formatDate } from '../../utils/formatters';
 import {
   Calculator,
   CheckCircle2,
@@ -234,11 +236,6 @@ export const TaxDeclarationModal: React.FC<TaxDeclarationModalProps> = ({
     Number(formData.sec80C_Other || 0)
   );
   const eligible80C = Math.min(150000, total80C);
-
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount === null || amount === undefined) return '₹0';
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
-  };
 
   return (
     <Modal
@@ -795,7 +792,7 @@ export const TaxDeclarationModal: React.FC<TaxDeclarationModalProps> = ({
                           <div>
                             <p className="font-medium text-sm">{p.proofType}</p>
                             <p className="text-xs font-normal text-[var(--text-secondary)]">
-                              {p.fileName} • {new Date(p.uploadedAt).toLocaleDateString()}
+                              {p.fileName} • {formatDate(p.uploadedAt)}
                             </p>
                           </div>
                         </div>

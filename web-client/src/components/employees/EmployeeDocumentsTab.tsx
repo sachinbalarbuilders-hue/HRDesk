@@ -3,6 +3,7 @@ import { FileText, Download, Trash2, Upload, Loader2, AlertCircle, Eye } from 'l
 import { apiClient } from '../../api/client';
 import { DocumentViewerModal } from '../common/DocumentViewerModal';
 import { useArchiveActions } from '../../hooks/useArchiveActions';
+import { formatDate } from '../../utils/formatters';
 
 interface Document {
   documentId: number;
@@ -187,7 +188,7 @@ export const EmployeeDocumentsTab: React.FC<Props> = ({ employeeId }) => {
                   <FileText size={16} className="text-[var(--text-secondary)] flex-shrink-0" />
                   <div className="truncate">
                     <p className="text-sm font-semibold text-[var(--text-primary)] truncate" title={doc.fileName}>{doc.fileName}</p>
-                    <p className="text-xs font-normal text-[var(--text-secondary)]">{doc.documentType} • {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                    <p className="text-xs font-normal text-[var(--text-secondary)]">{doc.documentType} • {formatDate(doc.uploadedAt)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

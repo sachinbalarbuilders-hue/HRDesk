@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useOrganization } from '../context/CompanyContext';
@@ -59,7 +59,8 @@ export const Holidays: React.FC = () => {
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 10;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [departments, setDepartments] = useState<Array<{ id: number; name: string }>>([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
@@ -334,7 +335,7 @@ export const Holidays: React.FC = () => {
       header: 'Description',
       render: (h) => (
         <span className="max-w-[240px] truncate text-xs text-[var(--text-secondary)] block" title={h.description}>
-          {h.description || '—'}
+          {h.description || 'â€”'}
         </span>
       ),
     },
@@ -711,3 +712,4 @@ export const Holidays: React.FC = () => {
     </PageContainer>
   );
 };
+

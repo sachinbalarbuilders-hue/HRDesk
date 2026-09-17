@@ -158,6 +158,7 @@ builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPermissionService
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IArchiveService, HRDesk.Web.Services.Infrastructure.ArchiveService>(); // Shared archive-then-delete lifecycle
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPlanEntitlementService, HRDesk.Web.Services.Infrastructure.PlanEntitlementService>();
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.TenantProvisioningService>();
+builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.TenantDateTimeService>();
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.PlatformAdminSecurityService>();
 builder.Services.AddScoped<HRDesk.Web.Services.Infrastructure.IPaymentGatewayService, HRDesk.Web.Services.Infrastructure.RazorpayPaymentService>();
 builder.Services.AddHostedService<HRDesk.Web.Services.Infrastructure.SubscriptionLifecycleBackgroundWorker>();

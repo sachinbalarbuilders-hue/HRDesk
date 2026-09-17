@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { Loader2, CalendarCheck2 } from 'lucide-react';
+import { formatDate } from '../../utils/formatters';
 
 interface Allocation {
   leaveTypeId: number;
@@ -33,16 +34,6 @@ interface EmployeeLeavesTabProps {
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-const formatDate = (dateStr: string | null | undefined) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return String(dateStr).split('T')[0];
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-};
 
 const formatDays = (n: number) => {
   const rounded = Math.round(n * 10) / 10;

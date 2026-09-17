@@ -25,6 +25,7 @@ import {
   Users,
   UserMinus,
 } from 'lucide-react';
+import { formatDate } from '../utils/formatters';
 import { ArchiveActionButton } from '../components/ui/ArchiveActionButton';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
@@ -36,15 +37,6 @@ import { AuthImage } from '../components/ui/AuthImage';
 import { EmployeeExits } from './employees/EmployeeExits';
 import { InitiateExitModal } from '../components/employees/InitiateExitModal';
 
-const formatDate = (dateStr: string | null | undefined) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr.split('T')[0];
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-};
 
 interface EmployeesProps {
   defaultTab?: 'directory' | 'exits';
@@ -72,7 +64,8 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
   const [departmentId, setDepartmentId] = useState<string>('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 20;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
@@ -340,7 +333,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       header: 'Designation',
       render: (emp) => (
         <span className="text-sm font-normal text-[var(--text-secondary)]">
-          {emp.designation || <span className="text-[var(--text-muted)] italic text-xs">—</span>}
+          {emp.designation || <span className="text-[var(--text-muted)] italic text-xs">â€”</span>}
         </span>
       ),
     },
@@ -349,7 +342,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       header: 'Reporting Manager',
       render: (emp) => (
         <span className="text-sm font-normal text-[var(--text-secondary)]">
-          {emp.reportingManager || <span className="text-[var(--text-muted)] italic text-xs">—</span>}
+          {emp.reportingManager || <span className="text-[var(--text-muted)] italic text-xs">â€”</span>}
         </span>
       ),
     },
@@ -911,3 +904,4 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
     </PageContainer>
   );
 };
+

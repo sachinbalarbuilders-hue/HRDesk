@@ -18,22 +18,25 @@ public class DashboardController : ControllerBase
     private readonly BiometricAttendanceDbContext _db;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly TenantDateTimeService _dateTimeService;
 
     public DashboardController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        TenantDateTimeService dateTimeService)
     {
         _db = db;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
+        _dateTimeService = dateTimeService;
     }
 
     [HttpGet("summary")]
     [HttpGet("stats")]
     public async Task<IActionResult> GetDashboardSummary([FromQuery] int? branchId = null)
     {
-        var today = IstDateTime.Today;
+        var today = _dateTimeService.Today;
         var currentYear = today.Year;
         var currentMonth = today.Month;
         var activeBranch = branchId ?? _tenantProvider.BranchId;
@@ -337,7 +340,7 @@ public class DashboardController : ControllerBase
     [HttpGet("overview")]
     public async Task<IActionResult> GetDashboardOverview([FromQuery] int? branchId = null)
     {
-        var today = IstDateTime.Today;
+        var today = _dateTimeService.Today;
         var currentMonth = today.Month;
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 
@@ -538,7 +541,7 @@ public class DashboardController : ControllerBase
     [HttpGet("celebrations")]
     public async Task<IActionResult> GetCelebrations([FromQuery] int? branchId = null)
     {
-        var today = IstDateTime.Today;
+        var today = _dateTimeService.Today;
         var currentMonth = today.Month;
         var activeBranch = branchId ?? _tenantProvider.BranchId;
 

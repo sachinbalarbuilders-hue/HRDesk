@@ -35,27 +35,7 @@ export const PaginationToolbar: React.FC<PaginationToolbarProps> = ({
           <strong className="text-[var(--text-primary)] font-semibold tabular-nums">{totalCount}</strong> results
         </span>
 
-        <div className="hidden sm:flex items-center gap-1.5 ml-3">
-          <label htmlFor="pagination-rows-per-page" className="text-xs font-normal text-[var(--text-secondary)]">
-            Rows per page:
-          </label>
-          <select
-            id="pagination-rows-per-page"
-            aria-label="Rows per page"
-            value={pageSize}
-            onChange={(e) => {
-              onPageSizeChange(Number(e.target.value));
-              onPageChange(1);
-            }}
-            className="px-2 py-0.5 rounded-md bg-[var(--surface)] border border-[var(--border-strong)] text-xs font-normal text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] cursor-pointer shadow-xs"
-          >
-            {pageSizeOptions.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-        </div>
+
       </div>
 
       {/* Navigation Buttons & Page indicator */}

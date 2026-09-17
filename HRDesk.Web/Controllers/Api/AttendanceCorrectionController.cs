@@ -20,19 +20,22 @@ public class AttendanceCorrectionController : ControllerBase
     private readonly IReferenceDataCacheService _cache;
     private readonly AttendanceProcessorService _processor;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly TenantDateTimeService _dateTimeService;
 
     public AttendanceCorrectionController(
         BiometricAttendanceDbContext db,
         IPermissionService permissionService,
         IReferenceDataCacheService cache,
         AttendanceProcessorService processor,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        TenantDateTimeService dateTimeService)
     {
         _db = db;
         _permissionService = permissionService;
         _cache = cache;
         _processor = processor;
         _tenantProvider = tenantProvider;
+        _dateTimeService = dateTimeService;
     }
 
     [HttpGet("eligible-employees")]
@@ -132,8 +135,8 @@ public class AttendanceCorrectionController : ControllerBase
                 VerifyMode = 99,
                 VerifyType = "Manual-In",
                 OrganizationId = employee.OrganizationId,
-                CreatedAt = IstDateTime.Now,
-                SyncedAt = IstDateTime.Now,
+                CreatedAt = _dateTimeService.Now,
+                SyncedAt = _dateTimeService.Now,
             });
         }
 
@@ -148,8 +151,8 @@ public class AttendanceCorrectionController : ControllerBase
                 VerifyMode = 99,
                 VerifyType = "Manual-Out",
                 OrganizationId = employee.OrganizationId,
-                CreatedAt = IstDateTime.Now,
-                SyncedAt = IstDateTime.Now,
+                CreatedAt = _dateTimeService.Now,
+                SyncedAt = _dateTimeService.Now,
             });
         }
 
@@ -281,7 +284,7 @@ public class AttendanceCorrectionController : ControllerBase
         var punchDate = DateOnly.FromDateTime(punch.PunchTime);
         punch.PunchTime = punchDate.ToDateTime(newTime);
         punch.VerifyType = !string.IsNullOrWhiteSpace(dto.Reason) ? $"Manual (Edited: {dto.Reason})" : "Manual (Edited)";
-        punch.SyncedAt = IstDateTime.Now;
+        punch.SyncedAt = _dateTimeService.Now;
 
         await _db.SaveChangesAsync();
 
@@ -417,8 +420,8 @@ public class AttendanceCorrectionController : ControllerBase
                 VerifyMode = 1,
                 VerifyType = "Manual-In (Edited)",
                 OrganizationId = employee.OrganizationId,
-                CreatedAt = IstDateTime.Now,
-                SyncedAt = IstDateTime.Now,
+                CreatedAt = _dateTimeService.Now,
+                SyncedAt = _dateTimeService.Now,
             });
         }
 
@@ -432,8 +435,8 @@ public class AttendanceCorrectionController : ControllerBase
                 VerifyMode = 2,
                 VerifyType = "Manual-Out (Edited)",
                 OrganizationId = employee.OrganizationId,
-                CreatedAt = IstDateTime.Now,
-                SyncedAt = IstDateTime.Now,
+                CreatedAt = _dateTimeService.Now,
+                SyncedAt = _dateTimeService.Now,
             });
         }
 

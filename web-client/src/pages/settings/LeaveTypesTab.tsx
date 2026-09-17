@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { exportToCSV } from '../../utils/csvHelper';
 import { useOrganization } from '../../context/CompanyContext';
@@ -27,7 +27,8 @@ export const LeaveTypesTab: React.FC = () => {
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [leavePaidFilter, setLeavePaidFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 10;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const [departments, setDepartments] = useState<any[]>([]);
   const [designations, setDesignations] = useState<any[]>([]);
@@ -511,11 +512,11 @@ export const LeaveTypesTab: React.FC = () => {
                   {leaveFormStep === 1 ? (
                     <>
                       <button type="button" onClick={() => { setLeaveModalOpen(false); setEditingLeaveTypeId(null); setLeaveFormStep(1); }} className="btn-secondary">Cancel</button>
-                      <button type="button" onClick={(e) => { e.preventDefault(); if (!newLeaveType.name.trim()) return; setLeaveFormStep(2); }} className="btn-primary">Next →</button>
+                      <button type="button" onClick={(e) => { e.preventDefault(); if (!newLeaveType.name.trim()) return; setLeaveFormStep(2); }} className="btn-primary">Next â†’</button>
                     </>
                   ) : (
                     <>
-                      <button type="button" onClick={() => setLeaveFormStep(1)} className="btn-secondary">← Back</button>
+                      <button type="button" onClick={() => setLeaveFormStep(1)} className="btn-secondary">â† Back</button>
                       <button type="submit" className="btn-primary">Save Category</button>
                     </>
                   )}
@@ -545,3 +546,4 @@ export const LeaveTypesTab: React.FC = () => {
     </div>
   );
 };
+

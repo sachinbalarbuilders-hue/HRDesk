@@ -28,6 +28,7 @@ public class MobilePunchController : ControllerBase
     private readonly FaceMotionService _faceMotionService;
     private readonly FaceChallengeService _faceChallengeService;
     private readonly IConfiguration _configuration;
+    private readonly TenantDateTimeService _dateTimeService;
 
     public MobilePunchController(
         BiometricAttendanceDbContext db,
@@ -39,7 +40,8 @@ public class MobilePunchController : ControllerBase
         FaceAntiSpoofingService faceAntiSpoofingService,
         FaceMotionService faceMotionService,
         FaceChallengeService faceChallengeService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        TenantDateTimeService dateTimeService)
     {
         _db = db;
         _attendanceSummaryService = attendanceSummaryService;
@@ -51,6 +53,7 @@ public class MobilePunchController : ControllerBase
         _faceMotionService = faceMotionService;
         _faceChallengeService = faceChallengeService;
         _configuration = configuration;
+        _dateTimeService = dateTimeService;
     }
 
     // ── Active Liveness: Request Challenge ──────────────────────────────────
@@ -122,7 +125,7 @@ public class MobilePunchController : ControllerBase
         }
 
         var targetEmpId = dto.EmployeeId ?? currentEmpId!.Value;
-        var now = IstDateTime.Now;
+        var now = _dateTimeService.Now;
         var today = DateOnly.FromDateTime(now);
         var timeOnly = TimeOnly.FromDateTime(now);
 
@@ -719,7 +722,7 @@ public class MobilePunchController : ControllerBase
             return Ok(new { hasEmployee = false, isClockedIn = false, inTime = (string?)null, outTime = (string?)null });
         }
 
-        var today = IstDateTime.Today;
+        var today = _dateTimeService.Today;
         var log = await _db.DailyAttendance
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.EmployeeId == currentEmpId.Value && a.RecordDate == today);
@@ -1061,8 +1064,8 @@ public class MobilePunchController : ControllerBase
             return BadRequest(new { message = "No employee found." });
         }
 
-        var selectedYear = year ?? IstDateTime.Now.Year;
-        var selectedMonth = month ?? IstDateTime.Now.Month;
+        var selectedYear = year ?? _dateTimeService.Now.Year;
+        var selectedMonth = month ?? _dateTimeService.Now.Month;
         var startDate = new DateOnly(selectedYear, selectedMonth, 1);
         var daysInMonth = DateTime.DaysInMonth(selectedYear, selectedMonth);
         var endDate = startDate.AddMonths(1);
@@ -1096,7 +1099,7 @@ public class MobilePunchController : ControllerBase
             .Where(r => r.EmployeeId == targetEmpId.Value && r.RosterDate >= startDate && r.RosterDate < endDate)
             .ToListAsync();
 
-        var today = IstDateTime.Today;
+        var today = _dateTimeService.Today;
 
         // Quick check for today's live punches only if today's DailyAttendance is missing
         if (selectedYear == today.Year && selectedMonth == today.Month)

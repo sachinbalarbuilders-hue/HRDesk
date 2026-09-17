@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+﻿import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import { useArchiveActions, isRowArchived } from '../../hooks/useArchiveActions';
@@ -74,7 +74,7 @@ interface AllEmployee {
 }
 
 const BASIS_LABELS: Record<string, string> = {
-  CalendarDays: 'Calendar Days (÷ days in month)',
+  CalendarDays: 'Calendar Days (Ã· days in month)',
   Fixed26: 'Fixed 26 Days',
   Fixed30: 'Fixed 30 Days',
   ActualWorkingDays: 'Actual Working Days',
@@ -107,7 +107,7 @@ function renderRuleBadge(c: { calculationType?: string; value?: number | null; d
   if (type === 'FixedAmount') {
     return (
       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
-        ₹{Number(val || 0).toLocaleString('en-IN')}/mo
+        â‚¹{Number(val || 0).toLocaleString('en-IN')}/mo
       </span>
     );
   }
@@ -135,7 +135,7 @@ const emptyForm = {
   ptState: 'Telangana',
 };
 
-// ── Avatar helpers ───────────────────────────────────────────────────────────
+// â”€â”€ Avatar helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function initials(name: string) {
   return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
@@ -175,11 +175,11 @@ function Avatar({ emp, size = 24 }: { emp: { employeeId: number; employeeName: s
   );
 }
 
-// ── Avatar stack (up to maxShow, then +N badge) ──────────────────────────────
+// â”€â”€ Avatar stack (up to maxShow, then +N badge) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AvatarStack({ employees, maxShow = 4 }: { employees: GroupEmployee[]; maxShow?: number }) {
   if (!employees.length) {
-    return <span className="text-xs font-normal text-[var(--text-secondary)] italic">—</span>;
+    return <span className="text-xs font-normal text-[var(--text-secondary)] italic">â€”</span>;
   }
   const shown = employees.slice(0, maxShow);
   const extra = employees.length - shown.length;
@@ -202,7 +202,7 @@ function AvatarStack({ employees, maxShow = 4 }: { employees: GroupEmployee[]; m
   );
 }
 
-// ── Inline employee assignment panel (used inside the modal) ─────────────────
+// â”€â”€ Inline employee assignment panel (used inside the modal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function EmployeeAssignPanel({
   payGroupId,
@@ -295,7 +295,7 @@ function EmployeeAssignPanel({
           className="w-full flex items-center gap-2 px-3 py-2 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-secondary)] hover:border-[var(--gold-400)] transition-colors cursor-pointer text-left"
         >
           <UserPlus size={12} />
-          Add employee to this group…
+          Add employee to this groupâ€¦
         </button>
 
         {dropOpen && (
@@ -306,7 +306,7 @@ function EmployeeAssignPanel({
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search employees…"
+                placeholder="Search employeesâ€¦"
                 className="w-full px-2 py-1.5 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
               />
             </div>
@@ -340,7 +340,7 @@ function EmployeeAssignPanel({
 
       {/* Assigned list */}
       {loading ? (
-        <p className="text-xs text-[var(--text-secondary)] italic py-2">Loading…</p>
+        <p className="text-xs text-[var(--text-secondary)] italic py-2">Loadingâ€¦</p>
       ) : assigned.length === 0 ? (
         <p className="text-xs text-[var(--text-secondary)] italic py-2">No employees assigned yet.</p>
       ) : (
@@ -355,7 +355,7 @@ function EmployeeAssignPanel({
                 <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{emp.employeeName}</p>
                 {(emp.department || emp.designation) && (
                   <p className="text-xs font-normal text-[var(--text-secondary)] truncate">
-                    {[emp.designation, emp.department].filter(Boolean).join(' · ')}
+                    {[emp.designation, emp.department].filter(Boolean).join(' Â· ')}
                   </p>
                 )}
               </div>
@@ -375,7 +375,7 @@ function EmployeeAssignPanel({
   );
 }
 
-// ── Main PayGroupsTab ────────────────────────────────────────────────────────
+// â”€â”€ Main PayGroupsTab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const PayGroupsTab: React.FC = () => {
   const { showSuccess, showError } = useToast();
@@ -394,7 +394,8 @@ export const PayGroupsTab: React.FC = () => {
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 15;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   // Fetch all active master salary components
@@ -744,8 +745,8 @@ export const PayGroupsTab: React.FC = () => {
                       <Switch
                         checked={form.capEmployeePf}
                         onChange={(checked) => setForm(f => ({ ...f, capEmployeePf: checked, capEmployerPf: checked }))}
-                        label="Cap PF at ₹15,000 ceiling"
-                        description="Limit to 12% of ₹15,000 (₹1,800/mo) instead of uncapped basic"
+                        label="Cap PF at â‚¹15,000 ceiling"
+                        description="Limit to 12% of â‚¹15,000 (â‚¹1,800/mo) instead of uncapped basic"
                       />
                     </div>
                   )}
@@ -907,3 +908,4 @@ export const PayGroupsTab: React.FC = () => {
     </div>
   );
 };
+

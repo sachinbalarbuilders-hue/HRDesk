@@ -13,6 +13,8 @@ export interface UserProfile {
   avatarUrl?: string;
   organizationId?: number;
   isPlatformUser?: boolean;
+  email?: string;
+  workEmail?: string;
 }
 
 interface AuthContextType {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+﻿import React, { useEffect, useState, useMemo, useRef } from 'react';
 
 import { StatusApprovalDropdown } from '../components/ui/StatusApprovalDropdown';
 import { apiClient } from '../api/client';
@@ -56,7 +56,8 @@ export const Leaves: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 20;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -472,7 +473,7 @@ export const Leaves: React.FC = () => {
                 />
               ) : (
                 <span className=" text-xs text-[var(--text-secondary)]">
-                  {app.approvedBy ? `by ${app.approvedBy}` : '—'}
+                  {app.approvedBy ? `by ${app.approvedBy}` : 'â€”'}
                 </span>
               );
             },
@@ -557,7 +558,7 @@ export const Leaves: React.FC = () => {
                   <option value="">Select Leave Type</option>
                   {(Array.isArray(leaveTypes) ? leaveTypes : []).map((t: any) => (
                     <option key={t.leaveTypeId || t.id} value={t.leaveTypeId || t.id}>
-                      {t.name} ({t.code}) {t.isPaid ? '— Paid Leave' : '— Unpaid'}
+                      {t.name} ({t.code}) {t.isPaid ? 'â€” Paid Leave' : 'â€” Unpaid'}
                     </option>
                   ))}
                 </select>
@@ -698,3 +699,4 @@ export const Leaves: React.FC = () => {
     </PageContainer>
   );
 };
+

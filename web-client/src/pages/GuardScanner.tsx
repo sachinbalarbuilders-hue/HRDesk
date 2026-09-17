@@ -3,6 +3,7 @@ import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
 import { apiClient } from '../api/client';
 import { useOrganization } from '../context/CompanyContext';
 import { PaginationToolbar } from '../components/ui/PaginationToolbar';
+import { formatTime } from '../utils/formatters';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -63,7 +64,7 @@ export const GuardScanner: React.FC = () => {
   const [recentLogs, setRecentLogs] = useState<ScanLogItem[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+  const [currentTime, setCurrentTime] = useState(formatTime(new Date()));
 
   // Infinite Scroll & Filter State for Gate Activity Ledger
   const [logPage, setLogPage] = useState(1);
@@ -78,7 +79,7 @@ export const GuardScanner: React.FC = () => {
   // Live Clock for Guard Terminal
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      setCurrentTime(formatTime(new Date()));
     }, 1000);
     return () => clearInterval(timer);
   }, []);

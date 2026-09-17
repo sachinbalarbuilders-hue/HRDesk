@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { exportToCSV } from '../utils/csvHelper';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { DayActivityDrawer } from '../components/attendance/DayActivityDrawer';
 import { ManualPunchModal } from '../components/attendance/ManualPunchModal';
+import { formatDate } from '../utils/formatters';
 
 const LeftHalfStar: React.FC<{ size?: number; className?: string }> = ({ size = 14, className = "" }) => (
   <svg
@@ -103,7 +104,8 @@ export const Attendance: React.FC = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 50;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [manualPunchOpen, setManualPunchOpen] = useState(false);
 
@@ -131,12 +133,7 @@ export const Attendance: React.FC = () => {
     }
 
     const dDate = new Date(year, month - 1, dayNumber);
-    const formattedDate = dDate.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    const formattedDate = formatDate(dDate);
 
     setSelectedDayInfo({
       employeeId: row.employee.employeeId,
@@ -151,7 +148,7 @@ export const Attendance: React.FC = () => {
         },
         date: dateStr,
         formattedDate,
-        status: status || '—',
+        status: status || 'â€”',
         inTime: inTime,
         outTime: outTime,
         totalPunches: inTime ? (outTime ? 2 : 1) : 0,
@@ -235,10 +232,10 @@ export const Attendance: React.FC = () => {
       case 'UNPAID LEAVE':
         return 'Leave';
       case 'PHF':
-      case 'PL½':
+      case 'PLÂ½':
       case 'PLHF':
       case 'SHF':
-      case 'SL½':
+      case 'SLÂ½':
       case 'SLHF':
       case 'HF':
       case 'HALF DAY':
@@ -251,7 +248,7 @@ export const Attendance: React.FC = () => {
 
   const getStatusBadge = (code: string) => {
     if (!code || code === '-' || code.trim() === '') {
-      return <span className="text-[var(--text-secondary)] opacity-30 text-xs  select-none">—</span>;
+      return <span className="text-[var(--text-secondary)] opacity-30 text-xs  select-none">â€”</span>;
     }
 
     const c = code.trim().toUpperCase();
@@ -316,7 +313,7 @@ export const Attendance: React.FC = () => {
       case 'WOHF':
         return (
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500 text-white ring-2 ring-emerald-400 font-extrabold text-xs font-normal shadow-xs hover:brightness-110 transition-all select-none">
-            WO½
+            WOÂ½
           </span>
         );
 
@@ -384,10 +381,10 @@ export const Attendance: React.FC = () => {
 
       // Generic Half Day / Unspecified Half Leave
       case 'PHF':
-      case 'PL½':
+      case 'PLÂ½':
       case 'PLHF':
       case 'SHF':
-      case 'SL½':
+      case 'SLÂ½':
       case 'SLHF':
       case 'HF':
       case 'HALF DAY':
@@ -751,9 +748,9 @@ export const Attendance: React.FC = () => {
                         const hasPunches = typeof record === 'object' && (!!record?.inTime || !!record?.outTime || !!record?.totalPunches);
                         const isWeekOff = sUpper === 'WO' || sUpper === 'W/O' || sUpper === 'WEEKOFF';
                         const isHoliday = sUpper === 'HLD' || sUpper === 'HOLIDAY' || sUpper === 'H';
-                        const isEmpty = !status || status === '-' || status === '—';
+                        const isEmpty = !status || status === '-' || status === 'â€”';
 
-                        const recordTooltip = typeof record === 'object' ? (record?.tooltip || (record?.inTime ? `In: ${record.inTime} | Out: ${record.outTime || '—'}` : '')) : '';
+                        const recordTooltip = typeof record === 'object' ? (record?.tooltip || (record?.inTime ? `In: ${record.inTime} | Out: ${record.outTime || 'â€”'}` : '')) : '';
                         const statusLabel = getStatusLabel(status);
 
                         // Non-clickable on standard Weekoff or Holiday without biometric punches, or empty slots
@@ -873,3 +870,4 @@ export const Attendance: React.FC = () => {
     </PageContainer>
   );
 };
+

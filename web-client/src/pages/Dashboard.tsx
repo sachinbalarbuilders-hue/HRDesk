@@ -41,6 +41,7 @@ import { Avatar } from '../components/ui/Avatar';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageSkeleton } from '../components/ui/PageSkeleton';
 import { Modal } from '../components/ui/Modal';
+import { formatDate, formatTime } from '../utils/formatters';
 
 // ─── Web Clock / Quick Punch Widget ─────────────────────────────
 const WebClockWidget: React.FC<{
@@ -63,8 +64,8 @@ const WebClockWidget: React.FC<{
   const status = todayAttendance?.status || (isClockedIn ? 'Present' : isClockedOut ? 'Clocked Out' : 'Not Checked In');
   const shiftName = todayAttendance?.shiftName || 'General Shift';
 
-  const timeString = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-  const dateString = currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  const timeString = formatTime(currentTime);
+  const dateString = formatDate(currentTime);
 
   const handlePunch = async () => {
     try {
@@ -288,7 +289,7 @@ export const Dashboard: React.FC = () => {
       <PageContainer>
         <PageHeader
           title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${user?.fullName?.split(' ')[0] || 'there'}`}
-          description={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          description={formatDate(new Date())}
         />
 
         {/* Clock In / Out Widget */}
@@ -393,7 +394,7 @@ export const Dashboard: React.FC = () => {
       {/* Header */}
       <PageHeader
         title={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, ${user?.fullName?.split(' ')[0] || 'there'}`}
-        description={new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+        description={formatDate(new Date())}
       />
 
       {/* ── Web Clock / Quick Punch ── */}

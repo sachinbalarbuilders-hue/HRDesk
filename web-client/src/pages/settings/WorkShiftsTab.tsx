@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { exportToCSV } from '../../utils/csvHelper';
 import { useOrganization } from '../../context/CompanyContext';
@@ -21,7 +21,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 
-// ─── Shift Cycles ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Shift Cycles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface CycleSlot {
   slotIndex: number;
@@ -65,13 +65,13 @@ function CyclePreviewStrip({ slots, cycleLengthDays }: { slots: CycleSlot[]; cyc
         );
       })}
       {cycleLengthDays > 21 && (
-        <span className="text-xs font-normal text-[var(--text-secondary)] self-center ml-1">×2 preview</span>
+        <span className="text-xs font-normal text-[var(--text-secondary)] self-center ml-1">Ã—2 preview</span>
       )}
     </div>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const WorkShiftsTab: React.FC = () => {
   const { currentBranch } = useOrganization();
@@ -81,7 +81,8 @@ export const WorkShiftsTab: React.FC = () => {
   const [search, setSearch] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilterValue>('active');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 10;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [activeSubTab, setActiveSubTab] = useState<'shifts' | 'cycles'>('shifts');
   const [selectedShiftIds, setSelectedShiftIds] = useState<(string | number)[]>([]);
 
@@ -107,7 +108,7 @@ export const WorkShiftsTab: React.FC = () => {
 
   const [bulkImportModalOpen, setBulkImportModalOpen] = useState(false);
 
-  // ── Shift Cycles state ──────────────────────────────────────────────────────
+  // â”€â”€ Shift Cycles state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [cycles, setCycles] = useState<ShiftCycle[]>([]);
   const [cyclesLoading, setCyclesLoading] = useState(false);
   const [cycleArchiveFilter, setCycleArchiveFilter] = useState<ArchiveFilterValue>('active');
@@ -227,7 +228,7 @@ export const WorkShiftsTab: React.FC = () => {
     }
   };
 
-  // ── Cycle handlers ──────────────────────────────────────────────────────────
+  // â”€â”€ Cycle handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const openCreateCycle = () => {
     setEditingCycleId(null);
@@ -309,7 +310,7 @@ export const WorkShiftsTab: React.FC = () => {
     onDone: fetchCycles,
   });
 
-  // ── Render helpers ──────────────────────────────────────────────────────────
+  // â”€â”€ Render helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const handleExport = () => {
     exportToCSV('HRDesk_Work_Shifts', shifts, [
@@ -357,7 +358,7 @@ export const WorkShiftsTab: React.FC = () => {
       header: 'Timing',
       render: (item) => (
         <span className=" font-semibold text-xs text-emerald-700 dark:text-emerald-300">
-          {item.startTime} – {item.endTime}
+          {item.startTime} â€“ {item.endTime}
         </span>
       ),
     },
@@ -366,7 +367,7 @@ export const WorkShiftsTab: React.FC = () => {
       header: 'Break Duration',
       align: 'center',
       className: ' text-xs text-[var(--text-secondary)]',
-      render: (item) => item.breakMinutes ? `${item.breakMinutes} mins` : '—',
+      render: (item) => item.breakMinutes ? `${item.breakMinutes} mins` : 'â€”',
     },
     {
       key: 'status',
@@ -510,7 +511,7 @@ export const WorkShiftsTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* ── Sub-tabs Header ────────────────────────────────────────────────── */}
+      {/* â”€â”€ Sub-tabs Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="flex items-center justify-between border-b border-[var(--rule)] pb-3">
         <div className="flex items-center gap-2">
           <button
@@ -538,7 +539,7 @@ export const WorkShiftsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* ── SUB-TAB 1: WORK SHIFTS ─────────────────────────────────────────── */}
+      {/* â”€â”€ SUB-TAB 1: WORK SHIFTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {activeSubTab === 'shifts' && (
         <section className="space-y-4">
           <DataToolbar
@@ -586,7 +587,7 @@ export const WorkShiftsTab: React.FC = () => {
         </section>
       )}
 
-      {/* ── Sub-Tab 2: Shift Cycles ────────────────────────────────────────── */}
+      {/* â”€â”€ Sub-Tab 2: Shift Cycles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {activeSubTab === 'cycles' && (
         <section className="space-y-4">
           <DataToolbar
@@ -630,7 +631,7 @@ export const WorkShiftsTab: React.FC = () => {
         </section>
       )}
 
-      {/* ── Add / Edit Shift Modal ─────────────────────────────────────────── */}
+      {/* â”€â”€ Add / Edit Shift Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {shiftModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl max-w-2xl w-full p-6 space-y-4">
@@ -737,7 +738,7 @@ export const WorkShiftsTab: React.FC = () => {
                 <span className="text-[var(--text-secondary)]">Calculated Working Hours:</span>
                 <span className=" font-semibold text-[var(--accent)]">
                   {(() => {
-                    if (!newShift.startTime || !newShift.endTime) return '—';
+                    if (!newShift.startTime || !newShift.endTime) return 'â€”';
                     const [sh, sm] = newShift.startTime.split(':').map(Number);
                     const [eh, em] = newShift.endTime.split(':').map(Number);
                     let spanMins = (eh * 60 + em) - (sh * 60 + sm);
@@ -759,7 +760,7 @@ export const WorkShiftsTab: React.FC = () => {
         </div>
       )}
 
-      {/* ── Create / Edit Cycle Modal ──────────────────────────────────────── */}
+      {/* â”€â”€ Create / Edit Cycle Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {cycleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
@@ -795,7 +796,7 @@ export const WorkShiftsTab: React.FC = () => {
                       type="text"
                       value={cycleForm.description}
                       onChange={e => setCycleForm(f => ({ ...f, description: e.target.value }))}
-                      placeholder="Optional — e.g. Used for factory floor employees"
+                      placeholder="Optional â€” e.g. Used for factory floor employees"
                       className="register-input w-full"
                     />
                   </div>
@@ -819,7 +820,7 @@ export const WorkShiftsTab: React.FC = () => {
                 {/* Live preview */}
                 {cycleSlots.length > 0 && (
                   <div className="p-3 bg-[var(--paper)] border border-[var(--rule)] rounded-[4px]">
-                    <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">Pattern Preview (×2)</p>
+                    <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">Pattern Preview (Ã—2)</p>
                     <CyclePreviewStrip
                       cycleLengthDays={cycleForm.cycleLengthDays}
                       slots={cycleSlots.map((s, i) => ({
@@ -871,7 +872,7 @@ export const WorkShiftsTab: React.FC = () => {
                             }}
                             className="register-input flex-1 text-xs"
                           >
-                            <option value="">— Select Shift —</option>
+                            <option value="">â€” Select Shift â€”</option>
                             {shifts.map(sh => (
                               <option key={sh.id} value={sh.id}>{sh.name} ({sh.code})</option>
                             ))}
@@ -890,7 +891,7 @@ export const WorkShiftsTab: React.FC = () => {
               <div className="p-4 border-t border-[var(--rule)] shrink-0 flex items-center justify-end gap-2">
                 <button type="button" onClick={() => setCycleModalOpen(false)} className="btn-outline cursor-pointer">Cancel</button>
                 <button type="submit" disabled={savingCycle} className="btn-primary cursor-pointer disabled:opacity-50">
-                  {savingCycle ? 'Saving…' : (editingCycleId ? 'Update Cycle' : 'Create Cycle')}
+                  {savingCycle ? 'Savingâ€¦' : (editingCycleId ? 'Update Cycle' : 'Create Cycle')}
                 </button>
               </div>
             </form>
@@ -898,7 +899,7 @@ export const WorkShiftsTab: React.FC = () => {
         </div>
       )}
 
-      {/* ── Bulk Import Modal ──────────────────────────────────────────────── */}
+      {/* â”€â”€ Bulk Import Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <BulkImportModal
         isOpen={bulkImportModalOpen}
         onClose={() => setBulkImportModalOpen(false)}
@@ -918,3 +919,4 @@ export const WorkShiftsTab: React.FC = () => {
     </div>
   );
 };
+

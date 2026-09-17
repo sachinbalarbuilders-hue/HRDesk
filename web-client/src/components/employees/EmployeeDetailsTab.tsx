@@ -1,15 +1,6 @@
 import React from 'react';
-import { MapPin, Phone } from 'lucide-react';
-
-const formatDate = (dateStr: string | null | undefined) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr.split('T')[0];
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-};
+import { User, Phone, Mail, MapPin, Building2, Briefcase, Calendar, CreditCard, Hash, CheckCircle2, Users } from 'lucide-react';
+import { formatDate } from '../../utils/formatters';
 
 interface Props {
   employee: any;

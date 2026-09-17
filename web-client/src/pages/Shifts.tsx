@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useOrganization } from '../context/CompanyContext';
@@ -13,6 +13,7 @@ import { EmployeeMultiSelect } from '../components/ui/EmployeeMultiSelect';
 import { useAuth } from '../context/AuthContext';
 import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
+import { formatDate } from '../utils/formatters';
 import {
   ChevronLeft,
   ChevronRight,
@@ -82,7 +83,8 @@ export const Shifts: React.FC = () => {
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const defaultPageSize = Number(localStorage.getItem('hrdesk_default_page_size')) || 15;
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -567,7 +569,7 @@ export const Shifts: React.FC = () => {
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className=" font-semibold text-xs px-2 text-[var(--text-primary)] whitespace-nowrap">
-                {weekDays[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {weekDays[6].toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                {formatDate(weekDays[0])} â€“ {formatDate(weekDays[6])}
               </span>
               <button
                 onClick={handleNextWeek}
@@ -620,7 +622,7 @@ export const Shifts: React.FC = () => {
                         const isSunday = d.getDay() === 0;
                         return (
                           <th key={i} className={`p-3.5 text-center font-semibold ${isToday ? 'bg-[var(--accent-light)]' : ''} ${isSunday ? 'text-[var(--danger)]' : ''}`}>
-                            <div>{d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}</div>
+                            <div>{formatDate(d).toUpperCase()}</div>
                             <div className="text-xs font-normal  font-normal mt-0.5">{d.getDate()}</div>
                           </th>
                         );
@@ -637,7 +639,7 @@ export const Shifts: React.FC = () => {
                           <div className="font-semibold text-sm text-[var(--text-primary)]">{r.employeeName}</div>
                           <div className="text-xs font-normal text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
                             <Building2 className="w-3 h-3" />
-                            <span>{r.department} • {r.designation}</span>
+                            <span>{r.department} â€¢ {r.designation}</span>
                           </div>
                         </td>
 
@@ -703,9 +705,9 @@ export const Shifts: React.FC = () => {
                 onChange: (v) => setRequestStatusFilter(v),
                 options: [
                   { value: 'all', label: 'All Statuses' },
-                  { value: 'pending', label: '⏳ Pending Review' },
-                  { value: 'approved', label: '✓ Approved' },
-                  { value: 'rejected', label: '✕ Rejected' },
+                  { value: 'pending', label: 'â³ Pending Review' },
+                  { value: 'approved', label: 'âœ“ Approved' },
+                  { value: 'rejected', label: 'âœ• Rejected' },
                 ],
               },
             ]}
@@ -777,10 +779,10 @@ export const Shifts: React.FC = () => {
 
                           <td className="p-3.5 whitespace-nowrap">
                             <div className="font-semibold text-xs text-[var(--text-primary)]">
-                              {new Date(req.requestDate).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+                              {formatDate(req.requestDate)}
                             </div>
                             <div className="text-xs font-normal text-[var(--text-secondary)] mt-0.5 ">
-                              Req: {new Date(req.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              Req: {formatDate(req.createdAt)}
                             </div>
                           </td>
 
@@ -792,7 +794,7 @@ export const Shifts: React.FC = () => {
                                   ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
                                   : 'bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700'
                               }`}>
-                                {req.isCurrentWeekOff ? '☕ W/O' : req.currentShiftName}
+                                {req.isCurrentWeekOff ? 'â˜• W/O' : req.currentShiftName}
                               </span>
 
                               <ArrowRight size={13} className="text-[var(--text-secondary)] flex-shrink-0" />
@@ -803,13 +805,13 @@ export const Shifts: React.FC = () => {
                                   ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700'
                                   : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700'
                               }`}>
-                                {req.isRequestedWeekOff ? '☕ Weekly Off' : req.requestedShiftName}
+                                {req.isRequestedWeekOff ? 'â˜• Weekly Off' : req.requestedShiftName}
                               </span>
                             </div>
                           </td>
 
                           <td className="p-3.5 text-xs text-[var(--ink-secondary)]">
-                            <p className="line-clamp-2 italic">{req.reason || '—'}</p>
+                            <p className="line-clamp-2 italic">{req.reason || 'â€”'}</p>
                           </td>
 
                           <td className="p-3.5 text-center whitespace-nowrap">
@@ -831,7 +833,7 @@ export const Shifts: React.FC = () => {
                             {req.reviewedBy ? (
                               <div>
                                 <div className="font-medium text-[var(--text-primary)]">By {req.reviewedBy}</div>
-                                {req.reviewedAt && <div>{new Date(req.reviewedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</div>}
+                                {req.reviewedAt && <div>{formatDate(req.reviewedAt)}</div>}
                                 {req.rejectionReason && (
                                   <div className="text-xs font-normal text-rose-500 italic mt-0.5 line-clamp-1">"{req.rejectionReason}"</div>
                                 )}
@@ -976,7 +978,7 @@ export const Shifts: React.FC = () => {
                     onChange={(e) => setAssignDeptFilter(e.target.value)}
                     className="register-input flex-1"
                   >
-                    <option value="">— All Departments —</option>
+                    <option value="">â€” All Departments â€”</option>
                     {departments
                       .filter((d: any) => !currentBranch?.id || d.branchId == null || String(d.branchId) === String(currentBranch.id))
                       .map((d: any) => (
@@ -1110,7 +1112,7 @@ export const Shifts: React.FC = () => {
                         className="register-input"
                         required
                       >
-                        <option value={0}>— Select a Rotation Cycle —</option>
+                        <option value={0}>â€” Select a Rotation Cycle â€”</option>
                         {cycles.map((c) => (
                           <option key={c.id} value={c.id}>
                             {c.name} ({c.cycleLengthDays} days cycle)
@@ -1214,7 +1216,7 @@ export const Shifts: React.FC = () => {
                     className="register-input"
                     required
                   >
-                    <option value={0}>— Select Employee —</option>
+                    <option value={0}>â€” Select Employee â€”</option>
                     {employees.map((e) => (
                       <option key={e.employeeId} value={e.employeeId}>
                         {e.employeeName}
@@ -1394,3 +1396,4 @@ export const Shifts: React.FC = () => {
     </PageContainer>
   );
 };
+

@@ -19,17 +19,20 @@ public class AttendanceReportsController : ControllerBase
     private readonly AttendanceSummaryService _attendanceSummaryService;
     private readonly IPermissionService _permissionService;
     private readonly ICurrentTenantProvider _tenantProvider;
+    private readonly TenantDateTimeService _dateTimeService;
 
     public AttendanceReportsController(
         BiometricAttendanceDbContext db,
         AttendanceSummaryService attendanceSummaryService,
         IPermissionService permissionService,
-        ICurrentTenantProvider tenantProvider)
+        ICurrentTenantProvider tenantProvider,
+        TenantDateTimeService dateTimeService)
     {
         _db = db;
         _attendanceSummaryService = attendanceSummaryService;
         _permissionService = permissionService;
         _tenantProvider = tenantProvider;
+        _dateTimeService = dateTimeService;
     }
 
     [HttpGet("monthly-sheet")]
@@ -47,8 +50,8 @@ public class AttendanceReportsController : ControllerBase
             return Forbid();
         }
 
-        var selectedYear = year ?? IstDateTime.Now.Year;
-        var selectedMonth = month ?? IstDateTime.Now.Month;
+        var selectedYear = year ?? _dateTimeService.Now.Year;
+        var selectedMonth = month ?? _dateTimeService.Now.Month;
 
         var startDate = new DateOnly(selectedYear, selectedMonth, 1);
         var daysInMonth = DateTime.DaysInMonth(selectedYear, selectedMonth);
@@ -244,7 +247,7 @@ public class AttendanceReportsController : ControllerBase
                     }
                     else
                     {
-                        bool isToday = date == DateOnly.FromDateTime(IstDateTime.Now);
+                        bool isToday = date == DateOnly.FromDateTime(_dateTimeService.Now);
                         bool isClockedInToday = (isToday && log.InTime != null && (log.OutTime == null || log.InTime == log.OutTime)) ||
                                                 log.Status == "Clocked In" || log.Status == "In Progress";
 
@@ -430,8 +433,8 @@ public class AttendanceReportsController : ControllerBase
     [HttpGet("summary/{employeeId}")]
     public async Task<IActionResult> GetEmployeeSummary(int employeeId, [FromQuery] int? year, [FromQuery] int? month)
     {
-        var targetYear = year ?? IstDateTime.Today.Year;
-        var targetMonth = month ?? IstDateTime.Today.Month;
+        var targetYear = year ?? _dateTimeService.Today.Year;
+        var targetMonth = month ?? _dateTimeService.Today.Month;
         
         var query = _db.Employees.AsNoTracking().Where(e => e.EmployeeId == employeeId);
         query = await _permissionService.ApplyEmployeeScopeAsync(query, User, AppPermissions.Keys.EmployeesView);
@@ -456,7 +459,7 @@ public class AttendanceReportsController : ControllerBase
             return Forbid();
         }
 
-        var targetDate = date ?? IstDateTime.Today;
+        var targetDate = date ?? _dateTimeService.Today;
 
         var query = _db.DailyAttendance
             .AsNoTracking()

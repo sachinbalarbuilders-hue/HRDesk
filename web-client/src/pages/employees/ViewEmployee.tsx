@@ -4,6 +4,7 @@ import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ArrowLeft, Camera, Loader2, Search, Pencil } from 'lucide-react';
+import { formatDate } from '../../utils/formatters';
 import { PageSkeleton } from '../../components/ui/PageSkeleton';
 import { AuthImage } from '../../components/ui/AuthImage';
 import { EmployeeDetailsTab } from '../../components/employees/EmployeeDetailsTab';
@@ -13,15 +14,7 @@ import { EmployeeLeavesTab } from '../../components/employees/EmployeeLeavesTab'
 import { EmployeeIdCardTab } from '../../components/employees/EmployeeIdCardTab';
 import { EmployeePayrollTab } from '../../components/employees/EmployeePayrollTab';
 
-const formatDate = (dateStr: string | null | undefined) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr.split('T')[0];
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-};
+
 
 export const ViewEmployee: React.FC = () => {
   const { id } = useParams<{ id: string }>();

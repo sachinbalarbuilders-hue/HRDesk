@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../api/client';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
+import { formatDate } from '../../utils/formatters';
 
 interface PaymentItem {
   id: number;
@@ -88,7 +89,7 @@ export const BillingTab: React.FC = () => {
                   <td className="py-3 px-4 text-[var(--text-primary)]">{p.organizationName}</td>
                   <td className="py-3 px-4 text-[var(--text-secondary)]">{p.planName}</td>
                   <td className="py-3 px-4 text-[var(--text-muted)]">{p.billingCycle}</td>
-                  <td className="py-3 px-4  text-xs font-normal text-[var(--text-muted)]">{new Date(p.createdAt).toLocaleDateString()}</td>
+                  <td className="py-3 px-4  text-xs font-normal text-[var(--text-muted)]">{formatDate(p.createdAt)}</td>
                   <td className="py-3 px-4  text-right">₹{p.amount.toLocaleString()}</td>
                   <td className="py-3 px-4  text-right text-[var(--text-muted)]">₹{p.taxAmount.toLocaleString()}</td>
                   <td className="py-3 px-4  font-semibold text-right text-[var(--text-primary)]">₹{p.total.toLocaleString()}</td>

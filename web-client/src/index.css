@@ -649,3 +649,11 @@ input[type="radio"]:focus {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--ink);
 }
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

@@ -11,6 +11,7 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { RowActionMenu, type RowAction } from '../components/ui/RowActionMenu';
 import { useArchiveActions, isRowArchived } from '../hooks/useArchiveActions';
 import { type ArchiveFilterValue } from '../components/ui/ArchiveToggle';
+import { formatDate, formatTime } from '../utils/formatters';
 import {
   UserPlus,
   Users,
@@ -557,7 +558,7 @@ export const Recruitment: React.FC = () => {
               {c.candidateName}
             </button>
             <span className="text-xs font-normal text-[var(--text-secondary)]  block">
-              Applied: {c.applicationDate || new Date(c.createdAt).toLocaleDateString()}
+              Applied: {c.applicationDate || formatDate(c.createdAt)}
             </span>
           </div>
         </div>
@@ -693,10 +694,10 @@ export const Recruitment: React.FC = () => {
       render: (i) => (
         <div className=" text-xs">
           <span className="font-semibold text-[var(--text-primary)] block">
-            {new Date(i.interviewDateTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            {formatDate(i.interviewDateTime)}
           </span>
           <span className="text-xs font-normal text-[var(--text-secondary)] ">
-            {new Date(i.interviewDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formatTime(i.interviewDateTime)}
           </span>
         </div>
       ),

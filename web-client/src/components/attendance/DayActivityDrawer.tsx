@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { format } from 'date-fns';
+import { formatTime } from '../../utils/formatters';
 import { Avatar } from '../ui/Avatar';
 import { Badge } from '../ui/Badge';
 import { AlertBanner } from '../ui/AlertBanner';
@@ -252,17 +254,6 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
     }
   };
 
-  const formatTime12h = (time24?: string) => {
-    if (!time24) return null;
-    const parts = time24.split(':');
-    if (parts.length < 2) return time24;
-    const hours = parseInt(parts[0], 10);
-    const minutes = parts[1];
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
-    return `${hours12}:${minutes} ${ampm}`;
-  };
-
   const getVerifyIcon = (verifyType: string) => {
     const v = (verifyType || '').toLowerCase();
     if (v.includes('face')) return <ScanFace size={13} className="text-purple-500 shrink-0" />;
@@ -512,7 +503,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                           <LogIn size={12} className={data.isLate ? 'text-amber-600' : 'text-emerald-700'} /> First In
                         </p>
                         <p className={`text-base font-semibold  tabular-nums mt-1 ${data.isLate ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-800 dark:text-emerald-400'}`}>
-                          {formatTime12h(data.inTime) || '—'}
+                          {data.inTime ? formatTime(`1970-01-01T${data.inTime}`) : '—'}
                         </p>
                       </div>
                       <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t border-[var(--rule)]/50">
@@ -534,7 +525,7 @@ export const DayActivityDrawer: React.FC<DayActivityDrawerProps> = ({
                           <LogOut size={12} className="text-neutral-600" /> Last Out
                         </p>
                         <p className={`text-base font-semibold  tabular-nums mt-1 ${data.outTime ? 'text-indigo-700 dark:text-indigo-400' : 'text-[var(--text-secondary)] opacity-60'}`}>
-                          {formatTime12h(data.outTime) || (data.inTime ? 'Open' : '—')}
+                          {data.outTime ? formatTime(`1970-01-01T${data.outTime}`) : (data.inTime ? 'Open' : '—')}
                         </p>
                       </div>
                       <div className="flex items-center justify-between gap-1 mt-1 pt-1 border-t border-[var(--rule)]/50">

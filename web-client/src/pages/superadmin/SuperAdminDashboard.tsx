@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { PlansTab } from './PlansTab';
 import { BillingTab } from './BillingTab';
+import { formatDate } from '../../utils/formatters';
 import {
   Building2,
   Users,
@@ -504,7 +505,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
                             <td className="py-3 px-4">
                               <div className=" text-xs font-normal">
-                                {t.validUntil ? new Date(t.validUntil).toLocaleDateString() : 'Unlimited'}
+                                {t.validUntil ? formatDate(t.validUntil) : 'Unlimited'}
                               </div>
                               {isExpired && (
                                 <span className="text-xs font-normal text-rose-600 font-semibold block">Expired</span>
