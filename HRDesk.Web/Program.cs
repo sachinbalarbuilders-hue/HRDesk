@@ -232,7 +232,19 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler(errApp =>
+    {
+        errApp.Run(async context =>
+        {
+            var exFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError(exFeature?.Error, "Unhandled exception at {Path}", exFeature?.Path);
+
+            context.Response.StatusCode = 500;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new { message = "An unexpected error occurred. Please try again later." });
+        });
+    });
     app.UseHsts();
 }
 

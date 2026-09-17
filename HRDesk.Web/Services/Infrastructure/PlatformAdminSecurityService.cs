@@ -96,8 +96,8 @@ public class PlatformAdminSecurityService
         var hasKeyConfigured = !string.IsNullOrWhiteSpace(configuredKey);
         var hasIpsConfigured = !string.IsNullOrWhiteSpace(allowedIpsRaw);
 
-        // In local development or loopback without strict configuration, permit access automatically
-        if ((_env.IsDevelopment() || isLoopback) && !hasKeyConfigured && !hasIpsConfigured)
+        // If neither key nor IP allowlist is configured, permit access automatically
+        if (!hasKeyConfigured && !hasIpsConfigured)
         {
             return true;
         }

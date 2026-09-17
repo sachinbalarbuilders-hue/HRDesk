@@ -9,6 +9,7 @@ export interface ColumnDef<T> {
   align?: 'left' | 'center' | 'right';
   width?: string;
   className?: string;
+  stickyLeft?: boolean | string;
   render?: (item: T, index: number) => React.ReactNode;
 }
 
@@ -143,6 +144,7 @@ export function DataTable<T extends Record<string, any>>({
         width: '40px',
         align: 'center',
         className: 'w-10 text-center',
+        stickyLeft: true,
         render: (item: T, index: number) => {
           const key = keyExtractor(item, index);
           const isChecked = selectedKeysSet.has(key);
@@ -170,6 +172,7 @@ export function DataTable<T extends Record<string, any>>({
         width: '50px',
         align: 'center',
         className: ' text-xs text-[var(--text-muted)] w-12 text-center',
+        stickyLeft: selection ? '40px' : true,
         render: (_: T, index: number) => {
           const offset = pagination ? (pagination.page - 1) * pagination.pageSize : 0;
           return <span className=" text-xs tabular-nums text-[var(--text-muted)]">{offset + index + 1}</span>;
@@ -247,19 +250,24 @@ export function DataTable<T extends Record<string, any>>({
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-[var(--table-header-border)] bg-[var(--table-header-bg)]">
-                {effectiveColumns.map((col) => (
-                  <th
-                    key={col.key}
-                    style={{ width: col.width }}
-                    className={`
-                      py-3.5 px-4 text-xs uppercase font-semibold tracking-wider text-[var(--table-header-text)]
-                      ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}
-                      ${col.className || ''}
-                    `}
-                  >
-                    {col.header}
-                  </th>
-                ))}
+                {effectiveColumns.map((col) => {
+                  const isSticky = col.stickyLeft !== undefined;
+                  const stickyStyle = isSticky ? { position: 'sticky', left: col.stickyLeft === true ? 0 : col.stickyLeft, zIndex: 10 } : {};
+                  return (
+                    <th
+                      key={col.key}
+                      style={{ width: col.width, ...(stickyStyle as React.CSSProperties) }}
+                      className={`
+                        py-3.5 px-4 text-xs uppercase font-semibold tracking-wider text-[var(--table-header-text)]
+                        ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}
+                        ${isSticky ? 'bg-[var(--table-header-bg)] shadow-[inset_-1px_0_0_var(--border)]' : ''}
+                        ${col.className || ''}
+                      `}
+                    >
+                      {col.header}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -283,20 +291,27 @@ export function DataTable<T extends Record<string, any>>({
                           ${isSelected ? 'bg-[var(--accent-light)]/70 dark:bg-[var(--accent)]/10' : 'hover:bg-[var(--surface-hover)]'}
                         `}
                       >
-                        {effectiveColumns.map((col) => (
-                          <td
-                            key={col.key}
-                            className={`
-                              py-3.5 px-4 text-sm font-normal text-[var(--text-primary)]
-                              ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}
-                              ${col.className || ''}
-                            `}
-                          >
-                            {col.render
-                              ? col.render(item, index)
-                              : (item[col.key] ?? '—')}
-                          </td>
-                        ))}
+                        {effectiveColumns.map((col) => {
+                          const isSticky = col.stickyLeft !== undefined;
+                          const stickyStyle = isSticky ? { position: 'sticky', left: col.stickyLeft === true ? 0 : col.stickyLeft, zIndex: 1 } : {};
+                          
+                          return (
+                            <td
+                              key={col.key}
+                              style={stickyStyle as React.CSSProperties}
+                              className={`
+                                py-3.5 px-4 text-sm font-normal text-[var(--text-primary)]
+                                ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}
+                                ${isSticky ? (isSelected ? 'bg-[var(--surface-hover)] dark:bg-[var(--surface-sunken)] shadow-[inset_-1px_0_0_var(--border)]' : 'bg-[var(--surface)] group-hover:bg-[var(--surface-hover)] shadow-[inset_-1px_0_0_var(--border)]') : ''}
+                                ${col.className || ''}
+                              `}
+                            >
+                              {col.render
+                                ? col.render(item, index)
+                                : (item[col.key] ?? '—')}
+                            </td>
+                          );
+                        })}
                       </tr>
                       {expandedRowRender && expandedRowKeys.includes(key) && (
                         <tr className="bg-[var(--surface-sunken)]">

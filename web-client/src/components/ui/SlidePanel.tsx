@@ -19,11 +19,11 @@ interface SlidePanelProps {
 }
 
 const sizeClasses: Record<SlidePanelSize, string> = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',
-  '2xl': 'max-w-2xl',
+  sm: 'sm:max-w-sm',
+  md: 'sm:max-w-md',
+  lg: 'sm:max-w-lg',
+  xl: 'sm:max-w-xl',
+  '2xl': 'sm:max-w-2xl',
 };
 
 export const SlidePanel: React.FC<SlidePanelProps> = ({
