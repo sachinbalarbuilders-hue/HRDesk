@@ -411,10 +411,10 @@ export const Attendance: React.FC = () => {
 
   const fetchLookups = async () => {
     try {
-      const deptRes = await apiClient.get('/masters/departments', {
+      const deptRes = await apiClient.get('/masters/overview', {
         params: { branchId: currentBranch?.id || undefined }
       });
-      setDepartments(deptRes.data?.items || (Array.isArray(deptRes.data) ? deptRes.data : []));
+      setDepartments(deptRes.data?.departments || []);
     } catch (err) {
       console.error('Failed to load lookups', err);
     }
@@ -533,7 +533,7 @@ export const Attendance: React.FC = () => {
               { value: '', label: 'All Departments' },
               ...departments
                 .filter((d: any) => !currentBranch?.id || String(d.branchId) === String(currentBranch.id))
-                .map((d: any) => ({ value: String(d.departmentId || d.id), label: d.departmentName })),
+                .map((d: any) => ({ value: String(d.id || d.departmentId), label: d.name || d.departmentName || 'Unnamed' })),
             ],
           },
         ]}
