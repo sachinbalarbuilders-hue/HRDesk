@@ -66,7 +66,7 @@ export const OrgPolicyTab: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSavePolicy} className="space-y-4 max-w-3xl text-sm">
+    <form onSubmit={handleSavePolicy} className="max-w-4xl space-y-4 text-sm">
       <div className="p-4 bg-[var(--paper)] border border-[var(--rule)] rounded-md">
         <h4 className="font-semibold text-[var(--text-primary)] mb-2 text-base">Company Year</h4>
         <p className="text-[var(--text-secondary)] mb-4">

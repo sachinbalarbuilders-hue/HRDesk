@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { MapPin, ArrowLeft, Save, Clock, Map as MapIcon, Search, Navigation, Loader2, Layers, Globe } from 'lucide-react';
 import { MapContainer, TileLayer, Circle, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import { RolesPermissionsTab } from '../../components/settings/RolesPermissionsTab';
 
 // Leaflet click handler component
 const MapClickHandler: React.FC<{ onLocationSelect: (lat: number, lng: number) => void }> = ({ onLocationSelect }) => {
@@ -32,7 +33,7 @@ export const BranchDetails: React.FC = () => {
   const { showSuccess, showError } = useToast();
   const parentOrgPublicId = orgPublicId || '';
   
-  const [activeTab, setActiveTab] = useState<'details' | 'policy'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'policy' | 'permissions'>('details');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -350,6 +351,16 @@ export const BranchDetails: React.FC = () => {
               Attendance Policy
             </button>
           )}
+          {id !== 'add' && (
+            <button
+              className={`px-4 py-3 text-xs font-semibold cursor-pointer border-b-2 transition-colors ${
+                activeTab === 'permissions' ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+              onClick={() => setActiveTab('permissions')}
+            >
+              Permissions
+            </button>
+          )}
         </div>
 
         <div className="p-6">
@@ -624,7 +635,7 @@ export const BranchDetails: React.FC = () => {
           )}
 
           {activeTab === 'policy' && (
-            <form onSubmit={handleSavePolicy} className="space-y-6 max-w-3xl">
+            <form onSubmit={handleSavePolicy} className="space-y-6">
               {/* Work Hours & Thresholds */}
               <div className="bg-[var(--surface-sunken)] p-5 rounded-lg border border-[var(--rule)] space-y-4">
                 <div className="flex items-center gap-2">
@@ -701,6 +712,12 @@ export const BranchDetails: React.FC = () => {
                 </button>
               </div>
             </form>
+          )}
+
+          {activeTab === 'permissions' && id !== 'add' && (
+            <div className="space-y-4">
+              <RolesPermissionsTab branchPublicId={id} branchName={branchForm.name} />
+            </div>
           )}
         </div>
       </div>

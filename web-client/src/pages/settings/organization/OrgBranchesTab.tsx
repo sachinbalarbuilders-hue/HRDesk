@@ -86,7 +86,6 @@ export const OrgBranchesTab: React.FC = () => {
               </div>
               <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                 <RowActionMenu actions={[
-                  { label: 'Permissions', icon: <Shield size={14} />, onClick: () => navigate(`/settings/organizations/${id}/branches/${branch.publicId}/permissions`) },
                   { label: 'Edit Branch', icon: <Edit2 size={14} />, onClick: () => navigate(`/settings/organizations/${id}/branches/${branch.publicId}`) },
                   ...branchArchive.rowActions({
                     id: branch.publicId,

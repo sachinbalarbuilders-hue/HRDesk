@@ -162,7 +162,7 @@ export const OrgDetailsTab: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSave} className="max-w-3xl mx-auto space-y-6">
+    <form onSubmit={handleSave} className="max-w-4xl space-y-6">
       {/* 1. Identity & Branding */}
       <Card>
         <CardHeader>

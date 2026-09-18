@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation, useOutletContext, Outlet } from 'r
 import { apiClient } from '../../../api/client';
 import { useToast } from '../../../context/ToastContext';
 import { Building2, ArrowLeft } from 'lucide-react';
+import { PageContainer } from '../../../components/layout/PageContainer';
 
 export interface OrgForm {
   name: string;
@@ -203,8 +204,8 @@ export const OrganizationShell: React.FC = () => {
   const activeTab = TABS.find((t) => location.pathname === t.path(id || '')) || TABS[0];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <PageContainer maxWidth="md">
+      <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/settings/organizations')}
@@ -213,19 +214,19 @@ export const OrganizationShell: React.FC = () => {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-base  font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <Building2 className="text-[var(--accent)]" size={24} />
+            <h1 className="text-base font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <Building2 className="text-[var(--accent)]" size={20} />
               {isNew ? 'New Organization' : orgForm.name}
             </h1>
-            <p className="text-xs text-[var(--text-secondary)] mt-1">
+            <p className="text-sm text-[var(--text-secondary)] mt-0.5">
               Manage organization details, branches, and company policies.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-lg shadow-sm overflow-hidden">
-        <div className="flex border-b border-[var(--rule)] px-4">
+      <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[var(--radius-lg)] shadow-xs overflow-hidden">
+        <div className="flex border-b border-[var(--rule)] px-4 bg-[var(--surface-secondary)]/30">
           {TABS.map((tab) => {
             if (tab.id !== 'details' && isNew) return null;
             const path = tab.path(id || '');
@@ -233,7 +234,7 @@ export const OrganizationShell: React.FC = () => {
             return (
               <button
                 key={tab.id}
-                className={`px-4 py-3 text-xs font-semibold cursor-pointer border-b-2 transition-colors ${
+                className={`px-4 py-3 text-sm font-semibold cursor-pointer border-b-2 transition-colors ${
                   isActive ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
                 onClick={() => navigate(path)}
@@ -248,7 +249,7 @@ export const OrganizationShell: React.FC = () => {
           <Outlet context={outletContext} />
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 
