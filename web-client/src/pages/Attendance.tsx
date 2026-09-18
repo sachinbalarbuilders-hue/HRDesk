@@ -695,7 +695,7 @@ export const Attendance: React.FC = () => {
                     return (
                       <th
                         key={d}
-                        className={`w-9 min-w-[34px] max-w-[36px] text-center p-1 text-xs font-normal border-r border-[var(--rule)]/40 ${isWeekend ? 'bg-rose-500/5 text-rose-600' : 'text-[var(--text-secondary)]'}`}
+                        className="w-9 min-w-[34px] max-w-[36px] text-center p-1 text-xs font-normal border-r border-[var(--rule)]/40 text-[var(--text-secondary)]"
                       >
                         <div className="text-[9px] uppercase tracking-tighter opacity-75">{dayName}</div>
                         <div className="font-semibold leading-tight">{d}</div>
