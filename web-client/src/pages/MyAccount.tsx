@@ -34,7 +34,7 @@ const getDeviceColor = (deviceName: string) => {
 
 export const MyAccount: React.FC = () => {
   const { user, logout } = useAuth();
-  const { showSuccess } = useToast();
+  const { showSuccess, showError } = useToast();
   const [activeTab, setActiveTab] = useState('general');
 
   // General Settings State
