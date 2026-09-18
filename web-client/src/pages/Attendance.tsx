@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { exportToCSV } from '../utils/csvHelper';
 import { BulkImportModal } from '../components/ui/BulkImportModal';
@@ -688,14 +688,20 @@ export const Attendance: React.FC = () => {
                   <th className="min-w-[120px] sm:min-w-[190px] max-w-[120px] sm:max-w-[220px] sticky left-0 sm:left-[48px] z-20 bg-[var(--paper)] shadow-[2px_0_4px_rgba(0,0,0,0.06)] text-left font-semibold text-xs text-[var(--text-primary)] border-r border-[var(--rule)] px-3">
                     Employee Name
                   </th>
-                  {Array.from({ length: data?.daysInMonth || 31 }, (_, i) => i + 1).map((d) => (
-                    <th
-                      key={d}
-                      className="w-9 min-w-[34px] max-w-[36px] text-center p-1  text-xs font-normal text-[var(--text-secondary)] border-r border-[var(--rule)]/40"
-                    >
-                      {d}
-                    </th>
-                  ))}
+                  {Array.from({ length: data?.daysInMonth || 31 }, (_, i) => i + 1).map((d) => {
+                    const date = new Date(year, month - 1, d);
+                    const dayName = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][date.getDay()];
+                    const isWeekend = date.getDay() === 0; // Sunday
+                    return (
+                      <th
+                        key={d}
+                        className={`w-9 min-w-[34px] max-w-[36px] text-center p-1 text-xs font-normal border-r border-[var(--rule)]/40 ${isWeekend ? 'bg-rose-500/5 text-rose-600' : 'text-[var(--text-secondary)]'}`}
+                      >
+                        <div className="text-[9px] uppercase tracking-tighter opacity-75">{dayName}</div>
+                        <div className="font-semibold leading-tight">{d}</div>
+                      </th>
+                    );
+                  })}
                   <th
                     className="w-14 text-center  text-xs border-l-2 border-[var(--rule)] text-[var(--ok-600)] cursor-help"
                     data-tooltip="Present Days"
