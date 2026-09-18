@@ -265,7 +265,19 @@ else
 
 app.UseHttpsRedirection();
 app.UseDefaultFiles();
-app.UseStaticFiles();
+var staticFileOptions = new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (ctx.File.Name.Equals("index.html", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.Context.Response.Headers.Append("Pragma", "no-cache");
+            ctx.Context.Response.Headers.Append("Expires", "0");
+        }
+    }
+};
+app.UseStaticFiles(staticFileOptions);
 app.UseSerilogRequestLogging();
 
 app.UseRouting();
@@ -640,7 +652,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapControllers();
-app.MapFallbackToFile("{*path:regex(^(?!api).*$)}", "index.html").AllowAnonymous();
+app.MapFallbackToFile("{*path:regex(^(?!api).*$)}", "index.html", staticFileOptions).AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
