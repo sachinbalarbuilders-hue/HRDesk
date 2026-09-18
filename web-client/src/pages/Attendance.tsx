@@ -148,7 +148,7 @@ export const Attendance: React.FC = () => {
         },
         date: dateStr,
         formattedDate,
-        status: status || 'â€”',
+        status: status || '—',
         inTime: inTime,
         outTime: outTime,
         totalPunches: inTime ? (outTime ? 2 : 1) : 0,
@@ -248,7 +248,7 @@ export const Attendance: React.FC = () => {
 
   const getStatusBadge = (code: string) => {
     if (!code || code === '-' || code.trim() === '') {
-      return <span className="text-[var(--text-secondary)] opacity-30 text-xs  select-none">â€”</span>;
+      return <span className="text-[var(--text-secondary)] opacity-30 text-xs  select-none">—</span>;
     }
 
     const c = code.trim().toUpperCase();
@@ -748,9 +748,9 @@ export const Attendance: React.FC = () => {
                         const hasPunches = typeof record === 'object' && (!!record?.inTime || !!record?.outTime || !!record?.totalPunches);
                         const isWeekOff = sUpper === 'WO' || sUpper === 'W/O' || sUpper === 'WEEKOFF';
                         const isHoliday = sUpper === 'HLD' || sUpper === 'HOLIDAY' || sUpper === 'H';
-                        const isEmpty = !status || status === '-' || status === 'â€”';
+                        const isEmpty = !status || status === '-' || status === '—';
 
-                        const recordTooltip = typeof record === 'object' ? (record?.tooltip || (record?.inTime ? `In: ${record.inTime} | Out: ${record.outTime || 'â€”'}` : '')) : '';
+                        const recordTooltip = typeof record === 'object' ? (record?.tooltip || (record?.inTime ? `In: ${record.inTime} | Out: ${record.outTime || '—'}` : '')) : '';
                         const statusLabel = getStatusLabel(status);
 
                         // Non-clickable on standard Weekoff or Holiday without biometric punches, or empty slots

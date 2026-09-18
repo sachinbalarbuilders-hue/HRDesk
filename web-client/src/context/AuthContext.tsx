@@ -12,7 +12,9 @@ export interface UserProfile {
   employeeName?: string;
   avatarUrl?: string;
   organizationId?: number;
+  organizationName?: string;
   isPlatformUser?: boolean;
+  canExport?: boolean;
   email?: string;
   workEmail?: string;
 }
@@ -24,7 +26,7 @@ interface AuthContextType {
   permissionScopes: Record<string, string>;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   hasPermission: (permissionKey: string) => boolean;
   getPermissionScope: (permissionKey: string) => string | undefined;
   isAdmin: boolean;
@@ -117,7 +119,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.dispatchEvent(new Event('hrdesk:login'));
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await apiClient.post('/auth/logout');
+    } catch (err) {
+      console.error('Backend logout failed', err);
+    }
     setToken(null);
     setUser(null);
     setPermissions([]);

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Download, Upload } from 'lucide-react';
 import { ArchiveToggle, type ArchiveFilterValue } from './ArchiveToggle';
+import { useAuth } from '../../context/AuthContext';
 
 export interface FilterOption {
   value: string;
@@ -70,6 +71,9 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
   customActions,
   primaryAction,
 }) => {
+  const { user } = useAuth();
+  const canExport = user?.isPlatformUser || user?.canExport === true;
+
   return (
     <div className="flex flex-wrap items-start md:items-center justify-between gap-4 mb-4">
       {/* Left side: Search & Filters */}
@@ -125,7 +129,7 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
         <div className="flex flex-wrap items-center gap-2 justify-start md:justify-end w-full">
           {customActions}
 
-          {onExport && (
+          {onExport && canExport && (
             <button
               type="button"
               onClick={onExport}
@@ -137,7 +141,7 @@ export const DataToolbar: React.FC<DataToolbarProps> = ({
             </button>
           )}
 
-          {onImport && (
+          {onImport && canExport && (
             <button
               type="button"
               onClick={onImport}

@@ -110,8 +110,8 @@ export const EmployeeSalariesTab: React.FC = () => {
       Department: r.department || '',
       Designation: r.designation || '',
       'Pay Group': r.payGroupName || 'Not Assigned',
-      'Annual CTC (â‚¹)': r.annualCTC || 0,
-      'Monthly CTC (â‚¹)': r.monthlyCTC || 0,
+      'Annual CTC (₹)': r.annualCTC || 0,
+      'Monthly CTC (₹)': r.monthlyCTC || 0,
       'Effective Date': r.ctcEffectiveFrom || '',
     })));
     showSuccess('Export Complete', 'Employee salaries exported to CSV.');
@@ -133,7 +133,7 @@ export const EmployeeSalariesTab: React.FC = () => {
       header: 'Department',
       render: (row: EmpRow) => (
         <div>
-          <span className="text-xs text-[var(--text-secondary)]">{row.department ?? 'â€”'}</span>
+          <span className="text-xs text-[var(--text-secondary)]">{row.department ?? '—'}</span>
           {row.designation && <p className="text-xs font-normal text-[var(--text-secondary)]">{row.designation}</p>}
         </div>
       ),
@@ -162,7 +162,7 @@ export const EmployeeSalariesTab: React.FC = () => {
       header: 'Annual CTC',
       render: (row: EmpRow) =>
         row.annualCTC != null ? (
-          <span className="text-xs font-semibold text-[var(--text-primary)] ">â‚¹{fmt(row.annualCTC)}</span>
+          <span className="text-xs font-semibold text-[var(--text-primary)] ">₹{fmt(row.annualCTC)}</span>
         ) : (
           <span className="text-xs font-normal px-2 py-0.5 rounded-[2px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-semibold">
             Not set
@@ -174,7 +174,7 @@ export const EmployeeSalariesTab: React.FC = () => {
       header: 'Monthly',
       render: (row: EmpRow) => (
         <span className="text-xs  text-[var(--text-secondary)]">
-          {row.monthlyCTC != null ? `â‚¹${fmt(row.monthlyCTC)}` : 'â€”'}
+          {row.monthlyCTC != null ? `₹${fmt(row.monthlyCTC)}` : '—'}
         </span>
       ),
     },

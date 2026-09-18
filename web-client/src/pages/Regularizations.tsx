@@ -513,7 +513,7 @@ export const Regularizations: React.FC = () => {
                   <span className="font-semibold text-emerald-600">
                     {r.punchTimeIn
                       ? formatTime(r.punchTimeIn)
-                      : 'â€”'}
+                      : '—'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -521,7 +521,7 @@ export const Regularizations: React.FC = () => {
                   <span className="font-semibold text-indigo-600">
                     {r.punchTimeOut
                       ? formatTime(r.punchTimeOut)
-                      : 'â€”'}
+                      : '—'}
                   </span>
                 </div>
               </div>
@@ -537,7 +537,7 @@ export const Regularizations: React.FC = () => {
             header: 'Reason',
             render: (r) => (
               <div className="max-w-[200px] truncate text-[var(--text-secondary)]" title={r.reason || ''}>
-                {r.reason || 'â€”'}
+                {r.reason || '—'}
               </div>
             ),
           },
@@ -589,7 +589,7 @@ export const Regularizations: React.FC = () => {
                 />
               ) : (
                 <div className="text-xs font-normal text-[var(--text-secondary)] ">
-                  {r.approvedBy ? `by ${r.approvedBy}` : 'â€”'}
+                  {r.approvedBy ? `by ${r.approvedBy}` : '—'}
                 </div>
               );
             },
@@ -709,7 +709,7 @@ export const Regularizations: React.FC = () => {
                 </div>
               )}
 
-              {/* Punch Target â€” only for Missed Punch */}
+              {/* Punch Target — only for Missed Punch */}
               {regForm.requestType === 'Missed Punch' && (
               <div>
                 <label className="block font-semibold text-[var(--text-primary)] mb-1">Correction Target *</label>
@@ -751,7 +751,7 @@ export const Regularizations: React.FC = () => {
               </div>
               )}
 
-              {/* Time Inputs â€” only for Missed Punch */}
+              {/* Time Inputs — only for Missed Punch */}
               {regForm.requestType === 'Missed Punch' && (
               <div className="grid grid-cols-2 gap-3">
                 {(regForm.punchTarget === 'in' || regForm.punchTarget === 'both') && (

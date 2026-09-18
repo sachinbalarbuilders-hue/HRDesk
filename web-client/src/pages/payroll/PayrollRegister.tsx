@@ -36,7 +36,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
 };
 
 export const PayrollRegister: React.FC = () => {
-  const { hasPermission, isAdmin } = useAuth();
+  const { hasPermission, isAdmin, user } = useAuth();
   const { showSuccess, showError } = useToast();
   const { currentOrganization, currentBranch } = useOrganization();
 
@@ -64,6 +64,7 @@ export const PayrollRegister: React.FC = () => {
   const [loadingPayslip, setLoadingPayslip]     = useState(false);
 
   const canManage = isAdmin || hasPermission('Payroll.Process');
+  const canExport = user?.isPlatformUser || user?.canExport === true;
   const { month, year } = getMonthDisplay(selectedMonth);
 
   const fetchLookups = useCallback(async () => {
@@ -280,12 +281,14 @@ export const PayrollRegister: React.FC = () => {
 
         {/* Right side actions */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportCSV}
-            className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 cursor-pointer "
-          >
-            <Download size={13} /> Export CSV
-          </button>
+          {canExport && (
+            <button
+              onClick={handleExportCSV}
+              className="btn-outline flex items-center gap-1.5 text-xs py-1.5 px-3 cursor-pointer "
+            >
+              <Download size={13} /> Export CSV
+            </button>
+          )}
           {canManage && (
             <button
               onClick={() => setProcessModalOpen(true)}

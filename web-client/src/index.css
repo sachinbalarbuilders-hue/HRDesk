@@ -589,8 +589,8 @@ input[type="radio"]:focus {
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 @keyframes spin {
@@ -610,9 +610,15 @@ input[type="radio"]:focus {
 .animate-scale-in { animation: scaleIn 0.2s ease-out; }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, var(--surface-secondary) 25%, var(--border) 50%, var(--surface-secondary) 75%);
+  background: linear-gradient(
+    90deg, 
+    var(--surface-secondary) 0%, 
+    var(--surface-hover) 20%, 
+    var(--surface-secondary) 40%, 
+    var(--surface-secondary) 100%
+  );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 2.5s linear infinite;
 }
 
 /* ============================================
@@ -648,12 +654,4 @@ input[type="radio"]:focus {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--ink);
-}
-
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
 }

@@ -153,9 +153,7 @@ export const ViewEmployee: React.FC = () => {
     }
   };
 
-  if (!employee) {
-    return <div className="p-8"><PageSkeleton /></div>;
-  }
+  // Skeleton moved inside layout
 
   return (
     <div className="flex bg-[var(--canvas)] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--rule)] shadow-sm" style={{ height: 'calc(100vh - 112px)' }}>
@@ -239,15 +237,24 @@ export const ViewEmployee: React.FC = () => {
             </button>
             <div>
               <h1 className=" text-base font-semibold text-[var(--text-primary)]">Employee Profile</h1>
-              <p className="text-sm text-[var(--text-secondary)]  mt-1">Viewing details for {employee.employeeName}</p>
+              {!employee ? (
+                <div className="h-4 w-48 mt-1 rounded-[var(--radius-sm)] animate-shimmer bg-[var(--surface-secondary)]" />
+              ) : (
+                <p className="text-sm text-[var(--text-secondary)]  mt-1">Viewing details for {employee.employeeName}</p>
+              )}
             </div>
           </div>
 
-      <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-sm overflow-hidden flex flex-col min-h-[600px]">
-        {/* Header with Serif Name */}
-        <div className="bg-[var(--surface-sunken)] p-6 border-b border-[var(--rule)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 relative">
-          <div className="flex items-center justify-center sm:justify-start gap-4 text-center sm:text-left flex-1">
-            <div 
+          {!employee ? (
+            <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-sm overflow-hidden p-6">
+              <PageSkeleton />
+            </div>
+          ) : (
+            <div className="bg-[var(--surface)] border border-[var(--rule)] rounded-[4px] shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+              {/* Header with Serif Name */}
+              <div className="bg-[var(--surface-sunken)] p-6 border-b border-[var(--rule)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 relative">
+                <div className="flex items-center justify-center sm:justify-start gap-4 text-center sm:text-left flex-1">
+                  <div 
               className="relative group cursor-pointer rounded-full" 
               onClick={() => canEdit && fileInputRef.current?.click()}
               title={canEdit ? "Click to change photo" : ""}
@@ -410,8 +417,9 @@ export const ViewEmployee: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
-    </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

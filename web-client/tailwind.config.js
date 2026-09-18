@@ -52,6 +52,9 @@ export default {
         'premium': '0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05)',
         'premium-hover': '0 10px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05)',
         'glow': '0 0 15px -3px rgba(99, 102, 241, 0.3)',
+      },
+      animation: {
+        pulse: 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       }
     },
   },

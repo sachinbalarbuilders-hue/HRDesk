@@ -1,4 +1,5 @@
 using HRDesk.Web.Models;
+using HRDesk.Web.Models.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
@@ -105,6 +106,7 @@ public sealed class BiometricAttendanceDbContext : DbContext
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<EmployeeExit> EmployeeExits => Set<EmployeeExit>();
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

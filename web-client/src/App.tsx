@@ -43,13 +43,13 @@ const LeaveTypesTab = lazy(() => import('./pages/settings/LeaveTypesTab').then(m
 const WorkShiftsTab = lazy(() => import('./pages/settings/WorkShiftsTab').then(m => ({ default: m.WorkShiftsTab })));
 const SubscriptionTab = lazy(() => import('./pages/settings/SubscriptionTab').then(m => ({ default: m.SubscriptionTab })));
 const AuditLogsTab = lazy(() => import('./pages/settings/AuditLogsTab').then(m => ({ default: m.AuditLogsTab })));
-const ChangePasswordTab = lazy(() => import('./pages/settings/ChangePasswordTab').then(m => ({ default: m.ChangePasswordTab })));
 const EmailSettingsTab = lazy(() => import('./pages/settings/EmailSettingsTab').then(m => ({ default: m.EmailSettingsTab })));
 const StatutorySettingsTab = lazy(() => import('./pages/settings/StatutorySettingsTab').then(m => ({ default: m.StatutorySettingsTab })));
 const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
 const EmployeeOnboarding = lazy(() => import('./pages/public/EmployeeOnboarding').then(m => ({ default: m.EmployeeOnboarding })));
 const RegisterTenant = lazy(() => import('./pages/RegisterTenant').then(m => ({ default: m.RegisterTenant })));
 const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
+const MyAccount = lazy(() => import('./pages/MyAccount').then(m => ({ default: m.MyAccount })));
 
 // ─── Full-screen animated auth loader ──────────────────────────────────────
 const AuthLoader: React.FC = () => {
@@ -218,6 +218,7 @@ export const App: React.FC = () => {
                   }
                 >
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/my-account" element={<MyAccount />} />
                   <Route
                     path="/announcements"
                     element={
@@ -459,7 +460,6 @@ export const App: React.FC = () => {
                         </ProtectedRoute>
                       }
                     />
-                    <Route path="change-password" element={<ChangePasswordTab />} />
                   </Route>
                   <Route
                     path="settings/organizations/:id"

@@ -32,7 +32,7 @@ const COMPONENT_TYPES = ['Earning', 'Deduction', 'Informational'];
 const CALCULATION_TYPES = [
   { value: 'PercentOfCTC', label: '% of Monthly CTC' },
   { value: 'PercentOfComponent', label: '% of Base Component (e.g. Basic)' },
-  { value: 'FixedAmount', label: 'â‚¹ Fixed Monthly Amount' },
+  { value: 'FixedAmount', label: '₹ Fixed Monthly Amount' },
   { value: 'Remainder', label: 'Remainder (fills CTC)' },
   { value: 'Statutory', label: 'Statutory (auto-computed)' },
 ];
@@ -214,7 +214,7 @@ export const SalaryComponentsTab: React.FC = () => {
         if (c.calculationType === 'FixedAmount') {
           return (
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
-              â‚¹{Number(c.defaultValue || 0).toLocaleString('en-IN')} / mo
+              ₹{Number(c.defaultValue || 0).toLocaleString('en-IN')} / mo
             </span>
           );
         }
@@ -232,7 +232,7 @@ export const SalaryComponentsTab: React.FC = () => {
             </span>
           );
         }
-        return <span className="text-xs text-[var(--text-secondary)]">â€”</span>;
+        return <span className="text-xs text-[var(--text-secondary)]">—</span>;
       },
     },
     {
@@ -438,7 +438,7 @@ export const SalaryComponentsTab: React.FC = () => {
                   {['PercentOfCTC', 'PercentOfComponent', 'FixedAmount'].includes(form.calculationType) && (
                     <div>
                       <label className="text-xs font-semibold text-[var(--text-secondary)] block mb-1">
-                        {form.calculationType === 'FixedAmount' ? 'Monthly Rupee Value (â‚¹) *' : 'Percentage Value (%) *'}
+                        {form.calculationType === 'FixedAmount' ? 'Monthly Rupee Value (₹) *' : 'Percentage Value (%) *'}
                       </label>
                       <div className="relative">
                         <input
@@ -452,7 +452,7 @@ export const SalaryComponentsTab: React.FC = () => {
                           className="w-full px-3 py-2 rounded-lg bg-[var(--paper)] border border-[var(--rule)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] transition-all  pr-8"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[var(--text-secondary)]">
-                          {form.calculationType === 'FixedAmount' ? 'â‚¹' : '%'}
+                          {form.calculationType === 'FixedAmount' ? '₹' : '%'}
                         </span>
                       </div>
                     </div>

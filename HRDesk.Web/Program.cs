@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -114,6 +115,19 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
         ValidIssuer = jwtIssuer
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = context =>
+        {
+            var cache = context.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+            var jti = context.Principal?.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti);
+            if (!string.IsNullOrEmpty(jti) && cache.TryGetValue(jti, out _))
+            {
+                context.Fail("Session revoked.");
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 

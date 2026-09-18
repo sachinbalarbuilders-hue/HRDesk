@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useOrganization } from '../../context/CompanyContext';
@@ -36,6 +36,7 @@ export const OrganizationsTab: React.FC = () => {
 
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
 
   const fetchData = async () => {
     try {
@@ -219,7 +220,7 @@ export const OrganizationsTab: React.FC = () => {
             {org.customDomain}
           </span>
         ) : (
-          <span className="text-[var(--text-secondary)] text-xs font-normal">â€”</span>
+          <span className="text-[var(--text-secondary)] text-xs font-normal">—</span>
         ),
     },
     {
@@ -234,7 +235,7 @@ export const OrganizationsTab: React.FC = () => {
               </span>
             </div>
           ) : (
-            <span className="text-[var(--text-secondary)] text-xs">â€”</span>
+            <span className="text-[var(--text-secondary)] text-xs">—</span>
           )}
         </div>
       ),
@@ -327,7 +328,7 @@ export const OrganizationsTab: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4 max-w-6xl ">
+    <div className="space-y-4">
       {/* KPI Top Stat Summary Chips */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="flex items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--rule)] rounded-[4px]">
@@ -399,6 +400,11 @@ export const OrganizationsTab: React.FC = () => {
         loading={loading}
         emptyMessage="No organizations found matching the selected criteria."
         keyExtractor={(item) => item.id}
+        selection={orgArchive.getSelectionConfig(
+          selectedIds,
+          setSelectedIds,
+          archiveFilter === 'archived'
+        )}
       />
       {orgArchive.dialog}
     </div>

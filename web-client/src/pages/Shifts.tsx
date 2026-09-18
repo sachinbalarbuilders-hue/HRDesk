@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useOrganization } from '../context/CompanyContext';
@@ -569,7 +569,7 @@ export const Shifts: React.FC = () => {
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className=" font-semibold text-xs px-2 text-[var(--text-primary)] whitespace-nowrap">
-                {formatDate(weekDays[0])} â€“ {formatDate(weekDays[6])}
+                {formatDate(weekDays[0])} – {formatDate(weekDays[6])}
               </span>
               <button
                 onClick={handleNextWeek}
@@ -639,7 +639,7 @@ export const Shifts: React.FC = () => {
                           <div className="font-semibold text-sm text-[var(--text-primary)]">{r.employeeName}</div>
                           <div className="text-xs font-normal text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
                             <Building2 className="w-3 h-3" />
-                            <span>{r.department} â€¢ {r.designation}</span>
+                            <span>{r.department} • {r.designation}</span>
                           </div>
                         </td>
 
@@ -705,9 +705,9 @@ export const Shifts: React.FC = () => {
                 onChange: (v) => setRequestStatusFilter(v),
                 options: [
                   { value: 'all', label: 'All Statuses' },
-                  { value: 'pending', label: 'â³ Pending Review' },
-                  { value: 'approved', label: 'âœ“ Approved' },
-                  { value: 'rejected', label: 'âœ• Rejected' },
+                  { value: 'pending', label: '⏳ Pending Review' },
+                  { value: 'approved', label: '✓ Approved' },
+                  { value: 'rejected', label: '✕ Rejected' },
                 ],
               },
             ]}
@@ -794,7 +794,7 @@ export const Shifts: React.FC = () => {
                                   ? 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
                                   : 'bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700'
                               }`}>
-                                {req.isCurrentWeekOff ? 'â˜• W/O' : req.currentShiftName}
+                                {req.isCurrentWeekOff ? '☕ W/O' : req.currentShiftName}
                               </span>
 
                               <ArrowRight size={13} className="text-[var(--text-secondary)] flex-shrink-0" />
@@ -805,13 +805,13 @@ export const Shifts: React.FC = () => {
                                   ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700'
                                   : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700'
                               }`}>
-                                {req.isRequestedWeekOff ? 'â˜• Weekly Off' : req.requestedShiftName}
+                                {req.isRequestedWeekOff ? '☕ Weekly Off' : req.requestedShiftName}
                               </span>
                             </div>
                           </td>
 
                           <td className="p-3.5 text-xs text-[var(--ink-secondary)]">
-                            <p className="line-clamp-2 italic">{req.reason || 'â€”'}</p>
+                            <p className="line-clamp-2 italic">{req.reason || '—'}</p>
                           </td>
 
                           <td className="p-3.5 text-center whitespace-nowrap">
@@ -978,7 +978,7 @@ export const Shifts: React.FC = () => {
                     onChange={(e) => setAssignDeptFilter(e.target.value)}
                     className="register-input flex-1"
                   >
-                    <option value="">â€” All Departments â€”</option>
+                    <option value="">— All Departments —</option>
                     {departments
                       .filter((d: any) => !currentBranch?.id || d.branchId == null || String(d.branchId) === String(currentBranch.id))
                       .map((d: any) => (
@@ -1112,7 +1112,7 @@ export const Shifts: React.FC = () => {
                         className="register-input"
                         required
                       >
-                        <option value={0}>â€” Select a Rotation Cycle â€”</option>
+                        <option value={0}>— Select a Rotation Cycle —</option>
                         {cycles.map((c) => (
                           <option key={c.id} value={c.id}>
                             {c.name} ({c.cycleLengthDays} days cycle)
@@ -1216,7 +1216,7 @@ export const Shifts: React.FC = () => {
                     className="register-input"
                     required
                   >
-                    <option value={0}>â€” Select Employee â€”</option>
+                    <option value={0}>— Select Employee —</option>
                     {employees.map((e) => (
                       <option key={e.employeeId} value={e.employeeId}>
                         {e.employeeName}

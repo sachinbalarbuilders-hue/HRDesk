@@ -41,13 +41,29 @@ public class GlobalSettingsApiController : ControllerBase
             .Select(s => s.SettingValue)
             .FirstOrDefaultAsync();
 
+        var exportSetting = await _db.SystemSettings
+            .Where(s => s.OrganizationId == orgId && s.SettingKey == "Allowed_Export_EmployeeIds" && s.BranchId == null)
+            .Select(s => s.SettingValue)
+            .FirstOrDefaultAsync();
+            
+        int[] allowedExportEmployeeIds = string.IsNullOrWhiteSpace(exportSetting) 
+            ? Array.Empty<int>() 
+            : exportSetting.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+
+        var allowedExportEmployees = await _db.Employees
+            .Where(e => allowedExportEmployeeIds.Contains(e.EmployeeId))
+            .Select(e => new { e.EmployeeId, e.EmployeeName, e.PhotoPath })
+            .ToListAsync();
+
         return Ok(new
         {
-            timeZone = timezone ?? "Asia/Kolkata (UTC+05:30)"
+            timeZone = timezone ?? "Asia/Kolkata (UTC+05:30)",
+            allowedExportEmployeeIds,
+            allowedExportEmployees
         });
     }
 
-    public record UpdateGlobalSettingsDto(string TimeZone);
+    public record UpdateGlobalSettingsDto(string? TimeZone, int[]? AllowedExportEmployeeIds);
 
     [HttpPut]
     public async Task<IActionResult> UpdateGlobalSettings([FromBody] UpdateGlobalSettingsDto dto)
@@ -57,23 +73,49 @@ public class GlobalSettingsApiController : ControllerBase
 
         var orgId = _tenantProvider.TenantId > 0 ? _tenantProvider.TenantId : 1;
 
-        var setting = await _db.SystemSettings
-            .FirstOrDefaultAsync(s => s.OrganizationId == orgId && s.SettingKey == "Organization_TimeZone" && s.BranchId == null);
+        if (dto.TimeZone != null)
+        {
+            var setting = await _db.SystemSettings
+                .FirstOrDefaultAsync(s => s.OrganizationId == orgId && s.SettingKey == "Organization_TimeZone" && s.BranchId == null);
 
-        if (setting == null)
-        {
-            setting = new SystemSetting
+            if (setting == null)
             {
-                OrganizationId = orgId,
-                SettingKey = "Organization_TimeZone",
-                SettingValue = dto.TimeZone,
-                Description = "Global Organization TimeZone"
-            };
-            _db.SystemSettings.Add(setting);
+                setting = new SystemSetting
+                {
+                    OrganizationId = orgId,
+                    SettingKey = "Organization_TimeZone",
+                    SettingValue = dto.TimeZone,
+                    Description = "Global Organization TimeZone"
+                };
+                _db.SystemSettings.Add(setting);
+            }
+            else
+            {
+                setting.SettingValue = dto.TimeZone;
+            }
         }
-        else
+
+        if (dto.AllowedExportEmployeeIds != null)
         {
-            setting.SettingValue = dto.TimeZone;
+            var exportSetting = await _db.SystemSettings
+                .FirstOrDefaultAsync(s => s.OrganizationId == orgId && s.SettingKey == "Allowed_Export_EmployeeIds" && s.BranchId == null);
+
+            var exportSettingValue = string.Join(",", dto.AllowedExportEmployeeIds);
+
+            if (exportSetting == null)
+            {
+                _db.SystemSettings.Add(new SystemSetting
+                {
+                    OrganizationId = orgId,
+                    SettingKey = "Allowed_Export_EmployeeIds",
+                    SettingValue = exportSettingValue,
+                    Description = "List of Employee IDs allowed to Export/Import data"
+                });
+            }
+            else
+            {
+                exportSetting.SettingValue = exportSettingValue;
+            }
         }
 
         await _db.SaveChangesAsync();

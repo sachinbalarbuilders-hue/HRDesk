@@ -335,7 +335,7 @@ export const Holidays: React.FC = () => {
       header: 'Description',
       render: (h) => (
         <span className="max-w-[240px] truncate text-xs text-[var(--text-secondary)] block" title={h.description}>
-          {h.description || 'â€”'}
+          {h.description || '—'}
         </span>
       ),
     },

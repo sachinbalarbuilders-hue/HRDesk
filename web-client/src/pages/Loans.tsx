@@ -507,7 +507,7 @@ export const Loans: React.FC = () => {
             header: 'Principal',
             render: (l) => (
               <span className=" font-semibold text-[var(--text-primary)]">
-                â‚¹{l.principalAmount.toLocaleString()}
+                ₹{l.principalAmount.toLocaleString()}
               </span>
             ),
           },
@@ -516,7 +516,7 @@ export const Loans: React.FC = () => {
             header: 'Monthly EMI',
             render: (l) => (
               <span className=" text-indigo-600 font-semibold">
-                â‚¹{l.monthlyEmi.toLocaleString()} / mo
+                ₹{l.monthlyEmi.toLocaleString()} / mo
               </span>
             ),
           },
@@ -525,7 +525,7 @@ export const Loans: React.FC = () => {
             header: 'Remaining',
             render: (l) => (
               <span className=" font-semibold text-amber-700 dark:text-amber-300">
-                â‚¹{l.remainingAmount.toLocaleString()}
+                ₹{l.remainingAmount.toLocaleString()}
               </span>
             ),
           },
@@ -697,7 +697,7 @@ export const Loans: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Principal Amount (â‚¹) *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Principal Amount (₹) *</label>
                   <input
                     type="number"
                     value={form.principalAmount}
@@ -739,7 +739,7 @@ export const Loans: React.FC = () => {
               <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between text-xs">
                 <span className="text-[var(--text-secondary)]">Calculated Monthly EMI:</span>
                 <span className="text-sm font-semibold  text-[var(--accent)]">
-                  â‚¹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
+                  ₹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
                 </span>
               </div>
 
@@ -813,7 +813,7 @@ export const Loans: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Principal Amount (â‚¹) *</label>
+                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">Principal Amount (₹) *</label>
                   <input
                     type="number"
                     value={form.principalAmount}
@@ -854,7 +854,7 @@ export const Loans: React.FC = () => {
               <div className="p-3 rounded-[4px] bg-[var(--paper)] border border-[var(--rule)] flex items-center justify-between text-xs">
                 <span className="text-[var(--text-secondary)]">Calculated Monthly EMI:</span>
                 <span className="text-sm font-semibold  text-[var(--accent)]">
-                  â‚¹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
+                  ₹{Math.round(form.principalAmount / (form.tenureMonths || 1)).toLocaleString()} / month
                 </span>
               </div>
 

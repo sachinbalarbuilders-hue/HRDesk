@@ -151,6 +151,7 @@ var summary = _attendanceSummaryService.ComputeSummary(employeeId, year, month, 
 10. **DO NOT create `IService` interfaces for single-implementation internal services.** Keep internal services as direct concrete classes to avoid interface bloat.
 11. **DO NOT expose the platform owner panel on public/guessable routes.** The platform owner panel must remain at `/ops_console` with 404 stealth cloaking and IP/key protection.
 12. **DO NOT render daily attendance activity as a right-docked sliding drawer.** It must open as a centered modal dialog (`createPortal`).
+13. **DO NOT use standard HTML `<select>` dropdowns for large datasets (e.g., employee lists).** Always use the existing `<SearchableSelect>` or `<EmployeeMultiSelect>` reusable components to ensure scalability and searchability.
 
 ---
 

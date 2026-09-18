@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 
 import { StatusApprovalDropdown } from '../components/ui/StatusApprovalDropdown';
 import { apiClient } from '../api/client';
@@ -138,7 +138,7 @@ const OffDayDatePicker: React.FC<OffDayDatePickerProps> = ({
             <span className=" text-xs text-[var(--text-primary)] truncate">
               {selectedInfo ? (
                 <>
-                  <strong className="font-semibold">{selectedInfo.formattedDate}</strong> ({selectedInfo.dayName}) â€” {selectedInfo.offType}
+                  <strong className="font-semibold">{selectedInfo.formattedDate}</strong> ({selectedInfo.dayName}) — {selectedInfo.offType}
                 </>
               ) : (
                 value
@@ -216,7 +216,7 @@ const OffDayDatePicker: React.FC<OffDayDatePickerProps> = ({
                     onChange(cell.dateStr);
                     setOpen(false);
                   }}
-                  title={`${cell.eligibleInfo.offType} ${hasPunches ? `â€¢ In: ${cell.eligibleInfo.inTime} | Out: ${cell.eligibleInfo.outTime}` : 'â€¢ Off-Day'}`}
+                  title={`${cell.eligibleInfo.offType} ${hasPunches ? `• In: ${cell.eligibleInfo.inTime} | Out: ${cell.eligibleInfo.outTime}` : '• Off-Day'}`}
                   className={`h-8 flex flex-col items-center justify-center text-xs font-normal  rounded relative transition-all cursor-pointer font-medium ${
                     isSelected
                       ? 'bg-[var(--accent)] text-white font-semibold shadow-xs'
@@ -734,7 +734,7 @@ export const CompOff: React.FC = () => {
             <span>{balanceInfo ? `${balanceInfo.pendingDays || 0}d pending` : 'Rejected requests'}</span>
             {balanceInfo?.expiringSoonDays > 0 && (
               <span className="text-amber-600 dark:text-amber-400 font-semibold" title="Expiring within 15 days">
-                âš ï¸ {balanceInfo.expiringSoonDays}d expiring soon
+                ⚠️  {balanceInfo.expiringSoonDays}d expiring soon
               </span>
             )}
           </div>
@@ -802,7 +802,7 @@ export const CompOff: React.FC = () => {
               <div>
                 <span className="font-semibold text-[var(--text-primary)] block">{req.employeeName}</span>
                 <span className="text-xs font-normal text-[var(--text-secondary)]">
-                  {req.department || 'General'} {req.branch ? `â€¢ ${req.branch}` : ''}
+                  {req.department || 'General'} {req.branch ? `• ${req.branch}` : ''}
                 </span>
               </div>
             ),
@@ -850,7 +850,7 @@ export const CompOff: React.FC = () => {
             header: 'Validity / Expiry',
             render: (req) => {
               if (req.status !== 'Approved') {
-                return <span className="text-xs font-normal text-[var(--text-secondary)]">â€”</span>;
+                return <span className="text-xs font-normal text-[var(--text-secondary)]">—</span>;
               }
               if (req.isExpired) {
                 return (
@@ -878,7 +878,7 @@ export const CompOff: React.FC = () => {
             header: 'Reason / Remarks',
             render: (req) => (
               <div className="max-w-[220px] truncate text-xs text-[var(--text-primary)]" title={req.reason}>
-                {req.reason || 'â€”'}
+                {req.reason || '—'}
               </div>
             ),
           },
@@ -994,7 +994,7 @@ export const CompOff: React.FC = () => {
                 </select>
                 {balanceInfo && (
                   <p className="text-xs font-normal text-emerald-600 dark:text-emerald-400 mt-1 ">
-                    Current Balance: {balanceInfo.balance} Day(s) â€¢ Pending: {balanceInfo.pendingDays || 0} Day(s)
+                    Current Balance: {balanceInfo.balance} Day(s) • Pending: {balanceInfo.pendingDays || 0} Day(s)
                   </p>
                 )}
               </div>

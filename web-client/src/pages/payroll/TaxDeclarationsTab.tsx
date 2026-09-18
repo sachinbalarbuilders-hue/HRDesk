@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { TaxDeclarationModal } from '../../components/payroll/TaxDeclarationModal';
 import { Form16Modal } from '../../components/payroll/Form16Modal';
 import { DataTable, type ColumnDef } from '../../components/ui/DataTable';
@@ -17,10 +18,17 @@ import { formatCurrency } from '../../utils/formatters';
 
 export const TaxDeclarationsTab: React.FC = () => {
   const { showError, showSuccess } = useToast();
+  const { user } = useAuth();
+  const canExport = user?.isPlatformUser || user?.canExport === true;
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
   const defaultFy = currentMonth >= 4 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+
+  const fyOptions = Array.from({ length: 5 }, (_, i) => {
+    const y = currentYear - 2 + i;
+    return `${y}-${y + 1}`;
+  });
 
   const [financialYear, setFinancialYear] = useState(defaultFy);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -294,12 +302,11 @@ export const TaxDeclarationsTab: React.FC = () => {
             <select
               value={financialYear}
               onChange={e => { setFinancialYear(e.target.value); setPage(1); }}
-              className="register-input h-8 py-1 px-2.5 w-auto text-sm font-semibold  cursor-pointer"
+              className="h-8 py-1 px-2.5 w-auto text-sm font-semibold cursor-pointer bg-[var(--surface)] border border-[var(--border-strong)] rounded-md focus:outline-none focus:border-[var(--accent)]"
             >
-              <option value="2024-2025">FY 2024-2025</option>
-              <option value="2025-2026">FY 2025-2026</option>
-              <option value="2026-2027">FY 2026-2027</option>
-              <option value="2027-2028">FY 2027-2028</option>
+              {fyOptions.map(fy => (
+                <option key={fy} value={fy}>FY {fy}</option>
+              ))}
             </select>
           </div>
 
@@ -309,7 +316,7 @@ export const TaxDeclarationsTab: React.FC = () => {
           <select
             value={selectedDept || ''}
             onChange={e => { setSelectedDept(e.target.value ? Number(e.target.value) : undefined); setPage(1); }}
-            className="register-input h-8 py-1 px-2.5 w-auto text-sm font-semibold cursor-pointer"
+            className="h-8 py-1 px-2.5 w-auto text-sm font-semibold cursor-pointer bg-[var(--surface)] border border-[var(--border-strong)] rounded-md focus:outline-none focus:border-[var(--accent)]"
           >
             <option value="">All Departments</option>
             {departments.map(d => (
@@ -320,14 +327,14 @@ export const TaxDeclarationsTab: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <form onSubmit={handleSearchSubmit} className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input
               type="text"
               placeholder="Search employee..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="register-input h-8 pl-8 pr-3 py-1 text-xs w-48 focus:w-64 transition-all"
+              className="h-8 pl-8 pr-3 py-1 text-xs w-48 focus:w-64 transition-all bg-[var(--surface)] border border-[var(--border-strong)] rounded-md focus:outline-none focus:border-[var(--accent)]"
             />
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           </form>
 
           <button
@@ -339,13 +346,15 @@ export const TaxDeclarationsTab: React.FC = () => {
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
 
-          <button
-            type="button"
-            onClick={exportCsv}
-            className="btn-secondary h-8 py-1 px-3 text-xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <Download size={13} /> Export CSV
-          </button>
+          {canExport && (
+            <button
+              type="button"
+              onClick={exportCsv}
+              className="btn-secondary h-8 py-1 px-3 text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download size={13} /> Export CSV
+            </button>
+          )}
         </div>
       </div>
 

@@ -38,7 +38,7 @@ export const ChangePasswordTab: React.FC = () => {
   };
 
   return (
-    <Card className="max-w-md mx-auto">
+    <Card className="max-w-2xl">
       <CardTitle>Change Password</CardTitle>
       <p className="text-xs text-[var(--text-secondary)] mt-1 mb-5">Update your account password. You'll need your current password to make changes.</p>
 

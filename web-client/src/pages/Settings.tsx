@@ -28,7 +28,6 @@ const ALL_SETTINGS_TABS: SettingsTabDef[] = [
   { id: 'subscription', label: 'Subscription & Plans', icon: <CreditCard size={14} />, path: '/settings/subscription', permission: 'System.Settings.View' },
   { id: 'audit-logs', label: 'Audit Logs', icon: <History size={14} />, path: '/settings/audit-logs', permission: 'System.Logs.View' },
   { id: 'email', label: 'Email', icon: <Mail size={14} />, path: '/settings/email', permission: 'System.Settings.View' },
-  { id: 'change-password', label: 'Password', icon: <Lock size={14} />, path: '/settings/change-password', permission: 'System.Settings.View' },
 ];
 
 export const Settings: React.FC = () => {

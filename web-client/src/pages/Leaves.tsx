@@ -473,7 +473,7 @@ export const Leaves: React.FC = () => {
                 />
               ) : (
                 <span className=" text-xs text-[var(--text-secondary)]">
-                  {app.approvedBy ? `by ${app.approvedBy}` : 'â€”'}
+                  {app.approvedBy ? `by ${app.approvedBy}` : '—'}
                 </span>
               );
             },
@@ -558,7 +558,7 @@ export const Leaves: React.FC = () => {
                   <option value="">Select Leave Type</option>
                   {(Array.isArray(leaveTypes) ? leaveTypes : []).map((t: any) => (
                     <option key={t.leaveTypeId || t.id} value={t.leaveTypeId || t.id}>
-                      {t.name} ({t.code}) {t.isPaid ? 'â€” Paid Leave' : 'â€” Unpaid'}
+                      {t.name} ({t.code}) {t.isPaid ? '— Paid Leave' : '— Unpaid'}
                     </option>
                   ))}
                 </select>

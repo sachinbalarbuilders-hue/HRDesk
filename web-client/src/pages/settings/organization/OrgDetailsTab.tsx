@@ -4,6 +4,7 @@ import { apiClient } from '../../../api/client';
 import { useToast } from '../../../context/ToastContext';
 import { Card, CardHeader, CardTitle, CardDescription } from '../../../components/ui/Card';
 import { Input } from '../../../components/ui/Input';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect';
 import {
   Save,
   Building2,
@@ -367,19 +368,20 @@ export const OrgDetailsTab: React.FC = () => {
             <label className="block text-sm font-semibold text-[var(--text-primary)] mb-1.5">
               Select Primary Contact from Employees
             </label>
-            <select
-              value={orgForm.adminEmployeeId || ''}
-              onChange={(e) => handleAdminSelect(e.target.value)}
+            <SearchableSelect
+              value={orgForm.adminEmployeeId ? String(orgForm.adminEmployeeId) : ''}
+              onChange={(val) => handleAdminSelect(val)}
               disabled={loadingEmployees}
-              className="register-input w-full text-xs"
-            >
-              <option value="">-- No Primary Contact Assigned --</option>
-              {employees.map((emp) => (
-                <option key={emp.employeeId} value={emp.employeeId}>
-                  {emp.employeeName} (EMP#{String(emp.employeeId).padStart(3, '0')}{emp.designation ? ` • ${emp.designation}` : ''}{emp.department ? ` • ${emp.department}` : ''})
-                </option>
-              ))}
-            </select>
+              placeholder="-- No Primary Contact Assigned --"
+              className="w-full text-xs"
+              options={[
+                { value: '', label: '-- No Primary Contact Assigned --' },
+                ...employees.map((emp) => ({
+                  value: String(emp.employeeId),
+                  label: emp.employeeName,
+                })),
+              ]}
+            />
             <p className="text-xs font-normal text-[var(--text-muted)] mt-1">
               Select any active employee from your organization roster.
             </p>

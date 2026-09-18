@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HRDesk.Web.Controllers.Api;
 
@@ -24,6 +25,7 @@ public class AuthController : ControllerBase
     private readonly HRDesk.Web.Services.Email.EmailService _emailService;
     private readonly HRDesk.Web.Services.Infrastructure.PlatformAdminSecurityService _platformSecurityService;
     private readonly ILogger<AuthController> _logger;
+    private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
 
     public AuthController(
         BiometricAttendanceDbContext context,
@@ -32,7 +34,8 @@ public class AuthController : ControllerBase
         TenantProvisioningService provisioningService,
         HRDesk.Web.Services.Email.EmailService emailService,
         HRDesk.Web.Services.Infrastructure.PlatformAdminSecurityService platformSecurityService,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
     {
         _context = context;
         _config = config;
@@ -41,6 +44,7 @@ public class AuthController : ControllerBase
         _emailService = emailService;
         _platformSecurityService = platformSecurityService;
         _logger = logger;
+        _cache = cache;
     }
 
     public record LoginRequest(string Username, string Password);
@@ -146,7 +150,40 @@ public class AuthController : ControllerBase
         user.LastLogin = DateTime.Now;
         await _context.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user);
+        var token = GenerateJwtToken(user, out var jti);
+
+        var userAgent = Request.Headers.UserAgent.ToString();
+        var deviceType = userAgent.Contains("Mobile") || userAgent.Contains("Android") || userAgent.Contains("iPhone") ? "Mobile Device" : "Web Browser";
+        
+        var deviceName = "Unknown Device";
+        if (userAgent.Contains("Windows")) deviceName = "Windows PC";
+        else if (userAgent.Contains("Macintosh") || userAgent.Contains("Mac OS")) deviceName = "Mac";
+        else if (userAgent.Contains("Linux")) deviceName = "Linux PC";
+        else if (userAgent.Contains("iPhone")) deviceName = "iPhone";
+        else if (userAgent.Contains("Android")) deviceName = "Android Device";
+
+        if (userAgent.Contains("Edg")) deviceName += " (Edge)";
+        else if (userAgent.Contains("Chrome")) deviceName += " (Chrome)";
+        else if (userAgent.Contains("Firefox")) deviceName += " (Firefox)";
+        else if (userAgent.Contains("Safari") && !userAgent.Contains("Chrome")) deviceName += " (Safari)";
+
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+        var location = await GetLocationFromIpAsync(ipAddress);
+
+        var session = new HRDesk.Web.Models.Entities.UserSession
+        {
+            UserId = user.Id,
+            SessionIdentifier = jti,
+            DeviceType = deviceType,
+            DeviceName = deviceName,
+            IpAddress = ipAddress,
+            Location = location,
+            IsActive = true,
+            CreatedAt = DateTime.Now,
+            LastAccessedAt = DateTime.Now
+        };
+        _context.UserSessions.Add(session);
+        await _context.SaveChangesAsync();
         var principalClaims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, user.Username),
@@ -211,7 +248,8 @@ public class AuthController : ControllerBase
                 avatarUrl = user.Employee?.PhotoPath,
                 organizationId = user.OrganizationId,
                 organizationName = user.Organization?.Name,
-                isPlatformUser = user.IsPlatformUser
+                isPlatformUser = user.IsPlatformUser,
+                canExport = await GetCanExportAsync(user)
             },
             permissions,
             permissionScopes,
@@ -256,7 +294,25 @@ public class AuthController : ControllerBase
 
         var user = result.AdminUser;
         var org = result.Organization;
-        var token = GenerateJwtToken(user);
+        var token = GenerateJwtToken(user, out var jti);
+        
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+        var location = await GetLocationFromIpAsync(ipAddress);
+        
+        var session = new HRDesk.Web.Models.Entities.UserSession
+        {
+            UserId = user.Id,
+            SessionIdentifier = jti,
+            DeviceType = "Web Browser",
+            DeviceName = "Initial Registration",
+            IpAddress = ipAddress,
+            Location = location,
+            IsActive = true,
+            CreatedAt = DateTime.Now,
+            LastAccessedAt = DateTime.Now
+        };
+        _context.UserSessions.Add(session);
+        await _context.SaveChangesAsync();
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
@@ -376,13 +432,31 @@ public class AuthController : ControllerBase
                 avatarUrl = user.Employee?.PhotoPath,
                 organizationId = user.OrganizationId,
                 organizationName = user.Organization?.Name,
-                isPlatformUser = user.IsPlatformUser
+                isPlatformUser = user.IsPlatformUser,
+                canExport = await GetCanExportAsync(user)
             },
             permissions,
             permissionScopes,
             organizations = orgs,
             organizationSuspended = isSuspended
         });
+    }
+
+    private async Task<bool> GetCanExportAsync(User user)
+    {
+        if (user.IsPlatformUser) return true;
+        var orgId = user.OrganizationId ?? 1;
+        var exportSetting = await _context.SystemSettings
+            .AsNoTracking()
+            .Where(s => s.OrganizationId == orgId && s.SettingKey == "Allowed_Export_EmployeeIds" && s.BranchId == null)
+            .Select(s => s.SettingValue)
+            .FirstOrDefaultAsync();
+            
+        var allowedExportIds = string.IsNullOrWhiteSpace(exportSetting) 
+            ? Array.Empty<int>() 
+            : exportSetting.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+
+        return user.EmployeeId.HasValue && allowedExportIds.Contains(user.EmployeeId.Value);
     }
 
     private async Task<string?> GetFormattedEmployeeCodeAsync(Employee? employee, int orgId)
@@ -591,8 +665,138 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Password changed successfully." });
     }
 
-    private string GenerateJwtToken(User user)
+    // ── Session Management ─────────────────────────────
+    [HttpGet("sessions")]
+    [Authorize]
+    public async Task<IActionResult> GetSessions()
     {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var user = await _context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Username == username);
+        if (user == null) return Unauthorized();
+
+        var currentJti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+
+        var sessions = await _context.UserSessions
+            .Where(s => s.UserId == user.Id && s.IsActive)
+            .OrderByDescending(s => s.LastAccessedAt)
+            .Select(s => new
+            {
+                id = s.Id,
+                deviceType = s.DeviceType,
+                deviceName = s.DeviceName,
+                ipAddress = s.IpAddress,
+                location = s.Location,
+                lastActive = s.LastAccessedAt,
+                isCurrentSession = s.SessionIdentifier == currentJti
+            })
+            .ToListAsync();
+
+        return Ok(sessions);
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout()
+    {
+        var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        if (!string.IsNullOrEmpty(jti))
+        {
+            var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.SessionIdentifier == jti);
+            if (session != null)
+            {
+                session.IsActive = false;
+                await _context.SaveChangesAsync();
+            }
+            // Add to in-memory blocklist
+            _cache.Set(jti, true, TimeSpan.FromDays(7));
+        }
+
+        return Ok(new { message = "Logged out successfully" });
+    }
+
+    [HttpPost("sessions/revoke/{id}")]
+    [Authorize]
+    public async Task<IActionResult> RevokeSession(int id)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var user = await _context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Username == username);
+        if (user == null) return Unauthorized();
+
+        var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == id && s.UserId == user.Id);
+        if (session == null) return NotFound(new { message = "Session not found" });
+
+        session.IsActive = false;
+        await _context.SaveChangesAsync();
+
+        _cache.Set(session.SessionIdentifier, true, TimeSpan.FromDays(7));
+
+        return Ok(new { message = "Session revoked" });
+    }
+
+    [HttpPost("sessions/revoke-all")]
+    [Authorize]
+    public async Task<IActionResult> RevokeAllSessions()
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var user = await _context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Username == username);
+        if (user == null) return Unauthorized();
+
+        var currentJti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+
+        var otherSessions = await _context.UserSessions
+            .Where(s => s.UserId == user.Id && s.IsActive && s.SessionIdentifier != currentJti)
+            .ToListAsync();
+
+        foreach (var s in otherSessions)
+        {
+            s.IsActive = false;
+            _cache.Set(s.SessionIdentifier, true, TimeSpan.FromDays(7));
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "All other sessions revoked" });
+    }
+
+    private async Task<string?> GetLocationFromIpAsync(string ip)
+    {
+        if (ip == "127.0.0.1" || ip == "::1" || ip == "Unknown" || string.IsNullOrWhiteSpace(ip))
+        {
+            return "Local Network";
+        }
+        
+        try
+        {
+            using var client = new System.Net.Http.HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(2);
+            var response = await client.GetAsync($"http://ip-api.com/json/{ip}");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                using var doc = System.Text.Json.JsonDocument.Parse(content);
+                if (doc.RootElement.TryGetProperty("status", out var status) && status.GetString() == "success")
+                {
+                    var city = doc.RootElement.GetProperty("city").GetString();
+                    var country = doc.RootElement.GetProperty("country").GetString();
+                    return $"{city}, {country}";
+                }
+            }
+        }
+        catch
+        {
+            // Ignore if geolocation fails
+        }
+        return null;
+    }
+
+    private string GenerateJwtToken(User user, out string jti)
+    {
+        jti = Guid.NewGuid().ToString();
         var jwtKey = _config["Jwt:Key"] ?? _config["JwtSettings:Secret"] ?? "YourSuperSecretKeyWithAtLeast32CharactersForHMACSHA256";
         var jwtIssuer = _config["Jwt:Issuer"] ?? "HRDesk.Web";
 
@@ -601,6 +805,7 @@ public class AuthController : ControllerBase
             new(ClaimTypes.Name, user.Username),
             new(ClaimTypes.GivenName, user.FullName ?? user.Username),
             new(ClaimTypes.Role, user.Role),
+            new(JwtRegisteredClaimNames.Jti, jti)
         };
 
         // Platform users get an explicit platform claim; org users get OrganizationId

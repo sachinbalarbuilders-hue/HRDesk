@@ -19,7 +19,7 @@ interface TplComponent { id?: number; componentId: number; calculationType: stri
 interface PreviewRow { componentCode: string; componentName: string; componentType: string; amount: number; calculationType: string; formula: string; }
 
 const CALC_TYPES = [
-  { value: 'FixedAmount', label: 'â‚¹ Fixed Amount', icon: <IndianRupee size={12} /> },
+  { value: 'FixedAmount', label: '₹ Fixed Amount', icon: <IndianRupee size={12} /> },
   { value: 'PercentOfCTC', label: '% of Monthly CTC', icon: <Percent size={12} /> },
   { value: 'PercentOfComponent', label: '% of Component', icon: <Percent size={12} /> },
   { value: 'Remainder', label: 'Remainder (fills CTC)', icon: <Equal size={12} /> },
@@ -340,7 +340,7 @@ export const SalaryTemplatesTab: React.FC = () => {
                         <td className="px-4 py-2 font-medium text-[var(--text-primary)]">{c.componentName}</td>
                         <td className="px-4 py-2 text-[var(--text-secondary)] border-l border-[var(--rule)]">{c.componentType}</td>
                         <td className="px-4 py-2  text-xs font-normal text-[var(--teal-600)] border-l border-[var(--rule)]">{
-                          c.calculationType === 'FixedAmount' ? `â‚¹${(c.value||0).toLocaleString()}/month` :
+                          c.calculationType === 'FixedAmount' ? `₹${(c.value||0).toLocaleString()}/month` :
                           c.calculationType === 'PercentOfCTC' ? `${c.value}% of Monthly CTC` :
                           c.calculationType === 'PercentOfComponent' ? `${c.value}% of ${c.baseComponentCode}` :
                           c.calculationType === 'Remainder' ? 'Monthly CTC âˆ’ other earnings' :
@@ -444,7 +444,7 @@ export const SalaryTemplatesTab: React.FC = () => {
                       >
                         {components.filter(c => c.isActive).map(c => (
                           <option key={c.id} value={c.id}>
-                            {c.componentName} ({c.componentCode}) â€” {c.componentType}
+                            {c.componentName} ({c.componentCode}) — {c.componentType}
                           </option>
                         ))}
                       </select>
@@ -464,7 +464,7 @@ export const SalaryTemplatesTab: React.FC = () => {
                           type="number"
                           value={row.value ?? ''}
                           onChange={e => updateRow(idx, 'value', e.target.value)}
-                          placeholder={row.calculationType === 'FixedAmount' ? 'â‚¹ Amount' : '% Value'}
+                          placeholder={row.calculationType === 'FixedAmount' ? '₹ Amount' : '% Value'}
                           className="w-24 px-2 py-1 rounded-[4px] bg-[var(--surface)] border border-[var(--rule)] text-xs  text-[var(--text-primary)]"
                           min={0}
                         />
@@ -526,8 +526,8 @@ export const SalaryTemplatesTab: React.FC = () => {
                           <th className="px-3 py-1.5 text-left">Component</th>
                           <th className="px-3 py-1.5 text-left">Type</th>
                           <th className="px-3 py-1.5 text-left">Formula</th>
-                          <th className="px-3 py-1.5 text-right">Monthly (â‚¹)</th>
-                          <th className="px-3 py-1.5 text-right">Annual (â‚¹)</th>
+                          <th className="px-3 py-1.5 text-right">Monthly (₹)</th>
+                          <th className="px-3 py-1.5 text-right">Annual (₹)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[var(--rule)] ">
@@ -536,8 +536,8 @@ export const SalaryTemplatesTab: React.FC = () => {
                             <td className="px-3 py-1.5 font-sans font-medium text-[var(--text-primary)]">{r.componentName}</td>
                             <td className="px-3 py-1.5 font-sans text-[var(--text-secondary)]">{r.componentType}</td>
                             <td className="px-3 py-1.5 text-[var(--teal-600)]">{r.formula}</td>
-                            <td className="px-3 py-1.5 text-right font-semibold text-[var(--text-primary)]">â‚¹{r.amount.toLocaleString()}</td>
-                            <td className="px-3 py-1.5 text-right text-[var(--text-secondary)]">â‚¹{(r.amount * 12).toLocaleString()}</td>
+                            <td className="px-3 py-1.5 text-right font-semibold text-[var(--text-primary)]">₹{r.amount.toLocaleString()}</td>
+                            <td className="px-3 py-1.5 text-right text-[var(--text-secondary)]">₹{(r.amount * 12).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>

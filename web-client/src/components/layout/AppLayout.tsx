@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { Suspense } from 'react';
 import { apiClient } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useOrganization } from '../../context/CompanyContext';
 import { useToast } from '../../context/ToastContext';
 import { Avatar } from '../ui/Avatar';
+import { SearchableSelect } from '../ui/SearchableSelect';
+import { PageSkeleton } from '../ui/PageSkeleton';
 import { NotificationDropdown } from './NotificationDropdown';
 import {
   LayoutDashboard,
@@ -55,28 +58,8 @@ export const AppLayout: React.FC = () => {
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
   const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [isGeneralSettingsOpen, setIsGeneralSettingsOpen] = useState(false);
-  
-  // Global Settings State
-  const [globalPageSize, setGlobalPageSize] = useState(() => Number(localStorage.getItem('hrdesk_default_page_size')) || 20);
-  const [dateFormat, setDateFormat] = useState(() => localStorage.getItem('hrdesk_date_format') || 'DD/MM/YYYY');
-  const [timeFormat, setTimeFormat] = useState(() => localStorage.getItem('hrdesk_time_format') || '12-Hour');
-  const [timeZone, setTimeZone] = useState(() => localStorage.getItem('hrdesk_time_zone') || 'Asia/Kolkata (UTC+05:30)');
-  const [currency, setCurrency] = useState(() => localStorage.getItem('hrdesk_currency') || 'INR');
-
   React.useEffect(() => {
-    const fetchGlobalSettings = async () => {
-      try {
-        const response = await apiClient.get('/settings/global');
-        if (response.data?.timeZone) {
-          setTimeZone(response.data.timeZone);
-          localStorage.setItem('hrdesk_time_zone', response.data.timeZone);
-        }
-      } catch (err) {
-        console.error('Failed to load global timezone settings', err);
-      }
-    };
-    fetchGlobalSettings();
+    // Left intentionally empty as logic moved to MyAccount.tsx
   }, [currentOrganization, currentBranch]);
 
   const navigation = [
@@ -173,29 +156,6 @@ export const AppLayout: React.FC = () => {
     showSuccess('Branch Switched', `Active: ${branchName}`);
   };
 
-  const handleGlobalSettingChange = async (key: string, value: string, setter: (val: string) => void, settingName: string) => {
-    setter(value);
-    localStorage.setItem(key, value);
-    
-    if (key === 'hrdesk_time_zone') {
-      try {
-        await apiClient.put('/settings/global', { timeZone: value });
-      } catch (err) {
-        console.error('Failed to save global timezone', err);
-      }
-    }
-    
-    showSuccess('Settings Saved', `${settingName} updated successfully.`);
-    setTimeout(() => window.location.reload(), 600); // Reload after toast
-  };
-
-  const handleGlobalPageSizeChange = (val: string) => {
-    const size = parseInt(val, 10);
-    setGlobalPageSize(size);
-    localStorage.setItem('hrdesk_default_page_size', size.toString());
-    showSuccess('Settings Saved', `Default table row limit set to ${size}. This will apply as you navigate.`);
-  };
-
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text-primary)]">
       {/* Mobile Overlay */}
@@ -284,8 +244,8 @@ export const AppLayout: React.FC = () => {
         {/* User Footer */}
         <div className={`border-t border-[var(--sidebar-border)] ${collapsed ? 'p-3' : 'p-4'}`}>
           <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
-            <button type="button" onClick={() => setIsGeneralSettingsOpen(true)} className="relative shrink-0 rounded-full cursor-pointer hover:ring-2 hover:ring-[var(--accent)] hover:ring-offset-2 hover:ring-offset-[var(--sidebar-bg)] transition-all">
-              <Avatar name={user?.fullName || user?.username || 'User'} size="sm" />
+            <button type="button" onClick={() => navigate('/my-account')} className="relative shrink-0 rounded-full cursor-pointer hover:ring-2 hover:ring-[var(--accent)] hover:ring-offset-2 hover:ring-offset-[var(--sidebar-bg)] transition-all">
+              <Avatar name={user?.fullName || user?.username || 'U'} size="sm" />
             </button>
             {!collapsed && (
               <div className="flex-1 min-w-0">
@@ -419,7 +379,7 @@ export const AppLayout: React.FC = () => {
 
             {/* User Avatar (mobile) */}
             <div className="lg:hidden">
-              <button type="button" onClick={() => setIsGeneralSettingsOpen(true)} className="relative shrink-0 rounded-full cursor-pointer hover:ring-2 hover:ring-[var(--accent)] hover:ring-offset-1 transition-all">
+              <button type="button" onClick={() => navigate('/my-account')} className="relative shrink-0 rounded-full cursor-pointer hover:ring-2 hover:ring-[var(--accent)] hover:ring-offset-1 transition-all">
                 <Avatar name={user?.fullName || user?.username || 'U'} size="sm" />
               </button>
             </div>
@@ -443,166 +403,15 @@ export const AppLayout: React.FC = () => {
                 </Link>
               </div>
             ) : (
-              <Outlet />
+              <Suspense fallback={<PageSkeleton />}>
+                <Outlet />
+              </Suspense>
             )}
           </div>
         </main>
       </div>
 
-      {/* General Settings Modal */}
-      {isGeneralSettingsOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-xl)] shadow-2xl max-w-2xl w-full p-6 space-y-6 relative overflow-hidden flex flex-col max-h-[90vh]">
-            <button
-              onClick={() => setIsGeneralSettingsOpen(false)}
-              className="absolute top-4 right-4 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer bg-[var(--surface-secondary)] p-1.5 rounded-md hover:bg-[var(--border)] transition-colors"
-            >
-              <X size={16} />
-            </button>
-            
-            <div className="flex flex-col items-center border-b border-[var(--border-strong)] pb-5 shrink-0">
-              <div className="w-16 h-16 rounded-full mb-3 shadow-sm border-2 border-[var(--surface-secondary)] bg-[var(--surface)] flex items-center justify-center overflow-hidden">
-                <Avatar name={user?.fullName || user?.username || 'U'} size="lg" />
-              </div>
-              <h3 className="text-xl font-semibold text-[var(--text-primary)]">{user?.fullName || user?.username}</h3>
-              <p className="text-sm font-medium text-[var(--text-secondary)]">{user?.workEmail || user?.email || user?.roleName || 'General Settings'}</p>
-            </div>
-
-            <div className="overflow-y-auto pr-2 space-y-6 flex-1 custom-scrollbar">
-              
-              {/* Row Limit */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <SlidersHorizontal size={14} className="text-[var(--text-secondary)]" />
-                  <label className="text-sm font-semibold text-[var(--text-primary)]">DataTable Row Limit</label>
-                </div>
-                <select
-                  value={globalPageSize}
-                  onChange={(e) => handleGlobalPageSizeChange(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-sm font-normal text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] hover:border-[var(--text-muted)] cursor-pointer shadow-xs transition-colors"
-                >
-                  <option value="10">10</option>
-                  <option value="20">20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                  <option value="200">200</option>
-                </select>
-                <p className="text-xs text-[var(--text-muted)] pt-0.5">
-                  This setting applies globally to all data tables in your workspace.
-                </p>
-              </div>
-
-              {/* Grid Settings */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                
-                {/* Date Format */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Calendar size={14} className="text-[var(--text-secondary)]" />
-                    <label className="text-sm font-semibold text-[var(--text-primary)]">Date Format</label>
-                  </div>
-                  <select
-                    value={dateFormat}
-                    onChange={(e) => handleGlobalSettingChange('hrdesk_date_format', e.target.value, setDateFormat, 'Date Format')}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-sm font-normal text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] hover:border-[var(--text-muted)] cursor-pointer shadow-xs transition-colors"
-                  >
-                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                    <option value="DD MMM YYYY">DD MMM YYYY</option>
-                  </select>
-                </div>
-
-                {/* Time Format */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Clock size={14} className="text-[var(--text-secondary)]" />
-                    <label className="text-sm font-semibold text-[var(--text-primary)]">Time Format</label>
-                  </div>
-                  <select
-                    value={timeFormat}
-                    onChange={(e) => handleGlobalSettingChange('hrdesk_time_format', e.target.value, setTimeFormat, 'Time Format')}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-sm font-normal text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] hover:border-[var(--text-muted)] cursor-pointer shadow-xs transition-colors"
-                  >
-                    <option value="12-Hour">12-Hour (AM/PM)</option>
-                    <option value="24-Hour">24-Hour</option>
-                  </select>
-                </div>
-
-                {/* Time Zone */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Globe size={14} className="text-[var(--text-secondary)]" />
-                    <label className="text-sm font-semibold text-[var(--text-primary)]">Time Zone</label>
-                  </div>
-                  <select
-                    value={timeZone}
-                    onChange={(e) => handleGlobalSettingChange('hrdesk_time_zone', e.target.value, setTimeZone, 'Time Zone')}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-sm font-normal text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] hover:border-[var(--text-muted)] cursor-pointer shadow-xs transition-colors"
-                  >
-                    <option value="Pacific/Midway (UTC-11:00)">Pacific/Midway (UTC-11:00)</option>
-                    <option value="Pacific/Honolulu (UTC-10:00)">Pacific/Honolulu (UTC-10:00)</option>
-                    <option value="America/Anchorage (UTC-09:00)">America/Anchorage (UTC-09:00)</option>
-                    <option value="America/Los_Angeles (UTC-08:00)">America/Los_Angeles (UTC-08:00)</option>
-                    <option value="America/Denver (UTC-07:00)">America/Denver (UTC-07:00)</option>
-                    <option value="America/Chicago (UTC-06:00)">America/Chicago (UTC-06:00)</option>
-                    <option value="America/New_York (UTC-05:00)">America/New_York (UTC-05:00)</option>
-                    <option value="America/Halifax (UTC-04:00)">America/Halifax (UTC-04:00)</option>
-                    <option value="America/Argentina/Buenos_Aires (UTC-03:00)">America/Argentina/Buenos_Aires (UTC-03:00)</option>
-                    <option value="Atlantic/South_Georgia (UTC-02:00)">Atlantic/South_Georgia (UTC-02:00)</option>
-                    <option value="Atlantic/Azores (UTC-01:00)">Atlantic/Azores (UTC-01:00)</option>
-                    <option value="UTC (UTC+00:00)">UTC (UTC+00:00)</option>
-                    <option value="Europe/London (UTC+00:00)">Europe/London (UTC+00:00)</option>
-                    <option value="Europe/Berlin (UTC+01:00)">Europe/Berlin (UTC+01:00)</option>
-                    <option value="Europe/Athens (UTC+02:00)">Europe/Athens (UTC+02:00)</option>
-                    <option value="Europe/Moscow (UTC+03:00)">Europe/Moscow (UTC+03:00)</option>
-                    <option value="Asia/Dubai (UTC+04:00)">Asia/Dubai (UTC+04:00)</option>
-                    <option value="Asia/Karachi (UTC+05:00)">Asia/Karachi (UTC+05:00)</option>
-                    <option value="Asia/Kolkata (UTC+05:30)">Asia/Kolkata (UTC+05:30)</option>
-                    <option value="Asia/Dhaka (UTC+06:00)">Asia/Dhaka (UTC+06:00)</option>
-                    <option value="Asia/Bangkok (UTC+07:00)">Asia/Bangkok (UTC+07:00)</option>
-                    <option value="Asia/Singapore (UTC+08:00)">Asia/Singapore (UTC+08:00)</option>
-                    <option value="Asia/Tokyo (UTC+09:00)">Asia/Tokyo (UTC+09:00)</option>
-                    <option value="Australia/Sydney (UTC+10:00)">Australia/Sydney (UTC+10:00)</option>
-                    <option value="Pacific/Noumea (UTC+11:00)">Pacific/Noumea (UTC+11:00)</option>
-                    <option value="Pacific/Auckland (UTC+12:00)">Pacific/Auckland (UTC+12:00)</option>
-                  </select>
-                </div>
-
-                {/* Default Currency */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <DollarSign size={14} className="text-[var(--text-secondary)]" />
-                    <label className="text-sm font-semibold text-[var(--text-primary)]">Default Currency</label>
-                  </div>
-                  <select
-                    value={currency}
-                    onChange={(e) => handleGlobalSettingChange('hrdesk_currency', e.target.value, setCurrency, 'Currency')}
-                    className="w-full px-3 py-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border-strong)] text-sm font-normal text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] hover:border-[var(--text-muted)] cursor-pointer shadow-xs transition-colors"
-                  >
-                    <option value="INR">INR (₹) - Indian Rupee</option>
-                    <option value="USD">USD ($) - US Dollar</option>
-                    <option value="EUR">EUR (€) - Euro</option>
-                    <option value="GBP">GBP (£) - British Pound</option>
-                    <option value="AED">AED (د.إ) - UAE Dirham</option>
-                  </select>
-                </div>
-
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-[var(--border-strong)] shrink-0">
-              <button 
-                onClick={handleLogout} 
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--danger-light)] text-[var(--danger)] hover:bg-rose-100 dark:hover:bg-rose-950/50 border border-transparent hover:border-rose-200 dark:hover:border-rose-800/50 font-semibold text-sm transition-all cursor-pointer"
-              >
-                <LogOut size={16} />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* General Settings modal has been migrated to /my-account */}
     </div>
   );
 };

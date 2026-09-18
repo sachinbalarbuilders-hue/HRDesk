@@ -367,7 +367,7 @@ export const WorkShiftsTab: React.FC = () => {
       header: 'Break Duration',
       align: 'center',
       className: ' text-xs text-[var(--text-secondary)]',
-      render: (item) => item.breakMinutes ? `${item.breakMinutes} mins` : 'â€”',
+      render: (item) => item.breakMinutes ? `${item.breakMinutes} mins` : '—',
     },
     {
       key: 'status',
@@ -738,7 +738,7 @@ export const WorkShiftsTab: React.FC = () => {
                 <span className="text-[var(--text-secondary)]">Calculated Working Hours:</span>
                 <span className=" font-semibold text-[var(--accent)]">
                   {(() => {
-                    if (!newShift.startTime || !newShift.endTime) return 'â€”';
+                    if (!newShift.startTime || !newShift.endTime) return '—';
                     const [sh, sm] = newShift.startTime.split(':').map(Number);
                     const [eh, em] = newShift.endTime.split(':').map(Number);
                     let spanMins = (eh * 60 + em) - (sh * 60 + sm);
@@ -796,7 +796,7 @@ export const WorkShiftsTab: React.FC = () => {
                       type="text"
                       value={cycleForm.description}
                       onChange={e => setCycleForm(f => ({ ...f, description: e.target.value }))}
-                      placeholder="Optional â€” e.g. Used for factory floor employees"
+                      placeholder="Optional — e.g. Used for factory floor employees"
                       className="register-input w-full"
                     />
                   </div>
@@ -872,7 +872,7 @@ export const WorkShiftsTab: React.FC = () => {
                             }}
                             className="register-input flex-1 text-xs"
                           >
-                            <option value="">â€” Select Shift â€”</option>
+                            <option value="">— Select Shift —</option>
                             {shifts.map(sh => (
                               <option key={sh.id} value={sh.id}>{sh.name} ({sh.code})</option>
                             ))}

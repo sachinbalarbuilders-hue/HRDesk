@@ -333,7 +333,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       header: 'Designation',
       render: (emp) => (
         <span className="text-sm font-normal text-[var(--text-secondary)]">
-          {emp.designation || <span className="text-[var(--text-muted)] italic text-xs">â€”</span>}
+          {emp.designation || <span className="text-[var(--text-muted)] italic text-xs">—</span>}
         </span>
       ),
     },
@@ -342,7 +342,7 @@ export const Employees: React.FC<EmployeesProps> = ({ defaultTab = 'directory' }
       header: 'Reporting Manager',
       render: (emp) => (
         <span className="text-sm font-normal text-[var(--text-secondary)]">
-          {emp.reportingManager || <span className="text-[var(--text-muted)] italic text-xs">â€”</span>}
+          {emp.reportingManager || <span className="text-[var(--text-muted)] italic text-xs">—</span>}
         </span>
       ),
     },

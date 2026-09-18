@@ -107,7 +107,7 @@ function renderRuleBadge(c: { calculationType?: string; value?: number | null; d
   if (type === 'FixedAmount') {
     return (
       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300">
-        â‚¹{Number(val || 0).toLocaleString('en-IN')}/mo
+        ₹{Number(val || 0).toLocaleString('en-IN')}/mo
       </span>
     );
   }
@@ -179,7 +179,7 @@ function Avatar({ emp, size = 24 }: { emp: { employeeId: number; employeeName: s
 
 function AvatarStack({ employees, maxShow = 4 }: { employees: GroupEmployee[]; maxShow?: number }) {
   if (!employees.length) {
-    return <span className="text-xs font-normal text-[var(--text-secondary)] italic">â€”</span>;
+    return <span className="text-xs font-normal text-[var(--text-secondary)] italic">—</span>;
   }
   const shown = employees.slice(0, maxShow);
   const extra = employees.length - shown.length;
@@ -745,8 +745,8 @@ export const PayGroupsTab: React.FC = () => {
                       <Switch
                         checked={form.capEmployeePf}
                         onChange={(checked) => setForm(f => ({ ...f, capEmployeePf: checked, capEmployerPf: checked }))}
-                        label="Cap PF at â‚¹15,000 ceiling"
-                        description="Limit to 12% of â‚¹15,000 (â‚¹1,800/mo) instead of uncapped basic"
+                        label="Cap PF at ₹15,000 ceiling"
+                        description="Limit to 12% of ₹15,000 (₹1,800/mo) instead of uncapped basic"
                       />
                     </div>
                   )}
