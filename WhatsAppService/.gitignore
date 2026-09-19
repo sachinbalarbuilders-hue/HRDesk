@@ -1,3 +1,9 @@
+# whatsapp-web.js (legacy — kept in case of rollback)
 .wwebjs_auth/
 .wwebjs_cache/
+.chrome_profile/
+
+# Baileys session credentials — machine-specific, never commit
+baileys_auth/
+
 test_screenshot.*
