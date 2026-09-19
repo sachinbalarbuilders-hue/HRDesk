@@ -1,245 +1,300 @@
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
+/**
+ * HRDesk WhatsApp Microservice — v2.0 (Baileys)
+ *
+ * Replaced whatsapp-web.js (Puppeteer/Chrome) with @whiskeysockets/baileys (pure WebSocket).
+ * Benefits:
+ *   - No headless Chrome needed for WhatsApp connectivity (~250 MB RAM saved)
+ *   - No "stuck initializing" — Baileys reconnects natively on disconnect/logout
+ *   - Session credentials stored as JSON files; QR scan only needed once per device link
+ *
+ * HTTP API surface is identical to v1 — no C# changes required.
+ *
+ * Poster generation (birthday/anniversary images) still uses puppeteer-core + Chrome
+ * but only for HTML-to-screenshot rendering, not for WhatsApp connectivity.
+ */
 
+import makeWASocket, {
+    useMultiFileAuthState,
+    DisconnectReason,
+    fetchLatestBaileysVersion,
+} from '@whiskeysockets/baileys';
+import express from 'express';
+import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import QRCode from 'qrcode';
+import puppeteer from 'puppeteer-core';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ---------------------------------------------------------------------------
+// Suppress Baileys' verbose pino logger — only show warnings and errors
+// ---------------------------------------------------------------------------
+const logger = {
+    level: 'silent',
+    trace: () => {},
+    debug: () => {},
+    info:  () => {},
+    warn:  (...a) => console.warn('[Baileys WARN]', ...a),
+    error: (...a) => console.error('[Baileys ERR]', ...a),
+    fatal: (...a) => console.error('[Baileys FATAL]', ...a),
+    child: () => logger,
+};
+
+// ---------------------------------------------------------------------------
+// Express setup
+// ---------------------------------------------------------------------------
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
 
-// State variables
-let qrCodeData = null;
-let clientReady = false;
-let isAuthenticated = false;
-let isResetting = false;
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+let sock            = null;
+let clientReady     = false;
+let qrCodeDataUrl   = null;   // base64 PNG data URL served to the browser
+let isResetting     = false;
+let reconnectTimer  = null;
 
-const { execSync } = require('child_process');
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+const delay = (min, max) =>
+    new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (max - min + 1) + min)));
 
-let client = null;
-let clientBrowserPid = null;
+/**
+ * Format a phone number or existing JID into a Baileys-compatible JID.
+ * Individuals: 919876543210@s.whatsapp.net
+ * Groups:      120363xxxxxx@g.us  (passed through as-is)
+ */
+const toJid = (phone) => {
+    if (phone.includes('@')) return phone;
+    let clean = phone.replace(/[^0-9]/g, '');
+    if (!clean.startsWith('91') && clean.length === 10) clean = '91' + clean;
+    return clean + '@s.whatsapp.net';
+};
 
-const killServiceChrome = () => {
-    try {
-        let pidToKill = null;
-        if (client && client.pupBrowser && client.pupBrowser.process()) {
-            pidToKill = client.pupBrowser.process().pid;
-        } else if (clientBrowserPid) {
-            pidToKill = clientBrowserPid;
-        }
+// ---------------------------------------------------------------------------
+// Poster generation — uses puppeteer-core + Chrome ONLY for HTML screenshots.
+// This is completely separate from WhatsApp connectivity.
+// ---------------------------------------------------------------------------
+const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
-        if (pidToKill && process.platform === 'win32') {
-            execSync(`taskkill /F /PID ${pidToKill} /T`, { stdio: 'ignore' });
-            console.log(`Closed WhatsApp service Chrome PID ${pidToKill}`);
-        }
-    } catch (e) {
-        // Ignored
+const generatePosterBase64 = async (html) => {
+    if (!fs.existsSync(CHROME_PATH)) {
+        console.warn('[Poster] Chrome not found at expected path. Skipping poster generation.');
+        return null;
     }
-    clientBrowserPid = null;
+    const browser = await puppeteer.launch({
+        executablePath: CHROME_PATH,
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+        ],
+    });
+    try {
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1080, height: 1080 });
+        await page.setContent(html, { waitUntil: 'load' });
+        const element = await page.$('#poster');
+        if (!element) throw new Error('#poster element not found in template');
+        const screenshotBase64 = await element.screenshot({ encoding: 'base64' });
+        await page.close();
+        return screenshotBase64;
+    } finally {
+        await browser.close();
+    }
+};
+
+// ---------------------------------------------------------------------------
+// WhatsApp — Session reset
+// ---------------------------------------------------------------------------
+const clearReconnectTimer = () => {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
 };
 
 const resetSession = async () => {
     if (isResetting) return;
     isResetting = true;
+    console.log('[WhatsApp] Resetting session...');
 
-    console.log('Resetting WhatsApp session and clearing auth storage...');
-    clientReady = false;
-    isAuthenticated = false;
-    qrCodeData = null;
+    clientReady   = false;
+    qrCodeDataUrl = null;
+    clearReconnectTimer();
 
-    if (client) {
+    if (sock) {
         try {
-            killServiceChrome();
-            await Promise.race([
-                client.destroy().catch(e => console.log('Client destroy error (ignored):', e)),
-                new Promise(resolve => setTimeout(resolve, 2000))
-            ]);
-        } catch (e) {
-            console.log('Error destroying client:', e);
-        }
+            sock.ev.removeAllListeners();
+            await sock.logout().catch(() => {});
+        } catch (_) {}
+        sock = null;
     }
-    client = null;
 
-    killServiceChrome();
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const authPath = path.join(__dirname, '.wwebjs_auth');
-    const cachePath = path.join(__dirname, '.wwebjs_cache');
-    
+    const authPath = path.join(__dirname, 'baileys_auth');
     for (let i = 0; i < 3; i++) {
         try {
             if (fs.existsSync(authPath)) {
                 fs.rmSync(authPath, { recursive: true, force: true });
-                console.log('Cleared .wwebjs_auth directory.');
-            }
-            if (fs.existsSync(cachePath)) {
-                fs.rmSync(cachePath, { recursive: true, force: true });
-                console.log('Cleared .wwebjs_cache directory.');
+                console.log('[WhatsApp] Cleared baileys_auth directory.');
             }
             break;
         } catch (e) {
-            console.error(`Attempt ${i + 1}: Failed to remove auth/cache directory (${e.message}). Retrying...`);
-            killServiceChrome();
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.error(`[WhatsApp] Attempt ${i + 1}: Failed to clear auth (${e.message}). Retrying...`);
+            await delay(1000, 1000);
         }
     }
 
     isResetting = false;
-    initClient();
+    setTimeout(connectToWhatsApp, 1000);
 };
 
-function initClient() {
-    client = new Client({
-        authStrategy: new LocalAuth(),
-        webVersionCache: {
-            type: 'local'
-        },
-        puppeteer: {
-            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--disable-gpu',
-                '--user-data-dir=' + path.join(__dirname, '.chrome_profile')
-            ],
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+// ---------------------------------------------------------------------------
+// WhatsApp — Connect
+// ---------------------------------------------------------------------------
+const connectToWhatsApp = async () => {
+    if (isResetting) return;
+
+    try {
+        const { state, saveCreds } = await useMultiFileAuthState(
+            path.join(__dirname, 'baileys_auth')
+        );
+        const { version } = await fetchLatestBaileysVersion();
+        console.log(`[WhatsApp] Connecting with WA version ${version.join('.')}`);
+
+        sock = makeWASocket({
+            version,
+            auth: state,
+            logger,
+            printQRInTerminal: false,
+            generateHighQualityLinkPreview: false,
+            // Identifies as Chrome browser to WhatsApp servers
+            browser: ['HRDesk', 'Chrome', '122.0.0.0'],
+        });
+
+        // Persist updated credentials whenever they change
+        sock.ev.on('creds.update', saveCreds);
+
+        sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
+            // New QR code available — generate a base64 PNG data URL for the browser
+            if (qr) {
+                console.log('[WhatsApp] QR code ready — scan from the WhatsApp Config page.');
+                qrCodeDataUrl = await QRCode.toDataURL(qr, {
+                    errorCorrectionLevel: 'M',
+                    scale: 8,
+                    margin: 2,
+                });
+                clientReady = false;
+            }
+
+            if (connection === 'open') {
+                console.log('[WhatsApp] Connected and ready!');
+                clientReady   = true;
+                qrCodeDataUrl = null;
+                clearReconnectTimer();
+            }
+
+            if (connection === 'close') {
+                const statusCode  = lastDisconnect?.error?.output?.statusCode;
+                const loggedOut   = statusCode === DisconnectReason.loggedOut;
+                console.log(`[WhatsApp] Connection closed. StatusCode: ${statusCode} | LoggedOut: ${loggedOut}`);
+
+                clientReady   = false;
+                qrCodeDataUrl = null;
+
+                if (loggedOut) {
+                    // User removed device from their phone — wipe credentials and get new QR
+                    console.log('[WhatsApp] Device was unlinked from phone. Requesting fresh QR...');
+                    await resetSession();
+                } else {
+                    // Transient error (network blip, server restart) — just reconnect
+                    console.log('[WhatsApp] Reconnecting in 5 seconds...');
+                    clearReconnectTimer();
+                    reconnectTimer = setTimeout(connectToWhatsApp, 5000);
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error('[WhatsApp] Failed to connect:', err.message);
+        if (!isResetting) {
+            console.log('[WhatsApp] Retrying in 10 seconds...');
+            clearReconnectTimer();
+            reconnectTimer = setTimeout(connectToWhatsApp, 10000);
         }
-    });
+    }
+};
 
-    client.on('qr', (qr) => {
-        console.log('QR RECEIVED', qr);
-        qrcode.generate(qr, { small: true });
-        qrCodeData = qr;
-        isAuthenticated = false;
-    });
+// Start WhatsApp connection on service boot
+connectToWhatsApp();
 
-    client.on('authenticated', () => {
-        console.log('AUTHENTICATED SUCCESSFULLY!');
-        isAuthenticated = true;
-        qrCodeData = null;
-    });
-
-    client.on('loading_screen', (percent, message) => {
-        console.log('LOADING SCREEN:', percent, message);
-    });
-
-    client.on('change_state', state => {
-        console.log('STATE CHANGE:', state);
-    });
-
-    client.on('ready', () => {
-        console.log('Client is ready!');
-        clientReady = true;
-        isAuthenticated = true;
-        qrCodeData = null;
-    });
-
-    client.on('auth_failure', (msg) => {
-        console.error('AUTHENTICATION FAILURE:', msg);
-        clientReady = false;
-        qrCodeData = null;
-        resetSession();
-    });
-
-    client.on('disconnected', (reason) => {
-        console.log('Client was logged out:', reason);
-        clientReady = false;
-        qrCodeData = null;
-        resetSession();
-    });
-
-    client.initialize().catch(err => {
-        console.error('Initialization error:', err);
-        clientReady = false;
-    });
-}
-
-initClient();
-
-// --- Rate Limited Message Queue ---
-const messageQueue = [];
-let isQueueProcessing = false;
-let consecutiveMessagesSent = 0;
-
-// Helper: Random delay between min and max ms
-const delay = (min, max) => new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (max - min + 1) + min)));
+// ---------------------------------------------------------------------------
+// Rate-limited message queue
+// ---------------------------------------------------------------------------
+const messageQueue          = [];
+let   isQueueProcessing     = false;
+let   consecutiveMessagesSent = 0;
 
 const processQueue = async () => {
     if (isQueueProcessing || messageQueue.length === 0) return;
     isQueueProcessing = true;
 
     while (messageQueue.length > 0) {
-        if (!clientReady) {
-            console.log('Client not ready, pausing queue for 10 seconds...');
+        if (!clientReady || !sock) {
+            console.log('[Queue] Client not ready — pausing 10 seconds...');
             await delay(10000, 10000);
             continue;
         }
 
-        // 10-minute break after every 25 messages
+        // 10-minute break after every 25 messages to avoid spam detection
         if (consecutiveMessagesSent >= 25) {
-            console.log('Taking a 10-minute break to simulate human behavior...');
-            await delay(600000, 600000); // 10 minutes
+            console.log('[Queue] Taking a 10-minute human-behaviour break...');
+            await delay(600000, 600000);
             consecutiveMessagesSent = 0;
         }
 
         const task = messageQueue.shift();
+
         try {
-            let formattedNumber = task.phone;
-            
-            // If it's not already a group or formatted id, clean it up
-            if (!formattedNumber.includes('@')) {
-                let cleanPhone = formattedNumber.replace(/[^0-9]/g, '');
-                if (!cleanPhone.startsWith('91') && cleanPhone.length === 10) {
-                    cleanPhone = '91' + cleanPhone; // Assuming India by default, adapt as needed
-                }
-                formattedNumber = `${cleanPhone}@c.us`;
-            }
-            
-            console.log(`Processing message for ${formattedNumber}...`);
-            
-            // Try to get chat to send typing indicator
+            const jid = toJid(task.phone);
+            console.log(`[Queue] Sending ${task.type} to ${jid}...`);
+
+            // Simulate typing indicator for a more human-like experience
             try {
-                const chat = await client.getChatById(formattedNumber);
-                await chat.sendStateTyping();
-                
-                // Simulate typing time (5-10 seconds)
-                console.log(`Simulating typing for ${formattedNumber}...`);
-                await delay(5000, 10000);
-                await chat.clearState();
-            } catch (err) {
-                console.log('Could not send typing indicator (chat may not exist yet)');
+                await sock.sendPresenceUpdate('composing', jid);
+                await delay(3000, 7000);
+                await sock.sendPresenceUpdate('paused', jid);
+            } catch (_) {
+                // Presence update failures are non-fatal
             }
 
             if (task.type === 'text') {
-                await client.sendMessage(formattedNumber, task.message);
+                await sock.sendMessage(jid, { text: task.message });
+
             } else if (task.type === 'celebration') {
-                // Dynamically generate poster using Puppeteer
-                console.log(`Generating poster for ${task.name}...`);
-                const templateName = task.eventType === 'Anniversary' ? 'anniversary_template.html' : 'poster_template.html';
-                const templatePath = path.join(__dirname, templateName);
-                let html = fs.readFileSync(templatePath, 'utf8');
-                
-                // Ensure photo base64 has data URI prefix
-                let photoSrc = task.photoBase64;
+                // Generate a birthday/anniversary poster as an image
+                const templateName = task.eventType === 'Anniversary'
+                    ? 'anniversary_template.html'
+                    : 'poster_template.html';
+
+                let html = fs.readFileSync(path.join(__dirname, templateName), 'utf8');
+
+                let photoSrc   = task.photoBase64 || '';
                 let dynamicCss = '';
-                
+
                 if (!photoSrc || photoSrc.trim() === '') {
-                    // No photo provided, hide the photo container and center the text
-                    photoSrc = '';
+                    photoSrc   = '';
                     dynamicCss = `
                         .photo-container, .photo-frame { display: none !important; }
-                        /* Poster Template */
                         .left-content { width: 1080px !important; }
                         .text-happy { font-size: 180px !important; }
                         .text-birthday { font-size: 110px !important; margin-top: -20px !important; }
                         .text-message { font-size: 32px !important; max-width: 800px !important; line-height: 1.8 !important; }
-                        /* Anniversary Template */
                         .content { justify-content: center !important; padding-top: 0 !important; }
                         .headline { font-size: 100px !important; margin-bottom: 30px !important; }
                         .name { font-size: 55px !important; margin-top: 30px !important; }
@@ -249,172 +304,135 @@ const processQueue = async () => {
                 } else if (!photoSrc.startsWith('data:image')) {
                     photoSrc = 'data:image/jpeg;base64,' + photoSrc;
                 }
-                
-                html = html.replace('{{THEME}}', task.eventType)
-                           .replace('{{PHOTO_BASE64}}', photoSrc)
-                           .replace('{{EMPLOYEE_NAME}}', task.name)
-                           .replace('{{EVENT_TYPE}}', task.eventType)
-                           .replace('{{YEARS}}', task.years || '')
-                           .replace('{{DYNAMIC_CSS}}', dynamicCss);
-                           
-                const browser = client.pupBrowser;
-                const page = await browser.newPage();
-                // Set viewport to match the poster size
-                await page.setViewport({ width: 1080, height: 1080 });
-                await page.setContent(html, { waitUntil: 'load' }); // Fast load since image is base64
-                
-                const element = await page.$('#poster');
-                const screenshotBase64 = await element.screenshot({ encoding: 'base64' });
-                await page.close();
-                
-                const media = new MessageMedia('image/png', screenshotBase64, 'celebration.png');
-                const options = {};
-                if (task.caption) options.caption = task.caption;
-                
-                await client.sendMessage(formattedNumber, media, options);
-            } else if (task.type === 'document' || task.type === 'image') {
-                // message is base64 string
-                const media = new MessageMedia(task.mimetype, task.message, task.filename);
-                const isDocument = task.type === 'document';
-                
-                const options = { sendMediaAsDocument: isDocument };
-                if (task.caption) {
-                    options.caption = task.caption;
+
+                html = html
+                    .replace('{{THEME}}',         task.eventType)
+                    .replace('{{PHOTO_BASE64}}',   photoSrc)
+                    .replace('{{EMPLOYEE_NAME}}',  task.name)
+                    .replace('{{EVENT_TYPE}}',     task.eventType)
+                    .replace('{{YEARS}}',          task.years || '')
+                    .replace('{{DYNAMIC_CSS}}',    dynamicCss);
+
+                const screenshotBase64 = await generatePosterBase64(html);
+
+                if (screenshotBase64) {
+                    const msgOpts = { image: Buffer.from(screenshotBase64, 'base64'), mimetype: 'image/png' };
+                    if (task.caption) msgOpts.caption = task.caption;
+                    await sock.sendMessage(jid, msgOpts);
+                } else {
+                    // Fallback if Chrome isn't available — send as text
+                    const fallbackText = task.caption || `🎉 Happy ${task.eventType}, ${task.name}! 🎂`;
+                    await sock.sendMessage(jid, { text: fallbackText });
+                    console.warn('[Queue] Poster generation failed — sent text fallback instead.');
                 }
-                
-                await client.sendMessage(formattedNumber, media, options);
+
+            } else if (task.type === 'document') {
+                const msgOpts = {
+                    document: Buffer.from(task.message, 'base64'),
+                    mimetype:  task.mimetype,
+                    fileName:  task.filename,
+                };
+                if (task.caption) msgOpts.caption = task.caption;
+                await sock.sendMessage(jid, msgOpts);
+
+            } else if (task.type === 'image') {
+                const msgOpts = {
+                    image:    Buffer.from(task.message, 'base64'),
+                    mimetype: task.mimetype,
+                };
+                if (task.caption) msgOpts.caption = task.caption;
+                await sock.sendMessage(jid, msgOpts);
             }
 
-            console.log(`Successfully sent message to ${formattedNumber}`);
+            console.log(`[Queue] ✓ Sent to ${jid}`);
             consecutiveMessagesSent++;
 
-            // Removed delay for testing
             if (messageQueue.length > 0) {
-                console.log(`Queue length: ${messageQueue.length}`);
+                console.log(`[Queue] Remaining: ${messageQueue.length}`);
             }
 
-        } catch (error) {
-            console.error(`Failed to send message to ${task.phone}:`, error);
+        } catch (err) {
+            console.error(`[Queue] ✗ Failed to send to ${task.phone}:`, err.message);
         }
     }
 
     isQueueProcessing = false;
 };
 
-// --- API Endpoints ---
+// ---------------------------------------------------------------------------
+// API Endpoints — identical surface to v1; C# code unchanged
+// ---------------------------------------------------------------------------
 
-// Get Groups (Helper to find Group IDs)
+/** GET /groups — list all WhatsApp groups the linked account is in */
 app.get('/groups', async (req, res) => {
-    if (!clientReady || !client) {
-        return res.json({ count: 0, groups: [], error: 'WhatsApp client is synchronizing. Please wait a moment.' });
+    if (!clientReady || !sock) {
+        return res.json({ count: 0, groups: [], error: 'WhatsApp client is not ready. Please wait.' });
     }
-    
     try {
-        const page = client.pupPage || (client.pupBrowser ? (await client.pupBrowser.pages())[0] : null);
-        if (!page) {
-            return res.json({ count: 0, groups: [], error: 'Puppeteer page not accessible.' });
-        }
-
-        // Method 1: Direct extract from WAWebCollections inside Chrome (bypasses serialization errors)
-        let groups = await page.evaluate(() => {
-            try {
-                let models = [];
-                if (window.require && typeof window.require === 'function') {
-                    try {
-                        const collections = window.require('WAWebCollections');
-                        if (collections && collections.Chat) {
-                            models = collections.Chat.getModelsArray() || [];
-                        }
-                    } catch (e) {}
-                }
-
-                if (!models || models.length === 0) {
-                    models = (window.Store && window.Store.Chat) ? (window.Store.Chat.models || window.Store.Chat._models || []) : [];
-                }
-
-                return models
-                    .filter(c => {
-                        if (!c || !c.id) return false;
-                        const idStr = c.id._serialized || (typeof c.id === 'string' ? c.id : '');
-                        return c.isGroup || (c.id && c.id.server === 'g.us') || idStr.endsWith('@g.us');
-                    })
-                    .map(c => {
-                        const idStr = c.id._serialized || (typeof c.id === 'string' ? c.id : '');
-                        const title = c.name || c.formattedTitle || c.title || (c.contact ? c.contact.name : null) || 'Unnamed Group';
-                        return { name: title, id: idStr };
-                    })
-                    .filter(g => g.id && g.id.endsWith('@g.us'));
-            } catch (err) {
-                return [];
-            }
-        });
-
-        // Method 2: Fallback to client.getChats() if WAWebCollections direct query returned 0
-        if (!groups || groups.length === 0) {
-            try {
-                const chats = await client.getChats();
-                groups = (chats || [])
-                    .filter(chat => chat && (chat.isGroup || (chat.id && chat.id._serialized && chat.id._serialized.endsWith('@g.us'))))
-                    .map(chat => ({
-                        name: chat.name || chat.formattedTitle || 'Unnamed Group',
-                        id: (chat.id && chat.id._serialized) ? chat.id._serialized : String(chat.id)
-                    }))
-                    .filter(g => g.id && g.id.endsWith('@g.us'));
-            } catch (e) {}
-        }
-
-        console.log(`[GET /groups] Successfully retrieved ${groups ? groups.length : 0} WhatsApp groups.`);
-        return res.json({ count: groups ? groups.length : 0, groups: groups || [] });
-    } catch (error) {
-        console.error('[GET /groups] Error fetching groups:', error.message);
-        return res.json({ count: 0, groups: [], error: String(error.message || error) });
+        const groupsObj = await sock.groupFetchAllParticipating();
+        const groups = Object.entries(groupsObj).map(([id, meta]) => ({
+            id,
+            name: meta.subject || 'Unnamed Group',
+        }));
+        console.log(`[GET /groups] Found ${groups.length} groups.`);
+        return res.json({ count: groups.length, groups });
+    } catch (err) {
+        console.error('[GET /groups] Error:', err.message);
+        return res.json({ count: 0, groups: [], error: err.message });
     }
 });
 
-// Get Status
+/** GET /status — quick ready check + queue length */
 app.get('/status', (req, res) => {
-    res.json({ ready: clientReady || isAuthenticated, queueLength: messageQueue.length });
+    res.json({ ready: clientReady, queueLength: messageQueue.length });
 });
 
-// Get QR Code
+/**
+ * GET /qr — status + QR code data URL.
+ * Response shape is identical to v1.
+ * qr field is now a base64 PNG data URL (e.g. "data:image/png;base64,...")
+ * instead of a raw QR string — the browser renders it with a simple <img> tag.
+ */
 app.get('/qr', (req, res) => {
     if (clientReady) {
         return res.json({ status: 'connected' });
     }
-    if (isAuthenticated) {
-        return res.json({ status: 'authenticated' });
-    }
-    if (qrCodeData) {
-        return res.json({ status: 'qr_ready', qr: qrCodeData });
+    if (qrCodeDataUrl) {
+        return res.json({ status: 'qr_ready', qr: qrCodeDataUrl });
     }
     return res.json({ status: 'initializing' });
 });
 
-// Reset Session / Unlink Device
+/** POST /reset — wipe credentials and reconnect with fresh QR */
 app.post('/reset', (req, res) => {
     res.json({ success: true, message: 'Session reset initiated.' });
     resetSession();
 });
 
-// Send Message (adds to queue)
+/** POST /send — add a message to the rate-limited queue */
 app.post('/send', (req, res) => {
-    const { phone, message, type = 'text', filename, mimetype, caption, name, eventType, photoBase64, years } = req.body;
-    
-    // For celebrations, we might not have a message body immediately
+    const {
+        phone, message, type = 'text',
+        filename, mimetype, caption,
+        name, eventType, photoBase64, years,
+    } = req.body;
+
     if (!phone || (!message && type !== 'celebration')) {
         return res.status(400).json({ error: 'phone and message are required' });
     }
 
-    // Add to queue
     messageQueue.push({ phone, message, type, filename, mimetype, caption, name, eventType, photoBase64, years });
-    
-    // Start processing if not already running
     processQueue();
 
     res.json({ success: true, message: 'Message added to rate-limited queue', queuePosition: messageQueue.length });
 });
 
+// ---------------------------------------------------------------------------
+// Start server
+// ---------------------------------------------------------------------------
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`WhatsApp Microservice running on port ${PORT}`);
+    console.log(`[Server] HRDesk WhatsApp Service v2.0 (Baileys) running on port ${PORT}`);
+    console.log(`[Server] No Chrome required for WhatsApp connectivity.`);
+    console.log(`[Server] QR code will appear on the WhatsApp Config page within ~10 seconds.`);
 });

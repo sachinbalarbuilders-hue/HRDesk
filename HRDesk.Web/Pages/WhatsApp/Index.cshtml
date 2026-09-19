@@ -23,23 +23,23 @@
                         </div>
                     }
 
-                    <div class="alert @(Model.WhatsAppStatus == "connected" ? "alert-success" : (Model.WhatsAppStatus == "authenticated" ? "alert-info" : "alert-warning"))" role="alert">
-                        <strong>Status:</strong> 
+                    <div class="alert @(Model.WhatsAppStatus == "connected" ? "alert-success" : (Model.WhatsAppStatus == "qr_ready" ? "alert-warning" : "alert-secondary"))" role="alert">
+                        <strong>Status:</strong>&nbsp;
                         @if (Model.WhatsAppStatus == "connected")
                         {
-                            <span>Connected & Ready</span>
-                        }
-                        else if (Model.WhatsAppStatus == "authenticated")
-                        {
-                            <span><span class="spinner-border spinner-border-sm me-2" role="status"></span>Authenticated! Syncing WhatsApp chats...</span>
+                            <span><i class="bi bi-check-circle-fill text-success me-1"></i>Connected &amp; Ready</span>
                         }
                         else if (Model.WhatsAppStatus == "qr_ready")
                         {
-                            <span>Awaiting QR Scan</span>
+                            <span><i class="bi bi-qr-code me-1"></i>Awaiting QR Scan</span>
+                        }
+                        else if (Model.WhatsAppStatus == "initializing")
+                        {
+                            <span><span class="spinner-border spinner-border-sm me-2" role="status"></span>Initializing... (auto-refreshing)</span>
                         }
                         else if (Model.WhatsAppStatus == "disconnected")
                         {
-                            <span>Disconnected (Is the Node.js service running?)</span>
+                            <span><i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>Disconnected — Is the Node.js service running?</span>
                         }
                         else
                         {
@@ -51,76 +51,57 @@
                     {
                         <div class="card border-success mt-4">
                             <div class="card-body">
-                                <h5>Queue Status</h5>
+                                <h5><i class="bi bi-check2-all text-success me-2"></i>Queue Status</h5>
                                 <p>There are currently <strong>@Model.QueueLength</strong> messages in the outgoing queue.</p>
-                                <p class="text-muted small">Messages are sent slowly (30-60s delay) to prevent bans.</p>
+                                <p class="text-muted small">Messages are sent with a human-like delay to prevent blocks.</p>
                             </div>
-                        </div>
-                    }
-                    else if (Model.WhatsAppStatus == "authenticated")
-                    {
-                        <div class="card border-info mt-4 text-center p-4">
-                            <div class="spinner-border text-info mx-auto mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-                            <h5>Device Paired Successfully!</h5>
-                            <p class="text-muted mb-0">Synchronizing WhatsApp session... Page will refresh automatically.</p>
                         </div>
                     }
                     else if (Model.WhatsAppStatus == "qr_ready" && !string.IsNullOrEmpty(Model.QrCodeData))
                     {
                         <div class="card mt-4 text-center p-4">
                             <h5>Scan to Link Device</h5>
-                            <p class="text-muted">Open WhatsApp on your phone, go to Linked Devices, and scan this code.</p>
-                            <div id="qrcode" class="d-flex justify-content-center my-3"></div>
-                            
-                            <p class="small text-muted mt-2">Scanning automatically detects when phone connects.</p>
+                            <p class="text-muted">Open WhatsApp on your phone → <strong>Linked Devices</strong> → <strong>Link a Device</strong> → scan this QR code.</p>
+                            <div class="d-flex justify-content-center my-3">
+                                @* QR code is now a pre-rendered PNG from the Node.js service — no client-side library needed *@
+                                <img src="@Model.QrCodeData" alt="WhatsApp QR Code" style="width:256px;height:256px;border:4px solid #e5e7eb;border-radius:12px;" />
+                            </div>
+                            <p class="small text-muted mt-2">This page refreshes every 3.5 seconds. The QR code expires after 60 seconds — a new one will appear automatically.</p>
+                        </div>
+                    }
+                    else if (Model.WhatsAppStatus == "initializing")
+                    {
+                        <div class="card border-secondary mt-4 text-center p-4">
+                            <div class="spinner-border text-secondary mx-auto mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+                            <h5>Starting WhatsApp Session</h5>
+                            <p class="text-muted mb-0">Connecting to WhatsApp servers... A QR code will appear shortly.</p>
                         </div>
                     }
 
                     <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="fw-bold mb-1">Unlinked Device or Stuck Status?</h6>
-                            <p class="text-muted small mb-0">If you removed the device from WhatsApp on your phone or status is stuck on 'initializing', reset the session to generate a fresh QR code.</p>
+                            <p class="text-muted small mb-0">If you removed the device from WhatsApp on your phone, click Reset to generate a fresh QR code.</p>
                         </div>
-                        <form method="post" asp-page-handler="ResetSession" onsubmit="return confirm('This will clear stored WhatsApp session tokens and generate a new QR code. Proceed?')">
+                        <form method="post" asp-page-handler="ResetSession" onsubmit="return confirm('This will clear the stored WhatsApp session and generate a new QR code. Proceed?')">
                             <button type="submit" class="btn btn-outline-danger btn-sm">
-                                <i class="bi bi-arrow-clockwise me-1"></i>Reset & Relink Device
+                                <i class="bi bi-arrow-clockwise me-1"></i>Reset &amp; Relink Device
                             </button>
                         </form>
                     </div>
 
                 </div>
             </div>
-
-
-
         </div>
     </div>
 </div>
 
 @section Scripts {
-    @if (Model.WhatsAppStatus == "initializing" || Model.WhatsAppStatus == "authenticated" || Model.WhatsAppStatus == "qr_ready")
+    @if (Model.WhatsAppStatus == "initializing" || Model.WhatsAppStatus == "qr_ready")
     {
         <script>
-            setTimeout(function() {
-                window.location.reload();
-            }, 3500);
-        </script>
-    }
-    @if (Model.WhatsAppStatus == "qr_ready" && !string.IsNullOrEmpty(Model.QrCodeData))
-    {
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-        <script>
-            document.addEventListener("DOMContentLoaded", function() {
-                var qrData = "@Html.Raw(Model.QrCodeData)";
-                new QRCode(document.getElementById("qrcode"), {
-                    text: qrData,
-                    width: 256,
-                    height: 256,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.M
-                });
-            });
+            // Auto-refresh while waiting for QR or connection
+            setTimeout(function () { window.location.reload(); }, 3500);
         </script>
     }
 }
