@@ -37,8 +37,9 @@ if '%errorlevel%' NEQ '0' (
         mkdir "%SERVICE_DIR%"
     )
 
-    :: Copy index.js, package.json, install_service.js
+    :: Copy index.js, index.mjs, package.json, install_service.js
     xcopy "%SOURCE_DIR%\index.js" "%SERVICE_DIR%\" /Y /Q
+    xcopy "%SOURCE_DIR%\index.mjs" "%SERVICE_DIR%\" /Y /Q
     xcopy "%SOURCE_DIR%\package.json" "%SERVICE_DIR%\" /Y /Q
     xcopy "%SOURCE_DIR%\install_service.js" "%SERVICE_DIR%\" /Y /Q
     xcopy "%SOURCE_DIR%\*.html" "%SERVICE_DIR%\" /Y /Q

@@ -1,20 +1,21 @@
-{
-  "name": "whatsappservice",
-  "version": "2.0.0",
-  "description": "HRDesk WhatsApp microservice — powered by Baileys (no Chrome for WhatsApp)",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.18",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "puppeteer-core": "^25.11.0",
-    "qrcode": "^1.5.4"
-  }
+﻿{
+    "name":  "whatsappservice",
+    "version":  "2.0.0",
+    "description":  "HRDesk WhatsApp microservice â€” powered by Baileys (no Chrome for WhatsApp)",
+    "main":  "index.js",
+    "scripts":  {
+                    "start":  "node index.js"
+                },
+    "keywords":  [
+
+                 ],
+    "author":  "",
+    "license":  "ISC",
+    "dependencies":  {
+                         "@whiskeysockets/baileys":  "^6.7.18",
+                         "cors":  "^2.8.6",
+                         "express":  "^5.2.1",
+                         "puppeteer-core":  "^25.11.0",
+                         "qrcode":  "^1.5.4"
+                     }
 }
