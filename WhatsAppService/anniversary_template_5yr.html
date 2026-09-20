@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; }
         html, body {
             margin: 0; padding: 0;
             width: 100%; height: 100%;
-            background-color: #041a17;
+            background-color: #0a110f;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -19,117 +19,231 @@
             width: 1080px; height: 1080px;
             flex: 0 0 auto;
             position: relative;
-            background: radial-gradient(circle at 50% 30%, #0c433b 0%, #062b25 55%, #031815 100%);
+            background: #0d1614;
             box-sizing: border-box;
             overflow: hidden;
             font-family: 'Plus Jakarta Sans', sans-serif;
             color: #FFFFFF;
         }
 
-        /* Gold Corner Borders */
-        .corner-border {
+        /* Subtle Architectural Ambient Lighting */
+        .ambient-light {
             position: absolute;
-            width: 60px;
-            height: 60px;
-            border: 2px solid #D4AF37;
-            z-index: 2;
+            top: -150px;
+            right: -100px;
+            width: 650px;
+            height: 650px;
+            background: radial-gradient(circle, rgba(197, 168, 128, 0.13) 0%, rgba(13, 22, 20, 0) 70%);
+            z-index: 1;
         }
-        .cb-tl { top: 35px; left: 35px; border-right: none; border-bottom: none; }
-        .cb-tr { top: 35px; right: 35px; border-left: none; border-bottom: none; }
-        .cb-bl { bottom: 35px; left: 35px; border-right: none; border-top: none; }
-        .cb-br { bottom: 35px; right: 35px; border-left: none; border-top: none; }
-
-        .inner-frame {
+        .ambient-light-bottom {
             position: absolute;
-            inset: 45px;
-            border: 1px solid rgba(212, 175, 55, 0.25);
+            bottom: -150px;
+            left: -100px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(46, 117, 89, 0.10) 0%, rgba(13, 22, 20, 0) 70%);
+            z-index: 1;
+        }
+
+        /* Watermark Background Number */
+        .watermark-num {
+            position: absolute;
+            right: -10px;
+            bottom: 40px;
+            font-family: 'Cinzel', serif;
+            font-size: 520px;
+            font-weight: 900;
+            line-height: 1;
+            color: rgba(255, 255, 255, 0.025);
             pointer-events: none;
-            z-index: 2;
+            z-index: 1;
+            user-select: none;
         }
 
-        .content {
+        /* Outer Frame Lines */
+        .frame-line-top {
+            position: absolute;
+            top: 45px; left: 50px; right: 50px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(197, 168, 128, 0.6) 0%, rgba(197, 168, 128, 0.1) 60%, transparent 100%);
+            z-index: 5;
+        }
+        .frame-line-bottom {
+            position: absolute;
+            bottom: 45px; left: 50px; right: 50px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(197, 168, 128, 0.2) 40%, rgba(197, 168, 128, 0.6) 100%);
+            z-index: 5;
+        }
+
+        .container {
             position: relative;
             z-index: 10;
             width: 100%;
             height: 100%;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 55px 70px 45px 70px;
-            text-align: center;
+            padding: 60px 65px;
         }
 
-        /* Milestone Crest */
-        .milestone-crest {
+        /* Top Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding-bottom: 25px;
+        }
+        .header-brand {
+            font-family: 'Cinzel', serif;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 5px;
+            color: #C5A880;
+            text-transform: uppercase;
+        }
+        .header-meta {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #7E928A;
+        }
+
+        /* Main Hero Grid */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            align-items: center;
+            justify-content: space-between;
+            gap: 50px;
+            margin-top: 10px;
+        }
+
+        /* Left Editorial Column */
+        .editorial-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .milestone-tag {
             display: inline-flex;
             align-items: center;
-            gap: 12px;
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
-            border: 1px solid #D4AF37;
-            padding: 9px 32px;
-            border-radius: 40px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            margin-bottom: 20px;
+            gap: 10px;
+            border: 1px solid rgba(197, 168, 128, 0.45);
+            background: rgba(197, 168, 128, 0.08);
+            padding: 8px 20px;
+            border-radius: 4px;
+            margin-bottom: 24px;
         }
-        .milestone-crest span {
+        .milestone-tag .tag-dot {
+            width: 6px;
+            height: 6px;
+            background: #C5A880;
+            border-radius: 50%;
+        }
+        .milestone-tag .tag-text {
             font-family: 'Cinzel', serif;
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 700;
-            letter-spacing: 4px;
+            letter-spacing: 3px;
+            color: #E2D1B3;
             text-transform: uppercase;
-            color: #F3E5AB;
         }
 
-        /* Headline */
+        .title-sub {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #7E928A;
+            margin-bottom: 8px;
+        }
+
         .headline {
-            font-family: 'Cinzel', serif;
+            font-family: 'Playfair Display', serif;
             font-size: 52px;
             font-weight: 700;
             line-height: 1.15;
-            letter-spacing: 2px;
             color: #FFFFFF;
-            margin: 0 0 8px 0;
+            margin: 0 0 24px 0;
+            letter-spacing: -0.5px;
         }
-        .headline .gold-accent {
-            background: linear-gradient(135deg, #FFF0B3 0%, #D4AF37 50%, #AA820A 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: block;
-            font-size: 64px;
-            letter-spacing: 3px;
-            margin-top: 4px;
+        .headline .gold-text {
+            color: #C5A880;
+            font-style: italic;
         }
 
-        /* Photo Frame - Hexagon / Shield inspired */
-        .photo-wrapper {
+        .name-banner {
+            border-left: 3px solid #C5A880;
+            padding-left: 20px;
+            margin-bottom: 24px;
+        }
+        .employee-name {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 800;
+            font-size: 38px;
+            letter-spacing: -0.5px;
+            color: #FFFFFF;
+            line-height: 1.1;
+        }
+        .employee-tenure {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #C5A880;
+            margin-top: 5px;
+        }
+
+        .message-body {
+            font-size: 17px;
+            line-height: 1.7;
+            color: #9EAEA6;
+            max-width: 500px;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        .gratitude-badge {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #5C7067;
+        }
+
+        /* Right Portrait Column */
+        .portrait-col {
             position: relative;
-            width: 360px;
-            height: 360px;
-            margin: 15px 0 22px 0;
+            width: 420px;
+            height: 560px;
+            flex-shrink: 0;
         }
-        .photo-glow {
+        .portrait-backdrop {
             position: absolute;
-            inset: -12px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(212, 175, 55, 0.35) 0%, rgba(212, 175, 55, 0) 70%);
+            inset: -8px;
+            border-radius: 20px;
+            border: 1px solid rgba(197, 168, 128, 0.35);
+            background: linear-gradient(135deg, rgba(197, 168, 128, 0.12) 0%, transparent 60%);
+            z-index: 1;
         }
-        .photo-outer-border {
-            position: absolute;
-            inset: -4px;
-            border-radius: 50%;
-            border: 3px dashed rgba(212, 175, 55, 0.6);
-        }
-        .photo-inner {
+        .portrait-card {
             position: relative;
             width: 100%;
             height: 100%;
-            border-radius: 50%;
-            border: 6px solid #D4AF37;
+            border-radius: 16px;
             overflow: hidden;
-            background: #0B2B24;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            background: #141F1C;
+            z-index: 2;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .photo-inner img {
+        .portrait-card img {
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -137,77 +251,71 @@
             display: block;
         }
 
-        /* Medal Badge */
-        .medal-badge {
+        /* Minimalist Modern Pill Badge on Portrait */
+        .portrait-tenure-badge {
             position: absolute;
-            bottom: 0px;
-            right: 15px;
-            background: linear-gradient(135deg, #D4AF37 0%, #997300 100%);
-            color: #062925;
-            width: 88px;
-            height: 88px;
-            border-radius: 50%;
-            border: 4px solid #FFFFFF;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(13, 22, 20, 0.90);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(197, 168, 128, 0.4);
+            border-radius: 12px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+        }
+        .ptb-left {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
         }
-        .medal-badge .medal-num {
+        .ptb-num {
             font-family: 'Cinzel', serif;
-            font-size: 34px;
-            font-weight: 900;
+            font-size: 28px;
+            font-weight: 800;
+            color: #C5A880;
             line-height: 1;
         }
-        .medal-badge .medal-text {
-            font-family: 'Cinzel', serif;
+        .ptb-label {
             font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        /* Name */
-        .name {
-            font-family: 'Playfair Display', serif;
             font-weight: 700;
-            font-size: 46px;
-            letter-spacing: 0.5px;
-            color: #FFFFFF;
-            margin: 0 0 12px 0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #7E928A;
+            margin-top: 2px;
+        }
+        .ptb-right {
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #E2E8F0;
         }
 
-        /* Message */
-        .message-box {
-            max-width: 830px;
-            font-size: 19px;
-            line-height: 1.65;
-            color: #D1E7DD;
-            font-weight: 400;
-            margin: 0 auto;
-        }
-
-        /* Brand Footer */
+        /* Footer */
         .footer {
-            margin-top: auto;
             display: flex;
             align-items: center;
-            gap: 16px;
-            padding-top: 15px;
+            justify-content: space-between;
+            width: 100%;
+            padding-top: 20px;
         }
-        .footer-line {
-            width: 70px;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #D4AF37, transparent);
-        }
-        .footer-brand {
-            font-family: 'Cinzel', serif;
-            font-size: 23px;
-            font-weight: 800;
-            letter-spacing: 6px;
+        .footer-left {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            color: #D4AF37;
+            color: #5C7067;
+        }
+        .footer-right {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #C5A880;
         }
 
         {{DYNAMIC_CSS}}
@@ -215,45 +323,59 @@
 </head>
 <body>
     <div id="poster">
-        <div class="corner-border cb-tl"></div>
-        <div class="corner-border cb-tr"></div>
-        <div class="corner-border cb-bl"></div>
-        <div class="corner-border cb-br"></div>
-        <div class="inner-frame"></div>
+        <div class="ambient-light"></div>
+        <div class="ambient-light-bottom"></div>
+        <div class="watermark-num">05</div>
+        <div class="frame-line-top"></div>
+        <div class="frame-line-bottom"></div>
 
-        <div class="content">
-            <div class="milestone-crest">
-                <span>✦ Half a Decade Milestone ✦</span>
-            </div>
+        <div class="container">
+            <header class="header">
+                <div class="header-brand">Balar Builders</div>
+                <div class="header-meta">Half-Decade Honors</div>
+            </header>
 
-            <h1 class="headline">
-                Honoring 5 Glorious Years
-                <span class="gold-accent">Of Leadership & Loyalty</span>
-            </h1>
+            <div class="main-layout">
+                <div class="editorial-col">
+                    <div class="milestone-tag">
+                        <span class="tag-dot"></span>
+                        <span class="tag-text">Half a Decade Milestone</span>
+                    </div>
 
-            <div class="photo-wrapper">
-                <div class="photo-glow"></div>
-                <div class="photo-outer-border"></div>
-                <div class="photo-inner">
-                    <img src="{{PHOTO_BASE64}}" alt="Employee Photo">
+                    <div class="title-sub">Work Anniversary</div>
+                    <h1 class="headline">Honoring <span class="gold-text">5 Years</span> of Excellence</h1>
+
+                    <div class="name-banner">
+                        <div class="employee-name">{{EMPLOYEE_NAME}}</div>
+                        <div class="employee-tenure">Key Contributor • 5 Years Completed</div>
+                    </div>
+
+                    <p class="message-body">
+                        Celebrating half a decade of extraordinary commitment, craftsmanship, and leadership. Your passion, perseverance, and dedication are a true cornerstone of our growth and the pride of our company.
+                    </p>
+
+                    <div class="gratitude-badge">Presented with gratitude by the Balar Builders Family</div>
                 </div>
-                <div class="medal-badge">
-                    <span class="medal-num">5</span>
-                    <span class="medal-text">Years</span>
+
+                <div class="portrait-col photo-wrapper">
+                    <div class="portrait-backdrop"></div>
+                    <div class="portrait-card">
+                        <img src="{{PHOTO_BASE64}}" alt="Employee Portrait">
+                    </div>
+                    <div class="portrait-tenure-badge">
+                        <div class="ptb-left">
+                            <span class="ptb-num">05</span>
+                            <span class="ptb-label">Years of Service</span>
+                        </div>
+                        <div class="ptb-right">Key Pillar</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="name">{{EMPLOYEE_NAME}}</div>
-
-            <div class="message-box">
-                Celebrating half a decade of extraordinary commitment! Thank you for 5 remarkable years of passion, perseverance, and leadership. You are a true cornerstone of our growth and the pride of Balar Builders.
-            </div>
-
-            <div class="footer">
-                <div class="footer-line"></div>
-                <div class="footer-brand">Balar Builders</div>
-                <div class="footer-line"></div>
-            </div>
+            <footer class="footer">
+                <div class="footer-left">Building Excellence With Trust</div>
+                <div class="footer-right">Balar Builders Group</div>
+            </footer>
         </div>
     </div>
 </body>

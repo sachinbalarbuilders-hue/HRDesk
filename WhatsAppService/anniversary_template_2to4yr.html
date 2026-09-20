@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; }
         html, body {
             margin: 0; padding: 0;
             width: 100%; height: 100%;
-            background-color: #0b1522;
+            background-color: #080f1a;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -19,111 +19,231 @@
             width: 1080px; height: 1080px;
             flex: 0 0 auto;
             position: relative;
-            background: linear-gradient(145deg, #091524 0%, #0F253E 60%, #153254 100%);
+            background: #0b1422;
             box-sizing: border-box;
             overflow: hidden;
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             color: #FFFFFF;
         }
 
-        /* Ambient Glow & Grid */
-        .ambient-glow {
+        /* Subtle Architectural Ambient Lighting */
+        .ambient-light {
             position: absolute;
-            top: -100px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: -150px;
+            right: -100px;
             width: 650px;
-            height: 350px;
-            background: radial-gradient(ellipse, rgba(230, 169, 45, 0.22) 0%, rgba(15, 37, 62, 0) 70%);
+            height: 650px;
+            background: radial-gradient(circle, rgba(230, 168, 92, 0.13) 0%, rgba(11, 20, 34, 0) 70%);
             z-index: 1;
         }
-
-        /* Subtle Geometric Background Elements */
-        .geo-circle {
+        .ambient-light-bottom {
             position: absolute;
-            border-radius: 50%;
-            border: 1px solid rgba(255, 215, 0, 0.12);
+            bottom: -150px;
+            left: -100px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(40, 75, 120, 0.15) 0%, rgba(11, 20, 34, 0) 70%);
             z-index: 1;
         }
-        .gc-1 { width: 580px; height: 580px; top: 180px; left: 50%; transform: translateX(-50%); }
-        .gc-2 { width: 720px; height: 720px; top: 110px; left: 50%; transform: translateX(-50%); }
 
-        .content {
+        /* Watermark Background Number */
+        .watermark-num {
+            position: absolute;
+            right: -10px;
+            bottom: 40px;
+            font-family: 'Cinzel', serif;
+            font-size: 520px;
+            font-weight: 900;
+            line-height: 1;
+            color: rgba(255, 255, 255, 0.025);
+            pointer-events: none;
+            z-index: 1;
+            user-select: none;
+        }
+
+        /* Outer Frame Lines */
+        .frame-line-top {
+            position: absolute;
+            top: 45px; left: 50px; right: 50px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(230, 168, 92, 0.6) 0%, rgba(230, 168, 92, 0.1) 60%, transparent 100%);
+            z-index: 5;
+        }
+        .frame-line-bottom {
+            position: absolute;
+            bottom: 45px; left: 50px; right: 50px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(230, 168, 92, 0.2) 40%, rgba(230, 168, 92, 0.6) 100%);
+            z-index: 5;
+        }
+
+        .container {
             position: relative;
             z-index: 10;
             width: 100%;
             height: 100%;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 50px 70px 45px 70px;
-            text-align: center;
+            padding: 60px 65px;
         }
 
-        /* Top Milestone Badge */
-        .milestone-badge {
-            display: inline-flex;
+        /* Top Header */
+        .header {
+            display: flex;
             align-items: center;
-            gap: 12px;
-            background: rgba(255, 255, 255, 0.06);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(246, 194, 62, 0.35);
-            padding: 10px 28px;
-            border-radius: 100px;
-            margin-bottom: 22px;
+            justify-content: space-between;
+            width: 100%;
+            padding-bottom: 25px;
         }
-        .milestone-badge .icon {
-            color: #F6C23E;
-            font-size: 16px;
+        .header-brand {
+            font-family: 'Cinzel', serif;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 5px;
+            color: #E6A85C;
+            text-transform: uppercase;
         }
-        .milestone-badge .text {
-            font-size: 16px;
-            font-weight: 700;
+        .header-meta {
+            font-size: 13px;
+            font-weight: 600;
             letter-spacing: 3px;
             text-transform: uppercase;
-            color: #F6C23E;
+            color: #7D8FAD;
         }
 
-        /* Headline */
+        /* Main Hero Grid */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            align-items: center;
+            justify-content: space-between;
+            gap: 50px;
+            margin-top: 10px;
+        }
+
+        /* Left Editorial Column */
+        .editorial-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .milestone-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(230, 168, 92, 0.45);
+            background: rgba(230, 168, 92, 0.08);
+            padding: 8px 20px;
+            border-radius: 4px;
+            margin-bottom: 24px;
+        }
+        .milestone-tag .tag-dot {
+            width: 6px;
+            height: 6px;
+            background: #E6A85C;
+            border-radius: 50%;
+        }
+        .milestone-tag .tag-text {
+            font-family: 'Cinzel', serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #F2C48D;
+            text-transform: uppercase;
+        }
+
+        .title-sub {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #7D8FAD;
+            margin-bottom: 8px;
+        }
+
         .headline {
             font-family: 'Playfair Display', serif;
-            font-size: 58px;
+            font-size: 52px;
             font-weight: 700;
-            line-height: 1.1;
-            margin: 0 0 10px 0;
+            line-height: 1.15;
             color: #FFFFFF;
+            margin: 0 0 24px 0;
+            letter-spacing: -0.5px;
         }
         .headline .gold-text {
-            background: linear-gradient(135deg, #FFE082 0%, #FFB300 50%, #FFA000 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #E6A85C;
             font-style: italic;
         }
 
-        /* Photo Frame with Luxury Gold Border */
-        .photo-wrapper {
+        .name-banner {
+            border-left: 3px solid #E6A85C;
+            padding-left: 20px;
+            margin-bottom: 24px;
+        }
+        .employee-name {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 800;
+            font-size: 38px;
+            letter-spacing: -0.5px;
+            color: #FFFFFF;
+            line-height: 1.1;
+        }
+        .employee-tenure {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #E6A85C;
+            margin-top: 5px;
+        }
+
+        .message-body {
+            font-size: 17px;
+            line-height: 1.7;
+            color: #A3B3CD;
+            max-width: 500px;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        .gratitude-badge {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #556B8A;
+        }
+
+        /* Right Portrait Column */
+        .portrait-col {
             position: relative;
-            width: 370px;
-            height: 370px;
-            margin: 15px 0 25px 0;
+            width: 420px;
+            height: 560px;
+            flex-shrink: 0;
         }
-        .photo-outer-ring {
+        .portrait-backdrop {
             position: absolute;
-            inset: -10px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #F6C23E, rgba(246, 194, 62, 0.2), #F6C23E);
-            box-shadow: 0 0 35px rgba(246, 194, 62, 0.25);
+            inset: -8px;
+            border-radius: 20px;
+            border: 1px solid rgba(230, 168, 92, 0.35);
+            background: linear-gradient(135deg, rgba(230, 168, 92, 0.12) 0%, transparent 60%);
+            z-index: 1;
         }
-        .photo-inner {
+        .portrait-card {
             position: relative;
             width: 100%;
             height: 100%;
-            border-radius: 50%;
-            border: 6px solid #091524;
+            border-radius: 16px;
             overflow: hidden;
-            background: #1E293B;
+            background: #111D30;
+            z-index: 2;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .photo-inner img {
+        .portrait-card img {
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -131,65 +251,71 @@
             display: block;
         }
 
-        /* Tenure Pill below/on photo */
-        .tenure-tag {
+        /* Minimalist Modern Pill Badge on Portrait */
+        .portrait-tenure-badge {
             position: absolute;
-            bottom: -5px;
-            right: 15px;
-            background: linear-gradient(135deg, #FFB300 0%, #E65100 100%);
-            color: #FFFFFF;
-            padding: 8px 24px;
-            border-radius: 50px;
-            border: 4px solid #091524;
-            font-weight: 800;
-            font-size: 20px;
-            letter-spacing: 1px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(11, 20, 34, 0.90);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(230, 168, 92, 0.4);
+            border-radius: 12px;
+            padding: 14px 20px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: space-between;
+            z-index: 10;
         }
-
-        /* Employee Name */
-        .name {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 800;
-            font-size: 46px;
-            letter-spacing: -0.5px;
-            color: #FFFFFF;
-            margin: 0 0 12px 0;
-        }
-
-        /* Appreciation Quote */
-        .message-box {
-            max-width: 820px;
-            font-size: 20px;
-            line-height: 1.6;
-            color: #CBD5E1;
-            font-weight: 400;
-            margin: 0 auto;
-        }
-
-        /* Brand Footer */
-        .footer {
-            margin-top: auto;
+        .ptb-left {
             display: flex;
-            align-items: center;
-            gap: 15px;
-            padding-top: 15px;
+            flex-direction: column;
         }
-        .footer-line {
-            width: 60px;
-            height: 1px;
-            background: rgba(246, 194, 62, 0.4);
-        }
-        .footer-brand {
-            font-family: 'Outfit', sans-serif;
-            font-size: 22px;
+        .ptb-num {
+            font-family: 'Cinzel', serif;
+            font-size: 28px;
             font-weight: 800;
-            letter-spacing: 5px;
+            color: #E6A85C;
+            line-height: 1;
+        }
+        .ptb-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            color: #F6C23E;
+            color: #7D8FAD;
+            margin-top: 2px;
+        }
+        .ptb-right {
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #E2E8F0;
+        }
+
+        /* Footer */
+        .footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding-top: 20px;
+        }
+        .footer-left {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #556B8A;
+        }
+        .footer-right {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #E6A85C;
         }
 
         {{DYNAMIC_CSS}}
@@ -197,40 +323,59 @@
 </head>
 <body>
     <div id="poster">
-        <div class="ambient-glow"></div>
-        <div class="geo-circle gc-1"></div>
-        <div class="geo-circle gc-2"></div>
+        <div class="ambient-light"></div>
+        <div class="ambient-light-bottom"></div>
+        <div class="watermark-num">{{YEARS}}</div>
+        <div class="frame-line-top"></div>
+        <div class="frame-line-bottom"></div>
 
-        <div class="content">
-            <div class="milestone-badge">
-                <span class="icon">✦</span>
-                <span class="text">Celebrating Excellence</span>
-                <span class="icon">✦</span>
-            </div>
+        <div class="container">
+            <header class="header">
+                <div class="header-brand">Balar Builders</div>
+                <div class="header-meta">Anniversary Honors</div>
+            </header>
 
-            <h1 class="headline">Honoring <span class="gold-text">{{YEARS}} Years</span> of Dedication</h1>
+            <div class="main-layout">
+                <div class="editorial-col">
+                    <div class="milestone-tag">
+                        <span class="tag-dot"></span>
+                        <span class="tag-text">Sustained Excellence</span>
+                    </div>
 
-            <div class="photo-wrapper">
-                <div class="photo-outer-ring"></div>
-                <div class="photo-inner">
-                    <img src="{{PHOTO_BASE64}}" alt="Employee Photo">
+                    <div class="title-sub">Work Anniversary</div>
+                    <h1 class="headline">Honoring <span class="gold-text">{{YEARS}} Years</span> of Excellence</h1>
+
+                    <div class="name-banner">
+                        <div class="employee-name">{{EMPLOYEE_NAME}}</div>
+                        <div class="employee-tenure">Valued Professional • {{YEARS}} Years Completed</div>
+                    </div>
+
+                    <p class="message-body">
+                        Thank you for your sustained commitment, skill, and loyalty over the past {{YEARS}} years. Your hard work, passion, and positive attitude continue to build our foundation and inspire the team every day.
+                    </p>
+
+                    <div class="gratitude-badge">Presented with gratitude by the Balar Builders Family</div>
                 </div>
-                <div class="tenure-tag">
-                    <span>{{YEARS}}</span> Years
+
+                <div class="portrait-col photo-wrapper">
+                    <div class="portrait-backdrop"></div>
+                    <div class="portrait-card">
+                        <img src="{{PHOTO_BASE64}}" alt="Employee Portrait">
+                    </div>
+                    <div class="portrait-tenure-badge">
+                        <div class="ptb-left">
+                            <span class="ptb-num">{{YEARS}}</span>
+                            <span class="ptb-label">Years of Service</span>
+                        </div>
+                        <div class="ptb-right">Core Team</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="name">{{EMPLOYEE_NAME}}</div>
-
-            <div class="message-box">
-                Thank you for your sustained commitment, skill, and loyalty over the past {{YEARS}} years. Your hard work, passion, and positive attitude continue to build our foundation and inspire the team every day.
-            </div>
-
-            <div class="footer">
-                <div class="footer-line"></div>
-                <div class="footer-brand">Balar Builders</div>
-                <div class="footer-line"></div>
-            </div>
+            <footer class="footer">
+                <div class="footer-left">Building Excellence With Trust</div>
+                <div class="footer-right">Balar Builders Group</div>
+            </footer>
         </div>
     </div>
 </body>
