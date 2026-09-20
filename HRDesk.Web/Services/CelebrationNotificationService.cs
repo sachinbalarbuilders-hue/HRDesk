@@ -246,7 +246,23 @@ The entire *Balar Builders* family wishes you a day filled with joy, good health
                         }
                     }
                     
-                    var caption = $"Congratulations, {employee.EmployeeName}, on your work anniversary! It's a special day to celebrate your great work and dedication to your job over the past year. The entire *Balar Builders* family appreciates all that you have done and wishes you all the best for many more successful years to come!";
+                    string caption;
+                    if (years == 1)
+                    {
+                        caption = $"🎉 Happy 1st Work Anniversary, {employee.EmployeeName}! Congratulations on completing a fantastic first year with us. The entire *Balar Builders* family appreciates your enthusiasm and hard work, and we look forward to many more milestones together! 🌟";
+                    }
+                    else if (years >= 2 && years < 5)
+                    {
+                        caption = $"🏆 Congratulations, {employee.EmployeeName}, on your {years}-year work anniversary! It's a special day to celebrate your great work and dedication to your job over the past {years} years. The entire *Balar Builders* family appreciates all that you have done and wishes you all the best for many more successful years to come! 🚀";
+                    }
+                    else if (years >= 5 && years < 10)
+                    {
+                        caption = $"✨ Half a Decade Milestone! Happy {years}th Work Anniversary, {employee.EmployeeName}! Celebrating extraordinary loyalty, leadership, and outstanding contributions. The entire *Balar Builders* family salutes your journey and wishes you continued success! 🎖️";
+                    }
+                    else
+                    {
+                        caption = $"👑 A Decade of Excellence! Heartiest congratulations, {employee.EmployeeName}, on completing {years} years of outstanding dedication with Balar Builders! A true pillar of our family, thank you for your unwavering loyalty, leadership, and invaluable contributions! 🏛️💎";
+                    }
                     
                     // Send to Node.js microservice to generate HTML/Puppeteer poster
                     bool anniversarySent = await whatsappProvider.SendCelebrationAsync(groupId, employee.EmployeeName, "Anniversary", photoBase64, caption, years);

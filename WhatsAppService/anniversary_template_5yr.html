@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #041a17;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #poster {
+            width: 1080px; height: 1080px;
+            flex: 0 0 auto;
+            position: relative;
+            background: radial-gradient(circle at 50% 30%, #0c433b 0%, #062b25 55%, #031815 100%);
+            box-sizing: border-box;
+            overflow: hidden;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #FFFFFF;
+        }
+
+        /* Gold Corner Borders */
+        .corner-border {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid #D4AF37;
+            z-index: 2;
+        }
+        .cb-tl { top: 35px; left: 35px; border-right: none; border-bottom: none; }
+        .cb-tr { top: 35px; right: 35px; border-left: none; border-bottom: none; }
+        .cb-bl { bottom: 35px; left: 35px; border-right: none; border-top: none; }
+        .cb-br { bottom: 35px; right: 35px; border-left: none; border-top: none; }
+
+        .inner-frame {
+            position: absolute;
+            inset: 45px;
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 55px 70px 45px 70px;
+            text-align: center;
+        }
+
+        /* Milestone Crest */
+        .milestone-crest {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+            border: 1px solid #D4AF37;
+            padding: 9px 32px;
+            border-radius: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+        .milestone-crest span {
+            font-family: 'Cinzel', serif;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #F3E5AB;
+        }
+
+        /* Headline */
+        .headline {
+            font-family: 'Cinzel', serif;
+            font-size: 52px;
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: 2px;
+            color: #FFFFFF;
+            margin: 0 0 8px 0;
+        }
+        .headline .gold-accent {
+            background: linear-gradient(135deg, #FFF0B3 0%, #D4AF37 50%, #AA820A 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: block;
+            font-size: 64px;
+            letter-spacing: 3px;
+            margin-top: 4px;
+        }
+
+        /* Photo Frame - Hexagon / Shield inspired */
+        .photo-wrapper {
+            position: relative;
+            width: 360px;
+            height: 360px;
+            margin: 15px 0 22px 0;
+        }
+        .photo-glow {
+            position: absolute;
+            inset: -12px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.35) 0%, rgba(212, 175, 55, 0) 70%);
+        }
+        .photo-outer-border {
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 3px dashed rgba(212, 175, 55, 0.6);
+        }
+        .photo-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 6px solid #D4AF37;
+            overflow: hidden;
+            background: #0B2B24;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+        .photo-inner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            display: block;
+        }
+
+        /* Medal Badge */
+        .medal-badge {
+            position: absolute;
+            bottom: 0px;
+            right: 15px;
+            background: linear-gradient(135deg, #D4AF37 0%, #997300 100%);
+            color: #062925;
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            border: 4px solid #FFFFFF;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+        }
+        .medal-badge .medal-num {
+            font-family: 'Cinzel', serif;
+            font-size: 34px;
+            font-weight: 900;
+            line-height: 1;
+        }
+        .medal-badge .medal-text {
+            font-family: 'Cinzel', serif;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Name */
+        .name {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 46px;
+            letter-spacing: 0.5px;
+            color: #FFFFFF;
+            margin: 0 0 12px 0;
+        }
+
+        /* Message */
+        .message-box {
+            max-width: 830px;
+            font-size: 19px;
+            line-height: 1.65;
+            color: #D1E7DD;
+            font-weight: 400;
+            margin: 0 auto;
+        }
+
+        /* Brand Footer */
+        .footer {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-top: 15px;
+        }
+        .footer-line {
+            width: 70px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #D4AF37, transparent);
+        }
+        .footer-brand {
+            font-family: 'Cinzel', serif;
+            font-size: 23px;
+            font-weight: 800;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            color: #D4AF37;
+        }
+
+        {{DYNAMIC_CSS}}
+    </style>
+</head>
+<body>
+    <div id="poster">
+        <div class="corner-border cb-tl"></div>
+        <div class="corner-border cb-tr"></div>
+        <div class="corner-border cb-bl"></div>
+        <div class="corner-border cb-br"></div>
+        <div class="inner-frame"></div>
+
+        <div class="content">
+            <div class="milestone-crest">
+                <span>✦ Half a Decade Milestone ✦</span>
+            </div>
+
+            <h1 class="headline">
+                Honoring 5 Glorious Years
+                <span class="gold-accent">Of Leadership & Loyalty</span>
+            </h1>
+
+            <div class="photo-wrapper">
+                <div class="photo-glow"></div>
+                <div class="photo-outer-border"></div>
+                <div class="photo-inner">
+                    <img src="{{PHOTO_BASE64}}" alt="Employee Photo">
+                </div>
+                <div class="medal-badge">
+                    <span class="medal-num">5</span>
+                    <span class="medal-text">Years</span>
+                </div>
+            </div>
+
+            <div class="name">{{EMPLOYEE_NAME}}</div>
+
+            <div class="message-box">
+                Celebrating half a decade of extraordinary commitment! Thank you for 5 remarkable years of passion, perseverance, and leadership. You are a true cornerstone of our growth and the pride of Balar Builders.
+            </div>
+
+            <div class="footer">
+                <div class="footer-line"></div>
+                <div class="footer-brand">Balar Builders</div>
+                <div class="footer-line"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

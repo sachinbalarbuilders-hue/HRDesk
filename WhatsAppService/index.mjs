@@ -278,9 +278,21 @@ const processQueue = async () => {
 
             } else if (task.type === 'celebration') {
                 // Generate a birthday/anniversary poster as an image
-                const templateName = task.eventType === 'Anniversary'
-                    ? 'anniversary_template.html'
-                    : 'poster_template.html';
+                let templateName = 'poster_template.html';
+                if (task.eventType === 'Anniversary') {
+                    const yrs = parseInt(task.years, 10) || 1;
+                    if (yrs === 1) {
+                        templateName = 'anniversary_template_1yr.html';
+                    } else if (yrs >= 2 && yrs < 5) {
+                        templateName = 'anniversary_template_2to4yr.html';
+                    } else if (yrs >= 5 && yrs < 10) {
+                        templateName = 'anniversary_template_5yr.html';
+                    } else if (yrs >= 10) {
+                        templateName = 'anniversary_template_10yr.html';
+                    } else {
+                        templateName = 'anniversary_template.html';
+                    }
+                }
 
                 let html = fs.readFileSync(path.join(__dirname, templateName), 'utf8');
 
@@ -290,28 +302,28 @@ const processQueue = async () => {
                 if (!photoSrc || photoSrc.trim() === '') {
                     photoSrc   = '';
                     dynamicCss = `
-                        .photo-container, .photo-frame { display: none !important; }
+                        .photo-container, .photo-frame, .photo-wrapper { display: none !important; }
                         .left-content { width: 1080px !important; }
                         .text-happy { font-size: 180px !important; }
                         .text-birthday { font-size: 110px !important; margin-top: -20px !important; }
                         .text-message { font-size: 32px !important; max-width: 800px !important; line-height: 1.8 !important; }
                         .content { justify-content: center !important; padding-top: 0 !important; }
-                        .headline { font-size: 100px !important; margin-bottom: 30px !important; }
-                        .name { font-size: 55px !important; margin-top: 30px !important; }
-                        .message { font-size: 26px !important; max-width: 800px !important; line-height: 1.8 !important; }
-                        .footer { position: absolute !important; bottom: 30px !important; margin-top: 0 !important; }
+                        .headline { font-size: 75px !important; margin-bottom: 25px !important; }
+                        .name { font-size: 55px !important; margin: 25px 0 !important; }
+                        .message-box, .message { font-size: 26px !important; max-width: 860px !important; line-height: 1.8 !important; }
+                        .footer { position: absolute !important; bottom: 35px !important; margin-top: 0 !important; }
                     `;
                 } else if (!photoSrc.startsWith('data:image')) {
                     photoSrc = 'data:image/jpeg;base64,' + photoSrc;
                 }
 
                 html = html
-                    .replace('{{THEME}}',         task.eventType)
-                    .replace('{{PHOTO_BASE64}}',   photoSrc)
-                    .replace('{{EMPLOYEE_NAME}}',  task.name)
-                    .replace('{{EVENT_TYPE}}',     task.eventType)
-                    .replace('{{YEARS}}',          task.years || '')
-                    .replace('{{DYNAMIC_CSS}}',    dynamicCss);
+                    .replaceAll('{{THEME}}',         task.eventType || '')
+                    .replaceAll('{{PHOTO_BASE64}}',   photoSrc)
+                    .replaceAll('{{EMPLOYEE_NAME}}',  task.name || '')
+                    .replaceAll('{{EVENT_TYPE}}',     task.eventType || '')
+                    .replaceAll('{{YEARS}}',          (task.years !== undefined && task.years !== null) ? String(task.years) : '')
+                    .replaceAll('{{DYNAMIC_CSS}}',    dynamicCss);
 
                 const screenshotBase64 = await generatePosterBase64(html);
 
