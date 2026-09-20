@@ -83,6 +83,22 @@ namespace HRDesk.Web.Services
             var db = scope.ServiceProvider.GetRequiredService<BiometricAttendanceDbContext>();
             var whatsappProvider = scope.ServiceProvider.GetRequiredService<IWhatsAppProvider>();
 
+            // ── Pre-flight: only proceed if WhatsApp is actually connected ──────────
+            // The /send endpoint always returns HTTP 200 (queued), even when WhatsApp
+            // is disconnected. If we wrote the CelebrationLog on a queued-but-not-
+            // delivered message, the log would block all future retries for that day.
+            // By checking connection first, we ensure the log is only written after
+            // the message has a real chance of being delivered.
+            var (waStatus, _, _) = await whatsappProvider.GetStatusAsync();
+            if (waStatus != "connected")
+            {
+                _logger.LogWarning(
+                    "WhatsApp is not connected (status: {Status}). Skipping celebrations — will retry in 5 minutes.",
+                    waStatus);
+                return false; // triggers the 5-minute retry loop in ExecuteAsync
+            }
+            // ─────────────────────────────────────────────────────────────────────────
+
             // Get today's logs to prevent duplicates
             var todaysLogs = await db.CelebrationLogs
                 .IgnoreQueryFilters()
