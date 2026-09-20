@@ -246,7 +246,7 @@ The entire *Balar Builders* family wishes you a day filled with joy, good health
                         }
                     }
                     
-                    var caption = $"Congratulations, {employee.EmployeeName}, on your work anniversary! The entire *Balar Builders* family celebrates your dedication and hard work. Wishing you many more successful years to come!";
+                    var caption = $"Congratulations, {employee.EmployeeName}, on your work anniversary! It's a special day to celebrate your great work and dedication to your job over the past year. The entire *Balar Builders* family appreciates all that you have done and wishes you all the best for many more successful years to come!";
                     
                     // Send to Node.js microservice to generate HTML/Puppeteer poster
                     bool anniversarySent = await whatsappProvider.SendCelebrationAsync(groupId, employee.EmployeeName, "Anniversary", photoBase64, caption, years);
