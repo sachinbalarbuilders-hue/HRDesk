@@ -302,16 +302,16 @@ const processQueue = async () => {
                 if (!photoSrc || photoSrc.trim() === '') {
                     photoSrc   = '';
                     dynamicCss = `
-                        .photo-container, .photo-frame, .photo-wrapper { display: none !important; }
+                        .photo-container, .photo-frame, .photo-wrapper, .portrait-col { display: none !important; }
                         .left-content { width: 1080px !important; }
                         .text-happy { font-size: 180px !important; }
                         .text-birthday { font-size: 110px !important; margin-top: -20px !important; }
                         .text-message { font-size: 32px !important; max-width: 800px !important; line-height: 1.8 !important; }
                         .content { justify-content: center !important; padding-top: 0 !important; }
-                        .headline { font-size: 75px !important; margin-bottom: 25px !important; }
-                        .name { font-size: 55px !important; margin: 25px 0 !important; }
-                        .message-box, .message { font-size: 26px !important; max-width: 860px !important; line-height: 1.8 !important; }
-                        .footer { position: absolute !important; bottom: 35px !important; margin-top: 0 !important; }
+                        .main-layout { justify-content: center !important; }
+                        .editorial-col { align-items: center !important; text-align: center !important; max-width: 850px !important; margin: 0 auto !important; }
+                        .name-banner { border-left: none !important; padding-left: 0 !important; text-align: center !important; }
+                        .message-body { text-align: center !important; max-width: 750px !important; font-size: 22px !important; line-height: 1.8 !important; }
                     `;
                 } else if (!photoSrc.startsWith('data:image')) {
                     photoSrc = 'data:image/jpeg;base64,' + photoSrc;
@@ -333,7 +333,7 @@ const processQueue = async () => {
                     await sock.sendMessage(jid, msgOpts);
                 } else {
                     // Fallback if Chrome isn't available — send as text
-                    const fallbackText = task.caption || `🎉 Happy ${task.eventType}, ${task.name}! 🎂`;
+                    const fallbackText = task.caption || `Happy ${task.eventType}, ${task.name}!`;
                     await sock.sendMessage(jid, { text: fallbackText });
                     console.warn('[Queue] Poster generation failed — sent text fallback instead.');
                 }
